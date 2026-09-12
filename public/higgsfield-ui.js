@@ -1,9 +1,55 @@
 (() => {
   const CAPS = ['video-generation','reels-video','image-to-video','text-to-video'];
   const CLOUD_URL = 'https://cloud.higgsfield.ai';
+  const AUTO_TEST_INTERVAL_MS = 15 * 60 * 1000;
+  const AUTO_TEST_RETRY_MS = 60 * 1000;
+  let autoTestTimer = null;
+  let autoTestInFlight = false;
+  let lastAutoTestAt = 0;
+  let lastCredentialId = null;
 
   function higgsfieldCredential(rows = []) {
     return rows.find(x => String(x.provider || '').toLowerCase() === 'higgsfield');
+  }
+
+  async function testHiggsfieldCredential(c, { quiet = false, force = false } = {}) {
+    if (!c || Number(c.enabled) !== 1 || autoTestInFlight) return null;
+    const now = Date.now();
+    const minGap = c.last_status === 'ok' ? AUTO_TEST_INTERVAL_MS : AUTO_TEST_RETRY_MS;
+    if (!force && lastCredentialId === c.id && now - lastAutoTestAt < minGap) return null;
+
+    autoTestInFlight = true;
+    lastCredentialId = c.id;
+    lastAutoTestAt = now;
+    try {
+      const r = await api('/api/credentials/' + c.id + '/test', { method: 'POST' });
+      if (!quiet) toast(r.ok ? 'Higgsfield bağlantısı başarılı' : 'Higgsfield test başarısız: ' + (r.error || ''));
+      if (typeof loadCredentials === 'function') await loadCredentials();
+      if (typeof refresh === 'function') await refresh();
+      return r;
+    } catch (e) {
+      if (!quiet) toast('Higgsfield: ' + e.message);
+      return { ok: false, error: e.message };
+    } finally {
+      autoTestInFlight = false;
+    }
+  }
+
+  function scheduleAutoTest(c) {
+    if (autoTestTimer) {
+      clearTimeout(autoTestTimer);
+      autoTestTimer = null;
+    }
+    if (!c || Number(c.enabled) !== 1) return;
+
+    const needsImmediateTest = c.last_status !== 'ok';
+    if (needsImmediateTest) {
+      setTimeout(() => testHiggsfieldCredential(c, { quiet: true }), 250);
+    }
+
+    autoTestTimer = setTimeout(async () => {
+      await testHiggsfieldCredential(c, { quiet: true, force: true });
+    }, AUTO_TEST_INTERVAL_MS);
   }
 
   function renderHiggsfieldCard(rows = []) {
@@ -18,22 +64,17 @@
 
     if (c) {
       card.innerHTML = `
-        <div class="providerHead"><b>Higgsfield</b><span class="providerBadge ${ok ? 'ok' : 'bad'}">${ok ? '● BAĞLI' : '○ TEST GEREKLİ'}</span></div>
+        <div class="providerHead"><b>Higgsfield</b><span class="providerBadge ${ok ? 'ok' : 'bad'}">${ok ? '● BAĞLI' : '○ OTOMATİK TEST EDİLİYOR'}</span></div>
         <small>Video / Reels / Image-to-Video / Text-to-Video</small>
         <div class="providerModel">Official Higgsfield API</div>
         <small>Öncelik ${c.priority} • ${c.enabled ? 'aktif' : 'kapalı'}${c.last_error ? ' • ' + esc(c.last_error) : ''}</small>
-        <div class="row"><a href="${CLOUD_URL}" target="_blank" rel="noopener">HIGGSFIELD CLOUD</a><button class="hfTest">TEST ET</button></div>`;
+        <div class="row"><a href="${CLOUD_URL}" target="_blank" rel="noopener">HIGGSFIELD CLOUD</a><button class="hfTest">ŞİMDİ TEST ET</button></div>`;
 
       card.querySelector('.hfTest').onclick = async () => {
-        try {
-          const r = await api('/api/credentials/' + c.id + '/test', { method: 'POST' });
-          toast(r.ok ? 'Higgsfield bağlantısı başarılı' : 'Higgsfield test başarısız: ' + (r.error || ''));
-          await loadCredentials();
-          await refresh();
-        } catch (e) {
-          toast('Higgsfield: ' + e.message);
-        }
+        await testHiggsfieldCredential(c, { quiet: false, force: true });
       };
+
+      scheduleAutoTest(c);
     } else {
       card.innerHTML = `
         <div class="providerHead"><b>Higgsfield</b><span class="providerBadge bad">○ BAĞLI DEĞİL</span></div>
@@ -58,12 +99,12 @@
               capabilities: CAPS
             })
           });
-          const tested = await api('/api/credentials/' + saved.id + '/test', { method: 'POST' });
           card.querySelector('.hfKeyId').value = '';
           card.querySelector('.hfKeySecret').value = '';
-          toast(tested.ok ? 'Higgsfield bağlandı' : 'Higgsfield kaydedildi ama test başarısız: ' + (tested.error || ''));
-          await loadCredentials();
-          await refresh();
+          const tested = await testHiggsfieldCredential({ id: saved.id, enabled: 1, last_status: 'untested' }, { quiet: true, force: true });
+          toast(tested?.ok ? 'Higgsfield bağlandı ve doğrulandı' : 'Higgsfield kaydedildi; otomatik doğrulama devam ediyor');
+          if (typeof loadCredentials === 'function') await loadCredentials();
+          if (typeof refresh === 'function') await refresh();
         } catch (e) {
           toast('Higgsfield: ' + e.message);
         }
