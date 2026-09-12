@@ -88,6 +88,56 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS agent_jobs (
+  id TEXT PRIMARY KEY,
+  request TEXT NOT NULL,
+  plan TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'running',
+  current_step INTEGER NOT NULL DEFAULT 0,
+  result TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_agent_jobs_status ON agent_jobs(status, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS provider_metrics (
+  provider TEXT PRIMARY KEY,
+  samples INTEGER NOT NULL DEFAULT 0,
+  successes INTEGER NOT NULL DEFAULT 0,
+  failures INTEGER NOT NULL DEFAULT 0,
+  avg_latency_ms REAL NOT NULL DEFAULT 0,
+  last_latency_ms INTEGER,
+  last_error TEXT,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL DEFAULT 'info',
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  read INTEGER NOT NULL DEFAULT 0,
+  meta TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(read, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS watches (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  query TEXT NOT NULL,
+  condition_text TEXT NOT NULL DEFAULT '',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  interval_minutes INTEGER NOT NULL DEFAULT 30,
+  last_checked_at INTEGER,
+  last_fingerprint TEXT,
+  last_result TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_watches_due ON watches(enabled, last_checked_at);
+
 -- Higgsfield provider registry. Model endpoints are discovered at runtime from
 -- the official OpenAPI document; no model names or generation endpoints are invented here.
 INSERT OR IGNORE INTO tool_registry(id,name,capability,endpoint,auth_type,enabled,priority,meta,created_at) VALUES
