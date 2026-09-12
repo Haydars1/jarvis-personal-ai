@@ -67,7 +67,6 @@ CREATE TABLE IF NOT EXISTS runtime_errors (
 );
 CREATE INDEX IF NOT EXISTS idx_runtime_errors_fp ON runtime_errors(fingerprint,resolved,ts DESC);
 
-
 CREATE TABLE IF NOT EXISTS passkeys (
   id TEXT PRIMARY KEY,
   public_key TEXT NOT NULL,
@@ -80,7 +79,6 @@ CREATE TABLE IF NOT EXISTS passkeys (
 );
 CREATE INDEX IF NOT EXISTS idx_passkeys_created ON passkeys(created_at DESC);
 
-
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY,
   role TEXT NOT NULL,
@@ -89,3 +87,11 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages(created_at DESC);
+
+-- Higgsfield provider registry. Model endpoints are discovered at runtime from
+-- the official OpenAPI document; no model names or generation endpoints are invented here.
+INSERT OR IGNORE INTO tool_registry(id,name,capability,endpoint,auth_type,enabled,priority,meta,created_at) VALUES
+ ('higgsfield-video','Higgsfield','video-generation','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
+ ('higgsfield-reels','Higgsfield','reels-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"aliasOf":"video-generation","docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
+ ('higgsfield-i2v','Higgsfield','image-to-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
+ ('higgsfield-t2v','Higgsfield','text-to-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0);
