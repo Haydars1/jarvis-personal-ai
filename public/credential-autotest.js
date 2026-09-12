@@ -30,9 +30,14 @@
   document.head.appendChild(socialGrowthUi);
 
   const videoPoolUi = document.createElement('script');
-  videoPoolUi.src = '/video-pool-ui.js?v=20260912-1';
+  videoPoolUi.src = '/video-pool-ui.js?v=20260912-2';
   videoPoolUi.defer = true;
   document.head.appendChild(videoPoolUi);
+
+  const traceUi = document.createElement('script');
+  traceUi.src = '/execution-trace-ui.js?v=20260912-1';
+  traceUi.defer = true;
+  document.head.appendChild(traceUi);
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
