@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showCamera = false
     @State private var showFiles = false
     @State private var photoItem: PhotosPickerItem?
+    @FocusState private var composerFocused: Bool
 
     var body: some View {
         ZStack {
@@ -18,30 +19,12 @@ struct ContentView: View {
                 chat
                 composer
             }
-
-            if state.isListening {
-                VStack(spacing: 16) {
-                    ZStack {
-                        Circle().fill(Color.cyan.opacity(0.12)).frame(width: 150, height: 150)
-                        Circle().stroke(Color.cyan.opacity(0.35), lineWidth: 2).frame(width: 118, height: 118)
-                        Image(systemName: "waveform").font(.system(size: 45, weight: .semibold)).foregroundStyle(.cyan)
-                    }
-                    Text("Seni dinliyorum").font(.headline)
-                    Text("Konuşman bitince JARVIS otomatik çalışacak").font(.caption).foregroundStyle(.secondary)
-                    Button("Durdur") { state.toggleVoice() }.buttonStyle(.bordered)
-                }
-                .padding(28)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-                .padding(30)
-                .transition(.scale.combined(with: .opacity))
-            }
         }
         .preferredColorScheme(.dark)
         .task { await state.bootstrap() }
         .sheet(isPresented: $state.showLogin) { loginView }
         .sheet(isPresented: $showCamera) {
-            CameraPicker { state.addAttachment($0) }
-                .ignoresSafeArea()
+            CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
         }
         .fileImporter(isPresented: $showFiles, allowedContentTypes: [.image, .pdf, .text, .data, .movie, .audio], allowsMultipleSelection: true) { result in
             switch result {
@@ -63,28 +46,24 @@ struct ContentView: View {
                             photoItem = nil
                         }
                     }
-                } catch {
-                    await MainActor.run { state.statusText = error.localizedDescription }
-                }
+                } catch { await MainActor.run { state.statusText = error.localizedDescription } }
             }
         }
     }
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("JARVIS").font(.title2.bold()).foregroundStyle(.cyan)
-                Text(state.statusText).font(.caption).foregroundStyle(.secondary)
+                Text(state.statusText).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
             Button { state.toggleVoice() } label: {
                 Image(systemName: state.isListening ? "waveform.circle.fill" : "waveform.circle")
-                    .font(.system(size: 30))
-                    .foregroundStyle(state.isListening ? .green : .cyan)
+                    .font(.system(size: 30)).foregroundStyle(state.isListening ? .green : .cyan)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16).padding(.vertical, 12)
         .background(.ultraThinMaterial)
     }
 
@@ -96,19 +75,18 @@ struct ContentView: View {
                         HStack {
                             if m.role == "user" { Spacer(minLength: 42) }
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(m.content).textSelection(.enabled).foregroundStyle(.primary)
+                                Text(m.content).textSelection(.enabled).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
                                 if m.role == "assistant" { Text("JARVIS").font(.caption2).foregroundStyle(.cyan) }
                             }
                             .padding(12)
                             .background(m.role == "user" ? Color.blue.opacity(0.22) : Color.white.opacity(0.07))
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                             if m.role != "user" { Spacer(minLength: 42) }
-                        }
-                        .id(m.id)
+                        }.id(m.id)
                     }
-                }
-                .padding(14)
+                }.padding(14)
             }
+            .scrollDismissesKeyboard(.interactively)
             .onChange(of: state.messages.count) { _, _ in
                 if let id = state.messages.last?.id { withAnimation { proxy.scrollTo(id, anchor: .bottom) } }
             }
@@ -129,8 +107,7 @@ struct ContentView: View {
                             .padding(.horizontal, 10).padding(.vertical, 7)
                             .background(Color.white.opacity(0.08), in: Capsule())
                         }
-                    }
-                    .padding(.horizontal, 12)
+                    }.padding(.horizontal, 12)
                 }
             }
 
@@ -140,51 +117,73 @@ struct ContentView: View {
                     PhotosPicker(selection: $photoItem, matching: .images) { Label("Fotoğraflar", systemImage: "photo.on.rectangle") }
                     Button { showFiles = true } label: { Label("Dosya / PDF", systemImage: "doc") }
                 } label: {
-                    Image(systemName: "plus").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
+                    Image(systemName: "plus").font(.system(size: 19, weight: .semibold)).frame(width: 40, height: 40)
                         .background(Color.white.opacity(0.08)).clipShape(Circle())
                 }
 
                 Button(action: state.toggleVoice) {
-                    Image(systemName: state.isListening ? "mic.fill" : "mic")
-                        .font(.system(size: 20)).frame(width: 42, height: 42)
+                    Image(systemName: state.isListening ? "mic.fill" : "mic").font(.system(size: 19)).frame(width: 40, height: 40)
                         .background(Color.white.opacity(0.08)).clipShape(Circle())
                 }
 
                 TextField("JARVIS'e söyle…", text: $state.input, axis: .vertical)
-                    .lineLimit(1...5)
-                    .padding(.horizontal, 14).padding(.vertical, 11)
+                    .focused($composerFocused)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 12).padding(.vertical, 10)
                     .background(Color.white.opacity(0.07))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .submitLabel(.send)
-                    .onSubmit { Task { await state.send() } }
+                    .onSubmit { sendMessage() }
 
-                Button { Task { await state.send() } } label: {
+                Button { sendMessage() } label: {
                     Image(systemName: state.isSending ? "hourglass" : "arrow.up")
-                        .font(.headline.bold()).frame(width: 42, height: 42)
+                        .font(.headline.bold()).frame(width: 40, height: 40)
                         .background(Color.cyan).foregroundStyle(.black).clipShape(Circle())
                 }
                 .disabled(state.isSending || (state.input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && state.attachments.isEmpty))
             }
             .padding(.horizontal, 12)
         }
-        .padding(.vertical, 10)
+        .padding(.top, 8).padding(.bottom, 8)
         .background(.ultraThinMaterial)
     }
 
+    private func sendMessage() {
+        guard !state.isSending else { return }
+        composerFocused = false
+        Task { await state.send() }
+    }
+
     private var loginView: some View {
-        NavigationStack {
-            Form {
-                Section("JARVIS") {
-                    SecureField("Parola", text: $state.password)
-                    Button("Giriş Yap") { Task { await state.login() } }
-                }
-                Section {
-                    Text("Giriş çerezi iOS URLSession içinde tutulur. API anahtarların uygulamaya indirilmez; Cloudflare kasasında kalır.")
-                        .font(.footnote)
-                }
+        ZStack {
+            LinearGradient(colors: [Color.black, Color(red: 0.02, green: 0.08, blue: 0.14)], startPoint: .top, endPoint: .bottom).ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 22) {
+                    Spacer(minLength: 38)
+                    Image(systemName: "waveform.circle.fill").font(.system(size: 72)).foregroundStyle(.cyan)
+                    VStack(spacing: 5) {
+                        Text("JARVIS").font(.system(size: 42, weight: .bold))
+                        Text("Kişisel AI Asistanınız").foregroundStyle(.secondary)
+                    }
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Giriş Yap").font(.title.bold())
+                        SecureField("Parola", text: $state.password)
+                            .textContentType(.password)
+                            .padding(14)
+                            .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+                        Button { Task { await state.login() } } label: {
+                            Text("Giriş Yap").fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 13)
+                        }
+                        .buttonStyle(.borderedProminent).tint(.cyan).foregroundStyle(.black)
+                        Text("Giriş çerezi cihazda güvenli oturum içinde tutulur. API anahtarları uygulamaya indirilmez; Cloudflare kasasında kalır.")
+                            .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(22)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    Spacer(minLength: 24)
+                }.padding(.horizontal, 20)
             }
-            .navigationTitle("JARVIS Giriş")
-            .interactiveDismissDisabled()
         }
+        .interactiveDismissDisabled()
     }
 }
