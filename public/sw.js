@@ -1,5 +1,5 @@
-const CACHE='jarvis-v7.8-chat-stability-20260912';
-const STATIC=['/','/app.css','/app.js','/credential-autotest.js','/integrations-ui.js','/higgsfield-ui.js','/provider-catalog.js','/navigation-state.js','/google-search-ui.js','/chat-enhancements.js','/jarvis-os-ui.js','/social-growth-ui.js','/video-pool-ui.js','/manifest.webmanifest','/icon.svg'];
+const CACHE='jarvis-v7.9-capability-runtime-20260912';
+const STATIC=['/','/app.css','/app.js','/credential-autotest.js','/integrations-ui.js','/higgsfield-ui.js','/provider-catalog.js','/navigation-state.js','/google-search-ui.js','/chat-enhancements.js','/jarvis-os-ui.js','/social-growth-ui.js','/video-pool-ui.js','/execution-trace-ui.js','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
