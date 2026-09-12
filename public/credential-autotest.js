@@ -9,6 +9,7 @@
   loadScript('/video-pool-ui.js?v=20260912-2');
   loadScript('/execution-trace-ui.js?v=20260912-1');
   loadScript('/jarvis-face-ui.js?v=20260912-1');
+  loadScript('/voice-mode.js?v=20260912-1');
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
