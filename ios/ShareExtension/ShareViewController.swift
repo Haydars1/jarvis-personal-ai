@@ -12,8 +12,7 @@ final class ShareViewController: UIViewController {
         let providers = items.flatMap { $0.attachments ?? [] }
         if let p = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
             p.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { [weak self] item, _ in
-                let text = (item as? URL)?.absoluteString ?? ""
-                self?.openJarvis(text)
+                self?.openJarvis((item as? URL)?.absoluteString ?? "")
             }
             return
         }
@@ -27,17 +26,11 @@ final class ShareViewController: UIViewController {
     }
 
     private func openJarvis(_ text: String) {
-        let shared = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
-        shared?.set(text, forKey: "pendingShareText")
+        UserDefaults(suiteName: "group.com.haydojarvis.jarvis")?.set(text, forKey: "pendingShareText")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let url = URL(string: "jarvis://share")!
-            var responder: UIResponder? = self
-            while responder != nil {
-                if let app = responder as? UIApplication { app.open(url); break }
-                responder = responder?.next
-            }
-            self.finish()
+            self.extensionContext?.open(url) { _ in self.finish() }
         }
     }
 
