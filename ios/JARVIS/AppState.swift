@@ -32,7 +32,10 @@ final class AppState: ObservableObject {
         do {
             let auth = try await api.authStatus()
             showLogin = !auth.authenticated
-            if auth.authenticated { try await loadHistory() }
+            if auth.authenticated {
+                try await loadHistory()
+                await NotificationManager.shared.syncPendingToken()
+            }
         } catch {
             statusText = error.localizedDescription
         }
@@ -44,6 +47,7 @@ final class AppState: ObservableObject {
             password = ""
             showLogin = false
             try await loadHistory()
+            await NotificationManager.shared.syncPendingToken()
         } catch {
             statusText = error.localizedDescription
         }
