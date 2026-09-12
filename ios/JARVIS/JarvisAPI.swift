@@ -37,7 +37,8 @@ final class JarvisAPI {
     }
 
     func authStatus() async throws -> AuthStatus {
-        try decoder.decode(AuthStatus.self, from: request("/api/auth/status"))
+        let data = try await request("/api/auth/status")
+        return try decoder.decode(AuthStatus.self, from: data)
     }
 
     func login(password: String) async throws {
@@ -46,7 +47,8 @@ final class JarvisAPI {
     }
 
     func history(limit: Int = 160) async throws -> [ChatMessage] {
-        try decoder.decode([ChatMessage].self, from: request("/api/chat/history", query: [URLQueryItem(name: "limit", value: String(limit))]))
+        let data = try await request("/api/chat/history", query: [URLQueryItem(name: "limit", value: String(limit))])
+        return try decoder.decode([ChatMessage].self, from: data)
     }
 
     func send(text: String, attachments: [NativeAttachment] = []) async throws -> ChatResponse {
@@ -57,6 +59,7 @@ final class JarvisAPI {
             }
         }
         let data = try JSONSerialization.data(withJSONObject: payload)
-        return try decoder.decode(ChatResponse.self, from: request("/api/chat/send", method: "POST", body: data))
+        let response = try await request("/api/chat/send", method: "POST", body: data)
+        return try decoder.decode(ChatResponse.self, from: response)
     }
 }
