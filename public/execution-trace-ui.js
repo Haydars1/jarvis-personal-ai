@@ -1,0 +1,9 @@
+(() => {
+  function style(){if(document.querySelector('#executionTraceStyle'))return;const s=document.createElement('style');s.id='executionTraceStyle';s.textContent=`
+    .jarvisTrace{max-width:min(82%,760px);margin:-2px 0 12px 0;border:1px solid #203653;background:#071226;border-radius:12px;overflow:hidden}.jarvisTrace summary{cursor:pointer;padding:9px 11px;color:#9bc6df;font-size:12px;font-weight:800;list-style:none}.jarvisTrace summary::-webkit-details-marker{display:none}.jarvisTraceBody{padding:0 11px 10px;display:grid;gap:6px}.jarvisTraceRow{display:grid;grid-template-columns:auto 1fr;gap:8px;font-size:11px;color:#bfd5e4}.jarvisTraceRow b{color:#7be8ff;font-size:10px;text-transform:uppercase;letter-spacing:.04em}@media(max-width:600px){.jarvisTrace{max-width:95%}}
+  `;document.head.appendChild(s)}
+  function escT(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+  function render(trace){if(!Array.isArray(trace)||!trace.length)return;const host=document.querySelector('#chatHistory');if(!host)return;const d=document.createElement('details');d.className='jarvisTrace';d.innerHTML=`<summary>⚙ JARVIS ne yaptı?</summary><div class="jarvisTraceBody">${trace.map(x=>`<div class="jarvisTraceRow"><b>${escT(x.label||x.kind||'Adım')}</b><span>${escT(x.value||'')}</span></div>`).join('')}</div>`;host.appendChild(d);host.scrollTop=host.scrollHeight}
+  const prevFetch=window.fetch.bind(window);window.fetch=async(...args)=>{const res=await prevFetch(...args);try{const url=typeof args[0]==='string'?args[0]:args[0]?.url||'';if(String(url).includes('/api/chat/send')){const x=await res.clone().json().catch(()=>null);if(x?.trace?.length)setTimeout(()=>render(x.trace),130)}}catch{}return res};
+  style();window.jarvisRenderTrace=render;
+})();
