@@ -1,4 +1,9 @@
 (() => {
+  const catalog = document.createElement('script');
+  catalog.src = '/provider-catalog.js';
+  catalog.defer = true;
+  document.head.appendChild(catalog);
+
   const HEALTHY_FOR_MS = 15 * 60 * 1000;
   const RETRY_AFTER_MS = 60 * 1000;
   const START_DELAY_MS = 2500;
