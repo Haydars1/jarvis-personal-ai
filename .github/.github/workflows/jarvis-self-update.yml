@@ -1,0 +1,29 @@
+name: JARVIS Self Update Test + Merge
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  test-and-merge:
+    if: startsWith(github.head_ref, 'jarvis/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Syntax checks
+        run: |
+          node --check src/worker.js
+          node --check public/app.js
+      - name: Cloudflare dry run
+        run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+      - name: Auto merge tested JARVIS PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge "${{ github.event.pull_request.html_url }}" --squash --delete-branch
