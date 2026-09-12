@@ -9,6 +9,11 @@
   navigation.defer = true;
   document.head.appendChild(navigation);
 
+  const googleSearchUi = document.createElement('script');
+  googleSearchUi.src = '/google-search-ui.js?v=20260912-1';
+  googleSearchUi.defer = true;
+  document.head.appendChild(googleSearchUi);
+
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
     const res = await nativeFetch(...args);
