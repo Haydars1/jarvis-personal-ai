@@ -123,6 +123,33 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(read, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS push_devices (
+  id TEXT PRIMARY KEY,
+  device_token TEXT NOT NULL UNIQUE,
+  platform TEXT NOT NULL DEFAULT 'ios',
+  environment TEXT NOT NULL DEFAULT 'sandbox',
+  app_bundle TEXT NOT NULL DEFAULT 'com.haydojarvis.jarvis',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  last_seen_at INTEGER NOT NULL,
+  last_success_at INTEGER,
+  last_error TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_push_devices_enabled ON push_devices(platform, enabled, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS push_deliveries (
+  notification_id TEXT NOT NULL,
+  device_id TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  apns_id TEXT,
+  error TEXT,
+  attempted_at INTEGER,
+  sent_at INTEGER,
+  PRIMARY KEY(notification_id, device_id)
+);
+CREATE INDEX IF NOT EXISTS idx_push_deliveries_status ON push_deliveries(status, attempted_at DESC);
+
 CREATE TABLE IF NOT EXISTS watches (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
