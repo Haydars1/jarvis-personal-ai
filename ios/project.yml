@@ -49,6 +49,12 @@ targets:
         NSCalendarsFullAccessUsageDescription: "JARVIS takvimini okuyup randevu ve etkinliklerini yönetmek için tam takvim erişimi kullanır."
         NSRemindersFullAccessUsageDescription: "JARVIS hatırlatıcılarını okuyup oluşturmak ve yönetmek için erişim kullanır."
         NSAlarmKitUsageDescription: "JARVIS istediğin zamanlarda gerçek alarm ve zamanlayıcı kurmak için AlarmKit kullanır."
+        UILaunchScreen: {}
+        UIRequiresFullScreen: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIViewControllerBasedStatusBarAppearance: true
         UIBackgroundModes:
           - remote-notification
         UIApplicationSceneManifest:
