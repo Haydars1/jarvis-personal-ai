@@ -20,13 +20,19 @@ jobs:
       - name: Build simulator without signing
         working-directory: ios
         run: xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
-      - name: Build iPhone app without signing
+      - name: Build iPhone Release app without signing
         working-directory: ios
         run: |
           rm -rf build-device Payload JARVIS-unsigned.ipa
-          xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Debug -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
-          APP_PATH="build-device/Build/Products/Debug-iphoneos/JARVIS.app"
+          xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          APP_PATH="build-device/Build/Products/Release-iphoneos/JARVIS.app"
           test -d "$APP_PATH"
+          /usr/libexec/PlistBuddy -c "Print :LSSupportsGameMode" "$APP_PATH/Info.plist" | grep -qx false
+          /usr/libexec/PlistBuddy -c "Print :LSApplicationCategoryType" "$APP_PATH/Info.plist" | grep -qx 'public.app-category.utilities'
+          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP_PATH/Info.plist" >/dev/null
+          EXT_PLIST="$APP_PATH/PlugIns/JARVISShare.appex/Info.plist"
+          test -f "$EXT_PLIST"
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$EXT_PLIST" | grep -qx 'com.apple.share-services'
           mkdir Payload
           cp -R "$APP_PATH" Payload/JARVIS.app
           ditto -c -k --sequesterRsrc --keepParent Payload JARVIS-unsigned.ipa
