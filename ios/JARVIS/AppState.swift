@@ -78,7 +78,17 @@ final class AppState: ObservableObject {
 
     func handle(url: URL) {
         guard url.scheme == "jarvis" else { return }
-        if url.host == "voice" { voice.startListening() }
+        if url.host == "voice" {
+            voice.startListening()
+            return
+        }
+        if url.host == "share" {
+            if let shared = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")?.string(forKey: "pendingShareText"), !shared.isEmpty {
+                input = "Bunu incele ve bana gerekli olanı yap: \(shared)"
+                UserDefaults(suiteName: "group.com.haydojarvis.jarvis")?.removeObject(forKey: "pendingShareText")
+            }
+            return
+        }
         if url.host == "ask", let c = URLComponents(url: url, resolvingAgainstBaseURL: false), let q = c.queryItems?.first(where: {$0.name == "q"})?.value {
             input = q
             Task { await send() }
