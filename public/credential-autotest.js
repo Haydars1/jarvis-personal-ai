@@ -14,6 +14,11 @@
   googleSearchUi.defer = true;
   document.head.appendChild(googleSearchUi);
 
+  const chatEnhancements = document.createElement('script');
+  chatEnhancements.src = '/chat-enhancements.js?v=20260912-1';
+  chatEnhancements.defer = true;
+  document.head.appendChild(chatEnhancements);
+
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
     const res = await nativeFetch(...args);
