@@ -19,6 +19,11 @@
   chatEnhancements.defer = true;
   document.head.appendChild(chatEnhancements);
 
+  const osUi = document.createElement('script');
+  osUi.src = '/jarvis-os-ui.js?v=20260912-1';
+  osUi.defer = true;
+  document.head.appendChild(osUi);
+
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
     const res = await nativeFetch(...args);
