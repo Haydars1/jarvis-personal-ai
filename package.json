@@ -4,7 +4,7 @@
   "type": "module",
   "version": "7.4.0",
   "scripts": {
-    "check": "node --check src/worker.js && node --check src/smart-router-entry.js && node --check src/google-search-entry.js && node --check src/chat-enhancements-entry.js && node --check src/jarvis-os-entry.js && node --check src/social-growth-entry.js && node --check public/app.js && node --check public/navigation-state.js && node --check public/credential-autotest.js && node --check public/chat-enhancements.js && node --check public/jarvis-os-ui.js && node --check public/social-growth-ui.js && node --check public/integrations-ui.js && node --check public/provider-catalog.js && node --check public/google-search-ui.js && node --check public/sw.js",
+    "check": "node --check src/worker.js && node --check src/smart-router-entry.js && node --check src/google-search-entry.js && node --check src/chat-enhancements-entry.js && node --check src/jarvis-os-entry.js && node --check src/social-growth-entry.js && node --check src/video-failover-entry.js && node --check public/app.js && node --check public/navigation-state.js && node --check public/credential-autotest.js && node --check public/chat-enhancements.js && node --check public/jarvis-os-ui.js && node --check public/social-growth-ui.js && node --check public/video-pool-ui.js && node --check public/integrations-ui.js && node --check public/provider-catalog.js && node --check public/google-search-ui.js && node --check public/sw.js",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
