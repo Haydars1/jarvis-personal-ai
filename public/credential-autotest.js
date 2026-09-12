@@ -74,6 +74,7 @@
   const RETRY_AFTER_MS = 60 * 1000;
   const START_DELAY_MS = 2500;
   const BETWEEN_TESTS_MS = 300;
+  const DEDICATED_TEST_PROVIDERS = new Set(['runway','fal','replicate','higgsfield']);
   let running = false;
   let lastCycleAt = 0;
 
@@ -81,6 +82,7 @@
 
   function shouldTest(c, now) {
     if (!c || Number(c.enabled) !== 1) return false;
+    if (DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())) return false;
     const last = Number(c.last_test_at || 0);
     if (c.last_status === 'ok') return !last || (now - last) >= HEALTHY_FOR_MS;
     return !last || (now - last) >= RETRY_AFTER_MS;
@@ -109,7 +111,10 @@
 
     try {
       const rows = await api('/api/credentials');
-      const targets = (rows || []).filter(c => force ? Number(c.enabled) === 1 : shouldTest(c, now));
+      const targets = (rows || []).filter(c => {
+        if (DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())) return false;
+        return force ? Number(c.enabled) === 1 : shouldTest(c, now);
+      });
 
       for (const c of targets) {
         try {
