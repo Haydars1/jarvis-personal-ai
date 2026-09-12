@@ -138,6 +138,73 @@ CREATE TABLE IF NOT EXISTS watches (
 );
 CREATE INDEX IF NOT EXISTS idx_watches_due ON watches(enabled, last_checked_at);
 
+CREATE TABLE IF NOT EXISTS social_campaigns (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  objective TEXT NOT NULL DEFAULT 'growth',
+  platforms TEXT NOT NULL DEFAULT '["instagram"]',
+  topic TEXT NOT NULL,
+  audience TEXT NOT NULL DEFAULT '',
+  cadence TEXT NOT NULL DEFAULT 'daily',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  approval_mode TEXT NOT NULL DEFAULT 'auto_owned_accounts',
+  config TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_social_campaigns_enabled ON social_campaigns(enabled, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS social_content_queue (
+  id TEXT PRIMARY KEY,
+  campaign_id TEXT,
+  platform TEXT NOT NULL,
+  content_type TEXT NOT NULL DEFAULT 'reel',
+  topic TEXT NOT NULL DEFAULT '',
+  hook TEXT NOT NULL DEFAULT '',
+  caption TEXT NOT NULL DEFAULT '',
+  hashtags TEXT NOT NULL DEFAULT '[]',
+  media_prompt TEXT NOT NULL DEFAULT '',
+  media_url TEXT,
+  external_job_id TEXT,
+  status TEXT NOT NULL DEFAULT 'planned',
+  scheduled_at INTEGER,
+  published_at INTEGER,
+  remote_id TEXT,
+  error TEXT,
+  meta TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_social_queue_due ON social_content_queue(status, scheduled_at);
+
+CREATE TABLE IF NOT EXISTS social_targets (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  name TEXT NOT NULL,
+  external_id TEXT,
+  url TEXT,
+  authorized INTEGER NOT NULL DEFAULT 0,
+  auto_publish INTEGER NOT NULL DEFAULT 0,
+  notes TEXT NOT NULL DEFAULT '',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_social_targets_platform ON social_targets(platform, authorized, auto_publish);
+
+CREATE TABLE IF NOT EXISTS social_events (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  external_id TEXT,
+  actor TEXT,
+  text TEXT NOT NULL DEFAULT '',
+  payload TEXT NOT NULL DEFAULT '{}',
+  handled INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_social_events_new ON social_events(handled, created_at DESC);
+
 -- Higgsfield provider registry. Model endpoints are discovered at runtime from
 -- the official OpenAPI document; no model names or generation endpoints are invented here.
 INSERT OR IGNORE INTO tool_registry(id,name,capability,endpoint,auth_type,enabled,priority,meta,created_at) VALUES
