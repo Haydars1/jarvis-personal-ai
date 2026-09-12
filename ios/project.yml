@@ -46,6 +46,9 @@ targets:
         NSSpeechRecognitionUsageDescription: "JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
         NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
         NSPhotoLibraryUsageDescription: "JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
+        NSCalendarsFullAccessUsageDescription: "JARVIS takvimini okuyup randevu ve etkinliklerini yönetmek için tam takvim erişimi kullanır."
+        NSRemindersFullAccessUsageDescription: "JARVIS hatırlatıcılarını okuyup oluşturmak ve yönetmek için erişim kullanır."
+        NSAlarmKitUsageDescription: "JARVIS istediğin zamanlarda gerçek alarm ve zamanlayıcı kurmak için AlarmKit kullanır."
         UIBackgroundModes:
           - remote-notification
         UIApplicationSceneManifest:
