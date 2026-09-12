@@ -5,6 +5,7 @@ import SwiftUI
 final class AppState: ObservableObject {
     @Published var messages: [ChatMessage] = []
     @Published var input: String = ""
+    @Published var attachments: [NativeAttachment] = []
     @Published var isSending = false
     @Published var isListening = false
     @Published var statusText = "Hazır"
@@ -52,20 +53,37 @@ final class AppState: ObservableObject {
         messages = try await api.history()
     }
 
+    func addAttachment(_ attachment: NativeAttachment) {
+        guard attachments.count < 4 else {
+            statusText = "En fazla 4 dosya eklenebilir"
+            return
+        }
+        attachments.append(attachment)
+    }
+
+    func removeAttachment(_ id: UUID) {
+        attachments.removeAll { $0.id == id }
+    }
+
     func send() async {
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isSending else { return }
+        let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (!typed.isEmpty || !attachments.isEmpty), !isSending else { return }
+        let text = typed.isEmpty ? "Bu dosyaları incele ve ihtiyacım olan sonucu ver." : typed
+        let pendingAttachments = attachments
         input = ""
+        attachments = []
         isSending = true
         statusText = "JARVIS çalışıyor…"
-        messages.append(ChatMessage(role: "user", content: text, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
+        let visible = pendingAttachments.isEmpty ? text : "\(text)\n📎 \(pendingAttachments.map(\.name).joined(separator: ", "))"
+        messages.append(ChatMessage(role: "user", content: visible, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
         do {
-            let result = try await api.send(text: text)
+            let result = try await api.send(text: text, attachments: pendingAttachments)
             messages = result.history
             statusText = "Hazır"
             voice.speak(result.reply)
         } catch {
             statusText = error.localizedDescription
+            attachments = pendingAttachments
             messages.append(ChatMessage(role: "assistant", content: "Bağlantı hatası: \(error.localizedDescription)", provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
         isSending = false
