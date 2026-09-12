@@ -1,6 +1,23 @@
 (() => {
   let attachments = [];
 
+  function injectStyles() {
+    if (document.querySelector('#chatEnhancementStyles')) return;
+    const s = document.createElement('style');
+    s.id = 'chatEnhancementStyles';
+    s.textContent = `
+      #chat .chatComposer{grid-template-columns:auto auto 1fr auto auto}
+      #chatAttachments{grid-column:1/-1;display:flex;gap:8px;overflow:auto;padding:2px 0 6px}
+      .chatAttachment{display:flex;align-items:center;gap:7px;min-width:150px;max-width:230px;padding:6px;border:1px solid #294466;border-radius:12px;background:#0a172a}
+      .chatAttachment img{width:44px;height:44px;border-radius:8px;object-fit:cover}.chatAttachment span{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.chatAttachment button{padding:4px 8px;min-width:auto}
+      .chatPhotoBubble{display:flex;gap:6px;flex-wrap:wrap}.chatPhotoBubble img{width:min(180px,42vw);max-height:220px;border-radius:12px;object-fit:cover}
+      .toolCardsInline{display:grid;gap:7px}.toolCardsInline>a{color:#9cefff;text-decoration:none;border:1px solid #294466;padding:8px;border-radius:10px}.toolCardsInline small{margin-top:0}
+      @media(max-width:1050px){.bottomNav{grid-template-columns:repeat(4,1fr)!important}}
+      @media(max-width:600px){#chat .chatComposer{grid-template-columns:auto auto 1fr auto}#chat .chatComposer #chatSend{grid-column:1/-1}}
+    `;
+    document.head.appendChild(s);
+  }
+
   function removeToolsTab() {
     document.querySelectorAll('[data-page="tools"]').forEach(x => x.remove());
     const page = document.querySelector('#tools');
@@ -21,47 +38,22 @@
     if (!composer || document.querySelector('#chatAttachBtn')) return;
 
     const input = document.createElement('input');
-    input.type = 'file';
-    input.id = 'chatAttachInput';
-    input.accept = 'image/*';
-    input.multiple = true;
-    input.hidden = true;
-
+    input.type = 'file'; input.id = 'chatAttachInput'; input.accept = 'image/*'; input.multiple = true; input.hidden = true;
     const camera = document.createElement('input');
-    camera.type = 'file';
-    camera.id = 'chatCameraInput';
-    camera.accept = 'image/*';
-    camera.setAttribute('capture', 'environment');
-    camera.hidden = true;
+    camera.type = 'file'; camera.id = 'chatCameraInput'; camera.accept = 'image/*'; camera.setAttribute('capture', 'environment'); camera.hidden = true;
 
     const attach = document.createElement('button');
-    attach.id = 'chatAttachBtn';
-    attach.type = 'button';
-    attach.className = 'iconBtn';
-    attach.title = 'Fotoğraf ekle';
-    attach.textContent = '📎';
-
+    attach.id = 'chatAttachBtn'; attach.type = 'button'; attach.className = 'iconBtn'; attach.title = 'Fotoğraf ekle'; attach.setAttribute('aria-label','Fotoğraf ekle'); attach.textContent = '📎';
     const cam = document.createElement('button');
-    cam.id = 'chatCameraBtn';
-    cam.type = 'button';
-    cam.className = 'iconBtn';
-    cam.title = 'Kameradan fotoğraf çek';
-    cam.textContent = '📷';
-
+    cam.id = 'chatCameraBtn'; cam.type = 'button'; cam.className = 'iconBtn'; cam.title = 'Kameradan fotoğraf çek'; cam.setAttribute('aria-label','Kameradan fotoğraf çek'); cam.textContent = '📷';
     const strip = document.createElement('div');
-    strip.id = 'chatAttachments';
-    strip.className = 'chatAttachments hidden';
+    strip.id = 'chatAttachments'; strip.className = 'chatAttachments hidden';
 
-    composer.prepend(strip);
-    composer.prepend(input);
-    composer.prepend(camera);
+    composer.prepend(strip); composer.prepend(input); composer.prepend(camera);
     const textarea = composer.querySelector('#chatCmd');
     textarea.before(attach, cam);
-
-    attach.onclick = () => input.click();
-    cam.onclick = () => camera.click();
-    input.onchange = () => addFiles([...input.files]);
-    camera.onchange = () => addFiles([...camera.files]);
+    attach.onclick = () => input.click(); cam.onclick = () => camera.click();
+    input.onchange = () => addFiles([...input.files]); camera.onchange = () => addFiles([...camera.files]);
   }
 
   async function addFiles(files) {
@@ -75,37 +67,24 @@
   }
 
   function renderAttachments() {
-    const host = document.querySelector('#chatAttachments');
-    if (!host) return;
+    const host = document.querySelector('#chatAttachments'); if (!host) return;
     host.classList.toggle('hidden', !attachments.length);
     host.innerHTML = attachments.map((a,i) => `<div class="chatAttachment"><img src="${a.preview}" alt=""><span>${esc(a.name)}</span><button type="button" data-i="${i}">×</button></div>`).join('');
-    host.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
-      const i = Number(b.dataset.i);
-      try { URL.revokeObjectURL(attachments[i]?.preview); } catch {}
-      attachments.splice(i,1);
-      renderAttachments();
-    });
+    host.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const i=Number(b.dataset.i); try{URL.revokeObjectURL(attachments[i]?.preview)}catch{} attachments.splice(i,1); renderAttachments(); });
   }
 
   function renderInlineTools(items=[]) {
     if (!items.length) return;
-    const host = document.querySelector('#chatHistory');
-    if (!host) return;
-    const box = document.createElement('div');
-    box.className = 'chatMsg assistant toolCardsInline';
+    const host = document.querySelector('#chatHistory'); if (!host) return;
+    const box = document.createElement('div'); box.className = 'chatMsg assistant toolCardsInline';
     box.innerHTML = '<b>Bulduğum araçlar</b>' + items.slice(0,5).map(t => `<a target="_blank" rel="noopener" href="${esc(t.url||'#')}">${esc(t.title||'AI aracı')}</a><small>${esc(t.snippet||'')}</small>`).join('');
-    host.appendChild(box);
-    host.scrollTop = host.scrollHeight;
+    host.appendChild(box); host.scrollTop = host.scrollHeight;
   }
 
   function appendLocalPhotoPreview(items) {
-    const host = document.querySelector('#chatHistory');
-    if (!host || !items.length) return;
-    const box = document.createElement('div');
-    box.className = 'chatMsg user chatPhotoBubble';
-    box.innerHTML = items.map(a => `<img src="${a.preview}" alt="${esc(a.name)}">`).join('');
-    host.appendChild(box);
-    host.scrollTop = host.scrollHeight;
+    const host = document.querySelector('#chatHistory'); if (!host || !items.length) return;
+    const box = document.createElement('div'); box.className = 'chatMsg user chatPhotoBubble';
+    box.innerHTML = items.map(a => `<img src="${a.preview}" alt="${esc(a.name)}">`).join(''); host.appendChild(box); host.scrollTop = host.scrollHeight;
   }
 
   if (typeof send === 'function') {
@@ -114,38 +93,18 @@
       t = String(t || '').trim();
       if (!attachments.length) return baseSend(t);
       const payloadAttachments = attachments.map(({name,type,base64}) => ({name,type,base64}));
-      const previews = attachments.slice();
-      attachments = [];
-      renderAttachments();
-      switchPage('chat');
-      appendChat('user', t || 'Bu fotoğrafı incele');
-      appendLocalPhotoPreview(previews);
-      mode('THINKING','Fotoğrafı inceliyorum');
+      const previews = attachments.slice(); attachments = []; renderAttachments();
+      switchPage('chat'); appendChat('user', t || 'Bu fotoğrafı incele'); appendLocalPhotoPreview(previews); mode('THINKING','Fotoğrafı inceliyorum');
       try {
         const r = await api('/api/chat/send',{method:'POST',body:JSON.stringify({text:t,attachments:payloadAttachments})});
-        STATE = r.state;
-        render();
-        renderChat(r.history || []);
-        if (r.tools) renderInlineTools(r.tools);
-        const p = document.querySelector('#chatProvider');
-        if (p) p.textContent = `Kalıcı hafıza • ${r.provider || 'JARVIS'}`;
-        speak(r.reply);
-      } catch (e) {
-        appendChat('assistant','Fotoğraf işlenemedi: '+e.message,'Sistem');
-        toast(e.message);
-        mode('IDLE','Hata');
-      } finally {
-        previews.forEach(a => { try { URL.revokeObjectURL(a.preview); } catch {} });
-      }
+        STATE = r.state; render(); renderChat(r.history || []); if (r.tools) renderInlineTools(r.tools);
+        const p=document.querySelector('#chatProvider'); if(p)p.textContent=`Kalıcı hafıza • ${r.provider || 'JARVIS'}`; speak(r.reply);
+      } catch (e) { appendChat('assistant','Fotoğraf işlenemedi: '+e.message,'Sistem'); toast(e.message); mode('IDLE','Hata'); }
+      finally { previews.forEach(a=>{try{URL.revokeObjectURL(a.preview)}catch{}}); }
     };
   }
 
-  const nativeTools = typeof tools === 'function' ? tools : null;
-  if (nativeTools) {
-    tools = function(items) { renderInlineTools(items || []); };
-  }
-
-  removeToolsTab();
-  ensureAttachmentUI();
-  setTimeout(() => { removeToolsTab(); ensureAttachmentUI(); }, 500);
+  if (typeof tools === 'function') tools = function(items){ renderInlineTools(items || []); };
+  injectStyles(); removeToolsTab(); ensureAttachmentUI();
+  setTimeout(() => { injectStyles(); removeToolsTab(); ensureAttachmentUI(); }, 500);
 })();
