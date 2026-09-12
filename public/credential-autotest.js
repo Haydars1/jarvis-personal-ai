@@ -1,8 +1,13 @@
 (() => {
   const catalog = document.createElement('script');
-  catalog.src = '/provider-catalog.js';
+  catalog.src = '/provider-catalog.js?v=20260912-2';
   catalog.defer = true;
   document.head.appendChild(catalog);
+
+  const navigation = document.createElement('script');
+  navigation.src = '/navigation-state.js?v=20260912-1';
+  navigation.defer = true;
+  document.head.appendChild(navigation);
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
