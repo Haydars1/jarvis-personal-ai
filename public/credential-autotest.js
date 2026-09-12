@@ -1,43 +1,14 @@
 (() => {
-  const catalog = document.createElement('script');
-  catalog.src = '/provider-catalog.js?v=20260912-2';
-  catalog.defer = true;
-  document.head.appendChild(catalog);
-
-  const navigation = document.createElement('script');
-  navigation.src = '/navigation-state.js?v=20260912-1';
-  navigation.defer = true;
-  document.head.appendChild(navigation);
-
-  const googleSearchUi = document.createElement('script');
-  googleSearchUi.src = '/google-search-ui.js?v=20260912-1';
-  googleSearchUi.defer = true;
-  document.head.appendChild(googleSearchUi);
-
-  const chatEnhancements = document.createElement('script');
-  chatEnhancements.src = '/chat-enhancements.js?v=20260912-1';
-  chatEnhancements.defer = true;
-  document.head.appendChild(chatEnhancements);
-
-  const osUi = document.createElement('script');
-  osUi.src = '/jarvis-os-ui.js?v=20260912-1';
-  osUi.defer = true;
-  document.head.appendChild(osUi);
-
-  const socialGrowthUi = document.createElement('script');
-  socialGrowthUi.src = '/social-growth-ui.js?v=20260912-1';
-  socialGrowthUi.defer = true;
-  document.head.appendChild(socialGrowthUi);
-
-  const videoPoolUi = document.createElement('script');
-  videoPoolUi.src = '/video-pool-ui.js?v=20260912-2';
-  videoPoolUi.defer = true;
-  document.head.appendChild(videoPoolUi);
-
-  const traceUi = document.createElement('script');
-  traceUi.src = '/execution-trace-ui.js?v=20260912-1';
-  traceUi.defer = true;
-  document.head.appendChild(traceUi);
+  const loadScript=(src)=>{const s=document.createElement('script');s.src=src;s.defer=true;document.head.appendChild(s)};
+  loadScript('/provider-catalog.js?v=20260912-2');
+  loadScript('/navigation-state.js?v=20260912-1');
+  loadScript('/google-search-ui.js?v=20260912-1');
+  loadScript('/chat-enhancements.js?v=20260912-1');
+  loadScript('/jarvis-os-ui.js?v=20260912-1');
+  loadScript('/social-growth-ui.js?v=20260912-1');
+  loadScript('/video-pool-ui.js?v=20260912-2');
+  loadScript('/execution-trace-ui.js?v=20260912-1');
+  loadScript('/jarvis-face-ui.js?v=20260912-1');
 
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
@@ -46,101 +17,28 @@
       const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
       if (String(url).includes('/api/chat/send')) {
         const x = await res.clone().json().catch(() => null);
-        if (x?.media?.length) {
-          setTimeout(() => {
-            const host = document.querySelector('#chatHistory');
-            if (!host) return;
-            for (const m of x.media) {
-              const box = document.createElement('div');
-              box.className = 'chatMsg assistant';
-              if (m.type === 'image' && m.src) {
-                box.innerHTML = `<img src="${m.src}" alt="${String(m.alt || 'JARVIS görseli').replace(/[\"<>]/g,'')}" style="display:block;max-width:min(100%,720px);border-radius:16px;margin-top:8px">`;
-              } else if (m.type === 'video-job') {
-                box.textContent = 'Video üretimi başlatıldı. JARVIS sonucu hazır olduğunda takip edecek.';
-              } else return;
-              host.appendChild(box);
-            }
-            host.scrollTop = host.scrollHeight;
-          }, 100);
-        }
+        if (x?.media?.length) setTimeout(() => {
+          const host = document.querySelector('#chatHistory'); if (!host) return;
+          for (const m of x.media) {
+            const box = document.createElement('div'); box.className = 'chatMsg assistant';
+            if (m.type === 'image' && m.src) box.innerHTML = `<img src="${m.src}" alt="${String(m.alt || 'JARVIS görseli').replace(/[\"<>]/g,'')}" style="display:block;max-width:min(100%,720px);border-radius:16px;margin-top:8px">`;
+            else if (m.type === 'video-job') box.textContent = 'Video üretimi başlatıldı. JARVIS sonucu hazır olduğunda takip edecek.';
+            else continue;
+            host.appendChild(box);
+          }
+          host.scrollTop = host.scrollHeight;
+        }, 100);
       }
-    } catch (e) {
-      console.debug('Smart media renderer:', e?.message || e);
-    }
+    } catch {}
     return res;
   };
 
-  const HEALTHY_FOR_MS = 15 * 60 * 1000;
-  const RETRY_AFTER_MS = 60 * 1000;
-  const START_DELAY_MS = 2500;
-  const BETWEEN_TESTS_MS = 300;
+  const HEALTHY_FOR_MS = 15 * 60 * 1000, RETRY_AFTER_MS = 60 * 1000, START_DELAY_MS = 2500, BETWEEN_TESTS_MS = 300;
   const DEDICATED_TEST_PROVIDERS = new Set(['runway','fal','replicate','higgsfield']);
-  let running = false;
-  let lastCycleAt = 0;
-
+  let running = false, lastCycleAt = 0;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-  function shouldTest(c, now) {
-    if (!c || Number(c.enabled) !== 1) return false;
-    if (DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())) return false;
-    const last = Number(c.last_test_at || 0);
-    if (c.last_status === 'ok') return !last || (now - last) >= HEALTHY_FOR_MS;
-    return !last || (now - last) >= RETRY_AFTER_MS;
-  }
-
-  async function refreshUi() {
-    try {
-      if (typeof loadCredentials === 'function') await loadCredentials();
-    } catch (e) {
-      console.debug('Credential auto-test UI refresh:', e?.message || e);
-    }
-    try {
-      if (typeof refresh === 'function') await refresh();
-    } catch (e) {
-      console.debug('Credential auto-test state refresh:', e?.message || e);
-    }
-  }
-
-  async function autoTestCredentials({ force = false } = {}) {
-    if (running) return;
-    const now = Date.now();
-    if (!force && now - lastCycleAt < RETRY_AFTER_MS) return;
-    running = true;
-    lastCycleAt = now;
-    let changed = false;
-
-    try {
-      const rows = await api('/api/credentials');
-      const targets = (rows || []).filter(c => {
-        if (DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())) return false;
-        return force ? Number(c.enabled) === 1 : shouldTest(c, now);
-      });
-
-      for (const c of targets) {
-        try {
-          await api('/api/credentials/' + encodeURIComponent(c.id) + '/test', { method: 'POST' });
-          changed = true;
-        } catch (e) {
-          changed = true;
-          console.debug('Credential auto-test failed:', c.provider || c.label || c.id, e?.message || e);
-        }
-        await sleep(BETWEEN_TESTS_MS);
-      }
-
-      if (changed) await refreshUi();
-    } catch (e) {
-      console.debug('Credential auto-test cycle:', e?.message || e);
-    } finally {
-      running = false;
-    }
-  }
-
-  window.jarvisAutoTestCredentials = autoTestCredentials;
-
-  setTimeout(() => autoTestCredentials(), START_DELAY_MS);
-  setInterval(() => autoTestCredentials(), HEALTHY_FOR_MS);
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') autoTestCredentials();
-  });
+  function shouldTest(c, now) { if (!c || Number(c.enabled)!==1) return false; if (DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())) return false; const last=Number(c.last_test_at||0); return c.last_status==='ok' ? (!last || now-last>=HEALTHY_FOR_MS) : (!last || now-last>=RETRY_AFTER_MS); }
+  async function refreshUi(){try{if(typeof loadCredentials==='function')await loadCredentials()}catch{}try{if(typeof refresh==='function')await refresh()}catch{}}
+  async function autoTestCredentials({force=false}={}){if(running)return;const t=Date.now();if(!force&&t-lastCycleAt<RETRY_AFTER_MS)return;running=true;lastCycleAt=t;let changed=false;try{const rows=await api('/api/credentials');const targets=(rows||[]).filter(c=>!DEDICATED_TEST_PROVIDERS.has(String(c.provider||'').toLowerCase())&&(force?Number(c.enabled)===1:shouldTest(c,t)));for(const c of targets){try{await api('/api/credentials/'+encodeURIComponent(c.id)+'/test',{method:'POST'});changed=true}catch{changed=true}await sleep(BETWEEN_TESTS_MS)}if(changed)await refreshUi()}catch{}finally{running=false}}
+  window.jarvisAutoTestCredentials=autoTestCredentials;setTimeout(()=>autoTestCredentials(),START_DELAY_MS);setInterval(()=>autoTestCredentials(),HEALTHY_FOR_MS);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')autoTestCredentials()});
 })();
