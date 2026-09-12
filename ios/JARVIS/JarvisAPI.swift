@@ -10,6 +10,8 @@ final class JarvisAPI {
         config.httpCookieStorage = .shared
         config.httpShouldSetCookies = true
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 25
+        config.timeoutIntervalForResource = 35
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
     }
@@ -63,6 +65,16 @@ final class JarvisAPI {
         return try decoder.decode(ChatResponse.self, from: response)
     }
 
+    func googleSetupInfo() async throws -> GoogleSetupInfo {
+        let data = try await request("/api/google/setup-info")
+        return try decoder.decode(GoogleSetupInfo.self, from: data)
+    }
+
+    func googleConnect() async throws -> GoogleConnectInfo {
+        let data = try await request("/api/google/connect")
+        return try decoder.decode(GoogleConnectInfo.self, from: data)
+    }
+
     func registerPushToken(_ token: String, environment: String, appBundle: String) async throws {
         let payload: [String: Any] = [
             "token": token,
@@ -76,4 +88,26 @@ final class JarvisAPI {
     func pushStatus() async throws -> Data {
         try await request("/api/mobile/push/status")
     }
+}
+
+struct GoogleSetupInfo: Decodable {
+    let configured: Bool
+    let connected: Bool
+    let redirect: String?
+    let clientId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case configured
+        case connected
+        case redirect
+        case clientId = "client_id"
+    }
+}
+
+struct GoogleConnectInfo: Decodable {
+    let url: String?
+    let redirect: String?
+    let setupRequired: Bool?
+    let detail: String?
+    let error: String?
 }
