@@ -62,4 +62,18 @@ final class JarvisAPI {
         let response = try await request("/api/chat/send", method: "POST", body: data)
         return try decoder.decode(ChatResponse.self, from: response)
     }
+
+    func registerPushToken(_ token: String, environment: String, appBundle: String) async throws {
+        let payload: [String: Any] = [
+            "token": token,
+            "environment": environment,
+            "appBundle": appBundle
+        ]
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        _ = try await request("/api/mobile/push/register", method: "POST", body: data)
+    }
+
+    func pushStatus() async throws -> Data {
+        try await request("/api/mobile/push/status")
+    }
 }
