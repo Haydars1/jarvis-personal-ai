@@ -1,5 +1,5 @@
-const CACHE='jarvis-v7.5-os-20260912';
-const STATIC=['/','/app.css','/app.js','/credential-autotest.js','/integrations-ui.js','/higgsfield-ui.js','/provider-catalog.js','/navigation-state.js','/google-search-ui.js','/chat-enhancements.js','/jarvis-os-ui.js','/manifest.webmanifest','/icon.svg'];
+const CACHE='jarvis-v7.6-social-20260912';
+const STATIC=['/','/app.css','/app.js','/credential-autotest.js','/integrations-ui.js','/higgsfield-ui.js','/provider-catalog.js','/navigation-state.js','/google-search-ui.js','/chat-enhancements.js','/jarvis-os-ui.js','/social-growth-ui.js','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
