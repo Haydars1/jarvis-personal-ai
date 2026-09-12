@@ -24,6 +24,11 @@
   osUi.defer = true;
   document.head.appendChild(osUi);
 
+  const socialGrowthUi = document.createElement('script');
+  socialGrowthUi.src = '/social-growth-ui.js?v=20260912-1';
+  socialGrowthUi.defer = true;
+  document.head.appendChild(socialGrowthUi);
+
   const nativeFetch = window.fetch.bind(window);
   window.fetch = async (...args) => {
     const res = await nativeFetch(...args);
