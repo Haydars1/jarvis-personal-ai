@@ -14,6 +14,15 @@ targets:
       - path: ShareExtension
     info:
       path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: JARVIS
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis.share
@@ -27,6 +36,22 @@ targets:
       - path: JARVIS
     info:
       path: JARVIS/Info.plist
+      properties:
+        CFBundleDisplayName: JARVIS
+        CFBundleURLTypes:
+          - CFBundleURLName: com.haydojarvis.jarvis
+            CFBundleURLSchemes:
+              - jarvis
+        NSMicrophoneUsageDescription: "JARVIS ile sesli konuşmak için mikrofon kullanılır."
+        NSSpeechRecognitionUsageDescription: "JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
+        NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
+        NSPhotoLibraryUsageDescription: "JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
+        UIBackgroundModes:
+          - remote-notification
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        LSSupportsGameMode: false
+        LSApplicationCategoryType: public.app-category.utilities
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis
