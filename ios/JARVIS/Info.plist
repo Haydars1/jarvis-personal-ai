@@ -9,4 +9,6 @@
 <key>NSPhotoLibraryUsageDescription</key><string>JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
 <key>UIBackgroundModes</key><array><string>remote-notification</string></array>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+<key>LSSupportsGameMode</key><false/>
+<key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
 </dict></plist>
