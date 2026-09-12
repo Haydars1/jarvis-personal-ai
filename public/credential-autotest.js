@@ -4,6 +4,37 @@
   catalog.defer = true;
   document.head.appendChild(catalog);
 
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    const res = await nativeFetch(...args);
+    try {
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+      if (String(url).includes('/api/chat/send')) {
+        const x = await res.clone().json().catch(() => null);
+        if (x?.media?.length) {
+          setTimeout(() => {
+            const host = document.querySelector('#chatHistory');
+            if (!host) return;
+            for (const m of x.media) {
+              const box = document.createElement('div');
+              box.className = 'chatMsg assistant';
+              if (m.type === 'image' && m.src) {
+                box.innerHTML = `<img src="${m.src}" alt="${String(m.alt || 'JARVIS görseli').replace(/[\"<>]/g,'')}" style="display:block;max-width:min(100%,720px);border-radius:16px;margin-top:8px">`;
+              } else if (m.type === 'video-job') {
+                box.textContent = 'Video üretimi başlatıldı. JARVIS sonucu hazır olduğunda takip edecek.';
+              } else return;
+              host.appendChild(box);
+            }
+            host.scrollTop = host.scrollHeight;
+          }, 100);
+        }
+      }
+    } catch (e) {
+      console.debug('Smart media renderer:', e?.message || e);
+    }
+    return res;
+  };
+
   const HEALTHY_FOR_MS = 15 * 60 * 1000;
   const RETRY_AFTER_MS = 60 * 1000;
   const START_DELAY_MS = 2500;
