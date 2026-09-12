@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("jarvisMinimalBranding") private var minimalBranding = true
     @StateObject private var location = LocationPermissionController()
     @State private var notificationStatus = "Kontrol ediliyor"
+    @State private var googleStatus = "Kontrol edilmedi"
 
     var body: some View {
         NavigationStack {
@@ -45,7 +46,10 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .task { await refreshNotificationStatus() }
+        .task {
+            await refreshNotificationStatus()
+            await refreshGoogleStatus()
+        }
         .onAppear { location.refresh() }
     }
 
@@ -122,13 +126,13 @@ struct SettingsView: View {
 
     private var servicesCard: some View {
         settingsCard(title: "Servis bağlantıları") {
-            serviceRow("Google servisleri", "Gmail, Calendar, Drive, Docs, Maps ve Search bağlantılarını kur.", "g.circle") {
-                quickAction("Google servislerini bağlamak istiyorum. Gmail, Calendar, Drive, Docs, Maps, YouTube ve Search için eksik olan bağlantıları kontrol et, nasıl bağlanacağını adım adım aç ve gerekiyorsa bağlantı ekranını hazırla.")
+            serviceRow("Google servisleri", googleStatus, "g.circle") {
+                Task { await connectGoogle() }
             }
 
             serviceRow("Konum servisleri", "JARVIS konumumu kullansın ve yakınımdaki sonuçları doğru versin.", "location.fill") {
                 location.requestLocation()
-                quickAction("Konum iznini ve konum kullanımını kontrol et. Bundan sonra yakınımdaki yerler, rota, trafik, alışveriş ve hizmetler için mevcut konumumu kullan.")
+                state.statusText = "Konum izni kontrol edildi"
             }
 
             serviceRow("Takvim & Hatırlatıcı", "Randevu, termin, hatırlatma ve yapılacakları yönet.", "calendar.badge.clock") {
@@ -239,6 +243,65 @@ struct SettingsView: View {
     private func quickAction(_ text: String) {
         dismiss()
         state.startQuickAction(text)
+    }
+
+    private func refreshGoogleStatus() async {
+        do {
+            let info = try await state.api.googleSetupInfo()
+            await MainActor.run {
+                if info.connected {
+                    googleStatus = "Bağlı · Gmail/Drive hazır"
+                } else if info.configured {
+                    googleStatus = "Hazır · bağlamak için dokun"
+                } else {
+                    googleStatus = "OAuth kurulumu eksik · Client ID/Secret gerekli"
+                }
+            }
+        } catch {
+            await MainActor.run { googleStatus = "Kontrol edilemedi: \(error.localizedDescription)" }
+        }
+    }
+
+    private func connectGoogle() async {
+        await MainActor.run {
+            googleStatus = "Google bağlantısı kontrol ediliyor…"
+            state.statusText = "Google kontrol ediliyor…"
+        }
+        do {
+            let info = try await state.api.googleSetupInfo()
+            if info.connected {
+                await MainActor.run {
+                    googleStatus = "Zaten bağlı"
+                    state.statusText = "Google zaten bağlı"
+                }
+                return
+            }
+            guard info.configured else {
+                await MainActor.run {
+                    googleStatus = "OAuth kurulumu eksik · Ayar sayfasındaki redirect URL gerekli"
+                    state.statusText = "Google OAuth eksik"
+                }
+                return
+            }
+            let connect = try await state.api.googleConnect()
+            guard let raw = connect.url, let url = URL(string: raw) else {
+                await MainActor.run {
+                    googleStatus = connect.detail ?? connect.error ?? "Google bağlantı URL'si alınamadı"
+                    state.statusText = "Google bağlantısı hazır değil"
+                }
+                return
+            }
+            await MainActor.run {
+                googleStatus = "Safari'de Google giriş ekranı açılıyor…"
+                state.statusText = "Google girişini tamamla"
+                UIApplication.shared.open(url)
+            }
+        } catch {
+            await MainActor.run {
+                googleStatus = error.localizedDescription
+                state.statusText = error.localizedDescription
+            }
+        }
     }
 
     private func refreshNotificationStatus() async {
