@@ -14,8 +14,15 @@ final class JarvisAPI {
         decoder = JSONDecoder()
     }
 
-    private func request(_ path: String, method: String = "GET", body: Data? = nil) async throws -> Data {
-        var req = URLRequest(url: baseURL.appendingPathComponent(path))
+    private func makeURL(_ path: String, query: [URLQueryItem] = []) -> URL {
+        var c = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
+        c.path = path.hasPrefix("/") ? path : "/" + path
+        c.queryItems = query.isEmpty ? nil : query
+        return c.url!
+    }
+
+    private func request(_ path: String, method: String = "GET", body: Data? = nil, query: [URLQueryItem] = []) async throws -> Data {
+        var req = URLRequest(url: makeURL(path, query: query))
         req.httpMethod = method
         req.httpBody = body
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -30,20 +37,20 @@ final class JarvisAPI {
     }
 
     func authStatus() async throws -> AuthStatus {
-        try decoder.decode(AuthStatus.self, from: request("api/auth/status"))
+        try decoder.decode(AuthStatus.self, from: request("/api/auth/status"))
     }
 
     func login(password: String) async throws {
         let data = try JSONSerialization.data(withJSONObject: ["password": password])
-        _ = try await request("api/auth/login", method: "POST", body: data)
+        _ = try await request("/api/auth/login", method: "POST", body: data)
     }
 
     func history(limit: Int = 160) async throws -> [ChatMessage] {
-        try decoder.decode([ChatMessage].self, from: request("api/chat/history?limit=\(limit)"))
+        try decoder.decode([ChatMessage].self, from: request("/api/chat/history", query: [URLQueryItem(name: "limit", value: String(limit))]))
     }
 
     func send(text: String) async throws -> ChatResponse {
         let data = try JSONSerialization.data(withJSONObject: ["text": text])
-        return try decoder.decode(ChatResponse.self, from: request("api/chat/send", method: "POST", body: data))
+        return try decoder.decode(ChatResponse.self, from: request("/api/chat/send", method: "POST", body: data))
     }
 }
