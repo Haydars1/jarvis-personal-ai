@@ -27,13 +27,20 @@ struct JarvisShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: OpenJarvisIntent(),
-            phrases: ["JARVIS'i aç", "JARVIS ile konuş", "JARVIS başlat"],
+            phrases: [
+                "\(.applicationName) aç",
+                "\(.applicationName) ile konuş",
+                "\(.applicationName) başlat"
+            ],
             shortTitle: "JARVIS",
             systemImageName: "waveform.circle.fill"
         )
         AppShortcut(
             intent: AskJarvisIntent(),
-            phrases: ["JARVIS'e \(.applicationName) ile sor"],
+            phrases: [
+                "\(.applicationName) ile sor",
+                "\(.applicationName) soru sor"
+            ],
             shortTitle: "JARVIS'e Sor",
             systemImageName: "sparkles"
         )
