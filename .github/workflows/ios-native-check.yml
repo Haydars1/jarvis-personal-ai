@@ -17,6 +17,23 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
-      - name: Build without signing
+      - name: Build simulator without signing
         working-directory: ios
         run: xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+      - name: Build iPhone app without signing
+        working-directory: ios
+        run: |
+          rm -rf build-device Payload JARVIS-unsigned.ipa
+          xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Debug -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          APP_PATH="build-device/Build/Products/Debug-iphoneos/JARVIS.app"
+          test -d "$APP_PATH"
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/JARVIS.app
+          ditto -c -k --sequesterRsrc --keepParent Payload JARVIS-unsigned.ipa
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: JARVIS-unsigned-ipa
+          path: ios/JARVIS-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
