@@ -35,6 +35,7 @@ final class AppState: ObservableObject {
             if auth.authenticated {
                 try await loadHistory()
                 await NotificationManager.shared.syncPendingToken()
+                await consumePendingIntentIfNeeded()
             }
         } catch {
             statusText = error.localizedDescription
@@ -48,6 +49,7 @@ final class AppState: ObservableObject {
             showLogin = false
             try await loadHistory()
             await NotificationManager.shared.syncPendingToken()
+            await consumePendingIntentIfNeeded()
         } catch {
             statusText = error.localizedDescription
         }
@@ -96,6 +98,14 @@ final class AppState: ObservableObject {
     func toggleVoice() {
         if isListening { voice.stopListening() }
         else { voice.startListening() }
+    }
+
+    private func consumePendingIntentIfNeeded() async {
+        let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
+        guard let text = defaults?.string(forKey: "pendingIntentText"), !text.isEmpty else { return }
+        defaults?.removeObject(forKey: "pendingIntentText")
+        input = text
+        await send()
     }
 
     func handle(url: URL) {
