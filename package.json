@@ -1,0 +1,14 @@
+{
+  "name": "jarvis-ultimate-cloud",
+  "private": true,
+  "type": "module",
+  "version": "7.4.0",
+  "scripts": {
+    "check": "node --check src/worker.js && node --check public/app.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.131.1"
+  }
+}
