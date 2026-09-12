@@ -71,6 +71,15 @@ final class AppState: ObservableObject {
         attachments.removeAll { $0.id == id }
     }
 
+    func startQuickAction(_ text: String) {
+        guard !isSending else {
+            statusText = "JARVIS zaten çalışıyor…"
+            return
+        }
+        input = text
+        Task { await send() }
+    }
+
     func send() async {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (!typed.isEmpty || !attachments.isEmpty), !isSending else { return }
@@ -112,6 +121,10 @@ final class AppState: ObservableObject {
         guard url.scheme == "jarvis" else { return }
         if url.host == "voice" {
             voice.startListening()
+            return
+        }
+        if url.host == "settings" {
+            statusText = "Ayarları sağ üst dişliden aç"
             return
         }
         if url.host == "share" {
