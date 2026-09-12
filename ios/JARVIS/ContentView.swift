@@ -6,8 +6,10 @@ struct ContentView: View {
     @EnvironmentObject var state: AppState
     @State private var showCamera = false
     @State private var showFiles = false
+    @State private var showSettings = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
+    @AppStorage("jarvisMinimalBranding") private var minimalBranding = true
 
     var body: some View {
         ZStack {
@@ -31,6 +33,10 @@ struct ContentView: View {
         .task { await state.bootstrap() }
         .fullScreenCover(isPresented: $state.showLogin) {
             loginView
+                .environmentObject(state)
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
                 .environmentObject(state)
         }
         .sheet(isPresented: $showCamera) {
@@ -89,6 +95,16 @@ struct ContentView: View {
 
             Spacer(minLength: 12)
 
+            Button { showSettings = true } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.cyan)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ayarlar")
+
             Button { state.toggleVoice() } label: {
                 Image(systemName: state.isListening ? "waveform.circle.fill" : "waveform.circle")
                     .font(.system(size: 32, weight: .medium))
@@ -110,14 +126,17 @@ struct ContentView: View {
                 LazyVStack(spacing: 10) {
                     if state.messages.isEmpty {
                         VStack(spacing: 12) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 32))
-                                .foregroundStyle(.cyan)
+                            if !minimalBranding {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 32))
+                                    .foregroundStyle(.cyan)
+                            }
                             Text("Hazırım")
                                 .font(.headline)
-                            Text("Bir şey yaz veya mikrofonla konuş.")
+                            Text("Bir şey yaz, mikrofonla konuş veya ayarlardan servisleri bağla.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.top, 56)
@@ -281,10 +300,12 @@ struct ContentView: View {
                 VStack(spacing: 20) {
                     Spacer(minLength: 44)
 
-                    Image(systemName: "waveform.circle.fill")
-                        .font(.system(size: 70))
-                        .foregroundStyle(.cyan)
-                        .accessibilityHidden(true)
+                    if !minimalBranding {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 70))
+                            .foregroundStyle(.cyan)
+                            .accessibilityHidden(true)
+                    }
 
                     VStack(spacing: 6) {
                         Text("JARVIS")
