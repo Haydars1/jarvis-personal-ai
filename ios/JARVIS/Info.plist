@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDisplayName</key><string>JARVIS</string>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.haydojarvis.jarvis</string><key>CFBundleURLSchemes</key><array><string>jarvis</string></array></dict></array>
+<key>NSMicrophoneUsageDescription</key><string>JARVIS ile sesli konuşmak için mikrofon kullanılır.</string>
+<key>NSSpeechRecognitionUsageDescription</key><string>JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır.</string>
+<key>NSCameraUsageDescription</key><string>JARVIS'e fotoğraf göstermek için kamera kullanılır.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
+<key>UIBackgroundModes</key><array><string>remote-notification</string></array>
+<key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+</dict></plist>
