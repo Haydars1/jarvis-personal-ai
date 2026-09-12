@@ -7,6 +7,19 @@ settings:
   base:
     SWIFT_VERSION: 5.0
 targets:
+  JARVISShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+    info:
+      path: ShareExtension/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis.share
+        CODE_SIGN_STYLE: Automatic
+    entitlements:
+      path: ShareExtension/JARVISShare.entitlements
   JARVIS:
     type: application
     platform: iOS
@@ -21,19 +34,5 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
     entitlements:
       path: JARVIS/JARVIS.entitlements
-    dependencies: []
-  JARVISShare:
-    type: app-extension
-    platform: iOS
-    sources:
-      - path: ShareExtension
-    info:
-      path: ShareExtension/Info.plist
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis.share
-        CODE_SIGN_STYLE: Automatic
-    entitlements:
-      path: ShareExtension/JARVISShare.entitlements
     dependencies:
-      - target: JARVIS
+      - target: JARVISShare
