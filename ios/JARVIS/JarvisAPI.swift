@@ -49,8 +49,14 @@ final class JarvisAPI {
         try decoder.decode([ChatMessage].self, from: request("/api/chat/history", query: [URLQueryItem(name: "limit", value: String(limit))]))
     }
 
-    func send(text: String) async throws -> ChatResponse {
-        let data = try JSONSerialization.data(withJSONObject: ["text": text])
+    func send(text: String, attachments: [NativeAttachment] = []) async throws -> ChatResponse {
+        var payload: [String: Any] = ["text": text]
+        if !attachments.isEmpty {
+            payload["attachments"] = attachments.map {
+                ["name": $0.name, "type": $0.mimeType, "base64": $0.data.base64EncodedString()]
+            }
+        }
+        let data = try JSONSerialization.data(withJSONObject: payload)
         return try decoder.decode(ChatResponse.self, from: request("/api/chat/send", method: "POST", body: data))
     }
 }
