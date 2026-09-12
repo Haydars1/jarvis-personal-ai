@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "jarvis-personal-ai",
-  "main": "src/video-failover-entry.js",
+  "main": "src/chat-output-entry.js",
   "compatibility_date": "2026-09-12",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
