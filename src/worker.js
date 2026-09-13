@@ -97,17 +97,17 @@ async function gh(c,path,opts={}){
 }
 function b64Utf8(s){const bytes=te.encode(String(s));let x='';for(const b of bytes)x+=String.fromCharCode(b);return btoa(x)}
 async function repoFile(c,repo,path,ref){const d=await gh(c,`/repos/${repo}/contents/${encodeURIComponent(path).replaceAll('%2F','/')}?ref=${encodeURIComponent(ref)}`);return {sha:d.sha,content:td.decode(Uint8Array.from(atob((d.content||'').replace(/\n/g,'')),x=>x.charCodeAt(0)))}}
-const SELF_EDIT_ALLOW=new Set(['src/worker.js','public/app.js','public/index.html','public/app.css','schema.sql','README-v6.txt']);
+const SELF_EDIT_ALLOW=new Set(['src/worker.js','public/app.js','public/index.html','public/app.css','schema.sql','README-v6.txt','ios/JARVIS/JarvisAPI.swift','ios/JARVIS/AppState.swift','ios/JARVIS/ContentView.swift','ios/JARVIS/SettingsView.swift','ios/project.yml','.github/workflows/deploy-cloudflare.yml','.github/workflows/ios-native-check.yml']);
 function cleanAiJson(t){t=String(t||'').trim();const m=t.match(/```(?:json)?\s*([\s\S]*?)```/i);if(m)t=m[1].trim();const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a)t=t.slice(a,b+1);return JSON.parse(t)}
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
   const {repo,branch}=repoCfg(c), files={};
-  for(const path of ['src/worker.js','public/app.js','public/index.html','public/app.css','schema.sql']){try{files[path]=(await repoFile(c,repo,path,branch)).content}catch(e){files[path]='/* unavailable: '+e.message+' */'}}
+  for(const path of ['src/worker.js','public/app.js','public/index.html','public/app.css','schema.sql','ios/JARVIS/JarvisAPI.swift','ios/JARVIS/AppState.swift','ios/JARVIS/ContentView.swift','ios/JARVIS/SettingsView.swift','ios/project.yml','.github/workflows/deploy-cloudflare.yml','.github/workflows/ios-native-check.yml']){try{files[path]=(await repoFile(c,repo,path,branch)).content}catch(e){files[path]='/* unavailable: '+e.message+' */'}}
   const system=`Sen JARVIS'in kıdemli yazılım ajanısın. Kullanıcının istediği özelliği mevcut Cloudflare Workers uygulamasına uygula. Yalnızca gerekli dosyaları değiştir. Mevcut özellikleri bozma. Secret/API key yazma. Cloudflare Workers Web APIs kullan; Node-only API kullanma. Geriye uyumlu D1 migration kullan (CREATE TABLE IF NOT EXISTS / additive changes). ÇIKTI SADECE JSON: {"summary":"...","files":[{"path":"src/worker.js","content":"tam dosya içeriği"}],"tests":["..."]}. İzinli yollar: ${[...SELF_EDIT_ALLOW].join(', ')}.`;
   const prompt=`İSTEK: ${request}\n\nMEVCUT DOSYALAR:\n`+Object.entries(files).map(([k,v])=>`\n--- ${k} ---\n${v}`).join('\n');
   const a=await aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}]);let patch;
   try{patch=cleanAiJson(a.text)}catch(e){throw Error('SELF_UPDATE_BAD_AI_JSON:'+e.message)}
-  if(!Array.isArray(patch.files)||!patch.files.length)throw Error('SELF_UPDATE_NO_FILES');if(patch.files.length>6)throw Error('SELF_UPDATE_TOO_MANY_FILES');
+  if(!Array.isArray(patch.files)||!patch.files.length)throw Error('SELF_UPDATE_NO_FILES');if(patch.files.length>8)throw Error('SELF_UPDATE_TOO_MANY_FILES');
   for(const f of patch.files){if(!SELF_EDIT_ALLOW.has(f.path))throw Error('SELF_UPDATE_PATH_NOT_ALLOWED:'+f.path);if(typeof f.content!=='string'||f.content.length>350000)throw Error('SELF_UPDATE_INVALID_CONTENT:'+f.path);if(/(?:AIza|sk-[A-Za-z0-9_-]{20,}|nvapi-[A-Za-z0-9_-]{20,})/.test(f.content))throw Error('SELF_UPDATE_SECRET_DETECTED:'+f.path)}
   const baseRef=await gh(c,`/repos/${repo}/git/ref/heads/${encodeURIComponent(branch)}`),sha=baseRef.object.sha,changeId=id(),short=changeId.slice(0,8),newBranch=`jarvis/${short}`;
   await gh(c,`/repos/${repo}/git/refs`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({ref:`refs/heads/${newBranch}`,sha})});
@@ -121,12 +121,15 @@ async function createSelfChange(env,request,origin='user'){
 async function recordRuntimeError(env,e,ctx='fetch'){
   try{const msg=String(e?.stack||e?.message||e).slice(0,3000),fingerprint=await hmac(env.JARVIS_SECRET||'jarvis',ctx+'|'+msg.slice(0,800));await run(env,'INSERT INTO runtime_errors(id,ts,context,message,fingerprint,resolved) VALUES(?,?,?,?,?,0)',id(),now(),ctx,msg,fingerprint)}catch{}
 }
-async function selfHeal(env){
+async function selfHeal(env,force=false){
   try{
-    const recent=await q1(env,"SELECT fingerprint,COUNT(*) n,MAX(message) message,MAX(context) context FROM runtime_errors WHERE resolved=0 AND ts>? GROUP BY fingerprint HAVING COUNT(*)>=3 ORDER BY n DESC LIMIT 1",now()-86400000);
+    const minCount=force?1:3, windowMs=force?3600000:86400000;
+    const recent=await q1(env,`SELECT fingerprint,COUNT(*) n,MAX(message) message,MAX(context) context FROM runtime_errors WHERE resolved=0 AND ts>? GROUP BY fingerprint HAVING COUNT(*)>=${minCount} ORDER BY n DESC LIMIT 1`,now()-windowMs);
     if(!recent)return;
-    const last=await q1(env,"SELECT created_at FROM change_requests WHERE origin='self-heal' ORDER BY created_at DESC LIMIT 1");if(last&&now()-last.created_at<21600000)return;
-    const r=await createSelfChange(env,`Tekrarlanan runtime hatasını düzelt. Context: ${recent.context}. Hata: ${recent.message}`,'self-heal');if(r.ok)await run(env,'UPDATE runtime_errors SET resolved=1 WHERE fingerprint=?',recent.fingerprint)
+    const last=await q1(env,"SELECT created_at FROM change_requests WHERE origin='self-heal' ORDER BY created_at DESC LIMIT 1");
+    if(last&&now()-last.created_at<(force?1800000:21600000))return;
+    const r=await createSelfChange(env,`Tekrarlanan runtime hatasını düzelt. Context: ${recent.context}. Hata: ${recent.message}. Bu hata kullanıcıya uygulama içinde göründüyse kullanıcıdan manuel teşhis bekleme; repo kodundan sebebi bul ve düzelt.`,'self-heal');
+    if(r.ok)await run(env,'UPDATE runtime_errors SET resolved=1 WHERE fingerprint=?',recent.fingerprint)
   }catch(e){await log(env,'self-heal','Self-heal çalışmadı',{error:e.message})}
 }
 
@@ -248,7 +251,8 @@ async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.metho
  if(p==='/api/auth/setup'&&m==='POST'){if(await kvGet(env,'auth',null))return j({error:'ALREADY_CONFIGURED'},409);const b=await body(req),pw=String(b.password||'');if(pw.length<8)return j({error:'PASSWORD_MIN_8'},400);const salt=id(),auth={salt,hash:await hashPassword(pw,salt)};await kvSet(env,'auth',auth);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});return j({ok:true},200,{'set-cookie':cookie(tok)})}
  if(p==='/api/auth/login'&&m==='POST'){const auth=await kvGet(env,'auth',null),b=await body(req);if(!auth)return j({error:'NOT_CONFIGURED'},400);if(await hashPassword(String(b.password||''),auth.salt)!==auth.hash)return j({error:'INVALID_PASSWORD'},403);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});return j({ok:true},200,{'set-cookie':cookie(tok)})}
  if(p==='/api/auth/logout'&&m==='POST')return j({ok:true},200,{'set-cookie':cookie('',0)});
- if(p.startsWith('/api/')&&!(await isAuthed(req,env)))return j({error:'AUTH_REQUIRED'},401);
+ if(p==='/api/runtime/report'&&m==='POST'){const b=await body(req),message=String(b.message||b.error||'UNKNOWN').slice(0,3000),context=String(b.context||'ios').slice(0,200),userText=String(b.userText||'').slice(0,1000);await recordRuntimeError(env,Error(message),context+(userText?' | user: '+userText:''));await log(env,'runtime','Uygulama hatası raporlandı',{context,message:message.slice(0,500),userText});await selfHeal(env,true);return j({ok:true,self_heal:true})}
+  if(p.startsWith('/api/')&&!(await isAuthed(req,env)))return j({error:'AUTH_REQUIRED'},401);
  if(p==='/api/auth/passkey/register/options'&&m==='POST')return j(await registrationOptions(req,env));
  if(p==='/api/auth/passkey/register/verify'&&m==='POST'){const x=await verifyRegistration(req,env);return x.ok?j(x):j({error:x.error||'PASSKEY_VERIFY_FAILED'},400)}
  if(p==='/api/auth/passkeys'&&m==='GET')return j(await passkeys(env));
