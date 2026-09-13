@@ -97,9 +97,11 @@ final class AppState: ObservableObject {
             statusText = "Hazır"
             voice.speak(result.reply)
         } catch {
-            statusText = error.localizedDescription
+            let message = error.localizedDescription
+            statusText = message
             attachments = pendingAttachments
-            messages.append(ChatMessage(role: "assistant", content: "Bağlantı hatası: \(error.localizedDescription)", provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
+            await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text)
+            messages.append(ChatMessage(role: "assistant", content: "Bu hatayı gördüm ve kendi düzeltme hattıma bildirdim: \(message)", provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
         isSending = false
     }
