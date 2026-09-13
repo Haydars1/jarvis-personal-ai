@@ -100,7 +100,7 @@ final class AppState: ObservableObject {
             let message = error.localizedDescription
             statusText = message
             attachments = pendingAttachments
-            await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text)
+            Task { await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text) }
             messages.append(ChatMessage(role: "assistant", content: "Bu hatayı gördüm ve kendi düzeltme hattıma bildirdim: \(message)", provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
         isSending = false
