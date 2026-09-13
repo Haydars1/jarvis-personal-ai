@@ -234,6 +234,32 @@ async function state(env){
     settings:await kvGet(env,'settings',{name:'Heido',language:'tr-TR',assistantName:'JARVIS'})}
 }
 async function ddg(q,ms=3500){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 JARVIS/4.0'}},ms);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<8)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
+async function sportsDbLookup(text,ms=2800){
+ const l=String(text||'').toLocaleLowerCase('tr-TR');
+ let team=null;if(/galatasaray|\bgs\b/.test(l))team='Galatasaray';else if(/fenerbahçe|fenerbahce|\bfb\b/.test(l))team='Fenerbahce';else if(/beşiktaş|besiktas|\bbjk\b/.test(l))team='Besiktas';else if(/trabzonspor/.test(l))team='Trabzonspor';
+ if(!team)return [];
+ const s=await fetchT('https://www.thesportsdb.com/api/v1/json/3/searchteams.php?t='+encodeURIComponent(team),{},ms);
+ if(!s.ok)return [];
+ const sj=await s.json(),id=sj?.teams?.[0]?.idTeam;if(!id)return [];
+ const [last,next]=await Promise.allSettled([
+  fetchT('https://www.thesportsdb.com/api/v1/json/3/eventslast.php?id='+encodeURIComponent(id),{},ms).then(r=>r.ok?r.json():null),
+  fetchT('https://www.thesportsdb.com/api/v1/json/3/eventsnext.php?id='+encodeURIComponent(id),{},ms).then(r=>r.ok?r.json():null)
+ ]);
+ const events=[...(last.value?.results||[]),...(next.value?.events||[])].filter(Boolean).slice(0,8);
+ return events.map(e=>({title:[e.dateEvent,e.strEvent,e.intHomeScore!=null&&e.intAwayScore!=null?e.intHomeScore+'-'+e.intAwayScore:null].filter(Boolean).join(' | '),url:'https://www.thesportsdb.com/event/'+(e.idEvent||''),snippet:[e.strLeague,e.strSeason,e.strVenue,e.strStatus,e.strTime].filter(Boolean).join(' - '),source:'TheSportsDB'}));
+}
+async function liveResearch(text,ms=3000){
+ const queries=[liveSearchQuery(text)];
+ if(isSportsQuestion(text)){
+  queries.push(String(text||'')+' maç sonucu özet');
+  queries.push(liveSearchQuery(text).replace('resmi','TFF yayıncı'));
+  queries.push(liveSearchQuery(text).replace('resmi','Mackolik Sofascore'));
+ }
+ const seen=new Set(),out=[];
+ if(isSportsQuestion(text)){try{for(const x of await sportsDbLookup(text,ms)){const k=(x.title+'|'+x.url).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}}catch{}}
+ for(const q of queries){try{for(const x of await ddg(q,ms)){const k=(x.title+'|'+x.url).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}}catch{} if(out.length>=8)break}
+ return out.slice(0,8);
+}
 function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
 function aiFailureCooldownMs(msg){
  msg=String(msg||'');
@@ -475,8 +501,13 @@ function needsLiveLookupText(text){
 async function quickCommand(env,text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(needsLiveLookupText(text)){
-  let results=[];try{results=await ddg(liveSearchQuery(text),isSportsQuestion(text)?2200:2800)}catch{}
-  return{reply:researchFallbackAnswer(text,results),action:'live_research',provider:'JARVIS Live Search',results:results.slice(0,5)};
+  let results=[];try{results=await liveResearch(text,isSportsQuestion(text)?2600:3200)}catch{}
+  if(results.length){
+   const system='Sen JARVIS adlı Türkçe asistansın. Aşağıdaki canlı/web sonuçlarını kullanarak kullanıcıya doğrudan cevap ver. Google’a yönlendirme, “kendin bak” deme. Sonuçlar maç/özet ise skor, rakip, tarih ve bilinen durumu kısa net yaz; emin olmadığın yeri belirsiz diye işaretle.';
+   const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,8));
+   try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),6500,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:'live_ai_research',provider:a.provider,results:results.slice(0,5)}}catch{}
+  }
+  return{reply:researchFallbackAnswer(text,results),action:'live_research',provider:results.length?'JARVIS Live Search':'JARVIS Live Search: empty',results:results.slice(0,5)};
  }
  const local=localFallbackAnswer(text,'');
  if(local&&!/Bağlı AI servisleri/.test(local))return{reply:local,action:'local_fallback',provider:'JARVIS Local'};
@@ -502,7 +533,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
-   researchResults=await ddg(liveSearchQuery(text),isSportsQuestion(text)?2500:3500);
+   researchResults=await liveResearch(text,isSportsQuestion(text)?2800:3800);
    researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle): '+JSON.stringify(researchResults.slice(0,8));
    await log(env,'research','Otomatik araştırma: '+text,{count:researchResults.length});
   }catch(e){
