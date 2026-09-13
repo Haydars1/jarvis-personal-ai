@@ -14,38 +14,147 @@ struct SettingsView: View {
     @State private var notificationStatus = "Kontrol ediliyor"
     @State private var googleStatus = "Kontrol edilmedi"
 
+    private let accentColor = Color(red: 0.06, green: 0.64, blue: 0.47)
+
     var body: some View {
         NavigationStack {
-            ZStack {
-                LinearGradient(
-                    colors: [Color.black, Color(red: 0.015, green: 0.07, blue: 0.11)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 22) {
+                    settingsHeader
 
-                ScrollView {
-                    VStack(spacing: 16) {
-                        heroCard
-                        permissionsCard
-                        servicesCard
-                        controlsCard
-                        appearanceCard
+                    settingsSection("Bağlantılar") {
+                        serviceRow("Google servisleri", googleStatus, "g.circle") {
+                            Task { await connectGoogle() }
+                        }
+
+                        serviceRow("Tüm bağlantıları tara", "Eksik servis, API veya izin varsa JARVIS kontrol etsin.", "checklist") {
+                            quickAction("Uygulamadaki tüm bağlantıları, izinleri, Google servislerini, bildirimleri, konumu, mikrofonu, dosyaları ve backend durumunu tara. Eksikleri bana kısa ve net şekilde listele.")
+                        }
+
+                        serviceRow("Takvim & Hatırlatıcı", "Randevu, termin, alarm ve yapılacakları yönet.", "calendar.badge.clock") {
+                            quickAction("Takvim ve hatırlatıcı bağlantılarını kontrol et. Randevu, termin, alarm ve yapılacaklar için eksik izinleri veya bağlantıları kurmamı sağla.")
+                        }
+
+                        serviceRow("Dosyalar & Paylaşım", "PDF, fotoğraf, belge ve paylaşım uzantısını kontrol et.", "folder.badge.gearshape") {
+                            quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. JARVIS'e dosya gönderme akışını hazır hale getir.")
+                        }
                     }
-                    .padding(16)
-                    .padding(.bottom, 24)
+
+                    settingsSection("Telefon İzinleri") {
+                        settingRow(
+                            icon: "location.circle",
+                            title: "Konum",
+                            subtitle: "\(location.statusText) · \(location.coordinateText)",
+                            tint: accentColor
+                        ) {
+                            location.requestLocation()
+                        }
+
+                        settingRow(
+                            icon: "bell",
+                            title: "Bildirimler",
+                            subtitle: notificationStatus,
+                            tint: .orange
+                        ) {
+                            Task { await requestNotifications() }
+                        }
+
+                        settingRow(
+                            icon: "mic",
+                            title: "Mikrofon / Konuşma",
+                            subtitle: microphoneText,
+                            tint: .blue
+                        ) {
+                            state.toggleVoice()
+                        }
+
+                        settingRow(
+                            icon: "camera",
+                            title: "Kamera / Fotoğraflar",
+                            subtitle: "Kamera: \(cameraText) · Fotoğraf: \(photoText)",
+                            tint: .purple
+                        ) {
+                            openSystemSettings()
+                        }
+
+                        Button {
+                            openSystemSettings()
+                        } label: {
+                            HStack {
+                                Text("iPhone sistem ayarlarını aç")
+                                Spacer()
+                                Image(systemName: "arrow.up.forward.app")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .font(.subheadline.weight(.medium))
+                            .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    settingsSection("Uygulama") {
+                        settingRow(icon: "arrow.clockwise", title: "Sohbet geçmişini yenile", subtitle: "Sunucudaki son konuşmaları tekrar çek.", tint: .blue) {
+                            Task {
+                                do {
+                                    try await state.loadHistory()
+                                    state.statusText = "Geçmiş yenilendi"
+                                } catch {
+                                    state.statusText = error.localizedDescription
+                                }
+                            }
+                        }
+
+                        settingRow(icon: "paperclip", title: "Ekleri temizle", subtitle: "Bekleyen dosya ve fotoğraf eklerini kaldır.", tint: .mint) {
+                            state.attachments.removeAll()
+                            state.statusText = "Ekler temizlendi"
+                        }
+
+                        settingRow(icon: state.isListening ? "waveform.circle.fill" : "waveform", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla JARVIS'e konuş.", tint: accentColor) {
+                            state.toggleVoice()
+                        }
+                    }
+
+                    settingsSection("Görünüm") {
+                        Toggle(isOn: $minimalBranding) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Sade görünüm")
+                                    .font(.subheadline.weight(.medium))
+                                Text("Büyük amblem yerine temiz JARVIS arayüzü kullanılır.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .tint(accentColor)
+
+                        HStack(spacing: 12) {
+                            Image(systemName: "paintbrush")
+                                .foregroundStyle(accentColor)
+                                .frame(width: 26)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("ChatGPT tarzı sade tema")
+                                    .font(.subheadline.weight(.medium))
+                                Text("Temiz zemin, ince ayraçlar ve sade mesaj balonları aktif.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                        }
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 18)
+                .padding(.bottom, 34)
             }
+            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
             .navigationTitle("Ayarlar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Bitti") { dismiss() }
-                        .foregroundStyle(.cyan)
+                        .foregroundStyle(accentColor)
                 }
             }
         }
-        .preferredColorScheme(.dark)
         .task {
             await refreshNotificationStatus()
             await refreshGoogleStatus()
@@ -53,191 +162,82 @@ struct SettingsView: View {
         .onAppear { location.refresh() }
     }
 
-    private var heroCard: some View {
-        settingsCard {
-            HStack(spacing: 12) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(.cyan)
-                    .frame(width: 48, height: 48)
-                    .background(Color.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    private var settingsHeader: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(accentColor)
+                    .frame(width: 58, height: 58)
+                Text("J")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundStyle(.white)
+            }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("JARVIS Kontrol Merkezi")
-                        .font(.headline)
-                    Text("İzinler, servisler, Google bağlantıları, konum ve görünüm buradan yönetilir.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
+            VStack(spacing: 4) {
+                Text("JARVIS")
+                    .font(.title2.weight(.semibold))
+                Text("Servisler, izinler ve uygulama işlemleri")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 6)
     }
 
-    private var permissionsCard: some View {
-        settingsCard(title: "Telefon izinleri") {
-            settingRow(
-                icon: "location.circle.fill",
-                title: "Konum",
-                subtitle: "\(location.statusText) · \(location.coordinateText)",
-                tint: .green
-            ) {
-                location.requestLocation()
-            }
+    private func settingsSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
 
-            settingRow(
-                icon: "bell.badge.fill",
-                title: "Bildirimler",
-                subtitle: notificationStatus,
-                tint: .orange
-            ) {
-                Task { await requestNotifications() }
+            VStack(spacing: 0) {
+                content()
             }
-
-            settingRow(
-                icon: "mic.circle.fill",
-                title: "Mikrofon / Konuşma",
-                subtitle: microphoneText,
-                tint: .cyan
-            ) {
-                state.toggleVoice()
-            }
-
-            settingRow(
-                icon: "camera.circle.fill",
-                title: "Kamera / Fotoğraflar",
-                subtitle: "Kamera: \(cameraText) · Fotoğraf: \(photoText)",
-                tint: .purple
-            ) {
-                openSystemSettings()
-            }
-
-            Button {
-                openSystemSettings()
-            } label: {
-                Label("iPhone sistem ayarlarını aç", systemImage: "gearshape")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.cyan)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color(uiColor: .separator).opacity(0.18), lineWidth: 0.7)
+            )
         }
-    }
-
-    private var servicesCard: some View {
-        settingsCard(title: "Servis bağlantıları") {
-            serviceRow("Google servisleri", googleStatus, "g.circle") {
-                Task { await connectGoogle() }
-            }
-
-            serviceRow("Konum servisleri", "JARVIS konumumu kullansın ve yakınımdaki sonuçları doğru versin.", "location.fill") {
-                location.requestLocation()
-                state.statusText = "Konum izni kontrol edildi"
-            }
-
-            serviceRow("Takvim & Hatırlatıcı", "Randevu, termin, hatırlatma ve yapılacakları yönet.", "calendar.badge.clock") {
-                quickAction("Takvim ve hatırlatıcı bağlantılarını kontrol et. Randevu, termin, alarm ve yapılacaklar için eksik izinleri veya bağlantıları kurmamı sağla.")
-            }
-
-            serviceRow("Dosyalar & Paylaşım", "PDF, fotoğraf, belge ve paylaşım uzantısını kontrol et.", "folder.badge.gearshape") {
-                quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. JARVIS'e dosya gönderme akışını hazır hale getir.")
-            }
-
-            serviceRow("Tüm bağlantıları tara", "Eksik servis, API veya izin varsa JARVIS raporlasın.", "checklist") {
-                quickAction("Uygulamadaki tüm bağlantıları, izinleri, Google servislerini, bildirimleri, konumu, mikrofonu, dosyaları ve backend durumunu tara. Eksikleri bana kısa ve net şekilde listele.")
-            }
-        }
-    }
-
-    private var controlsCard: some View {
-        settingsCard(title: "Uygulama işlemleri") {
-            settingRow(icon: "arrow.clockwise.circle.fill", title: "Sohbet geçmişini yenile", subtitle: "Sunucudaki son konuşmaları tekrar çek.", tint: .blue) {
-                Task {
-                    do {
-                        try await state.loadHistory()
-                        state.statusText = "Geçmiş yenilendi"
-                    } catch {
-                        state.statusText = error.localizedDescription
-                    }
-                }
-            }
-
-            settingRow(icon: "paperclip.circle.fill", title: "Ekleri temizle", subtitle: "Bekleyen dosya ve fotoğraf eklerini kaldır.", tint: .mint) {
-                state.attachments.removeAll()
-                state.statusText = "Ekler temizlendi"
-            }
-
-            settingRow(icon: "waveform.circle.fill", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla JARVIS'e konuş.", tint: .cyan) {
-                state.toggleVoice()
-            }
-        }
-    }
-
-    private var appearanceCard: some View {
-        settingsCard(title: "Görünüm") {
-            Toggle(isOn: $minimalBranding) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Amblemsiz / sade görünüm")
-                    Text("Girişte ve üst bölümde büyük amblem yerine temiz JARVIS yazısı kullanılır.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .tint(.cyan)
-
-            settingRow(icon: "paintbrush.pointed.fill", title: "JARVIS dark-cyan tema", subtitle: "Siyah zemin, cam panel ve camgöbeği vurgu aktif.", tint: .cyan) {}
-                .disabled(true)
-        }
-    }
-
-    private func settingsCard<Content: View>(title: String? = nil, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let title {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-            }
-            content()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.065), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-        )
     }
 
     private func settingRow(icon: String, title: String, subtitle: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(tint)
-                    .frame(width: 34, height: 34)
-                    .background(tint.opacity(0.12), in: Circle())
+                    .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline.weight(.medium))
                         .foregroundStyle(.primary)
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
+
                 Spacer(minLength: 0)
+
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
+            .padding(.vertical, 10)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private func serviceRow(_ title: String, _ subtitle: String, _ icon: String, action: @escaping () -> Void) -> some View {
-        settingRow(icon: icon, title: title, subtitle: subtitle, tint: .cyan, action: action)
+        settingRow(icon: icon, title: title, subtitle: subtitle, tint: accentColor, action: action)
     }
 
     private func quickAction(_ text: String) {
@@ -264,8 +264,8 @@ struct SettingsView: View {
 
     private func connectGoogle() async {
         await MainActor.run {
-            googleStatus = "Google bağlantısı kontrol ediliyor…"
-            state.statusText = "Google kontrol ediliyor…"
+            googleStatus = "Google bağlantısı kontrol ediliyor..."
+            state.statusText = "Google kontrol ediliyor..."
         }
         do {
             let info = try await state.api.googleSetupInfo()
@@ -292,7 +292,7 @@ struct SettingsView: View {
                 return
             }
             await MainActor.run {
-                googleStatus = "Safari'de Google giriş ekranı açılıyor…"
+                googleStatus = "Safari'de Google giriş ekranı açılıyor..."
                 state.statusText = "Google girişini tamamla"
                 UIApplication.shared.open(url)
             }
