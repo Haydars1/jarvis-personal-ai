@@ -8,12 +8,17 @@ final class AppState: ObservableObject {
     @Published var attachments: [NativeAttachment] = []
     @Published var isSending = false
     @Published var isListening = false
+    @Published var isLoggingIn = false
     @Published var statusText = "Hazır"
+    @Published var loginStatusText = ""
     @Published var showLogin = false
     @Published var password = ""
+    @Published var biometricLoginAvailable = false
+    @Published var biometricLoginTitle = "Face ID ile Giriş Yap"
 
     let api = JarvisAPI()
     let voice = VoiceEngine()
+    private let biometricStore = BiometricLoginStore.shared
 
     init() {
         voice.onFinalTranscript = { [weak self] text in
@@ -29,6 +34,7 @@ final class AppState: ObservableObject {
     }
 
     func bootstrap() async {
+        refreshBiometricState()
         do {
             let auth = try await api.authStatus()
             showLogin = !auth.authenticated
@@ -36,23 +42,73 @@ final class AppState: ObservableObject {
                 try await loadHistory()
                 await NotificationManager.shared.syncPendingToken()
                 await consumePendingIntentIfNeeded()
+            } else if biometricLoginAvailable {
+                await loginWithBiometrics()
             }
         } catch {
             statusText = error.localizedDescription
         }
     }
 
+    func refreshBiometricState() {
+        biometricLoginTitle = biometricStore.availabilityTitle()
+        biometricLoginAvailable = biometricStore.isEnabled && biometricStore.canUseBiometrics()
+    }
+
     func login() async {
+        let typedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !typedPassword.isEmpty, !isLoggingIn else {
+            loginStatusText = typedPassword.isEmpty ? "Parolayı yaz." : loginStatusText
+            return
+        }
+
+        isLoggingIn = true
+        loginStatusText = "Giriş yapılıyor..."
         do {
-            try await api.login(password: password)
+            try await completeLogin(password: typedPassword)
+            do {
+                try biometricStore.savePassword(typedPassword)
+                refreshBiometricState()
+            } catch {
+                loginStatusText = "Giriş tamam. Face ID kaydedilemedi: \(error.localizedDescription)"
+            }
             password = ""
-            showLogin = false
-            try await loadHistory()
-            await NotificationManager.shared.syncPendingToken()
-            await consumePendingIntentIfNeeded()
         } catch {
+            loginStatusText = error.localizedDescription
             statusText = error.localizedDescription
         }
+        isLoggingIn = false
+    }
+
+    func loginWithBiometrics() async {
+        guard !isLoggingIn else { return }
+        refreshBiometricState()
+        guard biometricLoginAvailable else {
+            loginStatusText = "Önce parolayla giriş yap. Sonra Face ID aktif olur."
+            return
+        }
+
+        isLoggingIn = true
+        loginStatusText = "Face ID bekleniyor..."
+        do {
+            let savedPassword = try biometricStore.readPassword()
+            try await completeLogin(password: savedPassword)
+            password = ""
+        } catch {
+            loginStatusText = error.localizedDescription
+            statusText = error.localizedDescription
+        }
+        isLoggingIn = false
+    }
+
+    private func completeLogin(password: String) async throws {
+        try await api.login(password: password)
+        showLogin = false
+        loginStatusText = ""
+        try await loadHistory()
+        await NotificationManager.shared.syncPendingToken()
+        await consumePendingIntentIfNeeded()
+        statusText = "Hazır"
     }
 
     func loadHistory() async throws {
@@ -73,7 +129,7 @@ final class AppState: ObservableObject {
 
     func startQuickAction(_ text: String) {
         guard !isSending else {
-            statusText = "JARVIS zaten çalışıyor…"
+            statusText = "JARVIS zaten çalışıyor..."
             return
         }
         input = text
@@ -88,7 +144,7 @@ final class AppState: ObservableObject {
         input = ""
         attachments = []
         isSending = true
-        statusText = "JARVIS çalışıyor…"
+        statusText = "JARVIS çalışıyor..."
         let visible = pendingAttachments.isEmpty ? text : "\(text)\n📎 \(pendingAttachments.map(\.name).joined(separator: ", "))"
         messages.append(ChatMessage(role: "user", content: visible, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
         do {
