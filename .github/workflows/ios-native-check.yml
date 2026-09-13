@@ -23,7 +23,9 @@ jobs:
       - name: Build iPhone Release app without signing
         working-directory: ios
         run: |
-          rm -rf build-device Payload JARVIS-unsigned.ipa
+          IPA_BASENAME="JARVIS-Run${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}-unsigned"
+          echo "IPA_BASENAME=$IPA_BASENAME" >> "$GITHUB_ENV"
+          rm -rf build-device Payload "$IPA_BASENAME.ipa" JARVIS-unsigned.ipa
           xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
           APP_PATH="build-device/Build/Products/Release-iphoneos/JARVIS.app"
           test -d "$APP_PATH"
@@ -35,11 +37,11 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$EXT_PLIST" | grep -qx 'com.apple.share-services'
           mkdir Payload
           cp -R "$APP_PATH" Payload/JARVIS.app
-          ditto -c -k --sequesterRsrc --keepParent Payload JARVIS-unsigned.ipa
+          ditto -c -k --sequesterRsrc --keepParent Payload "$IPA_BASENAME.ipa"
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: JARVIS-unsigned-ipa
-          path: ios/JARVIS-unsigned.ipa
+          name: ${{ env.IPA_BASENAME }}-artifact
+          path: ios/${{ env.IPA_BASENAME }}.ipa
           if-no-files-found: error
           retention-days: 14
