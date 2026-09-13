@@ -255,9 +255,11 @@ async function liveResearch(text,ms=3000){
   queries.push(liveSearchQuery(text).replace('resmi','TFF yayıncı'));
   queries.push(liveSearchQuery(text).replace('resmi','Mackolik Sofascore'));
  }
- const seen=new Set(),out=[];
- if(isSportsQuestion(text)){try{for(const x of await sportsDbLookup(text,ms)){const k=(x.title+'|'+x.url).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}}catch{}}
- for(const q of queries){try{for(const x of await ddg(q,ms)){const k=(x.title+'|'+x.url).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}}catch{} if(out.length>=8)break}
+ const seen=new Set(),out=[],per=Math.max(1200,Math.min(ms,2200));
+ const jobs=queries.map(q=>ddg(q,per).catch(()=>[]));
+ if(isSportsQuestion(text))jobs.unshift(sportsDbLookup(text,per).catch(()=>[]));
+ const settled=await withTimeout(Promise.allSettled(jobs),Math.max(2200,ms+500),'LIVE_RESEARCH_TIMEOUT').catch(()=>[]);
+ for(const r of settled){for(const x of (r.value||[])){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(x)}}}
  return out.slice(0,8);
 }
 function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
@@ -441,8 +443,8 @@ function researchFallbackAnswer(text,results=[]){
  const clean=(results||[]).filter(x=>x&&x.title).slice(0,5);
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(!clean.length){
-  if(isSportsQuestion(text))return 'Canlı maç bilgisini kontrol ettim ama şu an kaynaklardan net sonuç alamadım. Seni Google’a göndermiyorum; bağlantı veya kaynak tarafı sonuç vermediği için kesin saat/kanal söyleyemiyorum.';
-  return 'Canlı bilgiyi kontrol etmeye çalıştım ama şu an kaynaklardan net sonuç alamadım. Seni aramaya göndermiyorum; bağlantı/kaynak tarafı cevap vermediği için kesin bilgi diye sunmuyorum.';
+  if(isSportsQuestion(text))return 'Canlı maç kaynağı şu an boş döndü. Kesin skor uydurmuyorum; ama sorunu kaybettirmedim ve çalışan AI sağlayıcısına kısa özet/yorum için geçiyorum.';
+  return 'Canlı kaynak şu an boş döndü. Kesin bilgi uydurmuyorum; çalışan AI sağlayıcısı ve yerel yedekle cevaplamaya devam ediyorum.';
  }
  const lines=clean.map((x,i)=>`${i+1}. ${x.title}${x.snippet?' - '+x.snippet:''}${x.url?' ('+x.url+')':''}`);
  if(isSportsQuestion(text)){
@@ -460,7 +462,8 @@ Kaynaklar yetersizse bunu açıkça söylerim; seni aramaya göndermem.`;
 }
 function localFallbackAnswer(text,error=''){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
- if(/kola|cola|coca.?cola|pepsi/.test(l)&&/(içinde|icinde|içindeki|icindeki|element|madde|neler var|ne var|bileşen|bilesen|içerik|icerik)/.test(l)){
+ if(/kola|cola|coca.?cola|pepsi/.test(l)&&/(nedir|ne demek|içinde|icinde|içindeki|icindeki|element|madde|neler var|ne var|bileşen|bilesen|içerik|icerik)/.test(l)){
+  if(/nedir|ne demek/.test(l)&&!/(içinde|icinde|element|madde|içerik|icerik)/.test(l))return 'Kola; su, şeker veya tatlandırıcı, karbondioksit, kafein, asitlik düzenleyici ve aroma karışımıyla yapılan gazlı bir içecektir. Yani temel olarak gazlı, tatlı ve kafeinli bir meşrubattır.';
   return `Kolanın temel içeriği genelde şunlardır:
 
 - Su
@@ -520,12 +523,12 @@ function needsLiveLookupText(text){
 async function quickCommand(env,text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(needsLiveLookupText(text)){
-  let results=[];try{results=await liveResearch(text,isSportsQuestion(text)?2600:3200)}catch{}
-  if(results.length){
-   const system='Sen JARVIS adlı Türkçe asistansın. Aşağıdaki canlı/web sonuçlarını kullanarak kullanıcıya doğrudan cevap ver. Google’a yönlendirme, “kendin bak” deme. Sonuçlar maç/özet ise skor, rakip, tarih ve bilinen durumu kısa net yaz; emin olmadığın yeri belirsiz diye işaretle.';
-   const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,8));
-   try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),6500,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:'live_ai_research',provider:a.provider,results:results.slice(0,5)}}catch{}
-  }
+  let results=[];try{results=await withTimeout(liveResearch(text,isSportsQuestion(text)?2600:3200),3600,'LIVE_RESEARCH_TOTAL_TIMEOUT')}catch{}
+  const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan, kısa ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. Canlı/web sonuçları varsa kullan. Sonuç yoksa kesin skor/saat uydurma; ama sorunun türüne göre en iyi açıklamayı, neyin doğrulanamadığını ve bir sonraki net adımı tek paragrafta ver.';
+  const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,8));
+  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),5200,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:results.length?'live_ai_research':'live_ai_no_results',provider:a.provider,results:results.slice(0,5)}}catch{}
+  const local=localFallbackAnswer(text,'');
+  if(local&&!/Bağlı AI servisleri/.test(local))return{reply:local,action:'local_fallback',provider:'JARVIS Local'};
   return{reply:researchFallbackAnswer(text,results),action:'live_research',provider:results.length?'JARVIS Live Search':'JARVIS Live Search: empty',results:results.slice(0,5)};
  }
  const local=localFallbackAnswer(text,'');
@@ -540,7 +543,7 @@ async function quickCommand(env,text){
   const answer=compactResearchAnswer(text,results);
   if(answer)return{reply:answer,action:'search_fallback',provider:'JARVIS Search',results:results.slice(0,4)};
  }catch{}
- return{reply:local||'Cevap motoru şu an düşüyor ve arama yedeği de sonuç vermedi. Bunu teknik hata olarak kaydettim; sana boş teknik detay dökmüyorum.',action:'local_fallback',provider:'JARVIS Local'};
+ return{reply:local||'Şu an bağlı cevap motoru zamanında dönemedi. Sorunu kaydettim; kısa cevap için tekrar deniyorum ve çalışan sağlayıcıları öne alıyorum.',action:'local_fallback',provider:'JARVIS Local'};
 }
 async function command(env,text){await log(env,'user',text);const l=text.toLocaleLowerCase('tr-TR');const remembered=await rememberExplicit(env,text);if(remembered){const reply=`Bunu hafızama kaydettim: ${remembered}`;await log(env,'jarvis',reply);return{reply,action:'memory'}}
  if(/davranış becerileri|davranis becerileri|çalışma kuralları|calisma kurallari|skills cloud|claude\.md|jarvis kuralları|jarvis kurallari/.test(l)){const reply='JARVIS davranış becerileri aktif:\n'+await behaviorSkillText(env);await log(env,'jarvis',reply,{provider:'JARVIS Behavior Skills'});return{reply,action:'behavior_skills',provider:'JARVIS Behavior Skills'}}
@@ -561,10 +564,10 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
    await log(env,'research','Otomatik araştırma başarısız: '+text,{error:e.message});
   }
  }
- if(needsLiveResearch){
-  const reply=researchFallbackAnswer(text,researchResults);
-  await log(env,'jarvis',reply,{provider:'JARVIS Live Search',direct:true});
-  return{reply,action:'live_research',provider:'JARVIS Live Search',results:researchResults.slice(0,5)};
+ if(needsLiveResearch&&researchResults.length){
+  const system='Sen JARVIS adlı Türkçe asistansın. Canlı/web sonuçlarını kullanarak doğrudan cevap ver. Kullanıcıyı aramaya yönlendirme.';
+  const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(researchResults.slice(0,8));
+  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),5200,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text)){await log(env,'jarvis',a.text,{provider:a.provider,direct:true});return{reply:a.text,action:'live_ai_research',provider:a.provider,results:researchResults.slice(0,5)}}}catch(e){await recordRuntimeError(env,e,'command.live_ai')}
  }
  const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30'),skills=await behaviorSkillText(env);const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
  let reply=a.text;
