@@ -34,11 +34,19 @@ $('#downloadBtn').onclick=async()=>{try{await api('/api/files/download-url',{met
 async function loadFiles(){try{const a=await api('/api/files'),e=$('#fileList');e.innerHTML='';a.forEach(f=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<a href="/api/files/${encodeURIComponent(f.file)}">${esc(f.file)}</a><small>${Math.round(f.size/1024)} KB</small>`;e.appendChild(d)})}catch(e){toast(e.message)}}
 
 const PROVIDER_PRESETS=[
+ {id:'openai',name:'OpenAI',desc:'GPT modelleri',url:'https://platform.openai.com/api-keys',model:'gpt-4o-mini',priority:10,caps:'chat,coding,reasoning,research'},
+ {id:'anthropic',name:'Claude',desc:'Anthropic Claude modelleri',url:'https://console.anthropic.com/settings/keys',model:'claude-3-5-haiku-latest',priority:15,caps:'chat,coding,reasoning'},
  {id:'gemini',name:'Gemini',desc:'Google Gemini API',url:'https://aistudio.google.com/app/apikey',model:'gemini-2.5-flash',priority:20,caps:'chat,reasoning,research'},
- {id:'nvidia',name:'NVIDIA NIM',desc:'NVIDIA Build / NIM inference endpoint',url:'https://build.nvidia.com/settings/api-keys',model:'nvidia/nemotron-3.5-lightning-30b-a3b',priority:30,caps:'chat,coding,reasoning'},
- {id:'groq',name:'Groq',desc:'Hızlı OpenAI-compatible inference',url:'https://console.groq.com/keys',model:'llama-3.3-70b-versatile',priority:40,caps:'chat,coding'},
- {id:'openrouter',name:'OpenRouter',desc:'Birçok modeli tek API üzerinden kullanır',url:'https://openrouter.ai/settings/keys',model:'openrouter/auto',priority:50,caps:'chat,coding,research'}
-];
+ {id:'groq',name:'Groq',desc:'Hızlı OpenAI-compatible inference',url:'https://console.groq.com/keys',model:'llama-3.3-70b-versatile',priority:25,caps:'chat,coding'},
+ {id:'cerebras',name:'Cerebras',desc:'Çok hızlı inference',url:'https://cloud.cerebras.ai/platform',model:'llama3.1-8b',priority:30,caps:'chat,coding'},
+ {id:'mistral',name:'Mistral',desc:'Mistral AI modelleri',url:'https://console.mistral.ai/api-keys',model:'mistral-small-latest',priority:35,caps:'chat,coding,research'},
+ {id:'deepseek',name:'DeepSeek',desc:'DeepSeek chat ve reasoning',url:'https://platform.deepseek.com/api_keys',model:'deepseek-chat',priority:40,caps:'chat,coding,reasoning'},
+ {id:'together',name:'Together AI',desc:'Açık model inference',url:'https://api.together.ai/settings/api-keys',model:'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',priority:45,caps:'chat,coding'},
+ {id:'perplexity',name:'Perplexity',desc:'Web araştırma modelleri',url:'https://www.perplexity.ai/settings/api',model:'sonar-pro',priority:50,caps:'chat,research'},
+ {id:'xai',name:'xAI',desc:'Grok modelleri',url:'https://console.x.ai/',model:'grok-3-mini',priority:55,caps:'chat,reasoning,research'},
+ {id:'openrouter',name:'OpenRouter',desc:'Birçok modeli tek API üzerinden kullanır',url:'https://openrouter.ai/settings/keys',model:'openrouter/auto',priority:60,caps:'chat,coding,research'},
+ {id:'nvidia',name:'NVIDIA NIM',desc:'NVIDIA Build / NIM inference endpoint',url:'https://build.nvidia.com/settings/api-keys',model:'nvidia/nemotron-3.5-lightning-30b-a3b',priority:70,caps:'chat,coding,reasoning'}
+]
 function providerCred(rows,id){return (rows||[]).find(x=>String(x.provider||'').toLowerCase()===id)}
 function renderProviderCards(rows=[]){const e=$('#providerCards');if(!e)return;e.innerHTML='';PROVIDER_PRESETS.forEach(p=>{const c=providerCred(rows,p.id),ok=!!c&&c.last_status==='ok'&&Number(c.enabled)===1;const d=document.createElement('div');d.className='providerCard '+(ok?'ok':'bad');d.innerHTML=`<div class="providerHead"><b>${esc(p.name)}</b><span class="providerBadge ${ok?'ok':'bad'}">${ok?'● BAĞLI':c?'○ TEST GEREKLİ':'○ BAĞLI DEĞİL'}</span></div><small>${esc(p.desc)}</small><div class="providerModel">${esc(c?.model||p.model)}</div>${c?`<small>Öncelik ${c.priority} • ${c.enabled?'aktif':'kapalı'}${c.last_error?' • '+esc(c.last_error):''}</small>`:`<input type="password" class="quickKey" placeholder="API key yapıştır">`}<div class="row"><a href="${p.url}" target="_blank" rel="noopener">ANAHTAR AL</a>${c?`<button class="quickTest">TEST ET</button>`:`<button class="quickConnect">BAĞLA + TEST</button>`}</div>`;
  if(c){d.querySelector('.quickTest').onclick=async()=>{try{const r=await api('/api/credentials/'+c.id+'/test',{method:'POST'});toast(r.ok?p.name+' bağlantısı başarılı':p.name+' test başarısız: '+(r.error||''));await loadCredentials();await refresh()}catch(err){toast(err.message)}}}
