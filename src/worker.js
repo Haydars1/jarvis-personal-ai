@@ -236,7 +236,7 @@ async function state(env){
       selfUpdate:{connected:status.selfUpdate.connected,provider:'GitHub + Cloudflare CI'}},
     settings:await kvGet(env,'settings',{name:'Heido',language:'tr-TR',assistantName:'JARVIS'})}
 }
-async function ddg(q){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 JARVIS/4.0'}},5000);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<8)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
+async function ddg(q,ms=3500){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 JARVIS/4.0'}},ms);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<8)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
 function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
 function aiFailureCooldownMs(msg){
  msg=String(msg||'');
@@ -327,6 +327,9 @@ function isBadAssistantAnswer(s){
  s=String(s||'').toLocaleLowerCase('tr-TR');
  return /google aramasını dene|google'da ara|googleda ara|siteye bak|sitelerine bak|kendin kontrol et|göz atabilirsiniz|goz atabilirsiniz|arama motorunda ara|bilemem|bilgim yok/.test(s);
 }
+function isSportsQuestion(text){
+ return /maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig|hangi kanalda|fikstür|fikstur/.test(String(text||'').toLocaleLowerCase('tr-TR'));
+}
 function liveSearchQuery(text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(/galatasaray|gs\b/.test(l))return 'Galatasaray bugün maç fikstür saat hangi kanalda resmi';
@@ -341,7 +344,8 @@ function researchFallbackAnswer(text,results=[]){
  if(!clean.length)return null;
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  const lines=clean.map((x,i)=>`${i+1}. ${x.title}${x.snippet?' - '+x.snippet:''}${x.url?' ('+x.url+')':''}`);
- if(/maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig/.test(l)){
+ if(isSportsQuestion(text)){
+  if(!clean.length)return 'Canlı maç bilgisini kontrol etmeye çalıştım ama şu an kaynaklardan net sonuç alamadım. Seni Google’a göndermiyorum; bağlantı tarafı cevap vermediği için kesin saat/kanal söyleyemiyorum.';
   return `Baktım. Canlı kaynaklardan netleştirebildiğim maç bilgisi şu:
 
 ${lines.join('\n')}
@@ -405,7 +409,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
-   researchResults=await ddg(liveSearchQuery(text));
+   researchResults=await ddg(liveSearchQuery(text),isSportsQuestion(text)?2500:3500);
    researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle): '+JSON.stringify(researchResults.slice(0,8));
    await log(env,'research','Otomatik araştırma: '+text,{count:researchResults.length});
   }catch(e){
@@ -413,7 +417,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
    await log(env,'research','Otomatik araştırma başarısız: '+text,{error:e.message});
   }
  }
- if(needsLiveResearch&&/maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig/.test(l)&&researchResults.length){
+ if(needsLiveResearch&&isSportsQuestion(text)){
   const reply=researchFallbackAnswer(text,researchResults);
   await log(env,'jarvis',reply,{provider:'JARVIS Live Search',direct:true});
   return{reply,action:'live_research',provider:'JARVIS Live Search',results:researchResults.slice(0,5)};
@@ -466,7 +470,7 @@ async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.metho
  let am=p.match(/^\/api\/actions\/([^/]+)\/(approve|reject)$/);if(am&&m==='POST'){const a=await q1(env,'SELECT * FROM actions WHERE id=?',am[1]);if(!a)return j({error:'NOT_FOUND'},404);if(am[2]==='reject'){await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','rejected',now(),a.id);return j({ok:true})}const result=await executeAction(env,a);await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','done',now(),a.id);await log(env,'action','İşlem gerçekleştirildi: '+a.summary,{result});return j({ok:true,result})}
 
  if(p==='/api/chat/history'&&m==='GET')return j(await chatHistory(env,Number(u.searchParams.get('limit')||120)));
- if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);try{const r=await withTimeout(command(env,text),22000,'COMMAND_TIMEOUT');await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||'Şu an cevap motoru zamanında dönemedi. İsteğini kaybettirmedim; teknik hata arka planda kaydedildi.';await recordRuntimeError(env,e,'chat.send');await addChat(env,'assistant',reply,'JARVIS Local');return j({reply,action:'local_fallback',provider:'JARVIS Local',state:await state(env),history:await chatHistory(env,120)})}}
+ if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);try{const r=await withTimeout(command(env,text),12000,'COMMAND_TIMEOUT');await addChat(env,'assistant',r.reply,r.provider||null);const history=await chatHistory(env,80);const out={...r,history};if(b.includeState)out.state=await state(env);return j(out)}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Şu an cevap motoru zamanında dönemedi. İsteğini kaybettirmedim; teknik hata arka planda kaydedildi.';await recordRuntimeError(env,e,'chat.send');await addChat(env,'assistant',reply,'JARVIS Local');const history=await chatHistory(env,80);const out={reply,action:'local_fallback',provider:'JARVIS Local',history};if(b.includeState)out.state=await state(env);return j(out)}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/status')return j(await liveStatus(env));
