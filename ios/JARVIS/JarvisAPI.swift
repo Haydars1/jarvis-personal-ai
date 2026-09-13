@@ -10,8 +10,8 @@ final class JarvisAPI {
         config.httpCookieStorage = .shared
         config.httpShouldSetCookies = true
         config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        config.timeoutIntervalForRequest = 45
-        config.timeoutIntervalForResource = 75
+        config.timeoutIntervalForRequest = 25
+        config.timeoutIntervalForResource = 35
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
     }
