@@ -339,6 +339,14 @@ function liveSearchQuery(text){
  if(/maç|mac|süper lig|super lig|spor|lig/.test(l))return text+' bugün maç programı resmi';
  return text;
 }
+function compactResearchAnswer(text,results=[]){
+ const clean=(results||[]).filter(x=>x&&x.title).slice(0,4);
+ if(!clean.length)return null;
+ const lines=clean.map(x=>`- ${x.title}${x.snippet?' — '+x.snippet:''}`);
+ return `AI sağlayıcısı cevap veremedi ama ben aramayı yaptım. Bulduğum bilgiye göre:
+
+${lines.join('\n')}`;
+}
 function researchFallbackAnswer(text,results=[]){
  const clean=(results||[]).filter(x=>x&&x.title).slice(0,5);
  const l=String(text||'').toLocaleLowerCase('tr-TR');
@@ -362,6 +370,20 @@ Kaynaklar yetersizse bunu açıkça söylerim; seni aramaya göndermem.`;
 }
 function localFallbackAnswer(text,error=''){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
+ if(/kola|cola|coca.?cola|pepsi/.test(l)&&/(içinde|icinde|içindeki|icindeki|element|madde|neler var|ne var|bileşen|bilesen|içerik|icerik)/.test(l)){
+  return `Kolanın temel içeriği genelde şunlardır:
+
+- Su
+- Şeker veya tatlandırıcı
+- Karbondioksit: gazlı yapan madde
+- Karamel renklendirici
+- Fosforik asit veya sitrik asit: ekşi/sert tadı verir
+- Kafein: uyarıcı etki
+- Aroma karışımı: markaya göre gizli formül
+- Bazı çeşitlerde koruyucu/asitlik düzenleyici maddeler
+
+Kimyasal element olarak bakarsan en çok karbon, hidrojen ve oksijen vardır; karbondioksitten karbon/oksijen, fosforik asitten fosfor da gelir. Yani “element” değil “içindekiler” diye sorarsak cevap daha çok su, şeker, CO2, asit, kafein ve aroma olur.`;
+ }
  if(/fırında|firinda/.test(l)&&/tavuk/.test(l)){
   return `Fırında tavuk için pratik ayar:
 
@@ -418,7 +440,12 @@ async function quickCommand(env,text){
   const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:text}],{userText:text,mode:'fast',noVault:true}),4500,'QUICK_AI_TIMEOUT');
   if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:'ai',provider:a.provider};
  }catch{}
- return{reply:local||'Şu an cevap motoru hızlı cevap veremedi. İsteğini kaydettim; teknik hata detayını sana dökmüyorum.',action:'local_fallback',provider:'JARVIS Local'};
+ try{
+  const results=await ddg(text+' nedir açıklama',2800);
+  const answer=compactResearchAnswer(text,results);
+  if(answer)return{reply:answer,action:'search_fallback',provider:'JARVIS Search',results:results.slice(0,4)};
+ }catch{}
+ return{reply:local||'Cevap motoru şu an düşüyor ve arama yedeği de sonuç vermedi. Bunu teknik hata olarak kaydettim; sana boş teknik detay dökmüyorum.',action:'local_fallback',provider:'JARVIS Local'};
 }
 async function command(env,text){await log(env,'user',text);const l=text.toLocaleLowerCase('tr-TR');const remembered=await rememberExplicit(env,text);if(remembered){const reply=`Bunu hafızama kaydettim: ${remembered}`;await log(env,'jarvis',reply);return{reply,action:'memory'}}
  if(/görev.*ekle|hatırlat/.test(l)){const title=text.replace(/^(jarvis[, ]*)?/i,'').replace(/görev.*ekle[: ]*/i,'').replace(/bana hatırlat[: ]*/i,'').trim()||text;const t=now();await run(env,'INSERT INTO tasks(id,title,priority,status,area,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',id(),title,'Orta','open','genel',t,t);const reply=`Görevi ekledim: ${title}`;await log(env,'jarvis',reply);return{reply,action:'task'}}
@@ -426,7 +453,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  if(l.startsWith('araştır ')||l.includes('internette araştır')){const q=text.replace(/^araştır\s*/i,'').replace(/internette araştır/ig,'').trim()||text;const results=await ddg(q),reply=`Araştırmayı yaptım. ${results.length} sonuç buldum${results[0]?`: ${results[0].title}`:''}.`;await log(env,'jarvis',reply,{q,count:results.length});return{reply,action:'research',results}}
  if(/(?:jarvis[, ]*)?(?:şunu|sunu|bu|şu)?\s*(?:özelliği|özellik|modül|modulu|panel|fonksiyon).*ekle|kendini.*(?:düzelt|güncelle|iyileştir)|(?:hata|bug).*?(?:bul|düzelt)|(?:ekle|değiştir|düzelt).*?(?:jarvis|uygulama)/i.test(text)){const r=await createSelfChange(env,text,'user');const reply=r.ok?`İsteği kendi koduma uygulamak için değişikliği hazırladım: ${r.summary}. Otomatik test/deploy hattına gönderdim.`:r.message;await log(env,'jarvis',reply,r);return{reply,action:'self_update',selfUpdate:r}}
  if(/reels|video oluştur|görsel oluştur|şarkı.*üret|seslendir|altyazı/.test(l)){let cap='content-generation';if(/reels|video/.test(l))cap='reels-video';else if(/görsel/.test(l))cap='image-generation';else if(/şarkı|müzik/.test(l))cap='music-generation';else if(/seslendir/.test(l))cap='tts';else if(/altyazı/.test(l))cap='transcription';const tools=await qall(env,'SELECT * FROM tool_registry WHERE capability=? AND enabled=1 ORDER BY priority ASC',cap);if(!tools.length){const found=await discoverTools(env,cap);const reply=`Bu iş için henüz bağlı bir araç yok. ${found.length} uygun AI aracı buldum; Araç Keşfi bölümünde göstereceğim.`;await log(env,'jarvis',reply,{cap});return{reply,action:'tool_discovery',cap,tools:found}}}
- const needsLiveResearch=needsLiveLookupText(text);
+ const needsLiveResearch=needsLiveLookupText(text)||/(nedir|ne demek|ne işe yarar|ne ise yarar|içinde|icinde|içindeki|icindeki|neler var|ne var|kimdir|hangisi|nasıl|nasil)/.test(l);
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
