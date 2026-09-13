@@ -251,16 +251,19 @@ async function sportsDbLookup(text,ms=2800){
 async function liveResearch(text,ms=3000){
  const queries=[liveSearchQuery(text)];
  if(isSportsQuestion(text)){
-  queries.push(String(text||'')+' maç sonucu özet');
-  queries.push(liveSearchQuery(text).replace('resmi','TFF yayıncı'));
-  queries.push(liveSearchQuery(text).replace('resmi','Mackolik Sofascore'));
+  const d=todayTR(),team=sportsTeamName(text);
+  queries.push(String(text||'')+' '+d+' maç sonucu özet goller');
+  queries.push((team||String(text||''))+' '+d+' gol atanlar kaçıncı dakika');
+  queries.push((team||String(text||''))+' '+d+' maç özeti önemli anlar');
+  queries.push((team||String(text||''))+' '+d+' TFF maç sonucu');
+  queries.push((team||String(text||''))+' '+d+' Mackolik Sofascore maç sonucu');
  }
  const seen=new Set(),out=[],per=Math.max(1200,Math.min(ms,2200));
  const jobs=queries.map(q=>ddg(q,per).catch(()=>[]));
  if(isSportsQuestion(text))jobs.unshift(sportsDbLookup(text,per).catch(()=>[]));
  const settled=await withTimeout(Promise.allSettled(jobs),Math.max(2200,ms+500),'LIVE_RESEARCH_TIMEOUT').catch(()=>[]);
  for(const r of settled){for(const x of (r.value||[])){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(x)}}}
- return out.slice(0,8);
+ return out.slice(0,isSportsQuestion(text)?12:8);
 }
 function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
 function aiFailureCooldownMs(msg){
@@ -422,13 +425,20 @@ function isBadAssistantAnswer(s){
 function isSportsQuestion(text){
  return /maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig|hangi kanalda|fikstür|fikstur/.test(String(text||'').toLocaleLowerCase('tr-TR'));
 }
-function liveSearchQuery(text){
+function todayTR(){try{return new Intl.DateTimeFormat('tr-TR',{timeZone:'Europe/Istanbul',day:'2-digit',month:'long',year:'numeric'}).format(new Date())}catch{return new Date().toISOString().slice(0,10)}}
+function sportsDetailNeed(text){return /özet|ozet|gol|kim attı|kim atti|kaçıncı dakika|kacinci dakika|dakika|kart|penaltı|penalti|asist|maçını|macini/.test(String(text||'').toLocaleLowerCase('tr-TR'))}
+function sportsTeamName(text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
- if(/galatasaray|gs\b/.test(l))return 'Galatasaray bugün maç fikstür saat hangi kanalda resmi';
- if(/fenerbahçe|fenerbahce|fb\b/.test(l))return 'Fenerbahçe bugün maç fikstür saat hangi kanalda resmi';
- if(/beşiktaş|besiktas|bjk\b/.test(l))return 'Beşiktaş bugün maç fikstür saat hangi kanalda resmi';
- if(/trabzonspor/.test(l))return 'Trabzonspor bugün maç fikstür saat hangi kanalda resmi';
- if(/maç|mac|süper lig|super lig|spor|lig/.test(l))return text+' bugün maç programı resmi';
+ if(/galatasaray|\bgs\b/.test(l))return 'Galatasaray';
+ if(/fenerbahçe|fenerbahce|\bfb\b/.test(l))return 'Fenerbahçe';
+ if(/beşiktaş|besiktas|\bbjk\b/.test(l))return 'Beşiktaş';
+ if(/trabzonspor/.test(l))return 'Trabzonspor';
+ return '';
+}
+function liveSearchQuery(text){
+ const l=String(text||'').toLocaleLowerCase('tr-TR'),d=todayTR(),team=sportsTeamName(text);
+ if(team)return team+' '+d+' maç sonucu gol atanlar kaçıncı dakika maç özeti';
+ if(/maç|mac|süper lig|super lig|spor|lig/.test(l))return text+' '+d+' maç sonucu gol atanlar özet';
  return text;
 }
 function compactResearchAnswer(text,results=[]){
@@ -523,10 +533,10 @@ function needsLiveLookupText(text){
 async function quickCommand(env,text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(needsLiveLookupText(text)){
-  let results=[];try{results=await withTimeout(liveResearch(text,isSportsQuestion(text)?2600:3200),3600,'LIVE_RESEARCH_TOTAL_TIMEOUT')}catch{}
-  const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan, kısa ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. Canlı/web sonuçları varsa kullan. Sonuç yoksa kesin skor/saat uydurma; ama sorunun türüne göre en iyi açıklamayı, neyin doğrulanamadığını ve bir sonraki net adımı tek paragrafta ver.';
-  const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,8));
-  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),5200,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:results.length?'live_ai_research':'live_ai_no_results',provider:a.provider,results:results.slice(0,5)}}catch{}
+  let results=[];try{results=await withTimeout(liveResearch(text,isSportsQuestion(text)?2300:2800),3000,'LIVE_RESEARCH_TOTAL_TIMEOUT')}catch{}
+  const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. Spor/maç özeti sorulursa tek cümleyle geçiştirme: Maç, skor, gol atanlar ve dakikalar, önemli olaylar, kısa yorum başlıklarıyla cevap ver. Bugünkü maç sorusunda sadece bugünün maçını seç; eski/sonraki maçları karıştırma. Gol atan/dakika kaynakta yoksa bunu “kaynakta dakika/gol detayı görünmedi” diye açık yaz, uydurma.';
+  const prompt='Bugünün tarihi: '+todayTR()+'\nKullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,12));
+  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),3800,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:results.length?'live_ai_research':'live_ai_no_results',provider:a.provider,results:results.slice(0,6)}}catch{}
   const local=localFallbackAnswer(text,'');
   if(local&&!/Bağlı AI servisleri/.test(local))return{reply:local,action:'local_fallback',provider:'JARVIS Local'};
   return{reply:researchFallbackAnswer(text,results),action:'live_research',provider:results.length?'JARVIS Live Search':'JARVIS Live Search: empty',results:results.slice(0,5)};
@@ -556,7 +566,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
-   researchResults=await liveResearch(text,isSportsQuestion(text)?2800:3800);
+   researchResults=await liveResearch(text,isSportsQuestion(text)?2400:3200);
    researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle): '+JSON.stringify(researchResults.slice(0,8));
    await log(env,'research','Otomatik araştırma: '+text,{count:researchResults.length});
   }catch(e){
@@ -565,9 +575,9 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
   }
  }
  if(needsLiveResearch&&researchResults.length){
-  const system='Sen JARVIS adlı Türkçe asistansın. Canlı/web sonuçlarını kullanarak doğrudan cevap ver. Kullanıcıyı aramaya yönlendirme.';
-  const prompt='Kullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(researchResults.slice(0,8));
-  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),5200,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text)){await log(env,'jarvis',a.text,{provider:a.provider,direct:true});return{reply:a.text,action:'live_ai_research',provider:a.provider,results:researchResults.slice(0,5)}}}catch(e){await recordRuntimeError(env,e,'command.live_ai')}
+  const system='Sen JARVIS adlı Türkçe asistansın. Canlı/web sonuçlarını kullanarak doğrudan cevap ver. Kullanıcıyı aramaya yönlendirme. Spor/maç özeti sorulursa maç, skor, gol atanlar/dakikalar, önemli olaylar ve kısa yorum ver; eski/sonraki maçları bugünkü maçla karıştırma.';
+  const prompt='Bugünün tarihi: '+todayTR()+'\nKullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(researchResults.slice(0,12));
+  try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),3800,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text)){await log(env,'jarvis',a.text,{provider:a.provider,direct:true});return{reply:a.text,action:'live_ai_research',provider:a.provider,results:researchResults.slice(0,6)}}}catch(e){await recordRuntimeError(env,e,'command.live_ai')}
  }
  const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30'),skills=await behaviorSkillText(env);const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
  let reply=a.text;
