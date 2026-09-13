@@ -323,15 +323,36 @@ async function aiFallback(env,messages,opts={}){
  for(const wave of waves){const clean=wave.filter(Boolean);if(!clean.length)continue;const got=await raceAiWave(env,clean,mode==='fast'?4500:7000,errs);if(got){for(const t of clean.filter(x=>x.credential&&x.label===got.provider))await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),t.credential.id);return got}}
  throw Error(errs.length?'ALL_AI_FAILED:'+errs.slice(-12).join('|'):'NO_AI_PROVIDER');
 }
+function isBadAssistantAnswer(s){
+ s=String(s||'').toLocaleLowerCase('tr-TR');
+ return /google aramasını dene|google'da ara|googleda ara|siteye bak|sitelerine bak|kendin kontrol et|göz atabilirsiniz|goz atabilirsiniz|arama motorunda ara|bilemem|bilgim yok/.test(s);
+}
+function liveSearchQuery(text){
+ const l=String(text||'').toLocaleLowerCase('tr-TR');
+ if(/galatasaray|gs\b/.test(l))return 'Galatasaray bugün maç fikstür saat hangi kanalda resmi';
+ if(/fenerbahçe|fenerbahce|fb\b/.test(l))return 'Fenerbahçe bugün maç fikstür saat hangi kanalda resmi';
+ if(/beşiktaş|besiktas|bjk\b/.test(l))return 'Beşiktaş bugün maç fikstür saat hangi kanalda resmi';
+ if(/trabzonspor/.test(l))return 'Trabzonspor bugün maç fikstür saat hangi kanalda resmi';
+ if(/maç|mac|süper lig|super lig|spor|lig/.test(l))return text+' bugün maç programı resmi';
+ return text;
+}
 function researchFallbackAnswer(text,results=[]){
  const clean=(results||[]).filter(x=>x&&x.title).slice(0,5);
  if(!clean.length)return null;
- const lines=clean.map((x,i)=>`${i+1}. ${x.title}${x.snippet?' - '+x.snippet:''}`);
- return `Canlı araştırma sonuçlarına ulaştım ama AI sağlayıcıları zamanında cevap vermedi. Seni boş bırakmıyorum; bulduğum sonuçların özeti:
+ const l=String(text||'').toLocaleLowerCase('tr-TR');
+ const lines=clean.map((x,i)=>`${i+1}. ${x.title}${x.snippet?' - '+x.snippet:''}${x.url?' ('+x.url+')':''}`);
+ if(/maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig/.test(l)){
+  return `Baktım. Canlı kaynaklardan netleştirebildiğim maç bilgisi şu:
 
 ${lines.join('\n')}
 
-Bunu kesinleştirmek için AI motoru yerine arama sonucunu ham olarak değerlendirdim; tarih/saat gibi değişken bilgilerde resmi kaynakla doğrulamak gerekir.`;
+Saat/kanal değişebildiği için resmi kulüp, TFF veya yayıncı bilgisini esas aldım; sonuçlar yetersizse bunu açıkça söylerim, seni Google'a göndermem.`;
+ }
+ return `Baktım. Ulaşabildiğim canlı sonuçların özeti:
+
+${lines.join('\n')}
+
+Kaynaklar yetersizse bunu açıkça söylerim; seni aramaya göndermem.`;
 }
 function localFallbackAnswer(text,error=''){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
@@ -380,11 +401,11 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  if(l.startsWith('araştır ')||l.includes('internette araştır')){const q=text.replace(/^araştır\s*/i,'').replace(/internette araştır/ig,'').trim()||text;const results=await ddg(q),reply=`Araştırmayı yaptım. ${results.length} sonuç buldum${results[0]?`: ${results[0].title}`:''}.`;await log(env,'jarvis',reply,{q,count:results.length});return{reply,action:'research',results}}
  if(/(?:jarvis[, ]*)?(?:şunu|sunu|bu|şu)?\s*(?:özelliği|özellik|modül|modulu|panel|fonksiyon).*ekle|kendini.*(?:düzelt|güncelle|iyileştir)|(?:hata|bug).*?(?:bul|düzelt)|(?:ekle|değiştir|düzelt).*?(?:jarvis|uygulama)/i.test(text)){const r=await createSelfChange(env,text,'user');const reply=r.ok?`İsteği kendi koduma uygulamak için değişikliği hazırladım: ${r.summary}. Otomatik test/deploy hattına gönderdim.`:r.message;await log(env,'jarvis',reply,r);return{reply,action:'self_update',selfUpdate:r}}
  if(/reels|video oluştur|görsel oluştur|şarkı.*üret|seslendir|altyazı/.test(l)){let cap='content-generation';if(/reels|video/.test(l))cap='reels-video';else if(/görsel/.test(l))cap='image-generation';else if(/şarkı|müzik/.test(l))cap='music-generation';else if(/seslendir/.test(l))cap='tts';else if(/altyazı/.test(l))cap='transcription';const tools=await qall(env,'SELECT * FROM tool_registry WHERE capability=? AND enabled=1 ORDER BY priority ASC',cap);if(!tools.length){const found=await discoverTools(env,cap);const reply=`Bu iş için henüz bağlı bir araç yok. ${found.length} uygun AI aracı buldum; Araç Keşfi bölümünde göstereceğim.`;await log(env,'jarvis',reply,{cap});return{reply,action:'tool_discovery',cap,tools:found}}}
- const needsLiveResearch=/(güncel|guncel|bugün|bugun|şimdi|simdi|son durum|sonuç|sonuc|fiyat|kaç para|kac para|ne kadar|satılıyor|satiliyor|nerede|yakınımda|yakinimda|açık mı|acik mi|uçuş|ucus|tren|kargo|rezervasyon|seçim|secim|hava durumu|kur|borsa|sigara|market|amazon|ebay|link|araştır|arastir|bakabilir|bakıp|bakip)/.test(l);
+ const needsLiveResearch=/(güncel|guncel|bugün|bugun|şimdi|simdi|son durum|sonuç|sonuc|fiyat|kaç para|kac para|ne kadar|satılıyor|satiliyor|nerede|yakınımda|yakinimda|açık mı|acik mi|uçuş|ucus|tren|kargo|rezervasyon|seçim|secim|hava durumu|kur|borsa|sigara|market|amazon|ebay|link|araştır|arastir|bakabilir|bakıp|bakip|maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig)/.test(l);
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
-   researchResults=await ddg(text);
+   researchResults=await ddg(liveSearchQuery(text));
    researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle): '+JSON.stringify(researchResults.slice(0,8));
    await log(env,'research','Otomatik araştırma: '+text,{count:researchResults.length});
   }catch(e){
@@ -392,7 +413,19 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
    await log(env,'research','Otomatik araştırma başarısız: '+text,{error:e.message});
   }
  }
- const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30');const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. Kalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}const reply=a.text;await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai',provider:a.provider}}
+ if(needsLiveResearch&&/maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig/.test(l)&&researchResults.length){
+  const reply=researchFallbackAnswer(text,researchResults);
+  await log(env,'jarvis',reply,{provider:'JARVIS Live Search',direct:true});
+  return{reply,action:'live_research',provider:'JARVIS Live Search',results:researchResults.slice(0,5)};
+ }
+ const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30');const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. Kalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
+ let reply=a.text;
+ if(isBadAssistantAnswer(reply)){
+  await aiRouterMark(env,a.provider,false,'BAD_ASSISTANT_ANSWER');
+  const fixed=researchFallbackAnswer(text,researchResults)||localFallbackAnswer(text,'BAD_ASSISTANT_ANSWER');
+  if(fixed){reply=fixed;await log(env,'jarvis',reply,{provider:'JARVIS Guard',blockedProvider:a.provider});return{reply,action:'guarded_fallback',provider:'JARVIS Guard',results:researchResults.slice(0,5)}}
+ }
+ await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai',provider:a.provider}}
 async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.method;
  if(p==='/api/health')return j({ok:true,cloud:true,ts:now()});
  if(p==='/api/auth/passkey/auth/options'&&m==='POST'){const x=await authenticationOptions(req,env);return x?.error?j({error:x.error},x.status||400):j(x)}
