@@ -17,7 +17,7 @@ enum BiometricLoginError: LocalizedError {
         case .invalidData:
             return "Kayıtlı giriş bilgisi okunamadı."
         case .keychain(let status):
-            if status == errSecUserCancel {
+            if status == errSecUserCanceled {
                 return "Face ID iptal edildi."
             }
             return "Face ID girişi açılamadı. Kod: \(status)"
