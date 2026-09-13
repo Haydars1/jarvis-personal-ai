@@ -88,6 +88,22 @@ final class JarvisAPI {
     func pushStatus() async throws -> Data {
         try await request("/api/mobile/push/status")
     }
+
+    func reportRuntimeIssue(message: String, context: String, userText: String? = nil) async {
+        var payload: [String: Any] = [
+            "message": message,
+            "context": context
+        ]
+        if let userText, !userText.isEmpty {
+            payload["userText"] = userText
+        }
+        guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        do {
+            _ = try await request("/api/runtime/report", method: "POST", body: data)
+        } catch {
+            // Reporting must never create another user-visible error.
+        }
+    }
 }
 
 struct GoogleSetupInfo: Decodable {
