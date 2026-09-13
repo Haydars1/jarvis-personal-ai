@@ -320,7 +320,7 @@ async function aiFallback(env,messages,opts={}){
  const vault=(await credentialSecrets(env,'chat')).slice(0,4).map(c=>({id:'vault:'+c.id,label:c.label||c.provider,credential:c,fn:ms=>callVaultAI(env,c,messages,ms)}));
  const envTasks=envProviderTasks(env,messages,mode);
  const waves=mode==='fast'?[vault.slice(0,1).concat(envTasks.slice(0,2)),envTasks.slice(2,6).concat(vault.slice(1,3)),envTasks.slice(6).concat(vault.slice(3))]:[vault.slice(0,2).concat(envTasks.slice(0,2)),envTasks.slice(2,6).concat(vault.slice(2)),envTasks.slice(6)];
- for(const wave of waves){const clean=wave.filter(Boolean);if(!clean.length)continue;const got=await raceAiWave(env,clean,mode==='fast'?4500:7000,errs);if(got){for(const t of clean.filter(x=>x.credential&&x.label===got.provider))await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),t.credential.id);return got}}
+ for(const wave of waves){const clean=wave.filter(Boolean);if(!clean.length)continue;const got=await raceAiWave(env,clean,mode==='fast'?2200:4500,errs);if(got){for(const t of clean.filter(x=>x.credential&&x.label===got.provider))await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),t.credential.id);return got}}
  throw Error(errs.length?'ALL_AI_FAILED:'+errs.slice(-12).join('|'):'NO_AI_PROVIDER');
 }
 function isBadAssistantAnswer(s){
@@ -341,11 +341,13 @@ function liveSearchQuery(text){
 }
 function researchFallbackAnswer(text,results=[]){
  const clean=(results||[]).filter(x=>x&&x.title).slice(0,5);
- if(!clean.length)return null;
  const l=String(text||'').toLocaleLowerCase('tr-TR');
+ if(!clean.length){
+  if(isSportsQuestion(text))return 'Canlı maç bilgisini kontrol ettim ama şu an kaynaklardan net sonuç alamadım. Seni Google’a göndermiyorum; bağlantı veya kaynak tarafı sonuç vermediği için kesin saat/kanal söyleyemiyorum.';
+  return 'Canlı bilgiyi kontrol etmeye çalıştım ama şu an kaynaklardan net sonuç alamadım. Seni aramaya göndermiyorum; bağlantı/kaynak tarafı cevap vermediği için kesin bilgi diye sunmuyorum.';
+ }
  const lines=clean.map((x,i)=>`${i+1}. ${x.title}${x.snippet?' - '+x.snippet:''}${x.url?' ('+x.url+')':''}`);
  if(isSportsQuestion(text)){
-  if(!clean.length)return 'Canlı maç bilgisini kontrol etmeye çalıştım ama şu an kaynaklardan net sonuç alamadım. Seni Google’a göndermiyorum; bağlantı tarafı cevap vermediği için kesin saat/kanal söyleyemiyorum.';
   return `Baktım. Canlı kaynaklardan netleştirebildiğim maç bilgisi şu:
 
 ${lines.join('\n')}
@@ -405,7 +407,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  if(l.startsWith('araştır ')||l.includes('internette araştır')){const q=text.replace(/^araştır\s*/i,'').replace(/internette araştır/ig,'').trim()||text;const results=await ddg(q),reply=`Araştırmayı yaptım. ${results.length} sonuç buldum${results[0]?`: ${results[0].title}`:''}.`;await log(env,'jarvis',reply,{q,count:results.length});return{reply,action:'research',results}}
  if(/(?:jarvis[, ]*)?(?:şunu|sunu|bu|şu)?\s*(?:özelliği|özellik|modül|modulu|panel|fonksiyon).*ekle|kendini.*(?:düzelt|güncelle|iyileştir)|(?:hata|bug).*?(?:bul|düzelt)|(?:ekle|değiştir|düzelt).*?(?:jarvis|uygulama)/i.test(text)){const r=await createSelfChange(env,text,'user');const reply=r.ok?`İsteği kendi koduma uygulamak için değişikliği hazırladım: ${r.summary}. Otomatik test/deploy hattına gönderdim.`:r.message;await log(env,'jarvis',reply,r);return{reply,action:'self_update',selfUpdate:r}}
  if(/reels|video oluştur|görsel oluştur|şarkı.*üret|seslendir|altyazı/.test(l)){let cap='content-generation';if(/reels|video/.test(l))cap='reels-video';else if(/görsel/.test(l))cap='image-generation';else if(/şarkı|müzik/.test(l))cap='music-generation';else if(/seslendir/.test(l))cap='tts';else if(/altyazı/.test(l))cap='transcription';const tools=await qall(env,'SELECT * FROM tool_registry WHERE capability=? AND enabled=1 ORDER BY priority ASC',cap);if(!tools.length){const found=await discoverTools(env,cap);const reply=`Bu iş için henüz bağlı bir araç yok. ${found.length} uygun AI aracı buldum; Araç Keşfi bölümünde göstereceğim.`;await log(env,'jarvis',reply,{cap});return{reply,action:'tool_discovery',cap,tools:found}}}
- const needsLiveResearch=/(güncel|guncel|bugün|bugun|şimdi|simdi|son durum|sonuç|sonuc|fiyat|kaç para|kac para|ne kadar|satılıyor|satiliyor|nerede|yakınımda|yakinimda|açık mı|acik mi|uçuş|ucus|tren|kargo|rezervasyon|seçim|secim|hava durumu|kur|borsa|sigara|market|amazon|ebay|link|araştır|arastir|bakabilir|bakıp|bakip|maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig)/.test(l);
+ const needsLiveResearch=/(güncel|guncel|bugün|bugun|şimdi|simdi|son durum|sonuç|sonuc|fiyat|kaç para|kac para|ne kadar|satılıyor|satiliyor|nerede|nerden|nereden|yakınımda|yakinimda|açık mı|acik mi|uçuş|ucus|tren|kargo|rezervasyon|seçim|secim|hava durumu|kur|borsa|sigara|market|amazon|ebay|link|araştır|arastir|bakabilir|bakıp|bakip|kontrol et|bak|maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig)/.test(l);
  let researchContext='',researchResults=[];
  if(needsLiveResearch){
   try{
@@ -417,7 +419,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
    await log(env,'research','Otomatik araştırma başarısız: '+text,{error:e.message});
   }
  }
- if(needsLiveResearch&&isSportsQuestion(text)){
+ if(needsLiveResearch){
   const reply=researchFallbackAnswer(text,researchResults);
   await log(env,'jarvis',reply,{provider:'JARVIS Live Search',direct:true});
   return{reply,action:'live_research',provider:'JARVIS Live Search',results:researchResults.slice(0,5)};
@@ -470,7 +472,7 @@ async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.metho
  let am=p.match(/^\/api\/actions\/([^/]+)\/(approve|reject)$/);if(am&&m==='POST'){const a=await q1(env,'SELECT * FROM actions WHERE id=?',am[1]);if(!a)return j({error:'NOT_FOUND'},404);if(am[2]==='reject'){await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','rejected',now(),a.id);return j({ok:true})}const result=await executeAction(env,a);await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','done',now(),a.id);await log(env,'action','İşlem gerçekleştirildi: '+a.summary,{result});return j({ok:true,result})}
 
  if(p==='/api/chat/history'&&m==='GET')return j(await chatHistory(env,Number(u.searchParams.get('limit')||120)));
- if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);try{const r=await withTimeout(command(env,text),12000,'COMMAND_TIMEOUT');await addChat(env,'assistant',r.reply,r.provider||null);const history=await chatHistory(env,80);const out={...r,history};if(b.includeState)out.state=await state(env);return j(out)}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Şu an cevap motoru zamanında dönemedi. İsteğini kaybettirmedim; teknik hata arka planda kaydedildi.';await recordRuntimeError(env,e,'chat.send');await addChat(env,'assistant',reply,'JARVIS Local');const history=await chatHistory(env,80);const out={reply,action:'local_fallback',provider:'JARVIS Local',history};if(b.includeState)out.state=await state(env);return j(out)}}
+ if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);try{const r=await withTimeout(command(env,text),8000,'COMMAND_TIMEOUT');await addChat(env,'assistant',r.reply,r.provider||null);const history=await chatHistory(env,60);const out={...r,history};if(b.includeState)out.state=await state(env);return j(out)}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Cevap motoru zamanında dönemedi. İsteğini kaydettim; teknik detayları sana dökmek yerine arka planda logladım.';await recordRuntimeError(env,e,'chat.send');await addChat(env,'assistant',reply,'JARVIS Local');const history=await chatHistory(env,60);const out={reply,action:'local_fallback',provider:'JARVIS Local',history};if(b.includeState)out.state=await state(env);return j(out)}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/status')return j(await liveStatus(env));
