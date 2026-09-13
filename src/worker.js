@@ -183,7 +183,7 @@ async function liveStatus(env){
   const google=!!(await googleStored(env));
   const meta=enabled.some(x=>String(x.provider).toLowerCase()==='meta');
   const github=enabled.some(x=>String(x.provider).toLowerCase()==='github');
-  return {ai:{connected:names.length>0,count:names.length,healthy:ok.length+envProviders.length,providers:names},d1:{connected:!!env.DB},r2:{connected:!!env.FILES},google:{connected:google},social:{connected:meta},selfUpdate:{connected:github},passkeys:{count:await passkeyCount(env)}};
+  return {ai:{connected:names.length>0,count:names.length,healthy:ok.length+envProviders.length,providers:names,router:await aiRouterStatus(env)},d1:{connected:!!env.DB},r2:{connected:!!env.FILES},google:{connected:google},social:{connected:meta},selfUpdate:{connected:github},passkeys:{count:await passkeyCount(env)}};
 }
 
 async function brief(env){const open=await q1(env,"SELECT COUNT(*) n FROM tasks WHERE status!='done'"), urgent=await q1(env,"SELECT COUNT(*) n FROM tasks WHERE status!='done' AND priority='Yüksek'"), pending=await q1(env,"SELECT COUNT(*) n FROM actions WHERE status='pending'"), top=await q1(env,"SELECT title FROM tasks WHERE status!='done' ORDER BY CASE priority WHEN 'Yüksek' THEN 0 WHEN 'Orta' THEN 1 ELSE 2 END, created_at ASC LIMIT 1");return{open:open?.n||0,urgent:urgent?.n||0,pending:pending?.n||0,top:top?.title||null,text:`${open?.n||0} açık görev var${urgent?.n?`, ${urgent.n} tanesi yüksek öncelikli`:''}. ${pending?.n?`${pending.n} işlem onayını bekliyor.`:'Onay bekleyen işlem yok.'}`}}
@@ -207,31 +207,119 @@ async function state(env){
     settings:await kvGet(env,'settings',{name:'Heido',language:'tr-TR',assistantName:'JARVIS'})}
 }
 async function ddg(q){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 JARVIS/4.0'}},5000);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<8)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
-async function aiFallback(env,messages){const errs=[],deadline=now()+9000;
- const left=()=>Math.max(500,Math.min(2500,deadline-now()));
+function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
+function aiFailureCooldownMs(msg){
+ msg=String(msg||'');
+ if(/404|not found|deprecated|deprecation|model.*unavailable|5028/i.test(msg))return 86400000;
+ if(/timeout|abort|network|fetch/i.test(msg))return 180000;
+ if(/401|403|invalid.*key|unauthorized|permission/i.test(msg))return 3600000;
+ if(/429|rate/i.test(msg))return 600000;
+ return 300000;
+}
+async function aiRouterGet(env,key){
+ return await kvGet(env,'ai_router:'+aiProviderKey(key),{failures:0,disabled_until:0,last_error:null,last_ok:0,last_try:0});
+}
+async function aiRouterMark(env,key,ok,error=''){
+ const k=aiProviderKey(key),st=await aiRouterGet(env,k);
+ if(ok){
+  await kvSet(env,'ai_router:'+k,{...st,failures:0,disabled_until:0,last_error:null,last_ok:now(),last_try:now()});
+  return;
+ }
+ const failures=Number(st.failures||0)+1,cooldown=aiFailureCooldownMs(error),disabled_until=now()+Math.min(cooldown*Math.min(failures,4),86400000);
+ await kvSet(env,'ai_router:'+k,{...st,failures,disabled_until,last_error:String(error||'UNKNOWN').slice(0,500),last_try:now()});
+}
+async function aiRouterAllowed(env,key){
+ const st=await aiRouterGet(env,key);
+ return !st.disabled_until||Number(st.disabled_until)<now();
+}
+function aiModeForText(text){
+ const l=String(text||'').toLocaleLowerCase('tr-TR');
+ if(/kod|program|debug|hata|analiz|uzun|detay|rapor|karşılaştır|karsilastir|strateji|plan|araştır|arastir/.test(l))return 'strong';
+ return 'fast';
+}
+async function aiRouterStatus(env){
+ const keys=['vault','Gemini','Groq','OpenRouter','Cloudflare AI'];
+ const rows=[];
+ for(const k of keys){const st=await aiRouterGet(env,k);rows.push({provider:k,disabled_until:st.disabled_until||0,failures:st.failures||0,last_error:st.last_error||null,last_ok:st.last_ok||0})}
+ return rows;
+}
+async function callGeminiEnv(env,messages,ms){
+ const model=env.GEMINI_MODEL||'gemini-2.5-flash';
+ const r=await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contents:messages.filter(x=>x.role!=='system').map(x=>({role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]})),systemInstruction:{parts:[{text:messages.find(x=>x.role==='system')?.content||''}]}})},ms);
+ if(!r.ok)throw Error('GEMINI_'+r.status);
+ const text=(await r.json()).candidates?.[0]?.content?.parts?.map(p=>p.text).join('')||'';
+ if(!String(text||'').trim())throw Error('GEMINI_EMPTY');
+ return text;
+}
+async function callOpenAICompat(base,key,model,messages,ms,provider){
+ const r=await fetchT(base.replace(/\/$/,'')+'/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+key,'HTTP-Referer':'https://jarvis-personal-ai.haydojarvis.workers.dev','X-Title':'JARVIS'},body:JSON.stringify({model,messages,temperature:.25})},ms);
+ if(!r.ok)throw Error(provider.toUpperCase()+'_'+r.status);
+ const text=(await r.json()).choices?.[0]?.message?.content||'';
+ if(!String(text||'').trim())throw Error(provider.toUpperCase()+'_EMPTY');
+ return text;
+}
+async function callCloudflareModel(env,model,messages,ms){
+ const out=await withTimeout(env.AI.run(model,{messages,temperature:0.25,max_tokens:900}),ms,'CF_AI_TIMEOUT');
+ const text=out?.response||out?.result?.response||out?.choices?.[0]?.message?.content||out?.text||'';
+ if(!String(text||'').trim())throw Error('CF_AI_EMPTY');
+ return text;
+}
+async function aiFallback(env,messages,opts={}){
+ const userText=opts.userText||messages.slice().reverse().find(x=>x.role==='user')?.content||'';
+ const mode=opts.mode||aiModeForText(userText);
+ const errs=[],deadline=now()+(mode==='strong'?14000:8000);
+ const left=()=>Math.max(450,Math.min(mode==='strong'?3500:1800,deadline-now()));
  const expired=()=>now()>=deadline;
- const vault=(await credentialSecrets(env,'chat')).slice(0,1);for(const c of vault){if(expired())break;try{const text=await withTimeout(callVaultAI(env,c,messages),Math.min(left(),1800),'VAULT_AI_TIMEOUT');if(!String(text||'').trim())throw Error('EMPTY_RESPONSE');await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),c.id);return{provider:c.label||c.provider,text}}catch(e){errs.push((c.label||c.provider)+':'+(e.message||e));await run(env,'UPDATE credentials SET last_status=?,last_error=?,last_test_at=?,updated_at=? WHERE id=?','error',String(e.message||e),now(),now(),c.id)}}
- if(env.GEMINI_API_KEY&&!expired())try{const model=env.GEMINI_MODEL||'gemini-2.5-flash';const r=await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({contents:messages.filter(x=>x.role!=='system').map(x=>({role:x.role==='assistant'?'model':'user',parts:[{text:x.content}]})),systemInstruction:{parts:[{text:messages.find(x=>x.role==='system')?.content||''}]}})},left());if(!r.ok)throw Error('GEMINI_'+r.status);const text=(await r.json()).candidates?.[0]?.content?.parts?.map(p=>p.text).join('')||'';if(!String(text||'').trim())throw Error('GEMINI_EMPTY');return{provider:'Gemini',text}}catch(e){errs.push(e.message||String(e))}
- if(env.GROQ_API_KEY&&!expired())try{const r=await fetchT('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify({model:env.GROQ_MODEL||'llama-3.3-70b-versatile',messages,temperature:.25})},left());if(!r.ok)throw Error('GROQ_'+r.status);const text=(await r.json()).choices?.[0]?.message?.content||'';if(!String(text||'').trim())throw Error('GROQ_EMPTY');return{provider:'Groq',text}}catch(e){errs.push(e.message||String(e))}
- if(env.OPENROUTER_API_KEY&&!expired())try{const r=await fetchT('https://openrouter.ai/api/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.OPENROUTER_API_KEY,'HTTP-Referer':'https://jarvis.local','X-Title':'JARVIS'},body:JSON.stringify({model:env.OPENROUTER_MODEL||'openrouter/auto',messages,temperature:.25})},left());if(!r.ok)throw Error('OPENROUTER_'+r.status);const text=(await r.json()).choices?.[0]?.message?.content||'';if(!String(text||'').trim())throw Error('OPENROUTER_EMPTY');return{provider:'OpenRouter',text}}catch(e){errs.push(e.message||String(e))}
- if(env.AI&&!expired()){
-  const cfModels=['@cf/zai-org/glm-4.7-flash','@cf/meta/llama-3.1-8b-instruct-fp8','@cf/google/gemma-4-26b-a4b-it'];
-  const blocked=new Set();
-  for(const model of cfModels){
-   if(blocked.has(model)||expired())continue;
-   try{
-    const out=await withTimeout(env.AI.run(model,{messages,temperature:0.25,max_tokens:1200}),left(),'CF_AI_TIMEOUT');
-    const text=out?.response||out?.result?.response||out?.choices?.[0]?.message?.content||out?.text||'';
-    if(!text)throw Error('EMPTY_RESPONSE');
-    return{provider:`Cloudflare AI (${model})`,text};
-   }catch(e){
-    const msg=String(e?.message||e||'UNKNOWN');
-    errs.push(`CF_AI_${model}:${msg}`);
-    if(/5028|deprecated|deprecation|not found|model.*unavailable/i.test(msg))blocked.add(model);
+ const tryOne=async(key,label,fn)=>{
+  if(expired())throw Error('AI_ROUTER_DEADLINE');
+  if(!(await aiRouterAllowed(env,key))){errs.push(label+':SKIPPED_COOLDOWN');return null}
+  try{
+   const text=await withTimeout(fn(left()),left()+250,label+'_TIMEOUT');
+   if(!String(text||'').trim())throw Error('EMPTY_RESPONSE');
+   await aiRouterMark(env,key,true);
+   return {provider:label,text};
+  }catch(e){
+   const msg=String(e?.message||e||'UNKNOWN');
+   errs.push(label+':'+msg);
+   await aiRouterMark(env,key,false,msg);
+   return null;
+  }
+ };
+ const vault=(await credentialSecrets(env,'chat')).slice(0,3);
+ for(const c of vault){
+  const key='vault:'+c.id;
+  const got=await tryOne(key,c.label||c.provider,async(ms)=>callVaultAI(env,c,messages));
+  if(got){await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),c.id);return got}
+  await run(env,'UPDATE credentials SET last_status=?,last_error=?,last_test_at=?,updated_at=? WHERE id=?','error',errs.at(-1)||'AI_FAILED',now(),now(),c.id);
+ }
+ const providers=mode==='fast'
+  ? ['groq','gemini','openrouter','cf']
+  : ['gemini','openrouter','groq','cf'];
+ for(const p of providers){
+  if(p==='groq'&&env.GROQ_API_KEY){
+   const got=await tryOne('env:groq','Groq',ms=>callOpenAICompat('https://api.groq.com/openai/v1',env.GROQ_API_KEY,env.GROQ_MODEL||'llama-3.3-70b-versatile',messages,ms,'groq'));
+   if(got)return got;
+  }
+  if(p==='gemini'&&env.GEMINI_API_KEY){
+   const got=await tryOne('env:gemini:'+(env.GEMINI_MODEL||'gemini-2.5-flash'),'Gemini',ms=>callGeminiEnv(env,messages,ms));
+   if(got)return got;
+  }
+  if(p==='openrouter'&&env.OPENROUTER_API_KEY){
+   const got=await tryOne('env:openrouter','OpenRouter',ms=>callOpenAICompat('https://openrouter.ai/api/v1',env.OPENROUTER_API_KEY,env.OPENROUTER_MODEL||'openrouter/auto',messages,ms,'openrouter'));
+   if(got)return got;
+  }
+  if(p==='cf'&&env.AI){
+   const cfModels=mode==='fast'
+    ? ['@cf/meta/llama-3.1-8b-instruct-fast','@cf/meta/llama-3.1-8b-instruct-fp8','@cf/google/gemma-3-12b-it']
+    : ['@cf/meta/llama-3.1-8b-instruct-fp8','@cf/google/gemma-3-12b-it','@cf/qwen/qwen1.5-14b-chat-awq'];
+   for(const model of cfModels){
+    const got=await tryOne('cf:'+model,'Cloudflare AI ('+model+')',ms=>callCloudflareModel(env,model,messages,ms));
+    if(got)return got;
    }
   }
  }
- throw Error(errs.length?'ALL_AI_FAILED:'+errs.slice(-6).join('|'):'NO_AI_PROVIDER')}
+ throw Error(errs.length?'ALL_AI_FAILED:'+errs.slice(-10).join('|'):'NO_AI_PROVIDER');
+}
 function localFallbackAnswer(text,error=''){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(/fırında|firinda/.test(l)&&/tavuk/.test(l)){
@@ -291,7 +379,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
    await log(env,'research','Otomatik araştırma başarısız: '+text,{error:e.message});
   }
  }
- const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30');const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. Kalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}])}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg),reply=fallback||'Şu an bağlı AI servisleri cevap vermedi ama isteğini kaybettirmedim. Hata arka planda kaydedildi; servis anahtarlarını ve sağlayıcıları kontrol edeceğim.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}const reply=a.text;await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai',provider:a.provider}}
+ const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30');const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. Kalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg),reply=fallback||'Şu an bağlı AI servisleri cevap vermedi ama isteğini kaybettirmedim. Hata arka planda kaydedildi; servis anahtarlarını ve sağlayıcıları kontrol edeceğim.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}const reply=a.text;await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai',provider:a.provider}}
 async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.method;
  if(p==='/api/health')return j({ok:true,cloud:true,ts:now()});
  if(p==='/api/auth/passkey/auth/options'&&m==='POST'){const x=await authenticationOptions(req,env);return x?.error?j({error:x.error},x.status||400):j(x)}
@@ -334,6 +422,7 @@ async function router(req,env){const u=new URL(req.url),p=u.pathname,m=req.metho
  if(p==='/api/chat/history'&&m==='GET')return j(await chatHistory(env,Number(u.searchParams.get('limit')||120)));
  if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);try{const r=await withTimeout(command(env,text),12000,'COMMAND_TIMEOUT');await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||'Şu an cevap motoru zamanında dönemedi. İsteğini kaybettirmedim; hata arka planda kaydedildi.';await recordRuntimeError(env,e,'chat.send');await addChat(env,'assistant',reply,'JARVIS Local');return j({reply,action:'local_fallback',provider:'JARVIS Local',state:await state(env),history:await chatHistory(env,120)})}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
+ if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/status')return j(await liveStatus(env));
  if(p==='/api/state')return j(await state(env));
  if(p==='/api/tasks'&&m==='POST'){const b=await body(req),title=String(b.title||'').trim();if(!title)return j({error:'TITLE_REQUIRED'},400);const t=now(),x={id:id(),title,priority:b.priority||'Orta',status:'open',area:b.area||'genel',createdAt:t,updatedAt:t};await run(env,'INSERT INTO tasks(id,title,priority,status,area,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',x.id,x.title,x.priority,x.status,x.area,t,t);await log(env,'task','Görev eklendi: '+title);return j(x)}
