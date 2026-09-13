@@ -47,6 +47,7 @@ targets:
         NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
         NSPhotoLibraryUsageDescription: "JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
         NSLocationWhenInUseUsageDescription: "JARVIS yakındaki yerleri, rota ve konuma bağlı cevapları doğru verebilmek için konumunu kullanır."
+        NSFaceIDUsageDescription: "JARVIS parolanı tekrar yazmadan güvenli giriş yapmak için Face ID kullanır."
         NSCalendarsFullAccessUsageDescription: "JARVIS takvimini okuyup randevu ve etkinliklerini yönetmek için tam takvim erişimi kullanır."
         NSRemindersFullAccessUsageDescription: "JARVIS hatırlatıcılarını okuyup oluşturmak ve yönetmek için erişim kullanır."
         NSAlarmKitUsageDescription: "JARVIS istediğin zamanlarda gerçek alarm ve zamanlayıcı kurmak için AlarmKit kullanır."
