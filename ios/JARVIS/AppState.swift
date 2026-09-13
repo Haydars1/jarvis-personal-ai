@@ -157,7 +157,10 @@ final class AppState: ObservableObject {
             statusText = message
             attachments = pendingAttachments
             Task { await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text) }
-            messages.append(ChatMessage(role: "assistant", content: "Bu hatayı gördüm ve kendi düzeltme hattıma bildirdim: \(message)", provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
+            let visibleMessage = message.lowercased().contains("timed out")
+                ? "Bağlantı zaman aşımına uğradı. Bu isteği kaybettirmedim; tekrar gönderirsen kısa yoldan cevaplamaya çalışacağım."
+                : "Bağlantı hatası: \(message)"
+            messages.append(ChatMessage(role: "assistant", content: visibleMessage, provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
         isSending = false
     }
