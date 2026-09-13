@@ -394,6 +394,25 @@ async function aiDiagnostics(env){
   : 'Çalışan sağlayıcı var: '+working.map(x=>x.label).join(', ')+'. Router bunları önce kullanmalı.';
  return {ok:!fatal,working:working.length,total:items.length,duration_ms:now()-started,recommendation,items};
 }
+async function behaviorSkills(env){
+ const saved=await kvGet(env,'behavior_skills',[]);
+ const base=[
+  'Kullanıcı bir sorunu test amaçlı sorabilir; tek soruya özel yama yapma, genel davranış problemini düzelt.',
+  'Kullanıcı senden işini yaptırmak istiyor; gereksiz izin istemeden araştır, kontrol et, bağlamı toparla ve uygulanabilir cevap ver.',
+  'Canlı bilgi gerekiyorsa kullanıcıya siteye bak deme; önce bağlı arama/kaynak/entegrasyonları kendin dene, kaynak yetersizse net söyle.',
+  'AI veya entegrasyon hata verirse teknik hata dökmek yerine kısa anlaşılır durum ver, logla, çalışan sağlayıcıya geç ve mümkünse yerel/arama yedeğiyle cevapla.',
+  'Cevaplar ChatGPT gibi doğal, hızlı, kısa ve işe yarar olsun; uzun açıklama gerekiyorsa yapılandır, gereksiz dolgu kullanma.',
+  'Ayar, bağlantı, Google servisleri, konum, takvim, dosya ve otomasyon isteklerinde eksik bağlantıyı tespit et; kullanıcıya hangi ekranda ne yapacağını net göster.',
+  'Kullanıcı kızgınsa savunmaya geçme; önce hatayı sahiplen, sonra somut düzeltmeyi uygula ve sonucu doğrula.',
+  'Demo/video/PDF ile gelen davranışları kalıcı çalışma kuralına çevir; aynı şikayet tekrar ederse sistemi yeniden teşhis et.'
+ ];
+ const extra=Array.isArray(saved)?saved:[];
+ return [...base,...extra].filter(Boolean);
+}
+async function behaviorSkillText(env){
+ const list=await behaviorSkills(env);
+ return list.map((x,i)=>(i+1)+'. '+x).join('\n');
+}
 function isBadAssistantAnswer(s){
  s=String(s||'').toLocaleLowerCase('tr-TR');
  return /google aramasını dene|google'da ara|googleda ara|siteye bak|sitelerine bak|kendin kontrol et|göz atabilirsiniz|goz atabilirsiniz|arama motorunda ara|bilemem|bilgim yok/.test(s);
@@ -511,7 +530,7 @@ async function quickCommand(env,text){
  }
  const local=localFallbackAnswer(text,'');
  if(local&&!/Bağlı AI servisleri/.test(local))return{reply:local,action:'local_fallback',provider:'JARVIS Local'};
- const system='Sen JARVIS adlı Türkçe kişisel asistansın. Kullanıcıya ChatGPT gibi doğal, net ve işe yarar cevap ver. Kullanıcıya Google’da ara, siteye bak, kendin kontrol et deme. Bilmediğin canlı/değişebilir bilgiyi kesinmiş gibi uydurma. Kısa soruya kısa cevap ver.';
+ const system='Sen JARVIS adlı Türkçe kişisel asistansın. Kullanıcıya ChatGPT gibi doğal, net ve işe yarar cevap ver. Kullanıcıya Google’da ara, siteye bak, kendin kontrol et deme. Bilmediğin canlı/değişebilir bilgiyi kesinmiş gibi uydurma. Kısa soruya kısa cevap ver. JARVIS DAVRANIŞ BECERİLERİ:\n'+await behaviorSkillText(env);
  try{
   const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:text}],{userText:text,mode:'fast'}),8500,'QUICK_AI_TIMEOUT');
   if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:'ai',provider:a.provider};
@@ -524,6 +543,7 @@ async function quickCommand(env,text){
  return{reply:local||'Cevap motoru şu an düşüyor ve arama yedeği de sonuç vermedi. Bunu teknik hata olarak kaydettim; sana boş teknik detay dökmüyorum.',action:'local_fallback',provider:'JARVIS Local'};
 }
 async function command(env,text){await log(env,'user',text);const l=text.toLocaleLowerCase('tr-TR');const remembered=await rememberExplicit(env,text);if(remembered){const reply=`Bunu hafızama kaydettim: ${remembered}`;await log(env,'jarvis',reply);return{reply,action:'memory'}}
+ if(/davranış becerileri|davranis becerileri|çalışma kuralları|calisma kurallari|skills cloud|claude\.md|jarvis kuralları|jarvis kurallari/.test(l)){const reply='JARVIS davranış becerileri aktif:\n'+await behaviorSkillText(env);await log(env,'jarvis',reply,{provider:'JARVIS Behavior Skills'});return{reply,action:'behavior_skills',provider:'JARVIS Behavior Skills'}}
  if(/görev.*ekle|hatırlat/.test(l)){const title=text.replace(/^(jarvis[, ]*)?/i,'').replace(/görev.*ekle[: ]*/i,'').replace(/bana hatırlat[: ]*/i,'').trim()||text;const t=now();await run(env,'INSERT INTO tasks(id,title,priority,status,area,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',id(),title,'Orta','open','genel',t,t);const reply=`Görevi ekledim: ${title}`;await log(env,'jarvis',reply);return{reply,action:'task'}}
  if((l.includes('bugün')&&(l.includes('ne yapt')||l.includes('özet')||l.includes('neler oldu')))||l.includes('günlük brief')){const b=await brief(env);const reply=`Bugünkü durum: ${b.text}${b.top?` Sıradaki iş: ${b.top}.`:''}`;await log(env,'jarvis',reply);return{reply,action:'brief'}}
  if(l.startsWith('araştır ')||l.includes('internette araştır')){const q=text.replace(/^araştır\s*/i,'').replace(/internette araştır/ig,'').trim()||text;const results=await ddg(q),reply=`Araştırmayı yaptım. ${results.length} sonuç buldum${results[0]?`: ${results[0].title}`:''}.`;await log(env,'jarvis',reply,{q,count:results.length});return{reply,action:'research',results}}
@@ -546,7 +566,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
   await log(env,'jarvis',reply,{provider:'JARVIS Live Search',direct:true});
   return{reply,action:'live_research',provider:'JARVIS Live Search',results:researchResults.slice(0,5)};
  }
- const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30');const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. Kalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
+ const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30'),skills=await behaviorSkillText(env);const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
  let reply=a.text;
  if(isBadAssistantAnswer(reply)){
   await aiRouterMark(env,a.provider,false,'BAD_ASSISTANT_ANSWER');
