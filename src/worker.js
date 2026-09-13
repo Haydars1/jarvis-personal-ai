@@ -81,7 +81,7 @@ async function testCredential(env,c){
 }
 function providerBase(p,endpoint=''){
   const map={openai:'https://api.openai.com/v1',groq:'https://api.groq.com/openai/v1',openrouter:'https://openrouter.ai/api/v1',nvidia:'https://integrate.api.nvidia.com/v1',mistral:'https://api.mistral.ai/v1',deepseek:'https://api.deepseek.com/v1',together:'https://api.together.xyz/v1',cerebras:'https://api.cerebras.ai/v1',perplexity:'https://api.perplexity.ai',xai:'https://api.x.ai/v1'};
-  return (map[p]||String(endpoint||'')).replace(/\\/$/,'');
+  return (map[p]||String(endpoint||'')).replace(/\/$/,'');
 }
 function providerModel(p,model=''){
   const map={openai:'gpt-4o-mini',groq:'llama-3.3-70b-versatile',openrouter:'openrouter/auto',nvidia:'nvidia/nemotron-3.5-lightning-30b-a3b',mistral:'mistral-small-latest',deepseek:'deepseek-chat',together:'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',cerebras:'llama3.1-8b',perplexity:'sonar-pro',xai:'grok-3-mini'};
