@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
+    @FocusState private var loginPasswordFocused: Bool
 
     private var backgroundColor: Color {
         Color(uiColor: .systemBackground)
@@ -390,9 +391,10 @@ struct ContentView: View {
 
                 VStack(spacing: 12) {
                     SecureField("Parola", text: $state.password)
+                        .focused($loginPasswordFocused)
                         .textContentType(.password)
                         .submitLabel(.go)
-                        .onSubmit { Task { await state.login() } }
+                        .onSubmit { submitLogin() }
                         .padding(.horizontal, 14)
                         .frame(height: 52)
                         .background(surfaceColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -401,26 +403,59 @@ struct ContentView: View {
                                 .stroke(borderColor, lineWidth: 0.7)
                         )
 
-                    Button { Task { await state.login() } } label: {
-                        HStack {
+                    Button(action: submitLogin) {
+                        HStack(spacing: 10) {
                             Spacer()
-                            if state.isSending {
-                                ProgressView().tint(.white)
-                            } else {
-                                Text("Giriş Yap").fontWeight(.semibold)
+                            if state.isLoggingIn {
+                                ProgressView()
+                                    .tint(.white)
                             }
+                            Text(state.isLoggingIn ? "Giriş yapılıyor..." : "Giriş Yap")
+                                .fontWeight(.semibold)
                             Spacer()
                         }
-                        .frame(height: 52)
+                        .frame(height: 54)
+                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .background(accentColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(loginCanSubmit ? accentColor : Color(uiColor: .systemGray3), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     .foregroundStyle(.white)
+                    .disabled(!loginCanSubmit)
+
+                    if state.biometricLoginAvailable {
+                        Button(action: submitBiometricLogin) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "faceid")
+                                    .font(.system(size: 18, weight: .semibold))
+                                Text(state.biometricLoginTitle)
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .background(surfaceColor, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(borderColor, lineWidth: 0.7)
+                        )
+                        .foregroundStyle(.primary)
+                        .disabled(state.isLoggingIn)
+                    }
+
+                    if !state.loginStatusText.isEmpty {
+                        Text(state.loginStatusText)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 .frame(maxWidth: 420)
                 .padding(.horizontal, 22)
 
-                Text("Oturum cihazda tutulur. API anahtarları uygulamaya indirilmez.")
+                Text("İlk girişten sonra parola Face ID korumalı olarak cihazda saklanır. API anahtarları uygulamaya indirilmez.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -431,5 +466,27 @@ struct ContentView: View {
         }
         .dynamicTypeSize(.small ... .xxLarge)
         .interactiveDismissDisabled()
+        .onAppear {
+            state.refreshBiometricState()
+            loginPasswordFocused = true
+        }
+    }
+
+    private var loginCanSubmit: Bool {
+        !state.isLoggingIn && !state.password.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func submitLogin() {
+        guard loginCanSubmit else { return }
+        loginPasswordFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        Task { await state.login() }
+    }
+
+    private func submitBiometricLogin() {
+        guard !state.isLoggingIn else { return }
+        loginPasswordFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        Task { await state.loginWithBiometrics() }
     }
 }
