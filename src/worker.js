@@ -249,7 +249,7 @@ async function sportsDbLookup(text,ms=2800){
  return events.map(e=>({title:[e.dateEvent,e.strEvent,e.intHomeScore!=null&&e.intAwayScore!=null?e.intHomeScore+'-'+e.intAwayScore:null].filter(Boolean).join(' | '),url:'https://www.thesportsdb.com/event/'+(e.idEvent||''),snippet:[e.strLeague,e.strSeason,e.strVenue,e.strStatus,e.strTime].filter(Boolean).join(' - '),source:'TheSportsDB'}));
 }
 async function liveResearch(text,ms=3000){
- const queries=[liveSearchQuery(text)];
+ const queries=[liveSearchQuery(text)],mediaQueries=mediaSearchQueries(text);
  if(isSportsQuestion(text)){
   const d=todayTR(),team=sportsTeamName(text);
   queries.push(String(text||'')+' '+d+' maç sonucu özet goller');
@@ -259,11 +259,12 @@ async function liveResearch(text,ms=3000){
   queries.push((team||String(text||''))+' '+d+' Mackolik Sofascore maç sonucu');
  }
  const seen=new Set(),out=[],per=Math.max(1200,Math.min(ms,2200));
- const jobs=queries.map(q=>ddg(q,per).catch(()=>[]));
+ const jobs=queries.map(q=>ddg(q,per).catch(()=>[])).concat(mediaQueries.map(q=>ddg(q,per).then(xs=>xs.map(x=>({...x,kind:'media'}))).catch(()=>[])));
  if(isSportsQuestion(text))jobs.unshift(sportsDbLookup(text,per).catch(()=>[]));
  const settled=await withTimeout(Promise.allSettled(jobs),Math.max(2200,ms+500),'LIVE_RESEARCH_TIMEOUT').catch(()=>[]);
- for(const r of settled){for(const x of (r.value||[])){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(x)}}}
- return out.slice(0,isSportsQuestion(text)?12:8);
+ for(const r of settled){for(const x of (r.value||[])){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(isMediaResult(x)?{...x,kind:x.kind||'media'}:x)}}}
+ const media=out.filter(x=>x.kind==='media'),regular=out.filter(x=>x.kind!=='media');
+ return regular.concat(media).slice(0,isSportsQuestion(text)?14:10);
 }
 function aiProviderKey(p){return String(p||'').toLowerCase().replace(/[^a-z0-9_.@/-]+/g,'_').slice(0,120)}
 function aiFailureCooldownMs(msg){
@@ -426,14 +427,36 @@ function answerDetailMode(text){
 }
 function responsePolicy(text){
  const mode=answerDetailMode(text);
- const base='Genel cevap politikası: Kullanıcı test sorusu soruyor olabilir; konuya özel ezber cevap verme, sorunun niyetine göre kaliteli cevap üret. Sadece spor değil; yemek, ürün, araba, hukuk, sağlık dışı genel bilgi, canlı bilgi, teknik ayar, fiyat, rota ve entegrasyon sorularında aynı kaliteyi uygula.';
- if(mode==='detailed')return base+' Bu soru detay istiyor: kim/ne/ne zaman/nerede/neden/nasıl/kaç/sonuç/rakam/önemli olaylar/sonraki adım bilgilerini mümkün olduğunca doldur. Tek cümleyle geçiştirme. Kaynakta veri yoksa uydurma; “bu detay kaynakta görünmedi” diye ayır.';
- if(mode==='compact_but_useful')return base+' Soru kısa ama faydalı cevap ister: 2-4 cümleyle tanım, ne işe yarar, önemli içerik/örnek ve pratik not ver. Sadece “X şudur” deyip bırakma.';
- return base+' Cevap ne çok kısa ne gereksiz uzun olsun; kullanıcının işini görecek kadar bilgi, gerekirse madde madde pratik sonuç ver.';
+ const base='Genel cevap politikası: Kullanıcı test sorusu soruyor olabilir; konuya özel ezber cevap verme, sorunun niyetine göre kaliteli cevap üret. Sadece spor değil; yemek, ürün, araba, hukuk, sağlık dışı genel bilgi, canlı bilgi, teknik ayar, fiyat, rota ve entegrasyon sorularında aynı kaliteyi uygula. Cevabı güçlendirecek video, görsel, resmi kaynak, ürün sayfası, klip, inceleme veya kanıt linki varsa bulup cevaba ekle; telifli medyayı kopyalama, resmi/erişilebilir bağlantı ver.';
+ if(mode==='detailed')return base+' Bu soru detay istiyor: kim/ne/ne zaman/nerede/neden/nasıl/kaç/sonuç/rakam/önemli olaylar/sonraki adım bilgilerini mümkün olduğunca doldur. Tek cümleyle geçiştirme. İlgili medya/kanıt varsa “İlgili video/kaynak” bölümü ekle. Kaynakta veri yoksa uydurma; “bu detay kaynakta görünmedi” diye ayır.';
+ if(mode==='compact_but_useful')return base+' Soru kısa ama faydalı cevap ister: 2-4 cümleyle tanım, ne işe yarar, önemli içerik/örnek ve pratik not ver. Sadece “X şudur” deyip bırakma; uygun link/video varsa sona ekle.';
+ return base+' Cevap ne çok kısa ne gereksiz uzun olsun; kullanıcının işini görecek kadar bilgi, gerekirse madde madde pratik sonuç ve ilgili link/video ver.';
 }
 function isBadAssistantAnswer(s){
  s=String(s||'').toLocaleLowerCase('tr-TR');
  return /google aramasını dene|google'da ara|googleda ara|siteye bak|sitelerine bak|kendin kontrol et|göz atabilirsiniz|goz atabilirsiniz|arama motorunda ara|bilemem|bilgim yok/.test(s);
+}
+function mediaSearchQueries(text){
+ const l=String(text||'').toLocaleLowerCase('tr-TR'),q=String(text||'').trim(),d=todayTR?.()||new Date().toISOString().slice(0,10),team=typeof sportsTeamName==='function'?sportsTeamName(text):'';
+ const out=[];
+ if(/maç|mac|gol|özet|ozet|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig/.test(l)){
+  const base=(team||q)+' '+d;
+  out.push(base+' gol videosu resmi');
+  out.push(base+' maç özeti video beIN SPORTS');
+  out.push(base+' highlights video');
+ }else if(/ürün|urun|inceleme|review|nasıl yapılır|nasil yapilir|tamir|arıza|ariza|montaj|kurulum|ayar|bağla|bagla|kullanım|kullanim/.test(l)){
+  out.push(q+' video inceleme');
+  out.push(q+' nasıl yapılır video');
+  out.push(q+' YouTube resmi anlatım');
+ }else if(/görsel|gorsel|foto|resim|video|klip|kanıt|kanit|örnek|ornek/.test(l)){
+  out.push(q+' video');
+  out.push(q+' görsel kaynak');
+ }
+ return out.slice(0,3);
+}
+function isMediaResult(x){
+ const u=String(x?.url||'').toLowerCase(),t=String(x?.title||'').toLowerCase();
+ return /youtube\.com|youtu\.be|instagram\.com|tiktok\.com|x\.com|twitter\.com|beinsports|bein sports|video|highlights|özet|ozet|gol/.test(u+' '+t);
 }
 function isSportsQuestion(text){
  return /maç|mac|galatasaray|fenerbahçe|fenerbahce|beşiktaş|besiktas|trabzonspor|süper lig|super lig|spor|lig|hangi kanalda|fikstür|fikstur/.test(String(text||'').toLocaleLowerCase('tr-TR'));
@@ -547,7 +570,7 @@ async function quickCommand(env,text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  if(needsLiveLookupText(text)){
   let results=[];try{results=await withTimeout(liveResearch(text,isSportsQuestion(text)?2300:2800),3000,'LIVE_RESEARCH_TOTAL_TIMEOUT')}catch{}
-  const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. '+responsePolicy(text)+' Canlı/web sonuçları varsa değerlendir; tek cümleyle geçiştirme. Bugünkü/şimdiki sorularda eski/sonraki sonuçları karıştırma. Detay kaynakta yoksa bunu açık yaz, uydurma.';
+  const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. '+responsePolicy(text)+' Canlı/web sonuçları varsa değerlendir; tek cümleyle geçiştirme. Sonuçlarda video/klip/ürün/resmi kaynak bağlantısı varsa cevabın sonuna “İlgili video/kaynak” diye ekle. Bugünkü/şimdiki sorularda eski/sonraki sonuçları karıştırma. Detay kaynakta yoksa bunu açık yaz, uydurma.';
   const prompt='Bugünün tarihi: '+todayTR()+'\nKullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(results.slice(0,12));
   try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),3800,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text))return{reply:a.text,action:results.length?'live_ai_research':'live_ai_no_results',provider:a.provider,results:results.slice(0,6)}}catch{}
   const local=localFallbackAnswer(text,'');
@@ -580,7 +603,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  if(needsLiveResearch){
   try{
    researchResults=await liveResearch(text,isSportsQuestion(text)?2400:3200);
-   researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle; detay sorulduysa kim/ne/ne zaman/nerede/neden/nasıl/rakam/sonuç bilgilerini doldur): '+JSON.stringify(researchResults.slice(0,10));
+   researchContext='\\n\\nCANLI/WEB ARAŞTIRMA SONUÇLARI (kullanıcıya sitelere kendin bak deme; bu sonuçları değerlendir, yeterli değilse erişemediğini açık söyle; detay sorulduysa kim/ne/ne zaman/nerede/neden/nasıl/rakam/sonuç bilgilerini doldur; video/klip/resmi kaynak/ürün linki varsa “İlgili video/kaynak” olarak ekle): '+JSON.stringify(researchResults.slice(0,10));
    await log(env,'research','Otomatik araştırma: '+text,{count:researchResults.length});
   }catch(e){
    researchContext='\\n\\nCANLI/WEB ARAŞTIRMA DENEMESİ BAŞARISIZ: '+e.message+'. Kullanıcıya rastgele siteye bak demek yerine, erişemediğini açık söyle ve hangi resmi kaynağın gerektiğini belirt.';
@@ -588,7 +611,7 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
   }
  }
  if(needsLiveResearch&&researchResults.length){
-  const system='Sen JARVIS adlı Türkçe asistansın. Canlı/web sonuçlarını kullanarak doğrudan cevap ver. Kullanıcıyı aramaya yönlendirme. '+responsePolicy(text)+' Bugünkü/şimdiki sorularda eski/sonraki verileri karıştırma.';
+  const system='Sen JARVIS adlı Türkçe asistansın. Canlı/web sonuçlarını kullanarak doğrudan cevap ver. Kullanıcıyı aramaya yönlendirme. '+responsePolicy(text)+' Sonuçlarda video/klip/resmi kaynak/ürün linki varsa cevabın sonuna “İlgili video/kaynak” bölümü ekle. Bugünkü/şimdiki sorularda eski/sonraki verileri karıştırma.';
   const prompt='Bugünün tarihi: '+todayTR()+'\nKullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(researchResults.slice(0,12));
   try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),3800,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text)){await log(env,'jarvis',a.text,{provider:a.provider,direct:true});return{reply:a.text,action:'live_ai_research',provider:a.provider,results:researchResults.slice(0,6)}}}catch(e){await recordRuntimeError(env,e,'command.live_ai')}
  }
