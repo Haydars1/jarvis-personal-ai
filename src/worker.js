@@ -329,6 +329,38 @@ async function aiFallback(env,messages,opts={}){
  for(const wave of waves){const clean=wave.filter(Boolean);if(!clean.length)continue;const got=await raceAiWave(env,clean,mode==='fast'?3500:6000,errs);if(got){for(const t of clean.filter(x=>x.credential&&x.label===got.provider))await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),t.credential.id);return got}}
  throw Error(errs.length?'ALL_AI_FAILED:'+errs.slice(-12).join('|'):'NO_AI_PROVIDER');
 }
+async function aiDiagnostics(env){
+ const messages=[{role:'system',content:'Tek kelime cevap ver.'},{role:'user',content:'ping'}];
+ const rows=await credentialSecrets(env,'chat'),items=[],started=now();
+ for(const c of rows){
+  const label=c.label||c.provider, t0=now();
+  try{
+   const text=await withTimeout(callVaultAI(env,c,messages,3500),4200,'DIAG_TIMEOUT');
+   items.push({source:'vault',id:c.id,provider:c.provider,label,ok:!!String(text||'').trim(),latency_ms:now()-t0,model:c.model||null,error:null});
+   await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),c.id);
+  }catch(e){
+   const error=String(e?.message||e||'UNKNOWN');
+   items.push({source:'vault',id:c.id,provider:c.provider,label,ok:false,latency_ms:now()-t0,model:c.model||null,error});
+   await run(env,'UPDATE credentials SET last_status=?,last_error=?,last_test_at=?,updated_at=? WHERE id=?','error',error,now(),now(),c.id);
+  }
+ }
+ const envTasks=envProviderTasks(env,messages,'fast');
+ for(const t of envTasks.slice(0,12)){
+  const t0=now();
+  try{
+   const text=await withTimeout(t.fn(3000),3600,'DIAG_TIMEOUT');
+   items.push({source:'env',id:t.id,provider:t.label,label:t.label,ok:!!String(text||'').trim(),latency_ms:now()-t0,model:null,error:null});
+  }catch(e){
+   items.push({source:'env',id:t.id,provider:t.label,label:t.label,ok:false,latency_ms:now()-t0,model:null,error:String(e?.message||e||'UNKNOWN')});
+  }
+ }
+ const working=items.filter(x=>x.ok);
+ const fatal=!working.length;
+ const recommendation=fatal
+  ? 'Hiç çalışan AI sağlayıcısı yok. En az bir geçerli OpenAI, Groq, OpenRouter, Anthropic veya Gemini anahtarı eklenip testten geçmeli; aksi halde JARVIS gerçek AI gibi cevap veremez.'
+  : 'Çalışan sağlayıcı var: '+working.map(x=>x.label).join(', ')+'. Router bunları önce kullanmalı.';
+ return {ok:!fatal,working:working.length,total:items.length,duration_ms:now()-started,recommendation,items};
+}
 function isBadAssistantAnswer(s){
  s=String(s||'').toLocaleLowerCase('tr-TR');
  return /google aramasını dene|google'da ara|googleda ara|siteye bak|sitelerine bak|kendin kontrol et|göz atabilirsiniz|goz atabilirsiniz|arama motorunda ara|bilemem|bilgim yok/.test(s);
@@ -524,9 +556,10 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  let am=p.match(/^\/api\/actions\/([^/]+)\/(approve|reject)$/);if(am&&m==='POST'){const a=await q1(env,'SELECT * FROM actions WHERE id=?',am[1]);if(!a)return j({error:'NOT_FOUND'},404);if(am[2]==='reject'){await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','rejected',now(),a.id);return j({ok:true})}const result=await executeAction(env,a);await run(env,'UPDATE actions SET status=?,completed_at=? WHERE id=?','done',now(),a.id);await log(env,'action','İşlem gerçekleştirildi: '+a.summary,{result});return j({ok:true,result})}
 
  if(p==='/api/chat/history'&&m==='GET')return j(await chatHistory(env,Number(u.searchParams.get('limit')||120)));
- if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);const ts=now();try{const r=await withTimeout(quickCommand(env,text),7500,'QUICK_COMMAND_TIMEOUT');const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:r.reply,provider:r.provider||null,created_at:now()}];const persist=async()=>{try{await addChat(env,'user',text,null);await addChat(env,'assistant',r.reply,r.provider||null);await log(env,'jarvis-fast',r.reply,{provider:r.provider,action:r.action})}catch(e){await recordRuntimeError(env,e,'chat.persist')}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({...r,history})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Cevap motoru zamanında dönemedi. İsteğini kaydettim; teknik hata detayını sana dökmüyorum.';const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Local',created_at:now()}];const persist=async()=>{try{await recordRuntimeError(env,e,'chat.send');await addChat(env,'user',text,null);await addChat(env,'assistant',reply,'JARVIS Local')}catch{}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({reply,action:'local_fallback',provider:'JARVIS Local',history})}}
+ if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);const ts=now();try{if(/ai.*(durum|test|kontrol|diag)|sağlayıcı.*(durum|test|kontrol)|saglayici.*(durum|test|kontrol)/i.test(text)){const d=await aiDiagnostics(env);const reply=d.ok?('AI sistemi çalışıyor. Çalışan sağlayıcı sayısı: '+d.working+'/'+d.total+'. '+d.recommendation):('AI sistemi çalışmıyor. '+d.recommendation);return j({reply,action:'ai_diagnostics',provider:'JARVIS Diagnostics',diagnostics:d,history:[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Diagnostics',created_at:now()}]})}const r=await withTimeout(quickCommand(env,text),7500,'QUICK_COMMAND_TIMEOUT');const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:r.reply,provider:r.provider||null,created_at:now()}];const persist=async()=>{try{await addChat(env,'user',text,null);await addChat(env,'assistant',r.reply,r.provider||null);await log(env,'jarvis-fast',r.reply,{provider:r.provider,action:r.action})}catch(e){await recordRuntimeError(env,e,'chat.persist')}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({...r,history})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Cevap motoru zamanında dönemedi. İsteğini kaydettim; teknik hata detayını sana dökmüyorum.';const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Local',created_at:now()}];const persist=async()=>{try{await recordRuntimeError(env,e,'chat.send');await addChat(env,'user',text,null);await addChat(env,'assistant',reply,'JARVIS Local')}catch{}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({reply,action:'local_fallback',provider:'JARVIS Local',history})}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
+ if(p==='/api/ai/diagnose')return j(await aiDiagnostics(env));
  if(p==='/api/status')return j(await liveStatus(env));
  if(p==='/api/state')return j(await state(env));
  if(p==='/api/tasks'&&m==='POST'){const b=await body(req),title=String(b.title||'').trim();if(!title)return j({error:'TITLE_REQUIRED'},400);const t=now(),x={id:id(),title,priority:b.priority||'Orta',status:'open',area:b.area||'genel',createdAt:t,updatedAt:t};await run(env,'INSERT INTO tasks(id,title,priority,status,area,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',x.id,x.title,x.priority,x.status,x.area,t,t);await log(env,'task','Görev eklendi: '+title);return j(x)}
