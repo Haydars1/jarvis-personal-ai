@@ -1,8 +1,23 @@
-import legacyCore from './media-rescue-entry.js';
+import legacyCore from './capability-runtime-entry.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
+import { createMediaRescue } from './application/media/rescue.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const handleChat = createChatOrchestrator(legacyCore);
+const handleMediaRescue = createMediaRescue(legacyCore);
+const mediaCore = {
+  fetch(req, env, ctx) {
+    const url = new URL(req.url);
+    if (url.pathname === '/api/chat/send' && req.method === 'POST') {
+      return handleMediaRescue(req, env, ctx);
+    }
+    return legacyCore.fetch(req, env, ctx);
+  },
+  scheduled(event, env, ctx) {
+    if (legacyCore.scheduled) return legacyCore.scheduled(event, env, ctx);
+  }
+};
+
+const handleChat = createChatOrchestrator(mediaCore);
 const handlePush = createPushApi(legacyCore);
 
 function shouldFlushPush(req, response) {
