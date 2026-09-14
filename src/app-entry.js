@@ -1,4 +1,4 @@
-import legacyBase from './worker-entry.js';
+import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
@@ -7,13 +7,15 @@ import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createJarvisOS } from './application/os/runtime.js';
+import { createHiggsfieldIntegration } from './application/providers/higgsfield.js';
 import { createProviderState } from './application/providers/state.js';
 import { createGoogleSearch } from './application/search/google.js';
 import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const integrationCore = createIntegrationHub(legacyBase);
+const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
+const integrationCore = createIntegrationHub(higgsfieldCore);
 const providerCore = createProviderState(integrationCore);
 const routerCore = createSmartRouter(providerCore);
 const searchCore = createGoogleSearch(routerCore);
