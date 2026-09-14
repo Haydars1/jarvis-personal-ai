@@ -9,9 +9,10 @@ test('wrangler points at the explicit application composition root', () => {
   assert.match(wrangler, /"main"\s*:\s*"src\/app-entry\.js"/);
 });
 
-test('composition root owns smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
+test('composition root owns provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
   const entry = read('src/app-entry.js');
-  assert.match(entry, /from '\.\/provider-entry\.js'/);
+  assert.match(entry, /from '\.\/integration-entry\.js'/);
+  assert.match(entry, /createProviderState/);
   assert.match(entry, /createSmartRouter/);
   assert.match(entry, /createGoogleSearch/);
   assert.match(entry, /createChatEnhancements/);
@@ -23,6 +24,7 @@ test('composition root owns smart routing, Google search, enhancements, OS, soci
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
   assert.match(entry, /createPushApi/);
+  assert.doesNotMatch(entry, /from '\.\/provider-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/smart-router-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/google-search-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/chat-enhancements-entry\.js'/);
@@ -48,7 +50,8 @@ test('migrated entries remain thin compatibility adapters', () => {
     ['src/jarvis-os-entry.js', /createJarvisOS/, 800],
     ['src/chat-enhancements-entry.js', /createChatEnhancements/, 800],
     ['src/google-search-entry.js', /createGoogleSearch/, 800],
-    ['src/smart-router-entry.js', /createSmartRouter/, 800]
+    ['src/smart-router-entry.js', /createSmartRouter/, 800],
+    ['src/provider-entry.js', /createProviderState/, 800]
   ];
   for (const [path, marker, max] of adapters) {
     const source = read(path);
