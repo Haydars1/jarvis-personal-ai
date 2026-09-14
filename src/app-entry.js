@@ -1,0 +1,44 @@
+import legacyCore from './media-rescue-entry.js';
+import { createChatOrchestrator } from './application/chat/orchestrator.js';
+import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
+
+const handleChat = createChatOrchestrator(legacyCore);
+const handlePush = createPushApi(legacyCore);
+
+function shouldFlushPush(req, response) {
+  const url = new URL(req.url);
+  return response?.ok && (url.pathname.startsWith('/api/') || req.method === 'POST');
+}
+
+async function routeRequest(req, env, ctx) {
+  const url = new URL(req.url);
+
+  if (url.pathname.startsWith('/api/mobile/push/')) {
+    const response = await handlePush(req, env, ctx);
+    if (response) return response;
+  }
+
+  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
+    return handleChat(req, env, ctx);
+  }
+
+  return legacyCore.fetch(req, env, ctx);
+}
+
+export default {
+  async fetch(req, env, ctx) {
+    const response = await routeRequest(req, env, ctx);
+    if (shouldFlushPush(req, response)) {
+      ctx.waitUntil(flushPush(env).catch(() => {}));
+    }
+    return response;
+  },
+
+  async scheduled(event, env, ctx) {
+    if (legacyCore.scheduled) await legacyCore.scheduled(event, env, ctx);
+    ctx.waitUntil((async () => {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      await flushPush(env);
+    })().catch(() => {}));
+  }
+};
