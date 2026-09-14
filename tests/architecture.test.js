@@ -9,9 +9,10 @@ test('wrangler points at the explicit application composition root', () => {
   assert.match(wrangler, /"main"\s*:\s*"src\/app-entry\.js"/);
 });
 
-test('composition root owns Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
+test('composition root owns smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
   const entry = read('src/app-entry.js');
-  assert.match(entry, /from '\.\/smart-router-entry\.js'/);
+  assert.match(entry, /from '\.\/provider-entry\.js'/);
+  assert.match(entry, /createSmartRouter/);
   assert.match(entry, /createGoogleSearch/);
   assert.match(entry, /createChatEnhancements/);
   assert.match(entry, /createJarvisOS/);
@@ -22,6 +23,7 @@ test('composition root owns Google search, enhancements, OS, social, video, outp
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
   assert.match(entry, /createPushApi/);
+  assert.doesNotMatch(entry, /from '\.\/smart-router-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/google-search-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/chat-enhancements-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/jarvis-os-entry\.js'/);
@@ -45,7 +47,8 @@ test('migrated entries remain thin compatibility adapters', () => {
     ['src/social-growth-entry.js', /createSocialGrowth/, 800],
     ['src/jarvis-os-entry.js', /createJarvisOS/, 800],
     ['src/chat-enhancements-entry.js', /createChatEnhancements/, 800],
-    ['src/google-search-entry.js', /createGoogleSearch/, 800]
+    ['src/google-search-entry.js', /createGoogleSearch/, 800],
+    ['src/smart-router-entry.js', /createSmartRouter/, 800]
   ];
   for (const [path, marker, max] of adapters) {
     const source = read(path);
