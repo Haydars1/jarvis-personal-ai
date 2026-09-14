@@ -1,13 +1,15 @@
-import legacyBase from './jarvis-os-entry.js';
+import legacyBase from './chat-enhancements-entry.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createMediaRescue } from './application/media/rescue.js';
+import { createJarvisOS } from './application/os/runtime.js';
 import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const socialCore = createSocialGrowth(legacyBase);
+const osCore = createJarvisOS(legacyBase);
+const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
