@@ -46,7 +46,7 @@ final class AppState: ObservableObject {
                 await loginWithBiometrics()
             }
         } catch {
-            statusText = error.localizedDescription
+            statusText = friendlyError(error.localizedDescription)
         }
     }
 
@@ -74,8 +74,9 @@ final class AppState: ObservableObject {
             }
             password = ""
         } catch {
-            loginStatusText = error.localizedDescription
-            statusText = error.localizedDescription
+            let message = friendlyError(error.localizedDescription)
+            loginStatusText = message
+            statusText = message
         }
         isLoggingIn = false
     }
@@ -95,8 +96,9 @@ final class AppState: ObservableObject {
             try await completeLogin(password: savedPassword)
             password = ""
         } catch {
-            loginStatusText = error.localizedDescription
-            statusText = error.localizedDescription
+            let message = friendlyError(error.localizedDescription)
+            loginStatusText = message
+            statusText = message
         }
         isLoggingIn = false
     }
@@ -153,16 +155,28 @@ final class AppState: ObservableObject {
             statusText = "Hazır"
             // Yanıtı otomatik seslendirme. Mikrofon yalnızca kullanıcı konuşmak istediğinde dinleme için kullanılır.
         } catch {
-            let message = error.localizedDescription
+            let raw = error.localizedDescription
+            let message = friendlyError(raw)
             statusText = message
             attachments = pendingAttachments
-            Task { await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text) }
-            let visibleMessage = message.lowercased().contains("timed out")
-                ? "Bağlantı zaman aşımına uğradı. Aynı mesajı tekrar gönder; JARVIS daha kısa yoldan deneyecek."
-                : "Bağlantı hatası: \(message)"
-            messages.append(ChatMessage(role: "assistant", content: visibleMessage, provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
+            Task { await api.reportRuntimeIssue(message: raw, context: "ios.send", userText: text) }
+            messages.append(ChatMessage(role: "assistant", content: message, provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
         isSending = false
+    }
+
+    private func friendlyError(_ raw: String) -> String {
+        let lower = raw.lowercased()
+        if lower.contains("jarvis_temporary_unavailable") || lower.contains("temporarily unavailable") || lower.contains("service unavailable") {
+            return "JARVIS kısa süreliğine yanıt yolunu değiştirdi. Birkaç saniye sonra tekrar dene."
+        }
+        if lower.contains("timed out") || lower.contains("timeout") || lower.contains("zaman aş") {
+            return "Yanıt gecikti. JARVIS başka bir yolu deneyecek; mesajı tekrar gönderebilirsin."
+        }
+        if lower.contains("network") || lower.contains("internet") || lower.contains("connection") || lower.contains("bağlantı") {
+            return "Bağlantı şu an kararsız. Mesajını kaybetmedim; tekrar deneyebilirsin."
+        }
+        return raw
     }
 
     func toggleVoice() {
