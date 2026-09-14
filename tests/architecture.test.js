@@ -9,14 +9,16 @@ test('wrangler points at the explicit application composition root', () => {
   assert.match(wrangler, /"main"\s*:\s*"src\/app-entry\.js"/);
 });
 
-test('composition root owns chat output, capabilities, media, orchestration and push wiring', () => {
+test('composition root owns video, chat output, capabilities, media, orchestration and push wiring', () => {
   const entry = read('src/app-entry.js');
-  assert.match(entry, /from '\.\/video-failover-entry\.js'/);
+  assert.match(entry, /from '\.\/social-growth-entry\.js'/);
+  assert.match(entry, /createVideoFailover/);
   assert.match(entry, /createChatOutput/);
   assert.match(entry, /createCapabilityRuntime/);
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
   assert.match(entry, /createPushApi/);
+  assert.doesNotMatch(entry, /from '\.\/video-failover-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/chat-output-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/capability-runtime-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/apns-push-entry\.js'/);
@@ -30,7 +32,8 @@ test('migrated entries remain thin compatibility adapters', () => {
     ['src/jarvis-orchestrator-entry.js', /createChatOrchestrator/, 1200],
     ['src/media-rescue-entry.js', /createMediaRescue/, 1200],
     ['src/capability-runtime-entry.js', /createCapabilityRuntime/, 800],
-    ['src/chat-output-entry.js', /createChatOutput/, 800]
+    ['src/chat-output-entry.js', /createChatOutput/, 800],
+    ['src/video-failover-entry.js', /createVideoFailover/, 800]
   ];
   for (const [path, marker, max] of adapters) {
     const source = read(path);
