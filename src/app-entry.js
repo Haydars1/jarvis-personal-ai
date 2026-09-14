@@ -1,24 +1,24 @@
-import legacyCore from './capability-runtime-entry.js';
+import legacyBase from './chat-output-entry.js';
+import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const handleMediaRescue = createMediaRescue(legacyCore);
+const capabilityCore = createCapabilityRuntime(legacyBase);
+const handleMediaRescue = createMediaRescue(capabilityCore);
 const mediaCore = {
   fetch(req, env, ctx) {
     const url = new URL(req.url);
-    if (url.pathname === '/api/chat/send' && req.method === 'POST') {
-      return handleMediaRescue(req, env, ctx);
-    }
-    return legacyCore.fetch(req, env, ctx);
+    if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleMediaRescue(req, env, ctx);
+    return capabilityCore.fetch(req, env, ctx);
   },
   scheduled(event, env, ctx) {
-    if (legacyCore.scheduled) return legacyCore.scheduled(event, env, ctx);
+    return capabilityCore.scheduled?.(event, env, ctx);
   }
 };
 
 const handleChat = createChatOrchestrator(mediaCore);
-const handlePush = createPushApi(legacyCore);
+const handlePush = createPushApi(capabilityCore);
 
 function shouldFlushPush(req, response) {
   const url = new URL(req.url);
@@ -27,30 +27,22 @@ function shouldFlushPush(req, response) {
 
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
-
   if (url.pathname.startsWith('/api/mobile/push/')) {
     const response = await handlePush(req, env, ctx);
     if (response) return response;
   }
-
-  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
-    return handleChat(req, env, ctx);
-  }
-
-  return legacyCore.fetch(req, env, ctx);
+  if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleChat(req, env, ctx);
+  return capabilityCore.fetch(req, env, ctx);
 }
 
 export default {
   async fetch(req, env, ctx) {
     const response = await routeRequest(req, env, ctx);
-    if (shouldFlushPush(req, response)) {
-      ctx.waitUntil(flushPush(env).catch(() => {}));
-    }
+    if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
     return response;
   },
-
   async scheduled(event, env, ctx) {
-    if (legacyCore.scheduled) await legacyCore.scheduled(event, env, ctx);
+    await capabilityCore.scheduled?.(event, env, ctx);
     ctx.waitUntil((async () => {
       await new Promise(resolve => setTimeout(resolve, 2500));
       await flushPush(env);
