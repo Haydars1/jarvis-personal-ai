@@ -1,11 +1,13 @@
-import legacyBase from './video-failover-entry.js';
+import legacyBase from './social-growth-entry.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createMediaRescue } from './application/media/rescue.js';
+import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const outputCore = createChatOutput(legacyBase);
+const videoCore = createVideoFailover(legacyBase);
+const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
 const handleMediaRescue = createMediaRescue(capabilityCore);
 const mediaCore = {
