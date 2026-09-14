@@ -30,6 +30,19 @@ const LIMITS = Object.freeze({
 
 const ANSWER_POLICY = `Kullanıcıya doğrudan, doğal ve doğru Türkçe cevap ver. Varsayılan cevap yüzeysel olmasın: önce net sonucu söyle, sonra anlamı veya nedeni açıkla; yararlıysa örnek, kullanım bağlamı, önemli fark veya pratik ayrıntı ekle. Kullanıcı özellikle kısa cevap istemedikçe tek kelimelik/tek cümlelik sözlük cevabıyla yetinme. Yabancı kelime sorularında Türkçe karşılık + tekil/çoğul veya dilbilgisi bilgisi (uygunsa) + örnek cümle ve Türkçesi + yakın kelimelerden önemli farkı ver. Teknik sorularda ne olduğu + neden olduğu + kullanıcı açısından sonucu ver. Güncel/canlı bilgi gerektiren sorularda doğrulanmamış güncel bilgi uydurma. Ham arama sonucu, DuckDuckGo yönlendirmesi, yüzde kodlu URL, sağlayıcı/timeout/hata gibi iç teknik ayrıntıları kullanıcıya dökme.`;
 
+const PROVIDER_ENDPOINTS = Object.freeze({
+  openai: 'https://api.openai.com/v1',
+  openrouter: 'https://openrouter.ai/api/v1',
+  deepseek: 'https://api.deepseek.com/v1',
+  mistral: 'https://api.mistral.ai/v1',
+  xai: 'https://api.x.ai/v1',
+  together: 'https://api.together.xyz/v1',
+  groq: 'https://api.groq.com/openai/v1',
+  perplexity: 'https://api.perplexity.ai',
+  nvidia: 'https://integrate.api.nvidia.com/v1',
+  cerebras: 'https://api.cerebras.ai/v1'
+});
+
 let expertRowsCache = { expiresAt: 0, rows: [] };
 
 async function loadExpertRows(env) {
@@ -60,7 +73,7 @@ async function callExpert(env, credential, text, kind) {
     const payload = await response.json();
     return String(payload.candidates?.[0]?.content?.parts?.map(part => part.text).join('') || '').trim();
   }
-  const base = String(credential.endpoint || (provider === 'nvidia' ? 'https://integrate.api.nvidia.com/v1' : '')).replace(/\/$/, '');
+  const base = String(credential.endpoint || PROVIDER_ENDPOINTS[provider] || '').replace(/\/$/, '');
   if (!base || !credential.model) throw new Error('EXPERT_CONFIG_MISSING');
   const response = await fetchWithTimeout(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model: credential.model, messages: [{ role: 'system', content: system }, { role: 'user', content: text }], temperature: 0.1, max_tokens: 520 }) }, LIMITS.providerFetchMs);
   if (!response.ok) throw new Error(`EXPERT_${provider}_${response.status}`);
@@ -89,7 +102,7 @@ async function workersAiFallback(env, text) {
     const result = await settleWithin(run, LIMITS.fallbackAiMs, null);
     const answer = cleanReply(String(result?.response || result?.result?.response || result?.text || ''));
     if (!answer) return null;
-    return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS hızlı yedek AI', value: 'Ana sağlayıcı geciktiği için Workers AI yedeği kullanıldı' }] };
+    return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS hızlı yedek AI', value: 'Ana ve bağlı uzman sağlayıcılar geciktiği için Workers AI yedeği kullanıldı' }] };
   } catch { return null; }
 }
 
@@ -104,27 +117,29 @@ async function synthesize(env, text, base, researchRows, toolRows, experts) {
   return cleanReply(String(result?.response || result?.result?.response || result?.text || base)) || cleanReply(base);
 }
 
-function expertFallback(text, experts) { const answer = cleanReply(experts?.answers?.[0]?.text || ''); if (!answer) return null; return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS yedek uzman', value: 'Ana yanıt yolu başarısız olduğu için hızlı yedek yanıt kullanıldı' }] }; }
+function expertFallback(text, experts) { const answer = cleanReply(experts?.answers?.[0]?.text || ''); if (!answer) return null; return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS sağlıklı uzman AI', value: 'Ana yanıt yolu geciktiği için çalışan bağlı AI sağlayıcısı kullanıldı' }] }; }
 function webFallback(text, webRows) { const rows = (webRows || []).slice(0, 3); if (!rows.length) return null; const body = rows.map(row => { const title = String(row.title || 'Kaynak').trim(); const snippet = row.snippet ? ` — ${String(row.snippet).slice(0, 180)}` : ''; return `- [${title}](${directUrl(row.url || '')})${snippet}`; }).join('\n'); const reply = `Bulabildiğim doğrulanabilir güncel bilgiler:\n\n${body}`; return { reply, history: [{ role: 'user', content: text }, { role: 'assistant', content: reply, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS web yedeği', value: 'Ana yanıt yolu yerine canlı web sonuçları kullanıldı' }] }; }
 function withTiming(payload, started) { payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), { kind: 'timing', label: 'JARVIS yanıt süresi', value: `${Date.now() - started} ms` }]; return payload; }
 
 async function simpleChat(core, req, env, ctx, text) {
   const started = Date.now();
+  const expertPromise = getExperts(env, text).catch(() => ({ kind: taskKind(text), picks: [], answers: [] }));
   const aiFallbackPromise = workersAiFallback(env, text);
   const response = await settleWithin(core.fetch(req.clone(), env, ctx), LIMITS.simpleCoreMs, null);
   if (response?.ok) {
     let payload; try { payload = await response.clone().json(); } catch { return response; }
-    payload.reply = await synthesize(env, text, payload.reply, [], [], { answers: [] });
+    const experts = await settleWithin(expertPromise, LIMITS.expertMs + 100, { kind: taskKind(text), picks: [], answers: [] });
+    payload.reply = await synthesize(env, text, payload.reply, [], [], experts);
     payload.provider = 'JARVIS';
     if (Array.isArray(payload.history)) payload.history = payload.history.map(message => message?.role === 'assistant' ? { ...message, content: payload.reply, provider: 'JARVIS' } : message);
     return jsonResponse(withTiming(payload, started), response.status);
   }
+  const experts = await settleWithin(expertPromise, LIMITS.expertMs + 100, { kind: taskKind(text), picks: [], answers: [] });
+  const expert = expertFallback(text, experts);
+  if (expert) return jsonResponse(withTiming(expert, started));
   const aiFallback = await settleWithin(aiFallbackPromise, LIMITS.fallbackAiMs + 100, null);
   if (aiFallback) return jsonResponse(withTiming(aiFallback, started));
-  const experts = await settleWithin(getExperts(env, text), LIMITS.expertMs + 150, { kind: taskKind(text), picks: [], answers: [] });
-  const fallback = expertFallback(text, experts);
-  if (fallback) return jsonResponse(withTiming(fallback, started));
-  return jsonResponse(withTiming(safeFallbackPayload(text, 'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.', 'Ana, Workers AI ve hızlı uzman yolları yanıt vermedi'), started));
+  return jsonResponse(withTiming(safeFallbackPayload(text, 'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.', 'Ana, sağlıklı uzman ve Workers AI yolları yanıt vermedi'), started));
 }
 
 async function orchestratedChat(core, req, env, ctx, text) {
