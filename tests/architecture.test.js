@@ -9,9 +9,10 @@ test('wrangler points at the explicit application composition root', () => {
   assert.match(wrangler, /"main"\s*:\s*"src\/app-entry\.js"/);
 });
 
-test('composition root owns integrations, provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
+test('composition root owns Higgsfield, integrations, provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
   const entry = read('src/app-entry.js');
-  assert.match(entry, /from '\.\/worker-entry\.js'/);
+  assert.match(entry, /from '\.\/worker\.js'/);
+  assert.match(entry, /createHiggsfieldIntegration/);
   assert.match(entry, /createIntegrationHub/);
   assert.match(entry, /createProviderState/);
   assert.match(entry, /createSmartRouter/);
@@ -25,6 +26,7 @@ test('composition root owns integrations, provider state, smart routing, Google 
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
   assert.match(entry, /createPushApi/);
+  assert.doesNotMatch(entry, /from '\.\/worker-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/integration-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/provider-entry\.js'/);
   assert.doesNotMatch(entry, /from '\.\/smart-router-entry\.js'/);
@@ -54,7 +56,8 @@ test('migrated entries remain thin compatibility adapters', () => {
     ['src/google-search-entry.js', /createGoogleSearch/, 800],
     ['src/smart-router-entry.js', /createSmartRouter/, 800],
     ['src/provider-entry.js', /createProviderState/, 800],
-    ['src/integration-entry.js', /createIntegrationHub/, 800]
+    ['src/integration-entry.js', /createIntegrationHub/, 800],
+    ['src/worker-entry.js', /createHiggsfieldIntegration/, 800]
   ];
   for (const [path, marker, max] of adapters) {
     const source = read(path);
