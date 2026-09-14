@@ -17,14 +17,14 @@ import {
 } from '../../lib/orchestration.js';
 
 const LIMITS = Object.freeze({
-  simpleCoreMs: 4200,
-  complexCoreMs: 5600,
-  expertMs: 1700,
-  providerFetchMs: 2200,
-  researchMs: 1500,
-  toolsMs: 1200,
-  synthesisMs: 1800,
-  fallbackAiMs: 2800,
+  simpleCoreMs: 5500,
+  complexCoreMs: 7500,
+  expertMs: 8000,
+  providerFetchMs: 7500,
+  researchMs: 2500,
+  toolsMs: 1800,
+  synthesisMs: 3500,
+  fallbackAiMs: 6500,
   expertRowsTtlMs: 10_000
 });
 
