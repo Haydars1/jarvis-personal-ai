@@ -98,21 +98,48 @@ async function synthesize(env,text,base,researchRows,toolRows,experts){
 }
 function needsOrchestration(text){const k=taskKind(text);return complexity(text)==='complex'||['coding','reasoning','research','vision','video'].includes(k)||wantsTools(text)}
 function expertFallback(text,experts){const a=cleanReply(experts?.answers?.[0]?.text||'');return a?{reply:a,history:[{role:'user',content:text},{role:'assistant',content:a,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS yedek uzman',value:'Ana yanıt yolu başarısız olduğu için hızlı yedek yanıt kullanıldı'}]}:null}
+function webFallback(text,webRows){
+  const rows=(webRows||[]).slice(0,3);if(!rows.length)return null;
+  const body=rows.map(r=>`- ${String(r.title||'Kaynak').trim()}${r.snippet?`: ${String(r.snippet).slice(0,180)}`:''}\n  ${directUrl(r.url||'')}`).join('\n');
+  const reply=`Canlı yanıtta ana yol yavaşladı; bulabildiğim en güncel kaynaklar:\n\n${body}`;
+  return{reply,history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS web yedeği',value:'Ana yanıt yolu yerine canlı web sonuçları kullanıldı'}]};
+}
 
 export default{
   async fetch(req,env,ctx){
     const u=new URL(req.url);if(u.pathname!=='/api/chat/send'||req.method!=='POST')return core.fetch(req,env,ctx);
     let text='';try{text=String((await req.clone().json())?.text||'').trim()}catch{}
-    if(!text||!needsOrchestration(text))return core.fetch(req,env,ctx);
+    if(!text)return core.fetch(req,env,ctx);
+
+    // Basit sohbet: önce en hızlı ana yolu dene. Başarısızsa teknik hata göstermeden yedek uzmana geç.
+    if(!needsOrchestration(text)){
+      const started=Date.now();
+      const first=await deadline(core.fetch(req.clone(),env,ctx),4200,null);
+      if(first?.ok)return first;
+      const [retry,experts]=await Promise.all([
+        deadline(core.fetch(req.clone(),env,ctx),2200,null),
+        deadline(getExperts(env,text),1800,{kind:taskKind(text),picks:[],answers:[]})
+      ]);
+      if(retry?.ok)return retry;
+      const fb=expertFallback(text,experts);
+      if(fb){fb.trace.push({kind:'timing',label:'JARVIS yanıt süresi',value:`${Date.now()-started} ms`});return json(fb,200)}
+      return json({reply:'Şu an ana AI yolu kısa süreliğine cevap vermedi. Mesajın kaybolmadı; birkaç saniye sonra tekrar dene.',history:[{role:'user',content:text},{role:'assistant',content:'Şu an ana AI yolu kısa süreliğine cevap vermedi. Mesajın kaybolmadı; birkaç saniye sonra tekrar dene.',provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS güvenli cevap',value:'Tüm hızlı yollar zaman aşımına uğradı'}]},200);
+    }
 
     const started=Date.now();
-    const basePromise=deadline(core.fetch(req,env,ctx),5600,null);
+    const basePromise=deadline(core.fetch(req.clone(),env,ctx),5600,null);
     const expertPromise=getExperts(env,text).catch(()=>({kind:taskKind(text),picks:[],answers:[]}));
     const webPromise=wantsResearch(text)?research(req,env,ctx,text).catch(()=>[]):Promise.resolve([]);
     const toolPromise=wantsTools(text)?tools(req,env,ctx,text).catch(()=>[]):Promise.resolve([]);
     const [baseRes,experts,webRows,toolRows]=await Promise.all([basePromise,expertPromise,webPromise,toolPromise]);
 
-    if(!baseRes||!baseRes.ok){const fb=expertFallback(text,experts);if(fb){fb.trace.push({kind:'timing',label:'JARVIS yanıt süresi',value:`${Date.now()-started} ms`});return json(fb,200)}return json({error:'JARVIS_TEMPORARY_UNAVAILABLE',message:'Yanıt yolu geçici olarak yavaşladı. Mesajını tekrar gönder.'},503)}
+    if(!baseRes||!baseRes.ok){
+      const fb=expertFallback(text,experts)||webFallback(text,webRows);
+      if(fb){fb.trace.push({kind:'timing',label:'JARVIS yanıt süresi',value:`${Date.now()-started} ms`});return json(fb,200)}
+      const retry=await deadline(core.fetch(req.clone(),env,ctx),2200,null);
+      if(retry?.ok)return retry;
+      return json({reply:'Canlı yanıt yolu şu an kısa süreliğine yavaş. Mesajını tekrar gönder; JARVIS otomatik olarak başka yolu deneyecek.',history:[{role:'user',content:text},{role:'assistant',content:'Canlı yanıt yolu şu an kısa süreliğine yavaş. Mesajını tekrar gönder; JARVIS otomatik olarak başka yolu deneyecek.',provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS güvenli cevap',value:'Ana, uzman ve web yolları yanıt vermedi'}]},200);
+    }
 
     let x;try{x=await baseRes.clone().json()}catch{return baseRes}
     if(webRows.length&&!x.results)x.results=webRows;if(toolRows.length&&!x.tools)x.tools=toolRows;
