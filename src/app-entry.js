@@ -1,12 +1,14 @@
-import legacyBase from './social-growth-entry.js';
+import legacyBase from './jarvis-os-entry.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createMediaRescue } from './application/media/rescue.js';
+import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const videoCore = createVideoFailover(legacyBase);
+const socialCore = createSocialGrowth(legacyBase);
+const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
 const handleMediaRescue = createMediaRescue(capabilityCore);
