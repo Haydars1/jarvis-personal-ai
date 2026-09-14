@@ -62,6 +62,19 @@ function expertSystemPrompt(kind) {
   return `Sen JARVIS'in arka plandaki ${kind} uzmanısın. ${ANSWER_POLICY} En fazla 6 kısa madde kullan; yalnız doğrulanabilir bilgi ver.`;
 }
 
+function chatEndpoint(credential, provider) {
+  const raw = String(credential.endpoint || PROVIDER_ENDPOINTS[provider] || '').trim().replace(/\/$/, '');
+  if (!raw) return '';
+  return /\/chat\/completions$/i.test(raw) ? raw : `${raw}/chat/completions`;
+}
+
+function extractChatText(payload) {
+  const content = payload?.choices?.[0]?.message?.content;
+  if (typeof content === 'string') return content.trim();
+  if (Array.isArray(content)) return content.map(part => typeof part === 'string' ? part : (part?.text || part?.content || '')).join('').trim();
+  return String(payload?.choices?.[0]?.text || payload?.output_text || payload?.response || '').trim();
+}
+
 async function callExpert(env, credential, text, kind) {
   const provider = String(credential.provider || '').toLowerCase();
   const secret = await decryptCredential(env, credential.encrypted_secret);
@@ -73,22 +86,28 @@ async function callExpert(env, credential, text, kind) {
     const payload = await response.json();
     return String(payload.candidates?.[0]?.content?.parts?.map(part => part.text).join('') || '').trim();
   }
-  const base = String(credential.endpoint || PROVIDER_ENDPOINTS[provider] || '').replace(/\/$/, '');
-  if (!base || !credential.model) throw new Error('EXPERT_CONFIG_MISSING');
-  const response = await fetchWithTimeout(`${base}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model: credential.model, messages: [{ role: 'system', content: system }, { role: 'user', content: text }], temperature: 0.1, max_tokens: 520 }) }, LIMITS.providerFetchMs);
+  const endpoint = chatEndpoint(credential, provider);
+  if (!endpoint || !credential.model) throw new Error('EXPERT_CONFIG_MISSING');
+  const headers = { 'content-type': 'application/json', authorization: `Bearer ${secret}` };
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = 'https://jarvis-personal-ai.haydojarvis.workers.dev';
+    headers['X-Title'] = 'JARVIS';
+  }
+  const response = await fetchWithTimeout(endpoint, { method: 'POST', headers, body: JSON.stringify({ model: credential.model, messages: [{ role: 'system', content: system }, { role: 'user', content: text }], temperature: 0.1, max_tokens: 700 }) }, LIMITS.providerFetchMs);
   if (!response.ok) throw new Error(`EXPERT_${provider}_${response.status}`);
-  const payload = await response.json();
-  return String(payload.choices?.[0]?.message?.content || '').trim();
+  return extractChatText(await response.json());
 }
 
 async function getExperts(env, text) {
   const kind = taskKind(text);
   const pool = await expertPool(env, kind);
-  const picks = pool.slice(0, 1);
+  const picks = pool.slice(0, 3);
   if (!picks.length) return { kind, picks: [], answers: [] };
-  const credential = picks[0];
-  const value = await settleWithin(callExpert(env, credential, text, kind), LIMITS.expertMs, '');
-  return { kind, picks: picks.map(item => ({ provider: item.label || item.provider, score: Math.round(item.score) })), answers: value ? [{ provider: credential.label || credential.provider, kind, text: value, score: Math.round(credential.score) }] : [] };
+  const attempts = await Promise.all(picks.map(async credential => {
+    const value = await settleWithin(callExpert(env, credential, text, kind), LIMITS.expertMs, '');
+    return value ? { provider: credential.label || credential.provider, kind, text: value, score: Math.round(credential.score) } : null;
+  }));
+  return { kind, picks: picks.map(item => ({ provider: item.label || item.provider, score: Math.round(item.score) })), answers: attempts.filter(Boolean) };
 }
 
 async function callJson(core, request, env, ctx) { const response = await core.fetch(request, env, ctx); if (!response.ok) return null; try { return await response.json(); } catch { return null; } }
@@ -107,14 +126,16 @@ async function workersAiFallback(env, text) {
 }
 
 async function synthesize(env, text, base, researchRows, toolRows, experts) {
-  if (!env.AI) return cleanReply(base);
+  const expertAnswer = cleanReply(experts?.answers?.[0]?.text || '');
+  if (!base && expertAnswer) return expertAnswer;
+  if (!env.AI) return cleanReply(base || expertAnswer);
   const web = researchRows.slice(0, 4).map((row, index) => `[${index + 1}] ${row.title}\n${String(row.snippet || '').slice(0, 180)}\n${directUrl(row.url || '')}`).join('\n\n');
   const toolText = toolRows.slice(0, 3).map((row, index) => `[T${index + 1}] ${row.title}\n${String(row.snippet || '').slice(0, 150)}\n${directUrl(row.url || '')}`).join('\n\n');
   const expertText = (experts.answers || []).map((answer, index) => `[AI${index + 1}] ${answer.text}`).join('\n\n');
   const run = env.AI.run('@cf/zai-org/glm-4.7-flash', { prompt: `Sen JARVIS'sin. ${ANSWER_POLICY} Elindeki ana cevap, uzman, web ve araç bilgisini tek tutarlı cevapta birleştir. Kaynak gerekiyorsa en fazla 3 doğrudan Markdown bağlantısı kullan.\n\nKULLANICI:\n${text}\n\nMEVCUT CEVAP:\n${String(base || '').slice(0, 3600)}\n\nUZMAN:\n${expertText}\n\nWEB:\n${web}\n\nARAÇLAR:\n${toolText}`, max_tokens: 850, temperature: 0.1 });
   const result = await settleWithin(run, LIMITS.synthesisMs, null);
-  if (!result) return cleanReply(base);
-  return cleanReply(String(result?.response || result?.result?.response || result?.text || base)) || cleanReply(base);
+  if (!result) return cleanReply(base || expertAnswer);
+  return cleanReply(String(result?.response || result?.result?.response || result?.text || base || expertAnswer)) || cleanReply(base || expertAnswer);
 }
 
 function expertFallback(text, experts) { const answer = cleanReply(experts?.answers?.[0]?.text || ''); if (!answer) return null; return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS sağlıklı uzman AI', value: 'Ana yanıt yolu geciktiği için çalışan bağlı AI sağlayıcısı kullanıldı' }] }; }
