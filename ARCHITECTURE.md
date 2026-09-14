@@ -4,19 +4,24 @@
 
 JARVIS has two primary clients: the native SwiftUI iOS application under `ios/` and the static PWA under `public/`. Both call the same Cloudflare Worker API.
 
-Wrangler now points to the explicit composition root `src/app-entry.js`. That root owns top-level route composition for chat and mobile push instead of making `apns-push-entry.js` the runtime entrypoint.
+Wrangler points to the explicit composition root `src/app-entry.js`. The root now composes APNs, chat orchestration, media rescue, chat output cleanup, capability runtime and video failover as services instead of making those concerns own the Worker entry chain.
 
-Current active request path:
+Current remaining legacy request path below the composition root:
 
-`app-entry -> capability-runtime -> chat-output -> video-failover -> social-growth -> jarvis-os -> chat-enhancements -> google-search -> smart-router -> provider -> integration -> worker-entry -> worker`
+`app-entry -> social-growth -> jarvis-os -> chat-enhancements -> google-search -> smart-router -> provider -> integration -> worker-entry -> worker`
 
-For `/api/chat/send`, `app-entry` composes the media-rescue application service around `capability-runtime`, then composes the chat orchestrator around that media-aware core. APNs is composed as an infrastructure service instead of a runtime wrapper. The old `apns-push-entry.js`, `jarvis-orchestrator-entry.js` and `media-rescue-entry.js` remain as thin compatibility adapters only.
+For `/api/chat/send`, the composition root builds this stack explicitly:
+
+`video failover -> chat output presenter -> capability runtime -> media rescue -> chat orchestrator`
+
+APNs is composed separately as infrastructure. The old `apns-push-entry.js`, `jarvis-orchestrator-entry.js`, `media-rescue-entry.js`, `capability-runtime-entry.js`, `chat-output-entry.js` and `video-failover-entry.js` remain thin compatibility adapters only.
 
 Data and external services:
 
 - D1: chat history, credentials, provider metrics, jobs, notifications, watches and application state.
-- Workers AI: fast synthesis and selected generation paths.
+- Workers AI: fast synthesis, repair and selected generation paths.
 - External AI providers: Gemini, NVIDIA, DeepSeek, Mistral, xAI, Together, Fireworks, Groq, OpenRouter and compatible endpoints.
+- Video providers: Higgsfield, Replicate, Runway and fal.ai.
 - Search/media integrations: Google search plus image/video providers.
 - APNs: native iOS push delivery.
 - GitHub Actions: syntax/tests, D1 additive schema, deployment and live health verification.
@@ -25,70 +30,73 @@ Data and external services:
 
 ### 1. Deep middleware chain
 
-The original runtime traversed more than a dozen wrapper modules before reaching the base worker. Internal API calls through `core.fetch` could traverse a large part of the same chain again. Route ownership was implicit in import order, which increased coupling and made latency and regressions difficult to reason about.
+The original runtime traversed more than a dozen wrapper modules before reaching the base worker. Internal `core.fetch` calls could traverse large sections of the same chain again. Route ownership was implicit in import order, increasing coupling and making latency difficult to reason about.
 
-The first three top-level wrappers have now been removed from the active runtime chain. Remaining wrappers still need incremental migration.
+Six wrapper layers have now been removed from the active runtime path and replaced by explicit composition. The remaining chain begins at `social-growth-entry.js`.
 
 ### 2. Shared infrastructure duplicated across modules
 
-JSON responses, request-body parsing, D1 helpers, base64url conversion and AES-GCM credential decryption were repeated in several entry modules. Shared runtime utilities now live in `src/lib/runtime.js`; remaining modules should migrate to them as they are touched.
+JSON responses, request parsing, D1 helpers, base64url conversion and AES-GCM credential crypto were repeated throughout entry modules. Shared runtime utilities now live in `src/lib/runtime.js`, including cached AES key import, encrypt/decrypt helpers, D1 helpers and cancellable fetch.
 
 ### 3. Duplicate work on timeout
 
-The orchestrator previously started a second `core.fetch` after the first request crossed a soft deadline. The original promise was not cancelled, so both requests could continue concurrently and repeat provider calls or persistence work. This retry has been removed.
+The orchestrator previously issued a second `core.fetch` after a soft timeout while the first request could still be executing. That retry was removed; fallback now uses independent expert/search paths rather than duplicating the base chat request.
 
-### 4. Hot-path database and crypto work
+### 4. Unbounded external calls
 
-Provider credentials and provider metrics were loaded from D1 for every orchestrated message. The credential master key was also imported repeatedly. Provider rows now have a short in-isolate TTL cache and the imported credential key is cached.
+Several video provider requests previously used raw `fetch` without a timeout. Extracted Higgsfield, Replicate, Runway and fal.ai paths now use `fetchWithTimeout`, reducing the chance that a provider stalls a Worker request indefinitely.
 
-### 5. Large source-of-truth files and duplicate repository trees
+### 5. Hot-path database and crypto work
 
-`src/worker.js`, the native settings/UI files and several web UI modules are large. The repository also contains nested duplicate trees such as `.github/.github`, `public/public` and `src/src`. These remain cleanup targets until CI proves they are unreferenced.
+Provider credentials and metrics were loaded repeatedly and the credential master key was re-imported. Chat provider rows now have a short isolate cache and the crypto key is cached centrally.
 
-### 6. Regression protection was syntax-only
+### 6. Large source-of-truth files and duplicate repository trees
 
-`npm run check` previously used only `node --check`. It now includes Node tests for orchestration policy and architecture wiring.
+`src/worker.js`, `src/jarvis-os-entry.js`, `src/social-growth-entry.js` and several native/web UI files remain large. The repository also contains nested duplicate trees such as `.github/.github`, `public/public` and `src/src`; these remain cleanup targets until references are proven absent.
+
+### 7. Regression protection was syntax-only
+
+`npm run check` now runs Node tests for orchestration and architecture composition in addition to syntax validation.
 
 ## Refactor applied
 
-- Added `src/lib/runtime.js` for response, D1, timeout, fetch cancellation and credential decryption utilities.
-- Added `src/lib/orchestration.js` for pure routing/classification, provider scoring and output cleanup policy.
-- Added `src/application/chat/orchestrator.js` as the chat application service.
-- Added `src/application/media/rescue.js` as the media-rescue application service.
-- Added `src/infrastructure/apns/push-service.js` for APNs registration, delivery and flush logic.
-- Added `src/app-entry.js` as the explicit application composition root.
-- Changed Wrangler `main` from `src/apns-push-entry.js` to `src/app-entry.js`.
-- Converted APNs, orchestrator and media-rescue entry files into compatibility adapters.
-- Removed duplicate `core.fetch` retries after soft timeouts.
-- Added a short in-isolate TTL cache for provider rows and a cached imported credential key.
-- Kept external provider fetches cancellable through `AbortController`.
-- Added architecture regression tests so the Worker cannot silently switch back to the wrapper entry chain.
+- `src/lib/runtime.js`: JSON, request parsing, D1 helpers, timeout helpers, cancellable fetch and shared credential encryption/decryption.
+- `src/lib/orchestration.js`: pure routing/classification, provider scoring and response cleanup policy.
+- `src/application/chat/orchestrator.js`: chat orchestration and deterministic fallback.
+- `src/application/chat/presenter.js`: reasoning-leak cleanup, language repair and history presentation with bounded repair latency.
+- `src/application/media/rescue.js`: image/video enrichment and media recovery.
+- `src/application/capabilities/runtime.js`: Runway/fal capability routes, provider testing and extra video fallback.
+- `src/application/video/failover.js`: Higgsfield/Replicate failover, cooldowns, provider metrics and queue processing.
+- `src/infrastructure/apns/push-service.js`: APNs registration, delivery and flush.
+- `src/app-entry.js`: explicit application composition root.
+- Wrangler `main` points to `src/app-entry.js`.
+- Migrated entry files are thin adapters guarded by architecture tests.
 
 ## Improved architecture
 
-Current migration target:
+Current structure:
 
-`HTTP composition root -> application service -> provider/search/media adapters -> repositories/infrastructure -> response presenter`
+`HTTP composition root -> application services -> provider/search/media adapters -> repositories/infrastructure -> response presenter`
 
 Module boundaries:
 
-- `src/app-entry.js`: composition root and top-level route dispatch.
-- `src/application/chat/`: chat orchestration workflow.
-- `src/application/media/`: media recovery/enrichment workflow.
-- `src/domain/` or `src/lib/orchestration.js`: pure routing and provider scoring policy.
-- `src/adapters/ai/`: future provider clients and failover.
-- `src/adapters/search/`: future Google and other research adapters.
-- `src/adapters/media/`: future image/video provider adapters.
-- `src/infrastructure/`: D1 repositories, encryption, APNs and observability.
+- `src/app-entry.js`: top-level composition and dispatch.
+- `src/application/chat/`: orchestration and response presentation.
+- `src/application/media/`: media recovery/enrichment.
+- `src/application/capabilities/`: capability-specific workflows and provider fallback.
+- `src/application/video/`: video-provider failover and queue lifecycle.
+- `src/lib/orchestration.js`: pure routing/provider policy.
+- `src/lib/runtime.js`: shared infrastructure primitives.
+- `src/infrastructure/`: APNs and future D1/observability repositories.
 
-Migration remains incremental so public API behavior stays stable while each wrapper is removed only after regression coverage exists.
+Migration stays incremental so public API behavior remains stable while each legacy wrapper is removed only after tests exist.
 
 ## Next cleanup stages
 
-1. Extract capability-runtime route handlers and provider credential operations into application/infrastructure modules.
-2. Move repeated runtime/crypto/D1 helpers from the remaining entry modules to `src/lib/runtime.js`.
-3. Add contract tests for `/api/chat/send`, authentication, Google search, media failover and APNs routes.
-4. Continue collapsing `chat-output`, `video-failover`, `social-growth`, `jarvis-os` and search/router wrappers into explicit route/service composition.
-5. Split `src/worker.js` by authentication, chat persistence, credentials and system-state domains once route contracts are protected by tests.
+1. Extract `social-growth-entry.js` into application services and adapters.
+2. Extract `jarvis-os-entry.js` into jobs/watches/notification application services.
+3. Move Google search and smart-router logic behind explicit adapters instead of wrapper routing.
+4. Split `src/worker.js` by authentication, chat persistence, credential management and system-state domains after route-contract coverage exists.
+5. Add contract tests for chat send/history, authentication, Google search, video-pool routes and APNs routes.
 6. Audit and remove `.github/.github`, `public/public` and `src/src` only after references are proven absent.
-7. Split native `AppState` into session/chat/system-action stores and break `ContentView`/`SettingsView` into focused views.
+7. Split native `AppState` into session/chat/system-action stores and break large SwiftUI views into focused components.
