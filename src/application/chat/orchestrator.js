@@ -24,6 +24,7 @@ const LIMITS = Object.freeze({
   researchMs: 1500,
   toolsMs: 1200,
   synthesisMs: 1800,
+  fallbackAiMs: 2800,
   expertRowsTtlMs: 10_000
 });
 
@@ -161,6 +162,31 @@ async function tools(core, req, env, ctx, text) {
   return payload?.results || [];
 }
 
+async function workersAiFallback(env, text) {
+  if (!env.AI) return null;
+  try {
+    const run = env.AI.run('@cf/zai-org/glm-4.7-flash', {
+      prompt: `Sen JARVIS'sin. Kullanıcının mesajına doğrudan, doğal ve doğru Türkçe cevap ver. Basit soruysa kısa cevapla; açıklama gerekiyorsa yeterli ayrıntı ver. Kullanıcı yabancı bir kelimenin anlamını soruyorsa önce Türkçe karşılığını, sonra kısa bir örnek ver. Güncel veya canlı bilgi gerektiren bir konuda doğrulama yapmadan kesin güncel bilgi uydurma. Sistem, sağlayıcı, timeout, hata, tekrar dene gibi teknik mesajlar yazma.\n\nKULLANICI:\n${text}`,
+      max_tokens: 520,
+      temperature: 0.15
+    });
+    const result = await settleWithin(run, LIMITS.fallbackAiMs, null);
+    const answer = cleanReply(String(result?.response || result?.result?.response || result?.text || ''));
+    if (!answer) return null;
+    return {
+      reply: answer,
+      history: [
+        { role: 'user', content: text },
+        { role: 'assistant', content: answer, provider: 'JARVIS' }
+      ],
+      provider: 'JARVIS',
+      trace: [{ kind: 'fallback', label: 'JARVIS hızlı yedek AI', value: 'Ana sağlayıcı geciktiği için Workers AI yedeği kullanıldı' }]
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function synthesize(env, text, base, researchRows, toolRows, experts) {
   if (!env.AI) return cleanReply(base);
   const web = researchRows.slice(0, 4).map((row, index) => `[${index + 1}] ${row.title}\n${String(row.snippet || '').slice(0, 180)}\n${directUrl(row.url || '')}`).join('\n\n');
@@ -220,34 +246,40 @@ function withTiming(payload, started) {
 
 async function simpleChat(core, req, env, ctx, text) {
   const started = Date.now();
+  const aiFallbackPromise = workersAiFallback(env, text);
   const response = await settleWithin(core.fetch(req.clone(), env, ctx), LIMITS.simpleCoreMs, null);
   if (response?.ok) return response;
+
+  const aiFallback = await settleWithin(aiFallbackPromise, LIMITS.fallbackAiMs + 100, null);
+  if (aiFallback) return jsonResponse(withTiming(aiFallback, started));
 
   const experts = await settleWithin(getExperts(env, text), LIMITS.expertMs + 150, { kind: taskKind(text), picks: [], answers: [] });
   const fallback = expertFallback(text, experts);
   if (fallback) return jsonResponse(withTiming(fallback, started));
   return jsonResponse(withTiming(safeFallbackPayload(
     text,
-    'Şu an ana AI yolu kısa süreliğine cevap vermedi. Mesajın kaybolmadı; birkaç saniye sonra tekrar dene.',
-    'Ana ve hızlı uzman yolları zaman aşımına uğradı'
+    'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.',
+    'Ana, Workers AI ve hızlı uzman yolları yanıt vermedi'
   ), started));
 }
 
 async function orchestratedChat(core, req, env, ctx, text) {
   const started = Date.now();
   const basePromise = settleWithin(core.fetch(req.clone(), env, ctx), LIMITS.complexCoreMs, null);
+  const aiFallbackPromise = workersAiFallback(env, text);
   const expertPromise = getExperts(env, text).catch(() => ({ kind: taskKind(text), picks: [], answers: [] }));
   const webPromise = wantsResearch(text) ? research(core, req, env, ctx, text).catch(() => []) : Promise.resolve([]);
   const toolPromise = wantsTools(text) ? tools(core, req, env, ctx, text).catch(() => []) : Promise.resolve([]);
   const [baseResponse, experts, webRows, toolRows] = await Promise.all([basePromise, expertPromise, webPromise, toolPromise]);
 
   if (!baseResponse?.ok) {
-    const fallback = expertFallback(text, experts) || webFallback(text, webRows);
+    const aiFallback = await settleWithin(aiFallbackPromise, LIMITS.fallbackAiMs + 100, null);
+    const fallback = expertFallback(text, experts) || webFallback(text, webRows) || aiFallback;
     if (fallback) return jsonResponse(withTiming(fallback, started));
     return jsonResponse(withTiming(safeFallbackPayload(
       text,
-      'Canlı yanıt yolu şu an kısa süreliğine yavaş. Mesajını tekrar gönder; JARVIS otomatik olarak başka yolu deneyecek.',
-      'Ana, uzman ve web yolları yanıt vermedi'
+      'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.',
+      'Ana, uzman, web ve Workers AI yolları yanıt vermedi'
     ), started));
   }
 
