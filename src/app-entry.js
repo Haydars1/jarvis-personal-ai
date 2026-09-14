@@ -1,5 +1,6 @@
-import legacyBase from './chat-enhancements-entry.js';
+import legacyBase from './google-search-entry.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
+import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createMediaRescue } from './application/media/rescue.js';
@@ -8,7 +9,8 @@ import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const osCore = createJarvisOS(legacyBase);
+const enhancementCore = createChatEnhancements(legacyBase);
+const osCore = createJarvisOS(enhancementCore);
 const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
