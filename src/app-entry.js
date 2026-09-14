@@ -1,4 +1,4 @@
-import legacyBase from './provider-entry.js';
+import legacyBase from './integration-entry.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
@@ -6,12 +6,14 @@ import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createJarvisOS } from './application/os/runtime.js';
+import { createProviderState } from './application/providers/state.js';
 import { createGoogleSearch } from './application/search/google.js';
 import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const routerCore = createSmartRouter(legacyBase);
+const providerCore = createProviderState(legacyBase);
+const routerCore = createSmartRouter(providerCore);
 const searchCore = createGoogleSearch(routerCore);
 const enhancementCore = createChatEnhancements(searchCore);
 const osCore = createJarvisOS(enhancementCore);
