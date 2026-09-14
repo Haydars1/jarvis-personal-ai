@@ -151,14 +151,14 @@ final class AppState: ObservableObject {
             let result = try await api.send(text: text, attachments: pendingAttachments)
             messages = result.history
             statusText = "Hazır"
-            voice.speak(result.reply)
+            // Yanıtı otomatik seslendirme. Mikrofon yalnızca kullanıcı konuşmak istediğinde dinleme için kullanılır.
         } catch {
             let message = error.localizedDescription
             statusText = message
             attachments = pendingAttachments
             Task { await api.reportRuntimeIssue(message: message, context: "ios.send", userText: text) }
             let visibleMessage = message.lowercased().contains("timed out")
-                ? "Bağlantı zaman aşımına uğradı. Bu isteği kaybettirmedim; tekrar gönderirsen kısa yoldan cevaplamaya çalışacağım."
+                ? "Bağlantı zaman aşımına uğradı. Aynı mesajı tekrar gönder; JARVIS daha kısa yoldan deneyecek."
                 : "Bağlantı hatası: \(message)"
             messages.append(ChatMessage(role: "assistant", content: visibleMessage, provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
         }
@@ -185,7 +185,7 @@ final class AppState: ObservableObject {
             return
         }
         if url.host == "settings" {
-            statusText = "Ayarları sağ üst dişliden aç"
+            statusText = "Ayarları sol üst dişliden aç"
             return
         }
         if url.host == "share" {
