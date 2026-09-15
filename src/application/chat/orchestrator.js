@@ -16,170 +16,27 @@ import {
   wantsTools
 } from '../../lib/orchestration.js';
 
-const LIMITS = Object.freeze({
-  simpleCoreMs: 5500,
-  complexCoreMs: 7500,
-  expertMs: 8000,
-  providerFetchMs: 7500,
-  researchMs: 2500,
-  toolsMs: 1800,
-  synthesisMs: 3500,
-  fallbackAiMs: 6500,
-  expertRowsTtlMs: 10_000
-});
-
+const LIMITS = Object.freeze({ simpleCoreMs: 5500, complexCoreMs: 7500, expertMs: 8000, providerFetchMs: 7500, researchMs: 2500, toolsMs: 1800, synthesisMs: 3500, fallbackAiMs: 6500, expertRowsTtlMs: 10_000 });
 const ANSWER_POLICY = `Kullanıcıya doğrudan, doğal ve doğru Türkçe cevap ver. Varsayılan cevap yüzeysel olmasın: önce net sonucu söyle, sonra anlamı veya nedeni açıkla; yararlıysa örnek, kullanım bağlamı, önemli fark veya pratik ayrıntı ekle. Kullanıcı özellikle kısa cevap istemedikçe tek kelimelik/tek cümlelik sözlük cevabıyla yetinme. Yabancı kelime sorularında Türkçe karşılık + tekil/çoğul veya dilbilgisi bilgisi (uygunsa) + örnek cümle ve Türkçesi + yakın kelimelerden önemli farkı ver. Teknik sorularda ne olduğu + neden olduğu + kullanıcı açısından sonucu ver. Güncel/canlı bilgi gerektiren sorularda doğrulanmamış güncel bilgi uydurma. Ham arama sonucu, DuckDuckGo yönlendirmesi, yüzde kodlu URL, sağlayıcı/timeout/hata gibi iç teknik ayrıntıları kullanıcıya dökme.`;
-
-const PROVIDER_ENDPOINTS = Object.freeze({
-  openai: 'https://api.openai.com/v1',
-  openrouter: 'https://openrouter.ai/api/v1',
-  deepseek: 'https://api.deepseek.com/v1',
-  mistral: 'https://api.mistral.ai/v1',
-  xai: 'https://api.x.ai/v1',
-  together: 'https://api.together.xyz/v1',
-  groq: 'https://api.groq.com/openai/v1',
-  perplexity: 'https://api.perplexity.ai',
-  nvidia: 'https://integrate.api.nvidia.com/v1',
-  cerebras: 'https://api.cerebras.ai/v1'
-});
-
-let expertRowsCache = { expiresAt: 0, rows: [] };
-
-async function loadExpertRows(env) {
-  const now = Date.now();
-  if (expertRowsCache.expiresAt > now && expertRowsCache.rows.length) return expertRowsCache.rows;
-  const rows = await queryAll(env, `SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC`);
-  expertRowsCache = { expiresAt: now + LIMITS.expertRowsTtlMs, rows };
-  return rows;
-}
-
-async function expertPool(env, kind) {
-  const rows = await loadExpertRows(env);
-  return rows.map(row => ({ row, score: scoreProvider(row, kind) })).filter(item => item.score !== null).map(({ row, score }) => ({ ...row, score })).sort((a, b) => b.score - a.score);
-}
-
-function expertSystemPrompt(kind) {
-  return `Sen JARVIS'in arka plandaki ${kind} uzmanısın. ${ANSWER_POLICY} En fazla 6 kısa madde kullan; yalnız doğrulanabilir bilgi ver.`;
-}
-
-function chatEndpoint(credential, provider) {
-  const raw = String(credential.endpoint || PROVIDER_ENDPOINTS[provider] || '').trim().replace(/\/$/, '');
-  if (!raw) return '';
-  return /\/chat\/completions$/i.test(raw) ? raw : `${raw}/chat/completions`;
-}
-
-function extractChatText(payload) {
-  const content = payload?.choices?.[0]?.message?.content;
-  if (typeof content === 'string') return content.trim();
-  if (Array.isArray(content)) return content.map(part => typeof part === 'string' ? part : (part?.text || part?.content || '')).join('').trim();
-  return String(payload?.choices?.[0]?.text || payload?.output_text || payload?.response || '').trim();
-}
-
-async function callExpert(env, credential, text, kind) {
-  const provider = String(credential.provider || '').toLowerCase();
-  const secret = await decryptCredential(env, credential.encrypted_secret);
-  const system = expertSystemPrompt(kind);
-  if (provider === 'gemini') {
-    const model = credential.model || 'gemini-2.5-flash';
-    const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(secret)}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { maxOutputTokens: 520, temperature: 0.1 } }) }, LIMITS.providerFetchMs);
-    if (!response.ok) throw new Error(`GEMINI_${response.status}`);
-    const payload = await response.json();
-    return String(payload.candidates?.[0]?.content?.parts?.map(part => part.text).join('') || '').trim();
-  }
-  const endpoint = chatEndpoint(credential, provider);
-  if (!endpoint || !credential.model) throw new Error('EXPERT_CONFIG_MISSING');
-  const headers = { 'content-type': 'application/json', authorization: `Bearer ${secret}` };
-  if (provider === 'openrouter') {
-    headers['HTTP-Referer'] = 'https://jarvis-personal-ai.haydojarvis.workers.dev';
-    headers['X-Title'] = 'JARVIS';
-  }
-  const response = await fetchWithTimeout(endpoint, { method: 'POST', headers, body: JSON.stringify({ model: credential.model, messages: [{ role: 'system', content: system }, { role: 'user', content: text }], temperature: 0.1, max_tokens: 700 }) }, LIMITS.providerFetchMs);
-  if (!response.ok) throw new Error(`EXPERT_${provider}_${response.status}`);
-  return extractChatText(await response.json());
-}
-
-async function getExperts(env, text) {
-  const kind = taskKind(text);
-  const pool = await expertPool(env, kind);
-  const picks = pool.slice(0, 3);
-  if (!picks.length) return { kind, picks: [], answers: [] };
-  const attempts = await Promise.all(picks.map(async credential => {
-    const value = await settleWithin(callExpert(env, credential, text, kind), LIMITS.expertMs, '');
-    return value ? { provider: credential.label || credential.provider, kind, text: value, score: Math.round(credential.score) } : null;
-  }));
-  return { kind, picks: picks.map(item => ({ provider: item.label || item.provider, score: Math.round(item.score) })), answers: attempts.filter(Boolean) };
-}
-
-async function callJson(core, request, env, ctx) { const response = await core.fetch(request, env, ctx); if (!response.ok) return null; try { return await response.json(); } catch { return null; } }
-async function research(core, req, env, ctx, text) { const url = new URL('/api/google-search', req.url); url.searchParams.set('q', text); url.searchParams.set('num', '4'); const payload = await settleWithin(callJson(core, new Request(url, { headers: req.headers }), env, ctx), LIMITS.researchMs, null); return payload?.results || []; }
-async function tools(core, req, env, ctx, text) { const url = new URL('/api/tools/discover', req.url); url.searchParams.set('capability', text); const payload = await settleWithin(callJson(core, new Request(url, { headers: req.headers }), env, ctx), LIMITS.toolsMs, null); return payload?.results || []; }
-
-async function workersAiFallback(env, text) {
-  if (!env.AI) return null;
-  try {
-    const run = env.AI.run('@cf/zai-org/glm-4.7-flash', { prompt: `Sen JARVIS'sin. ${ANSWER_POLICY}\n\nKULLANICI:\n${text}`, max_tokens: 700, temperature: 0.15 });
-    const result = await settleWithin(run, LIMITS.fallbackAiMs, null);
-    const answer = cleanReply(String(result?.response || result?.result?.response || result?.text || ''));
-    if (!answer) return null;
-    return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS hızlı yedek AI', value: 'Ana ve bağlı uzman sağlayıcılar geciktiği için Workers AI yedeği kullanıldı' }] };
-  } catch { return null; }
-}
-
-async function synthesize(env, text, base, researchRows, toolRows, experts) {
-  const expertAnswer = cleanReply(experts?.answers?.[0]?.text || '');
-  if (!base && expertAnswer) return expertAnswer;
-  if (!env.AI) return cleanReply(base || expertAnswer);
-  const web = researchRows.slice(0, 4).map((row, index) => `[${index + 1}] ${row.title}\n${String(row.snippet || '').slice(0, 180)}\n${directUrl(row.url || '')}`).join('\n\n');
-  const toolText = toolRows.slice(0, 3).map((row, index) => `[T${index + 1}] ${row.title}\n${String(row.snippet || '').slice(0, 150)}\n${directUrl(row.url || '')}`).join('\n\n');
-  const expertText = (experts.answers || []).map((answer, index) => `[AI${index + 1}] ${answer.text}`).join('\n\n');
-  const run = env.AI.run('@cf/zai-org/glm-4.7-flash', { prompt: `Sen JARVIS'sin. ${ANSWER_POLICY} Elindeki ana cevap, uzman, web ve araç bilgisini tek tutarlı cevapta birleştir. Kaynak gerekiyorsa en fazla 3 doğrudan Markdown bağlantısı kullan.\n\nKULLANICI:\n${text}\n\nMEVCUT CEVAP:\n${String(base || '').slice(0, 3600)}\n\nUZMAN:\n${expertText}\n\nWEB:\n${web}\n\nARAÇLAR:\n${toolText}`, max_tokens: 850, temperature: 0.1 });
-  const result = await settleWithin(run, LIMITS.synthesisMs, null);
-  if (!result) return cleanReply(base || expertAnswer);
-  return cleanReply(String(result?.response || result?.result?.response || result?.text || base || expertAnswer)) || cleanReply(base || expertAnswer);
-}
-
-function expertFallback(text, experts) { const answer = cleanReply(experts?.answers?.[0]?.text || ''); if (!answer) return null; return { reply: answer, history: [{ role: 'user', content: text }, { role: 'assistant', content: answer, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS sağlıklı uzman AI', value: 'Ana yanıt yolu geciktiği için çalışan bağlı AI sağlayıcısı kullanıldı' }] }; }
-function webFallback(text, webRows) { const rows = (webRows || []).slice(0, 3); if (!rows.length) return null; const body = rows.map(row => { const title = String(row.title || 'Kaynak').trim(); const snippet = row.snippet ? ` — ${String(row.snippet).slice(0, 180)}` : ''; return `- [${title}](${directUrl(row.url || '')})${snippet}`; }).join('\n'); const reply = `Bulabildiğim doğrulanabilir güncel bilgiler:\n\n${body}`; return { reply, history: [{ role: 'user', content: text }, { role: 'assistant', content: reply, provider: 'JARVIS' }], provider: 'JARVIS', trace: [{ kind: 'fallback', label: 'JARVIS web yedeği', value: 'Ana yanıt yolu yerine canlı web sonuçları kullanıldı' }] }; }
-function withTiming(payload, started) { payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), { kind: 'timing', label: 'JARVIS yanıt süresi', value: `${Date.now() - started} ms` }]; return payload; }
-
-async function simpleChat(core, req, env, ctx, text) {
-  const started = Date.now();
-  const expertPromise = getExperts(env, text).catch(() => ({ kind: taskKind(text), picks: [], answers: [] }));
-  const aiFallbackPromise = workersAiFallback(env, text);
-  const response = await settleWithin(core.fetch(req.clone(), env, ctx), LIMITS.simpleCoreMs, null);
-  if (response?.ok) {
-    let payload; try { payload = await response.clone().json(); } catch { return response; }
-    const experts = await settleWithin(expertPromise, LIMITS.expertMs + 100, { kind: taskKind(text), picks: [], answers: [] });
-    payload.reply = await synthesize(env, text, payload.reply, [], [], experts);
-    payload.provider = 'JARVIS';
-    if (Array.isArray(payload.history)) payload.history = payload.history.map(message => message?.role === 'assistant' ? { ...message, content: payload.reply, provider: 'JARVIS' } : message);
-    return jsonResponse(withTiming(payload, started), response.status);
-  }
-  const experts = await settleWithin(expertPromise, LIMITS.expertMs + 100, { kind: taskKind(text), picks: [], answers: [] });
-  const expert = expertFallback(text, experts);
-  if (expert) return jsonResponse(withTiming(expert, started));
-  const aiFallback = await settleWithin(aiFallbackPromise, LIMITS.fallbackAiMs + 100, null);
-  if (aiFallback) return jsonResponse(withTiming(aiFallback, started));
-  return jsonResponse(withTiming(safeFallbackPayload(text, 'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.', 'Ana, sağlıklı uzman ve Workers AI yolları yanıt vermedi'), started));
-}
-
-async function orchestratedChat(core, req, env, ctx, text) {
-  const started = Date.now();
-  const basePromise = settleWithin(core.fetch(req.clone(), env, ctx), LIMITS.complexCoreMs, null);
-  const aiFallbackPromise = workersAiFallback(env, text);
-  const expertPromise = getExperts(env, text).catch(() => ({ kind: taskKind(text), picks: [], answers: [] }));
-  const webPromise = wantsResearch(text) ? research(core, req, env, ctx, text).catch(() => []) : Promise.resolve([]);
-  const toolPromise = wantsTools(text) ? tools(core, req, env, ctx, text).catch(() => []) : Promise.resolve([]);
-  const [baseResponse, experts, webRows, toolRows] = await Promise.all([basePromise, expertPromise, webPromise, toolPromise]);
-  if (!baseResponse?.ok) { const aiFallback = await settleWithin(aiFallbackPromise, LIMITS.fallbackAiMs + 100, null); const fallback = expertFallback(text, experts) || webFallback(text, webRows) || aiFallback; if (fallback) return jsonResponse(withTiming(fallback, started)); return jsonResponse(withTiming(safeFallbackPayload(text, 'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.', 'Ana, uzman, web ve Workers AI yolları yanıt vermedi'), started)); }
-  let payload; try { payload = await baseResponse.clone().json(); } catch { return baseResponse; }
-  if (webRows.length && !payload.results) payload.results = webRows;
-  if (toolRows.length && !payload.tools) payload.tools = toolRows;
-  payload.reply = await synthesize(env, text, payload.reply, webRows, toolRows, experts);
-  payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), ...(experts.picks.length ? [{ kind: 'pool', label: 'JARVIS uzman havuzu', value: `${experts.kind}: ${experts.picks.map(item => `${item.provider} (${item.score})`).join(' + ')}` }] : []), ...(webRows.length ? [{ kind: 'search', label: 'JARVIS araştırması', value: `${webRows.length} web sonucu incelendi` }] : []), ...(toolRows.length ? [{ kind: 'tool', label: 'JARVIS araç seçimi', value: `${toolRows.length} araç değerlendirildi` }] : []), { kind: 'timing', label: 'JARVIS yanıt süresi', value: `${Date.now() - started} ms` }];
-  payload.provider = 'JARVIS';
-  if (Array.isArray(payload.history)) payload.history = payload.history.map(message => message?.role === 'assistant' ? { ...message, content: message.content === payload.reply ? payload.reply : cleanReply(message.content), provider: 'JARVIS' } : message);
-  return jsonResponse(payload, baseResponse.status);
-}
-
-export function createChatOrchestrator(core) { if (!core?.fetch) throw new Error('CHAT_CORE_FETCH_REQUIRED'); return async function handleChat(req, env, ctx) { let text = ''; try { text = String((await req.clone().json())?.text || '').trim(); } catch {} if (!text) return core.fetch(req, env, ctx); return needsOrchestration(text) ? orchestratedChat(core, req, env, ctx, text) : simpleChat(core, req, env, ctx, text); }; }
+const PROVIDER_ENDPOINTS = Object.freeze({ openai:'https://api.openai.com/v1', openrouter:'https://openrouter.ai/api/v1', deepseek:'https://api.deepseek.com/v1', mistral:'https://api.mistral.ai/v1', xai:'https://api.x.ai/v1', together:'https://api.together.xyz/v1', groq:'https://api.groq.com/openai/v1', perplexity:'https://api.perplexity.ai', nvidia:'https://integrate.api.nvidia.com/v1', cerebras:'https://api.cerebras.ai/v1' });
+let expertRowsCache={expiresAt:0,rows:[]};
+async function loadExpertRows(env){const now=Date.now();if(expertRowsCache.expiresAt>now&&expertRowsCache.rows.length)return expertRowsCache.rows;const rows=await queryAll(env,`SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC`);expertRowsCache={expiresAt:now+LIMITS.expertRowsTtlMs,rows};return rows;}
+async function expertPool(env,kind){const rows=await loadExpertRows(env);return rows.map(row=>({row,score:scoreProvider(row,kind)})).filter(x=>x.score!==null).map(({row,score})=>({...row,score})).sort((a,b)=>b.score-a.score);}
+function expertSystemPrompt(kind){return `Sen JARVIS'in arka plandaki ${kind} uzmanısın. ${ANSWER_POLICY} En fazla 6 kısa madde kullan; yalnız doğrulanabilir bilgi ver.`;}
+function chatEndpoint(c,p){const raw=String(c.endpoint||PROVIDER_ENDPOINTS[p]||'').trim().replace(/\/$/,'');return raw?(/\/chat\/completions$/i.test(raw)?raw:`${raw}/chat/completions`):'';}
+function extractChatText(p){const c=p?.choices?.[0]?.message?.content;if(typeof c==='string')return c.trim();if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:(x?.text||x?.content||'')).join('').trim();return String(p?.choices?.[0]?.text||p?.output_text||p?.response||'').trim();}
+async function callExpert(env,c,text,kind){const provider=String(c.provider||'').toLowerCase();const secret=await decryptCredential(env,c.encrypted_secret);const system=expertSystemPrompt(kind);if(provider==='gemini'){const model=c.model||'gemini-2.5-flash';const r=await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(secret)}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text}]}],generationConfig:{maxOutputTokens:520,temperature:.1}})},LIMITS.providerFetchMs);if(!r.ok)throw new Error(`GEMINI_${r.status}`);const p=await r.json();return String(p.candidates?.[0]?.content?.parts?.map(x=>x.text).join('')||'').trim();}const endpoint=chatEndpoint(c,provider);if(!endpoint||!c.model)throw new Error('EXPERT_CONFIG_MISSING');const headers={'content-type':'application/json',authorization:`Bearer ${secret}`};if(provider==='openrouter'){headers['HTTP-Referer']='https://jarvis-personal-ai.haydojarvis.workers.dev';headers['X-Title']='JARVIS';}const r=await fetchWithTimeout(endpoint,{method:'POST',headers,body:JSON.stringify({model:c.model,messages:[{role:'system',content:system},{role:'user',content:text}],temperature:.1,max_tokens:700})},LIMITS.providerFetchMs);if(!r.ok)throw new Error(`EXPERT_${provider}_${r.status}`);return extractChatText(await r.json());}
+async function getExperts(env,text){const kind=taskKind(text),pool=await expertPool(env,kind),picks=pool.slice(0,3);if(!picks.length)return{kind,picks:[],answers:[]};const attempts=await Promise.all(picks.map(async c=>{const value=await settleWithin(callExpert(env,c,text,kind),LIMITS.expertMs,'');return value?{provider:c.label||c.provider,kind,text:value,score:Math.round(c.score)}:null;}));return{kind,picks:picks.map(x=>({provider:x.label||x.provider,score:Math.round(x.score)})),answers:attempts.filter(Boolean)};}
+async function callJson(core,request,env,ctx){const r=await core.fetch(request,env,ctx);if(!r.ok)return null;try{return await r.json();}catch{return null;}}
+async function research(core,req,env,ctx,text){const url=new URL('/api/google-search',req.url);url.searchParams.set('q',text);url.searchParams.set('num','4');const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.researchMs,null);return p?.results||[];}
+async function tools(core,req,env,ctx,text){const url=new URL('/api/tools/discover',req.url);url.searchParams.set('capability',text);const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.toolsMs,null);return p?.results||[];}
+function extractWorkersText(result){const direct=result?.response||result?.result?.response||result?.text||result?.output_text;const choice=result?.choices?.[0]?.message?.content||result?.result?.choices?.[0]?.message?.content;if(typeof choice==='string')return choice;if(Array.isArray(choice))return choice.map(x=>typeof x==='string'?x:(x?.text||x?.content||'')).join('');return String(direct||'');}
+async function workersRun(env,messages,max_tokens,temperature){if(!env.AI)return null;const run=env.AI.run('@cf/zai-org/glm-4.7-flash',{messages,max_tokens,temperature});return settleWithin(run,LIMITS.fallbackAiMs,null);}
+async function workersAiFallback(env,text){try{const result=await workersRun(env,[{role:'system',content:`Sen JARVIS'sin. ${ANSWER_POLICY}`},{role:'user',content:text}],700,.15);const answer=cleanReply(extractWorkersText(result));if(!answer)return null;return{reply:answer,history:[{role:'user',content:text},{role:'assistant',content:answer,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS hızlı yedek AI',value:'Workers AI yedeği kullanıldı'}]};}catch{return null;}}
+async function synthesize(env,text,base,researchRows,toolRows,experts){const expertAnswer=cleanReply(experts?.answers?.[0]?.text||'');if(!base&&expertAnswer)return expertAnswer;if(!env.AI)return cleanReply(base||expertAnswer);const web=researchRows.slice(0,4).map((r,i)=>`[${i+1}] ${r.title}\n${String(r.snippet||'').slice(0,180)}\n${directUrl(r.url||'')}`).join('\n\n');const toolText=toolRows.slice(0,3).map((r,i)=>`[T${i+1}] ${r.title}\n${String(r.snippet||'').slice(0,150)}\n${directUrl(r.url||'')}`).join('\n\n');const expertText=(experts.answers||[]).map((a,i)=>`[AI${i+1}] ${a.text}`).join('\n\n');const prompt=`${ANSWER_POLICY} Elindeki ana cevap, uzman, web ve araç bilgisini tek tutarlı cevapta birleştir.\nKULLANICI:\n${text}\nMEVCUT CEVAP:\n${String(base||'').slice(0,3600)}\nUZMAN:\n${expertText}\nWEB:\n${web}\nARAÇLAR:\n${toolText}`;const result=await settleWithin(workersRun(env,[{role:'system',content:"Sen JARVIS'sin."},{role:'user',content:prompt}],850,.1),LIMITS.synthesisMs,null);return cleanReply(extractWorkersText(result)||base||expertAnswer)||cleanReply(base||expertAnswer);}
+function expertFallback(text,e){const answer=cleanReply(e?.answers?.[0]?.text||'');return answer?{reply:answer,history:[{role:'user',content:text},{role:'assistant',content:answer,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS sağlıklı uzman AI',value:'Çalışan bağlı AI sağlayıcısı kullanıldı'}]}:null;}
+function webFallback(text,rows){rows=(rows||[]).slice(0,3);if(!rows.length)return null;const reply=`Bulabildiğim doğrulanabilir güncel bilgiler:\n\n${rows.map(r=>`- [${String(r.title||'Kaynak').trim()}](${directUrl(r.url||'')})${r.snippet?` — ${String(r.snippet).slice(0,180)}`:''}`).join('\n')}`;return{reply,history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'JARVIS'}],provider:'JARVIS'};}
+function withTiming(p,s){p.trace=[...(Array.isArray(p.trace)?p.trace:[]),{kind:'timing',label:'JARVIS yanıt süresi',value:`${Date.now()-s} ms`}];return p;}
+async function simpleChat(core,req,env,ctx,text){const started=Date.now();const expertPromise=getExperts(env,text).catch(()=>({kind:taskKind(text),picks:[],answers:[]}));const aiPromise=workersAiFallback(env,text);const response=await settleWithin(core.fetch(req.clone(),env,ctx),LIMITS.simpleCoreMs,null);if(response?.ok){let p;try{p=await response.clone().json();}catch{return response;}const experts=await settleWithin(expertPromise,LIMITS.expertMs+100,{kind:taskKind(text),picks:[],answers:[]});p.reply=await synthesize(env,text,p.reply,[],[],experts);p.provider='JARVIS';return jsonResponse(withTiming(p,started),response.status);}const experts=await settleWithin(expertPromise,LIMITS.expertMs+100,{kind:taskKind(text),picks:[],answers:[]});const expert=expertFallback(text,experts);if(expert)return jsonResponse(withTiming(expert,started));const ai=await settleWithin(aiPromise,LIMITS.fallbackAiMs+100,null);if(ai)return jsonResponse(withTiming(ai,started));return jsonResponse(withTiming(safeFallbackPayload(text,'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.','Tüm yanıt yolları başarısız'),started));}
+async function orchestratedChat(core,req,env,ctx,text){const started=Date.now();const [base,experts,webRows,toolRows]=await Promise.all([settleWithin(core.fetch(req.clone(),env,ctx),LIMITS.complexCoreMs,null),getExperts(env,text).catch(()=>({kind:taskKind(text),picks:[],answers:[]})),wantsResearch(text)?research(core,req,env,ctx,text).catch(()=>[]):Promise.resolve([]),wantsTools(text)?tools(core,req,env,ctx,text).catch(()=>[]):Promise.resolve([])]);if(!base?.ok){const fallback=expertFallback(text,experts)||webFallback(text,webRows)||await workersAiFallback(env,text);return jsonResponse(withTiming(fallback||safeFallbackPayload(text,'JARVIS şu an yanıt üretemedi. Mesajın kaydedildi.','Tüm yanıt yolları başarısız'),started));}let p;try{p=await base.clone().json();}catch{return base;}p.reply=await synthesize(env,text,p.reply,webRows,toolRows,experts);p.provider='JARVIS';return jsonResponse(withTiming(p,started),base.status);}
+export function createChatOrchestrator(core){if(!core?.fetch)throw new Error('CHAT_CORE_FETCH_REQUIRED');return async function handleChat(req,env,ctx){let text='';try{text=String((await req.clone().json())?.text||'').trim();}catch{}if(!text)return core.fetch(req,env,ctx);return needsOrchestration(text)?orchestratedChat(core,req,env,ctx,text):simpleChat(core,req,env,ctx,text);};}
