@@ -1,4 +1,5 @@
 import { createEcuJobRecord } from './models.js';
+import { createEcuResearch } from './research.js';
 
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
@@ -53,10 +54,6 @@ async function defaultListJobs(env, limit = 50) {
   return rows.map(mapJob);
 }
 
-async function defaultResearchStatus() {
-  return { status: 'IDLE', paidApiRequired: false, configured: false };
-}
-
 async function defaultTrainingStatus() {
   return { status: 'IDLE', paidApiRequired: false, configured: false };
 }
@@ -69,11 +66,12 @@ async function defaultUploadStatus(env) {
 }
 
 export function createEcuRuntime(core, overrides = {}) {
+  const research = overrides.research || createEcuResearch();
   const deps = {
     createJob: defaultCreateJob,
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
-    researchStatus: defaultResearchStatus,
+    researchStatus: env => research.status(env),
     trainingStatus: defaultTrainingStatus,
     uploadStatus: defaultUploadStatus,
     ...overrides,
@@ -119,7 +117,9 @@ export function createEcuRuntime(core, overrides = {}) {
 
       return core.fetch(req, env, ctx);
     },
-    scheduled(event, env, ctx) {
+    async scheduled(event, env, ctx) {
+      const timestamp = Number(event?.scheduledTime || Date.now());
+      await research.run(env, timestamp);
       return core.scheduled?.(event, env, ctx);
     },
   };
