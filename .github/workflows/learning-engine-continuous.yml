@@ -1,0 +1,59 @@
+name: JARVIS Learning Engine Continuous
+
+on:
+  push:
+    branches:
+      - feature/learning-engine
+      - 'jarvis/learning-*'
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: learning-engine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Full validation
+        run: npm run check
+      - name: Cloudflare build dry run
+        run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+
+  scheduled-health:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for url in \
+            "https://haydojarvis.workers.dev/health" \
+            "https://haydojarvis.workers.dev/api/health" \
+            "https://haydojarvis.workers.dev/"; do
+            code="$(curl -L -sS -o /tmp/jarvis-health -w '%{http_code}' --max-time 12 "$url" || true)"
+            if [[ "$code" =~ ^2|3 ]]; then
+              echo "JARVIS reachable: $url ($code)"
+              exit 0
+            fi
+          done
+          echo 'JARVIS production endpoint did not return a successful HTTP status.' >&2
+          exit 1
