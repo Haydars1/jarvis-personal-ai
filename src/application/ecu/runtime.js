@@ -119,7 +119,12 @@ export function createEcuRuntime(core, overrides = {}) {
     },
     async scheduled(event, env, ctx) {
       const timestamp = Number(event?.scheduledTime || Date.now());
-      await research.run(env, timestamp);
+      try {
+        await research.run(env, timestamp);
+      } catch {
+        // ECU research is additive background work and must never break the
+        // existing JARVIS scheduler when storage/search is not configured.
+      }
       return core.scheduled?.(event, env, ctx);
     },
   };
