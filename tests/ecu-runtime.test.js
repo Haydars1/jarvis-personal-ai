@@ -1,0 +1,85 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createEcuRuntime } from '../src/application/ecu/runtime.js';
+
+function request(path, init = {}) {
+  return new Request(`https://jarvis.test${path}`, init);
+}
+
+function coreFallback() {
+  return {
+    async fetch() { return new Response('core', { status: 299 }); },
+    async scheduled() { return 'scheduled-core'; },
+  };
+}
+
+test('creates an ECU analysis job through injected repository', async () => {
+  const created = [];
+  const runtime = createEcuRuntime(coreFallback(), {
+    async createJob(_env, input) {
+      created.push(input);
+      return { id: 'job-1', fileId: input.fileId, operation: input.operation, state: 'QUEUED' };
+    },
+  });
+
+  const response = await runtime.fetch(request('/api/ecu/jobs', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ fileId: 'file-1', operation: 'analyze' }),
+  }), {}, {});
+
+  assert.equal(response.status, 202);
+  assert.deepEqual(created, [{ fileId: 'file-1', operation: 'analyze' }]);
+  assert.deepEqual(await response.json(), {
+    job: { id: 'job-1', fileId: 'file-1', operation: 'analyze', state: 'QUEUED' },
+  });
+});
+
+test('rejects missing file id', async () => {
+  const runtime = createEcuRuntime(coreFallback(), { async createJob() { throw new Error('should not run'); } });
+  const response = await runtime.fetch(request('/api/ecu/jobs', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+  }), {}, {});
+  assert.equal(response.status, 400);
+  assert.match((await response.json()).error, /fileId/);
+});
+
+test('returns ECU job status and history', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async getJob(_env, id) { return id === 'job-1' ? { id, state: 'RUNNING' } : null; },
+    async listJobs() { return [{ id: 'job-1', state: 'RUNNING' }]; },
+  });
+
+  let response = await runtime.fetch(request('/api/ecu/jobs/job-1'), {}, {});
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { job: { id: 'job-1', state: 'RUNNING' } });
+
+  response = await runtime.fetch(request('/api/ecu/jobs?limit=20'), {}, {});
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { jobs: [{ id: 'job-1', state: 'RUNNING' }] });
+});
+
+test('exposes research/training/upload status without consuming a paid model', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async researchStatus() { return { status: 'IDLE', paidApiRequired: false }; },
+    async trainingStatus() { return { status: 'IDLE', paidApiRequired: false }; },
+    async uploadStatus() { return { ready: false, storage: 'unconfigured' }; },
+  });
+
+  for (const [path, expected] of [
+    ['/api/ecu/research/status', { status: 'IDLE', paidApiRequired: false }],
+    ['/api/ecu/training/status', { status: 'IDLE', paidApiRequired: false }],
+    ['/api/ecu/upload-session', { ready: false, storage: 'unconfigured' }],
+  ]) {
+    const response = await runtime.fetch(request(path, { method: path.endsWith('upload-session') ? 'POST' : 'GET' }), {}, {});
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), expected);
+  }
+});
+
+test('delegates unknown routes and scheduled events to core', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {});
+  const response = await runtime.fetch(request('/api/other'), {}, {});
+  assert.equal(response.status, 299);
+  assert.equal(await runtime.scheduled({}, {}, {}), 'scheduled-core');
+});
