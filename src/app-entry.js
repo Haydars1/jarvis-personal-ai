@@ -5,6 +5,7 @@ import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
+import { createEcuRuntime } from './application/ecu/runtime.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createJarvisOS } from './application/os/runtime.js';
@@ -26,20 +27,21 @@ const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const handleMediaRescue = createMediaRescue(capabilityCore);
+const ecuCore = createEcuRuntime(capabilityCore);
+const handleMediaRescue = createMediaRescue(ecuCore);
 const mediaCore = {
   fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleMediaRescue(req, env, ctx);
-    return capabilityCore.fetch(req, env, ctx);
+    return ecuCore.fetch(req, env, ctx);
   },
   scheduled(event, env, ctx) {
-    return capabilityCore.scheduled?.(event, env, ctx);
+    return ecuCore.scheduled?.(event, env, ctx);
   }
 };
 
 const handleChat = createEmergencyChatFallback(createChatOrchestrator(mediaCore));
-const handlePush = createPushApi(capabilityCore);
+const handlePush = createPushApi(ecuCore);
 
 function shouldFlushPush(req, response) {
   const url = new URL(req.url);
@@ -53,7 +55,7 @@ async function routeRequest(req, env, ctx) {
     if (response) return response;
   }
   if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleChat(req, env, ctx);
-  return capabilityCore.fetch(req, env, ctx);
+  return ecuCore.fetch(req, env, ctx);
 }
 
 export default {
@@ -63,7 +65,7 @@ export default {
     return response;
   },
   async scheduled(event, env, ctx) {
-    await capabilityCore.scheduled?.(event, env, ctx);
+    await ecuCore.scheduled?.(event, env, ctx);
     ctx.waitUntil((async () => {
       await new Promise(resolve => setTimeout(resolve, 2500));
       await flushPush(env);
