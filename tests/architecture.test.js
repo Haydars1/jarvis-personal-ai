@@ -9,7 +9,7 @@ test('wrangler points at the explicit application composition root', () => {
   assert.match(wrangler, /"main"\s*:\s*"src\/app-entry\.js"/);
 });
 
-test('composition root owns Higgsfield, integrations, provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
+test('composition root owns Higgsfield, integrations, provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, ECU, media, orchestration and push wiring', () => {
   const entry = read('src/app-entry.js');
   assert.match(entry, /from '\.\/worker\.js'/);
   assert.match(entry, /createHiggsfieldIntegration/);
@@ -23,6 +23,8 @@ test('composition root owns Higgsfield, integrations, provider state, smart rout
   assert.match(entry, /createVideoFailover/);
   assert.match(entry, /createChatOutput/);
   assert.match(entry, /createCapabilityRuntime/);
+  assert.match(entry, /createEcuRuntime/);
+  assert.match(entry, /const ecuCore = createEcuRuntime\(capabilityCore\)/);
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
   assert.match(entry, /createPushApi/);
