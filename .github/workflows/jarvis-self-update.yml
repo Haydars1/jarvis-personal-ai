@@ -1,29 +1,59 @@
-name: JARVIS Self Update Test + Merge
+name: JARVIS Self Update Gate
+
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
 permissions:
   contents: write
   pull-requests: write
+  checks: read
+
+concurrency:
+  group: jarvis-self-update-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   test-and-merge:
-    if: startsWith(github.head_ref, 'jarvis/')
+    if: startsWith(github.head_ref, 'jarvis/') && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact proposed revision
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - uses: actions/setup-node@v4
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-audit --no-fund
-      - name: Syntax checks
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Reject dangerous autonomous changes
+        shell: bash
         run: |
-          node --check src/worker.js
-          node --check public/app.js
+          set -euo pipefail
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          files="$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")"
+          printf '%s\n' "$files"
+          if printf '%s\n' "$files" | grep -Eq '(^|/)(\.env|wrangler\.toml|wrangler\.jsonc)$|(^|/)(secrets?|credentials?)(/|\.|$)|^\.github/workflows/jarvis-self-update\.yml$'; then
+            echo 'Autonomous PR touches protected credentials/deployment/self-update controls.' >&2
+            exit 1
+          fi
+
+      - name: Full syntax and unit validation
+        run: npm run check
+
       - name: Cloudflare dry run
         run: npx wrangler deploy --dry-run --outdir .wrangler-dry
-      - name: Auto merge tested JARVIS PR
+
+      - name: Auto merge only fully tested JARVIS PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh pr merge "${{ github.event.pull_request.html_url }}" --squash --delete-branch
