@@ -1,0 +1,46 @@
+name: ECU Brain CI
+
+on:
+  push:
+    branches: [feature/ecu-brain]
+    paths:
+      - 'src/application/ecu/**'
+      - 'src/infrastructure/ecu/**'
+      - 'compute/**'
+      - 'tests/ecu-*.test.js'
+      - 'tests/architecture.test.js'
+      - 'migrations/**'
+      - 'src/app-entry.js'
+      - '.github/workflows/ecu-brain-ci.yml'
+  pull_request:
+    paths:
+      - 'src/application/ecu/**'
+      - 'src/infrastructure/ecu/**'
+      - 'compute/**'
+      - 'tests/ecu-*.test.js'
+      - 'tests/architecture.test.js'
+      - 'migrations/**'
+      - 'src/app-entry.js'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install JARVIS dependencies
+        run: npm install --no-audit --no-fund
+      - name: Run JARVIS checks
+        run: npm run check
+      - name: Install ECU compute worker
+        run: python -m pip install -e './compute[dev]'
+      - name: Run ECU compute tests
+        run: pytest -q compute/tests
