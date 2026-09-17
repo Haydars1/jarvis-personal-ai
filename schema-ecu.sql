@@ -136,3 +136,15 @@ CREATE TABLE IF NOT EXISTS ecu_research_runs (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_research_created ON ecu_research_runs(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS ecu_training_runs (
+  id TEXT PRIMARY KEY,
+  bucket INTEGER NOT NULL UNIQUE,
+  status TEXT NOT NULL DEFAULT 'QUEUED',
+  run_fingerprint TEXT,
+  worker_kind TEXT,
+  reason TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_training_runs_created ON ecu_training_runs(created_at DESC);
