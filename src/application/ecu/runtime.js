@@ -1,5 +1,6 @@
 import { createEcuJobRecord } from './models.js';
 import { createEcuResearch } from './research.js';
+import { createEcuTraining } from './training.js';
 
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
@@ -54,10 +55,6 @@ async function defaultListJobs(env, limit = 50) {
   return rows.map(mapJob);
 }
 
-async function defaultTrainingStatus() {
-  return { status: 'IDLE', paidApiRequired: false, configured: false };
-}
-
 async function defaultUploadStatus(env) {
   return {
     ready: Boolean(env.ECU_ARTIFACTS),
@@ -67,12 +64,13 @@ async function defaultUploadStatus(env) {
 
 export function createEcuRuntime(core, overrides = {}) {
   const research = overrides.research || createEcuResearch();
+  const training = overrides.training || createEcuTraining();
   const deps = {
     createJob: defaultCreateJob,
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
     researchStatus: env => research.status(env),
-    trainingStatus: defaultTrainingStatus,
+    trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     ...overrides,
   };
@@ -122,8 +120,12 @@ export function createEcuRuntime(core, overrides = {}) {
       try {
         await research.run(env, timestamp);
       } catch {
-        // ECU research is additive background work and must never break the
-        // existing JARVIS scheduler when storage/search is not configured.
+        // Background learning must never break the main JARVIS scheduler.
+      }
+      try {
+        await training.maybeRun(env, timestamp);
+      } catch {
+        // Training checks are optional background work and remain recoverable.
       }
       return core.scheduled?.(event, env, ctx);
     },
