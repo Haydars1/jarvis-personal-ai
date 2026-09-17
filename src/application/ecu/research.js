@@ -1,4 +1,4 @@
-import { searchGoogle } from '../search/google.js';
+import { decryptCredential, fetchWithTimeout, queryOne } from '../../lib/runtime.js';
 
 const RESEARCH_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
@@ -14,6 +14,34 @@ async function sha256Text(value) {
   const bytes = new TextEncoder().encode(String(value || ''));
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function googleConfig(env) {
+  const row = await queryOne(env, 'SELECT value FROM kv WHERE key=?', 'google_search_cfg');
+  if (!row) return null;
+  let wrapper;
+  try { wrapper = JSON.parse(row.value); } catch { return null; }
+  if (!wrapper?.blob) return null;
+  try { return JSON.parse(await decryptCredential(env, wrapper.blob)); } catch { return null; }
+}
+
+async function defaultSearch(env, query) {
+  const cfg = await googleConfig(env);
+  if (!cfg?.key || !cfg?.cx) throw new Error('GOOGLE_SEARCH_NOT_CONFIGURED');
+  const url = new URL('https://customsearch.googleapis.com/customsearch/v1');
+  url.searchParams.set('key', cfg.key);
+  url.searchParams.set('cx', cfg.cx);
+  url.searchParams.set('q', String(query || ''));
+  url.searchParams.set('num', '6');
+  const response = await fetchWithTimeout(url, { headers: { accept: 'application/json' } }, 6000);
+  if (!response.ok) throw new Error(`GOOGLE_SEARCH_${response.status}`);
+  const payload = await response.json();
+  return (payload.items || []).map(item => ({
+    title: item.title || '',
+    url: item.link || '',
+    snippet: item.snippet || '',
+    source: 'Google',
+  }));
 }
 
 function normalizeResult(row, topic) {
@@ -78,7 +106,7 @@ const defaultRepository = {
 export function createEcuResearch({
   repository = defaultRepository,
   topics = DEFAULT_ECU_RESEARCH_TOPICS,
-  search = (env, query) => searchGoogle(env, query, { num: 6 }),
+  search = defaultSearch,
 } = {}) {
   return {
     async run(env, timestamp = Date.now()) {
