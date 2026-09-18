@@ -218,3 +218,17 @@ CREATE TABLE IF NOT EXISTS ecu_mod_artifacts (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_mod_artifacts_job ON ecu_mod_artifacts(job_id, created_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS ecu_workers (
+  id TEXT PRIMARY KEY,
+  kind TEXT NOT NULL DEFAULT 'local',
+  endpoint TEXT NOT NULL,
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  last_seen_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_workers_live ON ecu_workers(kind, enabled, expires_at DESC, last_seen_at DESC);
