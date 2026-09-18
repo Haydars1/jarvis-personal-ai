@@ -185,3 +185,20 @@ test('ORI MOD pair callback persists diff result through injected writer', async
   assert.equal(writes[0][1].diff.changed_byte_count,2);
   assert.deepEqual(await response.json(),{pair:{id:'pair-1',state:'COMPLETE',diffDigest:'c'.repeat(64)}});
 });
+
+
+test('compute worker can fetch map context for an immutable artifact hash', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{
+    async mapContextForArtifact(_env,sha){
+      assert.equal(sha,'a'.repeat(64));
+      return [{offset:128,rows:8,cols:8,dataType:'u16',semanticLabel:'torque_limiter',confidence:.97}];
+    }
+  });
+  const env={ECU_COMPUTE_TOKEN:'secret-token'};
+  const response=await runtime.fetch(request('/api/ecu/internal/map-context/'+'a'.repeat(64),{
+    headers:{authorization:'Bearer secret-token'}
+  }),env,{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.maps[0].semanticLabel,'torque_limiter');
+});
