@@ -29,7 +29,7 @@ test('creates an ECU analysis job through injected repository', async () => {
   }), {}, {});
 
   assert.equal(response.status, 202);
-  assert.deepEqual(created, [{ fileId: 'file-1', operation: 'analyze' }]);
+  assert.deepEqual(created, [{ fileId: 'file-1', operation: 'analyze', callbackBaseUrl: 'https://jarvis.test' }]);
   assert.deepEqual(await response.json(), {
     job: { id: 'job-1', fileId: 'file-1', operation: 'analyze', state: 'QUEUED' },
   });
