@@ -59,6 +59,41 @@ function mapJob(row) {
   };
 }
 
+async function defaultCreatePair(env,{oriFileId,modFileId,operationLabel,callbackBaseUrl=null},dispatch){
+  const ori=await env.DB.prepare('SELECT id,sha256,artifact_uri,size_bytes FROM ecu_files WHERE id=? LIMIT 1').bind(oriFileId).first();
+  const mod=await env.DB.prepare('SELECT id,sha256,artifact_uri,size_bytes FROM ecu_files WHERE id=? LIMIT 1').bind(modFileId).first();
+  if(!ori||!mod)throw new Error('ECU_FILE_NOT_FOUND');
+  if(Number(ori.size_bytes)!==Number(mod.size_bytes))throw new Error('ECU_PAIR_SIZE_MISMATCH');
+  const id=uid();
+  const createdAt=now();
+  const runFingerprint=await sha256Text(JSON.stringify({
+    operation:'diff_pair',
+    ori:ori.sha256,
+    mod:mod.sha256,
+    operationLabel,
+  }));
+  await env.DB.prepare(`INSERT INTO ecu_training_pairs(
+    id,ori_file_id,mod_file_id,operation_label,state,run_fingerprint,created_at,updated_at
+  ) VALUES(?,?,?,?,?,?,?,?)`)
+    .bind(id,oriFileId,modFileId,operationLabel,'QUEUED',runFingerprint,createdAt,createdAt).run();
+
+  const result=await dispatch({
+    id,
+    operation:'diff_pair',
+    runFingerprint,
+    oriArtifactSha256:ori.sha256,
+    modArtifactSha256:mod.sha256,
+    oriArtifactUri:ori.artifact_uri,
+    modArtifactUri:mod.artifact_uri,
+    operationLabel,
+    config:callbackBaseUrl?{callback_base_url:callbackBaseUrl}:{},
+  },env);
+  const state=result?.accepted?'DISPATCHED':'QUEUED';
+  await env.DB.prepare('UPDATE ecu_training_pairs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
+    .bind(state,result?.workerKind||null,now(),id).run();
+  return {id,state,operationLabel,runFingerprint,workerKind:result?.workerKind||null,dispatchReason:result?.reason||null};
+}
+
 async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBaseUrl = null }, dispatch) {
   const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
@@ -449,6 +484,7 @@ export function createEcuRuntime(core, overrides = {}) {
   const computeDispatch = overrides.computeDispatch || createComputeDispatch();
   const deps = {
     createJob: (env, input) => defaultCreateJob(env, input, computeDispatch),
+    createPair: (env, input) => defaultCreatePair(env, input, computeDispatch),
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
     listMaps: defaultListMaps,
@@ -645,6 +681,21 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
         return json(await deps.researchStatus(env));
+      }
+
+      if (url.pathname === '/api/ecu/training/pairs' && req.method === 'POST') {
+        const body=await readJson(req);
+        const oriFileId=String(body.oriFileId||'').trim();
+        const modFileId=String(body.modFileId||'').trim();
+        const operationLabel=String(body.operationLabel||'').trim();
+        if(!oriFileId||!modFileId||!operationLabel)return json({error:'oriFileId, modFileId and operationLabel are required'},400);
+        try{
+          return json({pair:await deps.createPair(env,{oriFileId,modFileId,operationLabel,callbackBaseUrl:url.origin})},202);
+        }catch(error){
+          if(error?.message==='ECU_FILE_NOT_FOUND')return json({error:'ECU_FILE_NOT_FOUND'},404);
+          if(error?.message==='ECU_PAIR_SIZE_MISMATCH')return json({error:'ECU_PAIR_SIZE_MISMATCH'},409);
+          throw error;
+        }
       }
 
       if (url.pathname === '/api/ecu/training/run' && req.method === 'POST') {
