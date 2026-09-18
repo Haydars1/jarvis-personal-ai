@@ -4,6 +4,7 @@ import { createEcuResearch } from './research.js';
 import { createEcuTraining } from './training.js';
 import { buildEcuDatasetSnapshot } from './dataset.js';
 import { decideEcuModelPromotion, ecuBenchmarkScore } from './promotion.js';
+import { extractVerifiedChangeEvidence } from './change-evidence.js';
 import { createEcuArtifactStore } from '../../infrastructure/ecu/artifact-store.js';
 import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch.js';
 
@@ -259,10 +260,11 @@ async function defaultReadOriginal(env, sha256) {
 async function defaultApplyPairResult(env,pairId,body={}){
   const status=String(body.status||'FAILED');
   if(!new Set(['COMPLETE','FAILED']).has(status))throw new Error('INVALID_PAIR_RESULT_STATUS');
-  const pair=await env.DB.prepare('SELECT id FROM ecu_training_pairs WHERE id=? LIMIT 1').bind(pairId).first();
+  const pair=await env.DB.prepare('SELECT id,operation_label FROM ecu_training_pairs WHERE id=? LIMIT 1').bind(pairId).first();
   if(!pair)throw new Error('ECU_PAIR_NOT_FOUND');
   const diff=body.diff&&typeof body.diff==='object'?body.diff:null;
   if(status==='COMPLETE'&&!diff?.digest)throw new Error('ECU_PAIR_DIFF_REQUIRED');
+  const timestamp=now();
   await env.DB.prepare(`UPDATE ecu_training_pairs
     SET state=?,diff_digest=?,diff_json=?,error=?,updated_at=? WHERE id=?`)
     .bind(
@@ -270,10 +272,39 @@ async function defaultApplyPairResult(env,pairId,body={}){
       diff?.digest||null,
       diff?JSON.stringify(diff):null,
       body.error||null,
-      now(),
+      timestamp,
       pairId,
     ).run();
-  return {id:pairId,state:status,diffDigest:diff?.digest||null};
+
+  let verifiedEvidenceCount=0;
+  if(status==='COMPLETE'&&diff){
+    const evidenceRows=extractVerifiedChangeEvidence(diff);
+    for(const [index,row] of evidenceRows.entries()){
+      const id=`${pairId}:change:${index}:${row.semanticLabel}`;
+      await env.DB.prepare(`INSERT INTO ecu_change_evidence(
+        id,pair_id,operation_label,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,human_verified,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        overlap_bytes=excluded.overlap_bytes,
+        confidence=excluded.confidence,
+        human_verified=1`)
+        .bind(
+          id,
+          pairId,
+          pair.operation_label||body.operation_label||'',
+          row.semanticLabel,
+          row.rangeStart,
+          row.rangeEnd,
+          row.mapOffset,
+          row.overlapBytes,
+          row.confidence,
+          1,
+          timestamp,
+        ).run();
+      verifiedEvidenceCount+=1;
+    }
+  }
+  return {id:pairId,state:status,diffDigest:diff?.digest||null,verifiedEvidenceCount};
 }
 
 async function defaultApplyTrainingResult(env, trainingId, body = {}) {
