@@ -37,10 +37,13 @@ def build_run_fingerprint(
     model_version: str,
     rulepack_version: str,
     config: dict[str, Any] | None = None,
+    *,
+    operation: str = "analyze",
 ) -> str:
     canonical = json.dumps(
         {
             'artifact_sha256': artifact_sha256,
+            'operation': operation,
             'model_version': model_version,
             'rulepack_version': rulepack_version,
             'config': config or {},
