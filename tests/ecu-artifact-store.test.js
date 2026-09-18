@@ -55,3 +55,16 @@ test('stores dataset snapshots content-addressed and reads JSON back', async () 
   const restored = await store.getDatasetSnapshot('d'.repeat(64));
   assert.deepEqual(restored, snapshot);
 });
+
+
+test('stores semantic model artifacts content-addressed and immutable', async () => {
+  const bucket = new FakeBucket();
+  const store = createEcuArtifactStore(bucket);
+  const modelJson = '{"version":1,"labels":{}}';
+  const first = await store.putModelArtifact(modelJson, { modelVersion: 'candidate-1' });
+  const second = await store.putModelArtifact(modelJson, { modelVersion: 'candidate-2' });
+  assert.match(first.sha256, /^[a-f0-9]{64}$/);
+  assert.equal(first.key, 'models/' + first.sha256 + '.json');
+  assert.equal(second.key, first.key);
+  assert.equal(bucket.putCalls, 1);
+});
