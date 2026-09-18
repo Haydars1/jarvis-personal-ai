@@ -110,3 +110,48 @@ def test_analysis_worker_reports_failed_result_when_artifact_fetch_breaks():
     ]
     assert len(failed_callbacks) == 1
     assert failed_callbacks[0][3]["status"] == "FAILED"
+
+
+def test_worker_fetches_promoted_semantic_model_before_analysis():
+    from ecu_worker.training.dataset import TrainingExample
+    from ecu_worker.training.semantic_model import dump_semantic_model, fit_semantic_model
+
+    def ex(label, span):
+        return TrainingExample(
+            ecu_family="EDC17C46", hw="HW", sw="SW",
+            artifact_sha256=("c" if label == "torque_limiter" else "d") * 64,
+            map_offset=100, semantic_label=label, source_type="verified_reference",
+            source_confidence=1.0, human_verified=True,
+            map_features={"rows": 8, "cols": 8, "span": span, "unique_ratio": 1.0, "smoothness": .8, "score": .95},
+        )
+
+    model_json = dump_semantic_model(fit_semantic_model([
+        ex("torque_limiter", 180), ex("torque_limiter", 190),
+        ex("boost_target", 1200), ex("boost_target", 1220),
+    ]))
+
+    marker = b"BOSCH EDC17C46\x00"
+    table = b"".join((100 + r * 20 + c * 3).to_bytes(2, "big") for r in range(8) for c in range(8))
+
+    class ModelClient(FakeClient):
+        async def get(self, url, headers=None):
+            self.calls.append(("GET", url, headers))
+            if "/api/ecu/internal/models/" in url:
+                return FakeResponse(200, model_json.encode("utf-8"))
+            return FakeResponse(200, marker + b"\x00" * 32 + table)
+
+    client = ModelClient(b"")
+    job = AnalysisJobInput(
+        job_id="job-model",
+        artifact_sha256="e" * 64,
+        artifact_uri="r2://ecu-artifacts/originals/" + "e" * 64,
+        model_version="model-abc123",
+        config={"callback_base_url": "https://jarvis.example"},
+    )
+
+    result = asyncio.run(process_dispatched_job(job, "secret", client=client))
+
+    urls = [call[1] for call in client.calls if call[0] == "GET"]
+    assert any(url.endswith("/api/ecu/internal/models/model-abc123") for url in urls)
+    assert result.map_candidates
+    assert "semantic_label" in result.map_candidates[0]
