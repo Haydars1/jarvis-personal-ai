@@ -29,12 +29,16 @@ function parseCapabilities(row) { try { return JSON.parse(row.capabilities || '[
 function limitation(text = '') {
   return /(yeteneğim yok|yapamıyorum|yapamam|doğrudan .* yapamam|görsel .* yok|cannot (generate|create|draw)|i can.?t (generate|create|draw)|bu özelliğe sahip değilim|internete? (?:doğrudan )?erişimim yok|platformlara? .*yükleyemem|video .*oluşturamam|video .*üretemem)/i.test(String(text));
 }
-function videoAutomationIntent(text = '') {
+export function videoAutomationIntent(text = '') {
   const value = String(text || '').toLowerCase();
   const video = /(video|shorts?|reels?|klip|youtube)/i.test(value);
   const action = /(yap|üret|oluştur|hazırla|düzenle|edit|generate|create)/i.test(value);
   const publish = /(at|yükle|paylaş|yayınla|düzenli|otomatik|her gün|haftada|youtube|tiktok|instagram)/i.test(value);
   return video && action && publish;
+}
+
+export function classifyIntent(text = '') {
+  return videoAutomationIntent(text) ? 'video' : intent(text);
 }
 
 async function history(env, limit = 24) {
