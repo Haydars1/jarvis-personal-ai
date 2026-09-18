@@ -227,10 +227,13 @@ async function refreshDatasetSnapshot(env) {
   const maxUpdated=rows.reduce((m,row)=>Math.max(m,Number(row.updated_at||0)),0);
   const version=`dataset-${rows.length}-${maxUpdated}`;
   const snapshot=await buildEcuDatasetSnapshot(rows,version);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const artifact=await store.putDatasetSnapshot(snapshot);
+  const artifactUri=`r2://ecu-artifacts/${artifact.key}`;
   await env.DB.prepare(`INSERT INTO ecu_dataset_versions(version,digest,example_count,artifact_uri,created_at)
     VALUES(?,?,?,?,?)
-    ON CONFLICT(version) DO UPDATE SET digest=excluded.digest,example_count=excluded.example_count`)
-    .bind(snapshot.version,snapshot.digest,snapshot.exampleCount,`d1://ecu-dataset/${snapshot.version}`,now()).run();
+    ON CONFLICT(version) DO UPDATE SET digest=excluded.digest,example_count=excluded.example_count,artifact_uri=excluded.artifact_uri`)
+    .bind(snapshot.version,snapshot.digest,snapshot.exampleCount,artifactUri,now()).run();
   return snapshot;
 }
 
