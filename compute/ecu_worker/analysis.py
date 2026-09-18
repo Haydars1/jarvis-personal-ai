@@ -3,14 +3,33 @@ from __future__ import annotations
 from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprint
 from .fingerprint import fingerprint_binary
 from .maps import extract_map_candidates
+from .training.semantic_model import load_semantic_model, predict_semantic
 
 
 def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
     fp = fingerprint_binary(data)
     maps = extract_map_candidates(data)
     evidence = [{"kind": "fingerprint", "text": item} for item in fp.evidence]
-    map_candidates = [
-        {
+    semantic_model = None
+    raw_model = job.config.get("semantic_model_json")
+    if raw_model:
+        try:
+            semantic_model = load_semantic_model(raw_model)
+        except Exception:
+            semantic_model = None
+
+    map_candidates = []
+    for item in maps:
+        features = {
+            "rows": float(item.rows),
+            "cols": float(item.cols),
+            "span": float(item.max_value - item.min_value),
+            "unique_ratio": float(item.unique_ratio),
+            "smoothness": float(item.smoothness),
+            "score": float(item.score),
+        }
+        semantic = predict_semantic(semantic_model, features) if semantic_model is not None else None
+        map_candidates.append({
             "offset": item.offset,
             "rows": item.rows,
             "cols": item.cols,
@@ -21,9 +40,10 @@ def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
             "unique_ratio": item.unique_ratio,
             "smoothness": item.smoothness,
             "score": item.score,
-        }
-        for item in maps
-    ]
+            "semantic_label": semantic.label if semantic is not None else "UNKNOWN",
+            "semantic_confidence": semantic.confidence if semantic is not None else 0.0,
+            "needs_review": semantic.needs_review if semantic is not None else True,
+        })
     return AnalysisJobOutput(
         job_id=job.job_id,
         run_fingerprint=build_run_fingerprint(
