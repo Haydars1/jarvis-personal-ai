@@ -51,6 +51,7 @@ def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
             job.model_version,
             job.rulepack_version,
             job.config,
+            operation=job.operation,
         ),
         status="NEEDS_REVIEW",
         ecu_family=fp.ecu_family,
