@@ -293,3 +293,21 @@ test('rolls production model back to recorded rollback target', async () => {
   assert.deepEqual(calls,['model-old']);
   assert.deepEqual(await response.json(),{rollback:{from:'model-new',to:'model-old',state:'PRODUCTION'}});
 });
+
+
+test('lists ECU model history with rollback candidates', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{
+    async listModels(){
+      return [
+        {version:'model-new',state:'PRODUCTION',benchmarkScore:.91,rollbackTarget:'model-old'},
+        {version:'model-old',state:'ROLLBACK',benchmarkScore:.88,rollbackTarget:null},
+      ];
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/models'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.models.length,2);
+  assert.equal(body.models[0].state,'PRODUCTION');
+  assert.equal(body.models[1].state,'ROLLBACK');
+});
