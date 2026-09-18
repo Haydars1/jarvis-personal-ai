@@ -203,6 +203,26 @@ async function defaultReadOriginal(env, sha256) {
   return store.getOriginal(sha256);
 }
 
+async function defaultApplyPairResult(env,pairId,body={}){
+  const status=String(body.status||'FAILED');
+  if(!new Set(['COMPLETE','FAILED']).has(status))throw new Error('INVALID_PAIR_RESULT_STATUS');
+  const pair=await env.DB.prepare('SELECT id FROM ecu_training_pairs WHERE id=? LIMIT 1').bind(pairId).first();
+  if(!pair)throw new Error('ECU_PAIR_NOT_FOUND');
+  const diff=body.diff&&typeof body.diff==='object'?body.diff:null;
+  if(status==='COMPLETE'&&!diff?.digest)throw new Error('ECU_PAIR_DIFF_REQUIRED');
+  await env.DB.prepare(`UPDATE ecu_training_pairs
+    SET state=?,diff_digest=?,diff_json=?,error=?,updated_at=? WHERE id=?`)
+    .bind(
+      status,
+      diff?.digest||null,
+      diff?JSON.stringify(diff):null,
+      body.error||null,
+      now(),
+      pairId,
+    ).run();
+  return {id:pairId,state:status,diffDigest:diff?.digest||null};
+}
+
 async function defaultApplyTrainingResult(env, trainingId, body = {}) {
   const status=String(body.status||'FAILED');
   const allowed=new Set(['CANDIDATE','NEEDS_MORE_DATA','FAILED']);
@@ -499,6 +519,7 @@ export function createEcuRuntime(core, overrides = {}) {
     applyWorkerState: defaultApplyWorkerState,
     verifyMap: defaultVerifyMap,
     applyTrainingResult: defaultApplyTrainingResult,
+    applyPairResult: defaultApplyPairResult,
     dispatchQueuedJobs: (env, timestamp) => defaultDispatchQueuedJobs(env, timestamp, computeDispatch),
     ...overrides,
   };
@@ -555,6 +576,20 @@ export function createEcuRuntime(core, overrides = {}) {
           });
         } catch (error) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/pairs/') && url.pathname.endsWith('/result') && req.method === 'POST') {
+        if(!isComputeAuthorized(req,env))return json({error:'UNAUTHORIZED'},401);
+        const pairId=decodeURIComponent(url.pathname.slice('/api/ecu/internal/pairs/'.length,-'/result'.length));
+        if(!pairId)return json({error:'ECU_PAIR_ID_REQUIRED'},400);
+        const body=await readJson(req);
+        try{
+          return json({pair:await deps.applyPairResult(env,pairId,body)});
+        }catch(error){
+          if(error?.message==='ECU_PAIR_NOT_FOUND')return json({error:'ECU_PAIR_NOT_FOUND'},404);
+          if(error?.message==='INVALID_PAIR_RESULT_STATUS'||error?.message==='ECU_PAIR_DIFF_REQUIRED')return json({error:error.message},400);
           throw error;
         }
       }
