@@ -68,3 +68,13 @@ test('stores semantic model artifacts content-addressed and immutable', async ()
   assert.equal(second.key, first.key);
   assert.equal(bucket.putCalls, 1);
 });
+
+
+test('reads semantic model artifact back by digest', async () => {
+  const bucket = new FakeBucket();
+  const store = createEcuArtifactStore(bucket);
+  const modelJson = '{"version":1,"labels":{"torque_limiter":{}}}';
+  const saved = await store.putModelArtifact(modelJson, { modelVersion: 'model-1' });
+  const restored = await store.getModelArtifact(saved.sha256);
+  assert.equal(restored, modelJson);
+});
