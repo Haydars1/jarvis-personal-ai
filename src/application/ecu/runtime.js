@@ -170,10 +170,12 @@ async function defaultListPairs(env,limit=20){
 
 async function defaultMapContextForArtifact(env, sha256) {
   const rows=(await env.DB.prepare(`SELECT
-      m.map_offset,m.rows,m.cols,m.data_type,m.endian,m.semantic_label,m.confidence,m.features_json
+      m.map_offset,m.rows,m.cols,m.data_type,m.endian,m.semantic_label,m.confidence,m.features_json,
+      e.id AS verified_example_id
     FROM ecu_map_candidates m
     JOIN ecu_jobs j ON j.id=m.job_id
     JOIN ecu_files f ON f.id=j.file_id
+    LEFT JOIN ecu_training_examples e ON e.source_ref=m.id AND e.human_verified=1
     WHERE f.sha256=?
       AND j.state IN ('NEEDS_REVIEW','READY')
     ORDER BY j.updated_at DESC,m.confidence DESC,m.map_offset ASC`).bind(sha256).all()).results||[];
@@ -185,6 +187,7 @@ async function defaultMapContextForArtifact(env, sha256) {
     endian:row.endian||null,
     semanticLabel:row.semantic_label||'UNKNOWN',
     confidence:Number(row.confidence||0),
+    humanVerified:Boolean(row.verified_example_id),
     features:(()=>{try{return JSON.parse(row.features_json||'{}')}catch{return {}}})(),
   }));
 }
