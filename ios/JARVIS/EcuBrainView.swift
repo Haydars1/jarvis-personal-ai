@@ -8,6 +8,7 @@ struct EcuBrainView: View {
     @State private var training: EcuTrainingStatus?
     @State private var jobs: [EcuJob] = []
     @State private var models: [EcuModelSummary] = []
+    @State private var rulepacks: EcuRulepackStatus?
     @State private var message = ""
     @State private var loading = false
     private let api = EcuBrainAPI()
@@ -25,6 +26,7 @@ struct EcuBrainView: View {
                     LabeledContent("Durum", value: training?.status ?? "—")
                     LabeledContent("Doğrulanmış örnek", value: training.map { "\($0.verifiedExamples)/\($0.minVerifiedExamples)" } ?? "—")
                     LabeledContent("Aktif model", value: training?.productionModel?.version ?? "baseline")
+                    LabeledContent("Rulepack", value: rulepackLabel)
                 }
 
                 Section {
@@ -115,6 +117,12 @@ struct EcuBrainView: View {
         }
     }
 
+    private var rulepackLabel: String {
+        if let production = rulepacks?.production { return "production \(production.version)" }
+        if let latest = rulepacks?.latest { return "aday \(latest.version) • \(latest.evidenceCount ?? 0) kanıt" }
+        return "kanıt yetersiz"
+    }
+
     private var computeLabel: String {
         switch compute?.preferred {
         case "local": return "Laptop GPU"
@@ -131,10 +139,12 @@ struct EcuBrainView: View {
             async let t = api.trainingStatus()
             async let j = api.jobs()
             async let m = api.models()
+            async let r = api.rulepackStatus()
             compute = try await c
             training = try await t
             jobs = try await j
             models = try await m
+            rulepacks = try await r
         } catch {
             message = error.localizedDescription
         }
