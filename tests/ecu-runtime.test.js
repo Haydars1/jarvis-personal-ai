@@ -332,3 +332,32 @@ test('exposes ECU observability metrics without binary payloads', async () => {
   assert.equal(body.productionModel,'model-1');
   assert.equal(body.binaryPayloadLogged,false);
 });
+
+
+test('downloads only registered validated MOD artifact', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{
+    async getValidatedMod(_env,jobId){
+      assert.equal(jobId,'job-1');
+      return {
+        bytes:Uint8Array.from([9,8,7]),
+        sha256:'a'.repeat(64),
+        checksumAlgorithm:'verified-fixture',
+        filename:'job-1-MOD.bin',
+      };
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/jobs/job-1/mod'),{},{});
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get('content-type'),'application/octet-stream');
+  assert.match(response.headers.get('content-disposition'),/job-1-MOD\.bin/);
+  assert.equal(response.headers.get('x-ecu-sha256'),'a'.repeat(64));
+  assert.equal(response.headers.get('x-ecu-checksum-algorithm'),'verified-fixture');
+  assert.deepEqual([...new Uint8Array(await response.arrayBuffer())],[9,8,7]);
+});
+
+test('returns 404 when validated MOD artifact does not exist', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{async getValidatedMod(){return null}});
+  const response=await runtime.fetch(request('/api/ecu/jobs/job-404/mod'),{},{});
+  assert.equal(response.status,404);
+  assert.deepEqual(await response.json(),{error:'ECU_MOD_NOT_FOUND'});
+});
