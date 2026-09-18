@@ -49,3 +49,17 @@ def test_unverified_examples_never_train_semantic_model():
     unverified = TrainingExample(**{**row.__dict__, "human_verified": False})
     model = fit_semantic_model([unverified])
     assert model.labels == {}
+
+
+def test_semantic_model_serializes_deterministically_and_round_trips():
+    from ecu_worker.training.semantic_model import dump_semantic_model, load_semantic_model
+    rows = [
+        ex("torque_limiter", {"rows": 16, "cols": 16, "span": 400, "unique_ratio": .8, "smoothness": .9, "score": .95}),
+        ex("torque_limiter", {"rows": 16, "cols": 16, "span": 420, "unique_ratio": .82, "smoothness": .88, "score": .93}),
+    ]
+    model = fit_semantic_model(rows)
+    first = dump_semantic_model(model)
+    second = dump_semantic_model(model)
+    assert first == second
+    restored = load_semantic_model(first)
+    assert restored == model
