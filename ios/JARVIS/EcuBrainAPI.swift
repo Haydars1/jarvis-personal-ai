@@ -82,19 +82,23 @@ final class EcuBrainAPI {
     }
 
     func computeStatus() async throws -> EcuComputeStatus {
-        try decoder.decode(EcuComputeStatus.self, from: request("/api/ecu/compute/status"))
+        let data = try await request("/api/ecu/compute/status")
+        return try decoder.decode(EcuComputeStatus.self, from: data)
     }
 
     func trainingStatus() async throws -> EcuTrainingStatus {
-        try decoder.decode(EcuTrainingStatus.self, from: request("/api/ecu/training/status"))
+        let data = try await request("/api/ecu/training/status")
+        return try decoder.decode(EcuTrainingStatus.self, from: data)
     }
 
     func jobs() async throws -> [EcuJob] {
-        try decoder.decode(EcuJobsResponse.self, from: request("/api/ecu/jobs?limit=20")).jobs
+        let data = try await request("/api/ecu/jobs?limit=20")
+        return try decoder.decode(EcuJobsResponse.self, from: data).jobs
     }
 
     func models() async throws -> [EcuModelSummary] {
-        try decoder.decode(EcuModelsResponse.self, from: request("/api/ecu/models?limit=20")).models
+        let data = try await request("/api/ecu/models?limit=20")
+        return try decoder.decode(EcuModelsResponse.self, from: data).models
     }
 
     func analyze(data: Data, filename: String, mimeType: String = "application/octet-stream") async throws -> EcuUploadResponse {
