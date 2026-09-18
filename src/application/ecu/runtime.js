@@ -390,7 +390,7 @@ async function defaultApplyWorkerResult(env, jobId, body = {}) {
           candidate.data_type || null,
           candidate.endian || null,
           candidate.semantic_label || null,
-          Number(candidate.score ?? candidate.confidence ?? 0),
+          Number(candidate.semantic_confidence ?? candidate.confidence ?? candidate.score ?? 0),
           JSON.stringify(candidate),
           timestamp,
         ).run();
