@@ -45,13 +45,19 @@ struct EcuBrainView: View {
                         Text("Henüz ECU analizi yok").foregroundStyle(.secondary)
                     }
                     ForEach(jobs) { job in
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(job.state).font(.headline)
                             let family = job.result?.ecu_family ?? "UNKNOWN"
                             let confidence = Int((job.result?.confidence ?? 0) * 100)
                             let mapCount = job.result?.map_candidates?.count ?? 0
                             Text("\(family) • %\(confidence) • \(mapCount) map")
                                 .font(.caption).foregroundStyle(.secondary)
+                            if let fileId = job.fileId {
+                                Button("Stage1 Önizleme") {
+                                    Task { await stage1Preview(fileId) }
+                                }
+                                .buttonStyle(.bordered)
+                            }
                         }
                     }
                 }
@@ -145,6 +151,17 @@ struct EcuBrainView: View {
             message = "Yükleniyor: \(url.lastPathComponent) • \(data.count / 1024) KB"
             let response = try await api.analyze(data: data, filename: url.lastPathComponent)
             message = "Analiz kuyruğa alındı • \(response.job.state)"
+            await refresh()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func stage1Preview(_ fileId: String) async {
+        do {
+            let job = try await api.stage1Preview(fileId: fileId)
+            message = "Stage1 önizleme işi: \(job.state)"
             await refresh()
         } catch {
             message = error.localizedDescription
