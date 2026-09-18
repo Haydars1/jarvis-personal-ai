@@ -133,6 +133,19 @@ async function defaultReadOriginal(env, sha256) {
   return store.getOriginal(sha256);
 }
 
+async function defaultApplyWorkerState(env, jobId, body = {}) {
+  const state = String(body.state || '');
+  if (state !== 'RUNNING') throw new Error('INVALID_ECU_WORKER_STATE');
+  const row = await env.DB.prepare('SELECT id,state FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
+  if (!row) throw new Error('ECU_JOB_NOT_FOUND');
+  if (row.state !== 'DISPATCHED' && row.state !== 'RUNNING') {
+    throw new Error(`ILLEGAL_ECU_WORKER_STATE:${row.state}->${state}`);
+  }
+  await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=COALESCE(?,worker_kind),updated_at=? WHERE id=?')
+    .bind(state, body.workerKind || null, now(), jobId).run();
+  return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
+}
+
 async function defaultApplyWorkerResult(env, jobId, body = {}) {
   const allowed = new Set(['NEEDS_REVIEW', 'READY', 'FAILED']);
   const status = allowed.has(String(body.status || '')) ? String(body.status) : 'NEEDS_REVIEW';
@@ -221,7 +234,8 @@ export function createEcuRuntime(core, overrides = {}) {
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
     applyWorkerResult: defaultApplyWorkerResult,
-    ...overrides,
+    applyWorkerState: defaultApplyWorkerState,
+    ...overrides;
   };
 
   const maxUploadBytes = Math.max(1, Number(overrides.maxUploadBytes || 16 * 1024 * 1024));
@@ -246,6 +260,21 @@ export function createEcuRuntime(core, overrides = {}) {
           });
         } catch (error) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/jobs/') && url.pathname.endsWith('/state') && req.method === 'POST') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const jobId = decodeURIComponent(url.pathname.slice('/api/ecu/internal/jobs/'.length, -'/state'.length));
+        if (!jobId) return json({ error: 'ECU_JOB_ID_REQUIRED' }, 400);
+        const body = await readJson(req);
+        try {
+          return json({ job: await deps.applyWorkerState(env, jobId, body) });
+        } catch (error) {
+          if (error?.message === 'ECU_JOB_NOT_FOUND') return json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
+          if (error?.message === 'INVALID_ECU_WORKER_STATE') return json({ error: 'INVALID_ECU_WORKER_STATE' }, 400);
+          if (String(error?.message || '').startsWith('ILLEGAL_ECU_WORKER_STATE:')) return json({ error: error.message }, 409);
           throw error;
         }
       }
