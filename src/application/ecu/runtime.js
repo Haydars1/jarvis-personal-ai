@@ -282,11 +282,12 @@ async function defaultApplyPairResult(env,pairId,body={}){
     for(const [index,row] of evidenceRows.entries()){
       const id=`${pairId}:change:${index}:${row.semanticLabel}`;
       await env.DB.prepare(`INSERT INTO ecu_change_evidence(
-        id,pair_id,operation_label,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,human_verified,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        id,pair_id,operation_label,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET
         overlap_bytes=excluded.overlap_bytes,
         confidence=excluded.confidence,
+        delta_stats_json=excluded.delta_stats_json,
         human_verified=1`)
         .bind(
           id,
@@ -298,6 +299,7 @@ async function defaultApplyPairResult(env,pairId,body={}){
           row.mapOffset,
           row.overlapBytes,
           row.confidence,
+          JSON.stringify(row.deltaStats||{}),
           1,
           timestamp,
         ).run();
