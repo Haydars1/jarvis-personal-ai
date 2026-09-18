@@ -205,3 +205,16 @@ CREATE TABLE IF NOT EXISTS ecu_rulepack_versions (
   promoted_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_rulepacks_state ON ecu_rulepack_versions(state, verified, created_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS ecu_mod_artifacts (
+  id TEXT PRIMARY KEY,
+  job_id TEXT NOT NULL UNIQUE,
+  sha256 TEXT NOT NULL UNIQUE,
+  artifact_uri TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL,
+  checksum_algorithm TEXT NOT NULL,
+  validation_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_mod_artifacts_job ON ecu_mod_artifacts(job_id, created_at DESC);
