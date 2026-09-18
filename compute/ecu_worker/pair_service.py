@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from .contracts import PairJobInput
-from .diff import diff_bytes, link_ranges_to_maps
+from .diff import diff_bytes, link_ranges_to_maps, measure_verified_map_deltas
 
 
 async def process_pair_job(
@@ -44,6 +44,7 @@ async def process_pair_job(
                 "rows":item.get("rows"),
                 "cols":item.get("cols"),
                 "data_type":item.get("data_type") or item.get("dataType"),
+                "endian":item.get("endian") or "big",
                 "semantic_label":item.get("semantic_label") or item.get("semanticLabel") or "UNKNOWN",
                 "semantic_confidence":item.get("semantic_confidence") if item.get("semantic_confidence") is not None else item.get("confidence",0),
                 "human_verified":bool(item.get("human_verified") or item.get("humanVerified") or False),
@@ -51,6 +52,7 @@ async def process_pair_job(
             for item in maps
         ]
         linked_ranges=link_ranges_to_maps(report,normalized_maps)
+        map_delta_evidence=measure_verified_map_deltas(bytes(ori_response.content),bytes(mod_response.content),normalized_maps)
         payload={
             "status":"COMPLETE",
             "operation_label":job.operation_label,
@@ -60,6 +62,7 @@ async def process_pair_job(
                 "changed_byte_count":report.changed_byte_count,
                 "ranges":[asdict(item) for item in report.ranges],
                 "linked_ranges":linked_ranges,
+                "map_delta_evidence":map_delta_evidence,
                 "digest":report.digest,
             },
             "paid_api_used":False,
