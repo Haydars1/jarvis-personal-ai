@@ -278,3 +278,18 @@ test('reuses identical ECU analysis jobs by deterministic fingerprint', async ()
   assert.equal(second.runFingerprint,first.runFingerprint);
   assert.equal(dispatchCount,1);
 });
+
+
+test('rolls production model back to recorded rollback target', async () => {
+  const calls=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async rollbackModel(_env,version){
+      calls.push(version);
+      return {from:'model-new',to:version,state:'PRODUCTION'};
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/models/model-old/rollback',{method:'POST'}),{},{});
+  assert.equal(response.status,200);
+  assert.deepEqual(calls,['model-old']);
+  assert.deepEqual(await response.json(),{rollback:{from:'model-new',to:'model-old',state:'PRODUCTION'}});
+});
