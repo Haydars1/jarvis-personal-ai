@@ -28,6 +28,7 @@ test('prefers an available local worker over cloud compute', async () => {
     ECU_LOCAL_WORKER_URL: 'https://local-worker.example/jobs',
     ECU_LOCAL_WORKER_ONLINE: '1',
     ECU_CLOUD_WORKER_URL: 'https://cloud-worker.example/jobs',
+    ECU_COMPUTE_TOKEN: 'secret',
   });
 
   assert.equal(result.accepted, true);
@@ -50,6 +51,7 @@ test('falls back to cloud worker when local worker is unavailable', async () => 
     ECU_LOCAL_WORKER_URL: 'https://local-worker.example/jobs',
     ECU_LOCAL_WORKER_ONLINE: '0',
     ECU_CLOUD_WORKER_URL: 'https://cloud-worker.example/jobs',
+    ECU_COMPUTE_TOKEN: 'secret',
   });
 
   assert.equal(result.accepted, true);
@@ -67,7 +69,7 @@ test('keeps the job recoverable when no worker is configured or dispatch fails',
   });
 
   const broken = createComputeDispatch({ fetchImpl: async () => { throw new Error('offline'); } });
-  const result = await broken(job(), { ECU_CLOUD_WORKER_URL: 'https://cloud-worker.example/jobs' });
+  const result = await broken(job(), { ECU_CLOUD_WORKER_URL: 'https://cloud-worker.example/jobs', ECU_COMPUTE_TOKEN: 'secret' });
   assert.equal(result.accepted, false);
   assert.equal(result.state, 'QUEUED');
   assert.equal(result.workerKind, 'cloud');
@@ -140,6 +142,7 @@ test('prefers local worker over Cloudflare container binding', async () => {
     ECU_LOCAL_WORKER_URL: 'https://local.example/jobs',
     ECU_LOCAL_WORKER_ONLINE: '1',
     ECU_COMPUTE_CONTAINER: { getByName() { containerCalls++; return { fetch(){} }; } },
+    ECU_COMPUTE_TOKEN: 'secret',
   });
   assert.equal(result.workerKind, 'local');
   assert.equal(containerCalls, 0);
