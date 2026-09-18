@@ -16,6 +16,15 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Validate runtime syntax
         run: npm run check
+      - name: Configure ECU compute secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ECU_COMPUTE_TOKEN: ${{ secrets.ECU_COMPUTE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$ECU_COMPUTE_TOKEN"
+          printf '%s' "$ECU_COMPUTE_TOKEN" | npx wrangler secret put ECU_COMPUTE_TOKEN
       - name: Ensure ECU artifact bucket
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
