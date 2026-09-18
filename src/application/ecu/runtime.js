@@ -555,6 +555,22 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
   };
 }
 
+async function defaultListModels(env, limit = 20) {
+  const safeLimit=Math.max(1,Math.min(100,Number(limit)||20));
+  const rows=(await env.DB.prepare(`SELECT version,dataset_version,benchmark_score,artifact_uri,state,rollback_target,created_at,promoted_at
+    FROM ecu_model_versions ORDER BY COALESCE(promoted_at,created_at) DESC LIMIT ?`).bind(safeLimit).all()).results||[];
+  return rows.map(row=>({
+    version:row.version,
+    datasetVersion:row.dataset_version,
+    benchmarkScore:Number(row.benchmark_score||0),
+    artifactUri:row.artifact_uri,
+    state:row.state,
+    rollbackTarget:row.rollback_target||null,
+    createdAt:row.created_at,
+    promotedAt:row.promoted_at||null,
+  }));
+}
+
 async function defaultRollbackModel(env, targetVersion) {
   const target = await env.DB.prepare('SELECT version,state FROM ecu_model_versions WHERE version=? LIMIT 1').bind(targetVersion).first();
   if (!target) throw new Error('ECU_MODEL_NOT_FOUND');
@@ -600,6 +616,7 @@ export function createEcuRuntime(core, overrides = {}) {
     uploadStatus: defaultUploadStatus,
     computeStatus: defaultComputeStatus,
     rollbackModel: defaultRollbackModel,
+    listModels: defaultListModels,
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
@@ -801,6 +818,10 @@ export function createEcuRuntime(core, overrides = {}) {
         const id = decodeURIComponent(url.pathname.slice('/api/ecu/jobs/'.length));
         const job = await deps.getJob(env, id);
         return job ? json({ job }) : json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
+      }
+
+      if (url.pathname === '/api/ecu/models' && req.method === 'GET') {
+        return json({models:await deps.listModels(env,url.searchParams.get('limit'))});
       }
 
       if (url.pathname.startsWith('/api/ecu/models/') && url.pathname.endsWith('/rollback') && req.method === 'POST') {
