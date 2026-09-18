@@ -2,8 +2,10 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "jarvis-personal-ai",
   "main": "src/app-entry.js",
-  "compatibility_date": "2026-09-12",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -16,13 +18,44 @@
       "database_id": "710f1325-af9a-4d03-acbf-d4c6862b7633"
     }
   ],
-  "ai": { "binding": "AI" },
+  "ai": {
+    "binding": "AI"
+  },
   "r2_buckets": [
     {
       "binding": "ECU_ARTIFACTS",
       "bucket_name": "jarvis-ecu-artifacts"
     }
   ],
-  "triggers": { "crons": ["*/30 * * * *"] },
-  "observability": { "enabled": true }
+  "triggers": {
+    "crons": [
+      "*/30 * * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "containers": [
+    {
+      "class_name": "EcuComputeContainer",
+      "image": "./compute/Dockerfile",
+      "max_instances": 3
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "EcuComputeContainer",
+        "name": "ECU_COMPUTE_CONTAINER"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": [
+        "EcuComputeContainer"
+      ],
+      "tag": "ecu-container-v1"
+    }
+  ]
 }
