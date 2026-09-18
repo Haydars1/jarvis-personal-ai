@@ -16,7 +16,7 @@ async function run(env,sql,...bind){return env.DB.prepare(sql).bind(...bind).run
 async function kvGet(env,key,fb=null){const r=await q1(env,'SELECT value FROM kv WHERE key=?',key);if(!r)return fb;try{return JSON.parse(r.value)}catch{return r.value}}
 async function kvSet(env,key,val){await run(env,'INSERT INTO kv(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at',key,JSON.stringify(val),now())}
 async function log(env,kind,text,meta={}){await run(env,'INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)',id(),now(),kind,text,JSON.stringify(meta));await run(env,'DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY ts DESC LIMIT -1 OFFSET 1000)')}
-async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
+export async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
 function cookie(v,max=2592000){return `jarvis_session=${encodeURIComponent(v)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${max}`}
 async function body(req){try{return await req.json()}catch{return{}}}
 async function masterKey(env){
