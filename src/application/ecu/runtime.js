@@ -552,11 +552,12 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
 }
 
 async function defaultComputeStatus(env = {}) {
-  const localOnline = String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
-  const cloudContainerReady = Boolean(env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function');
-  const cloudUrlReady = Boolean(String(env.ECU_CLOUD_WORKER_URL || '').trim());
+  const tokenConfigured = Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim());
+  const localOnline = tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
+  const cloudContainerReady = tokenConfigured && Boolean(env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function');
+  const cloudUrlReady = tokenConfigured && Boolean(String(env.ECU_CLOUD_WORKER_URL || '').trim());
   const preferred = localOnline ? 'local' : cloudContainerReady ? 'cloud-container' : cloudUrlReady ? 'cloud' : 'none';
-  return { localOnline, cloudContainerReady, cloudUrlReady, preferred };
+  return { tokenConfigured, localOnline, cloudContainerReady, cloudUrlReady, preferred };
 }
 
 async function defaultUploadStatus(env) {
