@@ -16,6 +16,18 @@ struct EcuTrainingStatus: Decodable {
     let productionModel: EcuModelSummary?
 }
 
+struct EcuRulepackSummary: Decodable {
+    let version: String
+    let state: String
+    let verified: Bool
+    let evidenceCount: Int?
+}
+
+struct EcuRulepackStatus: Decodable {
+    let latest: EcuRulepackSummary?
+    let production: EcuRulepackSummary?
+}
+
 struct EcuModelSummary: Decodable, Identifiable {
     var id: String { version }
     let version: String
@@ -96,6 +108,11 @@ final class EcuBrainAPI {
     func jobs() async throws -> [EcuJob] {
         let data = try await request("/api/ecu/jobs?limit=20")
         return try decoder.decode(EcuJobsResponse.self, from: data).jobs
+    }
+
+    func rulepackStatus() async throws -> EcuRulepackStatus {
+        let data = try await request("/api/ecu/rulepacks/status")
+        return try decoder.decode(EcuRulepackStatus.self, from: data)
     }
 
     func models() async throws -> [EcuModelSummary] {
