@@ -60,3 +60,15 @@ class TrainingJobInput(BaseModel):
     production_model_version: str = 'baseline'
     paid_api_allowed: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
+
+
+class PairJobInput(BaseModel):
+    job_id: str
+    operation: Literal['diff_pair'] = 'diff_pair'
+    ori_artifact_sha256: str = Field(min_length=64, max_length=64)
+    mod_artifact_sha256: str = Field(min_length=64, max_length=64)
+    ori_artifact_uri: str
+    mod_artifact_uri: str
+    operation_label: str
+    paid_api_allowed: bool = False
+    config: dict[str, Any] = Field(default_factory=dict)
