@@ -64,3 +64,23 @@ test('compute worker callback persists analysis result through injected result w
   assert.equal(writes[0][1].ecu_family, 'EDC17C46');
   assert.deepEqual(await response.json(), { job: { id: 'job-1', state: 'NEEDS_REVIEW' } });
 });
+
+test('compute worker can mark a dispatched job running before analysis', async () => {
+  const writes = [];
+  const runtime = createEcuRuntime(coreFallback(), {
+    async applyWorkerState(_env, jobId, body) {
+      writes.push([jobId, body]);
+      return { id: jobId, state: body.state };
+    },
+  });
+  const env = { ECU_COMPUTE_TOKEN: 'secret-token' };
+  const response = await runtime.fetch(request('/api/ecu/internal/jobs/job-1/state', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer secret-token' },
+    body: JSON.stringify({ state: 'RUNNING', workerKind: 'cloud' }),
+  }), env, {});
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(writes, [['job-1', { state: 'RUNNING', workerKind: 'cloud' }]]);
+  assert.deepEqual(await response.json(), { job: { id: 'job-1', state: 'RUNNING' } });
+});
