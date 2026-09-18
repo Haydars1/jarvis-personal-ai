@@ -622,6 +622,11 @@ export function createEcuRuntime(core, overrides = {}) {
         return json(await deps.researchStatus(env));
       }
 
+      if (url.pathname === '/api/ecu/training/run' && req.method === 'POST') {
+        const result=await training.maybeRun(env,Date.now());
+        return json(result,result?.scheduled?202:200);
+      }
+
       if (url.pathname === '/api/ecu/training/status' && req.method === 'GET') {
         return json(await deps.trainingStatus(env));
       }
