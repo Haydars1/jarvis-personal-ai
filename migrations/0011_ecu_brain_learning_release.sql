@@ -1,8 +1,6 @@
 -- Additive ECU Brain learning, model, rulepack and validated MOD schema.
 -- Kept separate from 0010 so an existing ECU core install can be upgraded safely.
 
-ALTER TABLE ecu_jobs ADD COLUMN rulepack_version TEXT;
-
 CREATE TABLE IF NOT EXISTS ecu_analysis_results (
   id TEXT PRIMARY KEY,
   job_id TEXT NOT NULL UNIQUE,
