@@ -40,3 +40,29 @@ test('research status route comes from the continuous research service', async (
   assert.equal(payload.mode, 'continuous-research');
   assert.equal(payload.counts.sources, 12);
 });
+
+
+test('scheduled event retries queued ECU jobs before background learning', async () => {
+  const core = coreRecorder();
+  const calls = [];
+  const runtime = createEcuRuntime(core, {
+    async dispatchQueuedJobs(_env, timestamp) {
+      calls.push(['queue', timestamp]);
+      return { attempted: 2, dispatched: 1 };
+    },
+    research: {
+      async run(_env, timestamp) { calls.push(['research', timestamp]); },
+      async status() { return { status: 'IDLE' }; },
+    },
+    training: {
+      async maybeRun(_env, timestamp) { calls.push(['training', timestamp]); },
+      async status() { return { status: 'IDLE' }; },
+    },
+  });
+  await runtime.scheduled({ scheduledTime: 222222 }, {}, {});
+  assert.deepEqual(calls, [
+    ['queue', 222222],
+    ['research', 222222],
+    ['training', 222222],
+  ]);
+});
