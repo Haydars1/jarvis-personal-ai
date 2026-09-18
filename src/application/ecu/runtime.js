@@ -104,6 +104,24 @@ async function defaultGetJob(env, id) {
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(id).first());
 }
 
+async function defaultListMaps(env, jobId) {
+  const rows=(await env.DB.prepare(`SELECT
+      id,map_offset,rows,cols,data_type,endian,semantic_label,confidence,features_json,created_at
+    FROM ecu_map_candidates WHERE job_id=? ORDER BY confidence DESC,map_offset ASC`).bind(jobId).all()).results||[];
+  return rows.map(row=>({
+    id:row.id,
+    offset:Number(row.map_offset||0),
+    rows:row.rows==null?null:Number(row.rows),
+    cols:row.cols==null?null:Number(row.cols),
+    dataType:row.data_type||null,
+    endian:row.endian||null,
+    semanticLabel:row.semantic_label||'UNKNOWN',
+    confidence:Number(row.confidence||0),
+    features:(()=>{try{return JSON.parse(row.features_json||'{}')}catch{return {}}})(),
+    createdAt:row.created_at,
+  }));
+}
+
 async function defaultListJobs(env, limit = 50) {
   const safeLimit = Math.max(1, Math.min(100, Number(limit) || 50));
   const rows = (await env.DB.prepare('SELECT * FROM ecu_jobs ORDER BY created_at DESC LIMIT ?').bind(safeLimit).all()).results || [];
@@ -433,6 +451,7 @@ export function createEcuRuntime(core, overrides = {}) {
     createJob: (env, input) => defaultCreateJob(env, input, computeDispatch),
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
+    listMaps: defaultListMaps,
     researchStatus: env => research.status(env),
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
@@ -610,6 +629,12 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/jobs' && req.method === 'GET') {
         return json({ jobs: await deps.listJobs(env, url.searchParams.get('limit')) });
+      }
+
+      if (url.pathname.startsWith('/api/ecu/jobs/') && url.pathname.endsWith('/maps') && req.method === 'GET') {
+        const jobId=decodeURIComponent(url.pathname.slice('/api/ecu/jobs/'.length,-'/maps'.length));
+        if(!jobId)return json({error:'ECU_JOB_ID_REQUIRED'},400);
+        return json({maps:await deps.listMaps(env,jobId)});
       }
 
       if (url.pathname.startsWith('/api/ecu/jobs/') && req.method === 'GET') {
