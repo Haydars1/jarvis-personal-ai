@@ -55,11 +55,21 @@ export function createEmergencyChatFallback(handleChat) {
     let payload;
     try { payload = await response.clone().json(); } catch { return response; }
     const current = String(payload?.reply || '').trim();
-    if (!current.startsWith(FAILURE_PREFIX)) return response;
-
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
-    const reply = await generateEmergencyReply(env, text) || capabilityFallback(text);
+
+    const capabilityReply = capabilityFallback(text);
+    if (!current.startsWith(FAILURE_PREFIX)) {
+      if (!capabilityReply || !/(video .*oluşturam|video .*üretem|doğrudan .*video|yapamıyorum|yapamam)/i.test(current)) return response;
+      payload.reply = capabilityReply;
+      payload.provider = 'JARVIS';
+      payload.history = Array.isArray(payload.history) && payload.history.length
+        ? payload.history.map(message => message?.role === 'assistant' ? { ...message, content: capabilityReply, provider: 'JARVIS' } : message)
+        : [{ role: 'user', content: text }, { role: 'assistant', content: capabilityReply, provider: 'JARVIS' }];
+      return jsonResponse(payload, response.status);
+    }
+
+    const reply = await generateEmergencyReply(env, text) || capabilityReply;
     if (!reply) return response;
 
     payload.reply = reply;
