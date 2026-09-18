@@ -104,12 +104,27 @@ async def process_training_job(
         raise ValueError("DATASET_VERSION_MISMATCH")
 
     examples = [_example(raw) for raw in (snapshot.get("examples") or [])]
-    model = fit_semantic_model(examples)
+    split_payload = snapshot.get("splits") or {}
+    train_rows = [_example(raw) for raw in (split_payload.get("train") or [])]
+    test_rows = [_example(raw) for raw in (split_payload.get("test") or [])]
+    validation_rows = [_example(raw) for raw in (split_payload.get("validation") or [])]
+    if not train_rows:
+        train_rows = [row for row in examples if row.human_verified]
+
+    model = fit_semantic_model(train_rows)
     model_json = dump_semantic_model(model)
 
-    evaluation_rows = [row for row in examples if row.human_verified]
+    evaluation_rows = test_rows or validation_rows
     metrics = _metrics(model, evaluation_rows)
-    status = "CANDIDATE" if model.labels else "NEEDS_MORE_DATA"
+    metrics["training_count"] = len(train_rows)
+    metrics["evaluation_count"] = len(evaluation_rows)
+    metrics["label_count"] = len(model.labels)
+    minimum_eval = max(4, len(model.labels) * 2)
+    status = (
+        "CANDIDATE"
+        if model.labels and len(evaluation_rows) >= minimum_eval
+        else "NEEDS_MORE_DATA"
+    )
 
     result = {
         "status": status,
