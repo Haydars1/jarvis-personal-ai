@@ -28,6 +28,17 @@ function payloadFor(job, env = {}) {
       config:{...(job.config||{}),callback_base_url:callbackBaseUrl},
     };
   }
+  if((job.operation||'')==='train'){
+    return {
+      job_id:job.id,
+      operation:'train',
+      dataset_version:job.datasetVersion,
+      dataset_digest:job.datasetDigest,
+      production_model_version:job.productionModelVersion||'baseline',
+      paid_api_allowed:false,
+      config:{...(job.config||{}),callback_base_url:callbackBaseUrl},
+    };
+  }
   return {
     job_id: job.id,
     artifact_sha256: job.artifactSha256,
