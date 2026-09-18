@@ -361,3 +361,30 @@ test('returns 404 when validated MOD artifact does not exist', async () => {
   assert.equal(response.status,404);
   assert.deepEqual(await response.json(),{error:'ECU_MOD_NOT_FOUND'});
 });
+
+
+test('compute status reflects live local worker heartbeat', async () => {
+  const now=Date.now();
+  const env={
+    ECU_COMPUTE_TOKEN:'secret',
+    DB:{
+      prepare(sql){
+        return {
+          bind(){return this;},
+          async first(){
+            if(sql.includes('FROM ecu_workers'))return {endpoint:'https://laptop.example/jobs',expires_at:now+60_000,last_seen_at:now};
+            return null;
+          }
+        };
+      }
+    },
+    ECU_COMPUTE_CONTAINER:{getByName(){return {}}},
+  };
+  const runtime=createEcuRuntime(coreFallback());
+  const response=await runtime.fetch(request('/api/ecu/compute/status'),env,{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.localOnline,true);
+  assert.equal(body.preferred,'local');
+  assert.equal(body.localEndpoint,'https://laptop.example/jobs');
+});
