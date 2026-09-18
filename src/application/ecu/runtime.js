@@ -119,6 +119,24 @@ export function createEcuRuntime(core, overrides = {}) {
           throw error;
         }
       }
+      if (url.pathname === '/api/ecu/analyze-file' && req.method === 'POST') {
+        const declaredLength = Number(req.headers.get('content-length') || 0);
+        if (declaredLength > maxUploadBytes) return json({ error: 'ECU_FILE_TOO_LARGE', maxUploadBytes }, 413);
+        const buffer = await req.arrayBuffer();
+        if (!buffer.byteLength) return json({ error: 'ECU_FILE_EMPTY' }, 400);
+        if (buffer.byteLength > maxUploadBytes) return json({ error: 'ECU_FILE_TOO_LARGE', maxUploadBytes }, 413);
+        const filename = String(req.headers.get('x-ecu-filename') || 'original.bin').trim().slice(0, 180) || 'original.bin';
+        const contentType = String(req.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim() || 'application/octet-stream';
+        try {
+          const file = await deps.uploadOriginal(env, { bytes: new Uint8Array(buffer), filename, contentType });
+          const job = await deps.createJob(env, { fileId: file.id, operation: 'analyze' });
+          return json({ file, job }, 202);
+        } catch (error) {
+          if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
       if (url.pathname === '/api/ecu/jobs' && req.method === 'POST') {
         const body = await readJson(req);
         const fileId = String(body.fileId || '').trim();
