@@ -73,3 +73,31 @@ test('keeps the job recoverable when no worker is configured or dispatch fails',
   assert.equal(result.workerKind, 'cloud');
   assert.equal(result.reason, 'DISPATCH_FAILED');
 });
+
+
+test('dispatches ORI MOD pair jobs with both immutable artifact hashes', async () => {
+  const calls=[];
+  const dispatch=createComputeDispatch({
+    fetchImpl:async(url,init)=>{
+      calls.push({url,body:JSON.parse(init.body)});
+      return new Response(JSON.stringify({accepted:true}),{status:202,headers:{'content-type':'application/json'}});
+    }
+  });
+  const pair={
+    id:'pair-1',
+    runFingerprint:'p'.repeat(64),
+    operation:'diff_pair',
+    oriArtifactSha256:'a'.repeat(64),
+    modArtifactSha256:'b'.repeat(64),
+    oriArtifactUri:'r2://ecu-artifacts/originals/'+'a'.repeat(64),
+    modArtifactUri:'r2://ecu-artifacts/originals/'+'b'.repeat(64),
+    operationLabel:'stage1',
+    config:{callback_base_url:'https://jarvis.example'},
+  };
+  const result=await dispatch(pair,{ECU_CLOUD_WORKER_URL:'https://worker.example/jobs'});
+  assert.equal(result.accepted,true);
+  assert.equal(calls[0].body.operation,'diff_pair');
+  assert.equal(calls[0].body.ori_artifact_sha256,'a'.repeat(64));
+  assert.equal(calls[0].body.mod_artifact_sha256,'b'.repeat(64));
+  assert.equal(calls[0].body.operation_label,'stage1');
+});
