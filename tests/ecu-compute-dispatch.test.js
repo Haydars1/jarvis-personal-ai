@@ -162,3 +162,35 @@ test('does not wake cloud container without compute token', async () => {
   assert.equal(result.reason, 'NO_COMPUTE_TOKEN');
   assert.equal(woke, false);
 });
+
+
+test('dispatches training jobs through scale-to-zero container', async () => {
+  const calls=[];
+  const stub={
+    async fetch(request){
+      calls.push(JSON.parse(await request.text()));
+      return new Response(JSON.stringify({accepted:true}),{status:202,headers:{'content-type':'application/json'}});
+    }
+  };
+  const dispatch=createComputeDispatch({fetchImpl:async()=>{throw new Error('external fetch should not run')}});
+  const result=await dispatch({
+    id:'training-1',
+    operation:'train',
+    runFingerprint:'t'.repeat(64),
+    datasetVersion:'dataset-1',
+    datasetDigest:'d'.repeat(64),
+    productionModelVersion:'model-1',
+    config:{callback_base_url:'https://jarvis.example'},
+  },{
+    ECU_COMPUTE_CONTAINER:{getByName(){return stub}},
+    ECU_COMPUTE_TOKEN:'secret',
+  });
+  assert.equal(result.accepted,true);
+  assert.equal(result.workerKind,'cloud-container');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].operation,'train');
+  assert.equal(calls[0].dataset_version,'dataset-1');
+  assert.equal(calls[0].dataset_digest,'d'.repeat(64));
+  assert.equal(calls[0].production_model_version,'model-1');
+  assert.equal(calls[0].paid_api_allowed,false);
+});
