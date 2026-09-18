@@ -3,6 +3,10 @@ function chooseEndpoint(env = {}) {
   const localOnline = String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1';
   if (localUrl && localOnline) return { url: localUrl, workerKind: 'local' };
 
+  if (env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function') {
+    return { containerBinding: env.ECU_COMPUTE_CONTAINER, workerKind: 'cloud-container' };
+  }
+
   const cloudUrl = String(env.ECU_CLOUD_WORKER_URL || '').trim();
   if (cloudUrl) return { url: cloudUrl, workerKind: 'cloud' };
 
@@ -58,12 +62,24 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000 } =
       const token = String(env.ECU_COMPUTE_TOKEN || '').trim();
       if (token) headers.authorization = `Bearer ${token}`;
 
-      const response = await fetchImpl(endpoint.url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payloadFor(job, env)),
-        signal: controller.signal,
-      });
+      let response;
+      const body = JSON.stringify(payloadFor(job, env));
+      if (endpoint.containerBinding) {
+        const stub = endpoint.containerBinding.getByName('jarvis-ecu-compute');
+        response = await stub.fetch(new Request('http://ecu-container/jobs', {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal,
+        }));
+      } else {
+        response = await fetchImpl(endpoint.url, {
+          method: 'POST',
+          headers,
+          body,
+          signal: controller.signal,
+        });
+      }
 
       if (!response.ok) {
         return {
