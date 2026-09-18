@@ -60,10 +60,11 @@ export function createEcuChatTool(core){
       }
 
       if(wantsSystemStatus(text)){
-        const [compute,training,research]=await Promise.all([
+        const [compute,training,research,rulepacks]=await Promise.all([
           readJson(core,'/api/ecu/compute/status',req,env,ctx),
           readJson(core,'/api/ecu/training/status',req,env,ctx),
           readJson(core,'/api/ecu/research/status',req,env,ctx),
+          readJson(core,'/api/ecu/rulepacks/status',req,env,ctx),
         ]);
         const computeText=compute?.preferred==='local'?'Laptop worker aktif':
           compute?.preferred==='cloud-container'?'Cloud container hazır':
@@ -74,7 +75,8 @@ export function createEcuChatTool(core){
         const verifiedClaims=Number(research?.counts?.verified_claims||0);
         const verifiedChanges=Number(training?.verifiedChangeEvidence||0);
         const model=training?.productionModel?.version||'baseline';
-        const reply=`ECU Brain durumu: ${computeText}. Doğrulanmış map verisi: ${verified}/${required}. ORI/MOD değişim kanıtı: ${verifiedChanges}. Aktif model: ${model}. Araştırma kaynağı: ${sources}; doğrulanmış claim: ${verifiedClaims}.`;
+        const rulepackText=rulepacks?.production?.version?`production rulepack ${rulepacks.production.version}`:rulepacks?.latest?.version?`kanıt adayı ${rulepacks.latest.version}`:'rulepack kanıtı yetersiz';
+        const reply=`ECU Brain durumu: ${computeText}. Doğrulanmış map verisi: ${verified}/${required}. ORI/MOD değişim kanıtı: ${verifiedChanges}. Aktif model: ${model}. Rulepack: ${rulepackText}. Araştırma kaynağı: ${sources}; doğrulanmış claim: ${verifiedClaims}.`;
         return json(chatPayload(text,reply));
       }
 
