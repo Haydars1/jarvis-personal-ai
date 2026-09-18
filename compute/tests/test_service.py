@@ -82,3 +82,31 @@ def test_analysis_worker_fetches_production_model_before_analysis():
     assert len(model_calls) == 1
     assert model_calls[0][1].endswith("/api/ecu/internal/models/model-abc123")
     assert result.ecu_family == "EDC17C46"
+
+
+class BrokenArtifactClient(FakeClient):
+    async def get(self, url, headers=None):
+        self.calls.append(("GET", url, headers))
+        return FakeResponse(500, b"")
+
+
+def test_analysis_worker_reports_failed_result_when_artifact_fetch_breaks():
+    client = BrokenArtifactClient(b"")
+    job = AnalysisJobInput(
+        job_id="job-fail",
+        artifact_sha256="f" * 64,
+        artifact_uri="r2://ecu-artifacts/originals/" + "f" * 64,
+        config={"callback_base_url": "https://jarvis.example"},
+    )
+
+    try:
+        asyncio.run(process_dispatched_job(job, "secret", client=client))
+    except RuntimeError:
+        pass
+
+    failed_callbacks = [
+        call for call in client.calls
+        if call[0] == "POST" and call[1].endswith("/api/ecu/internal/jobs/job-fail/result")
+    ]
+    assert len(failed_callbacks) == 1
+    assert failed_callbacks[0][3]["status"] == "FAILED"
