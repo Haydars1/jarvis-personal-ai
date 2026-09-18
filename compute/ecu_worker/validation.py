@@ -65,3 +65,17 @@ class ChecksumAdapter:
 
     def verify(self, _data: bytes) -> ChecksumResult:
         return ChecksumResult(status="UNSUPPORTED", algorithm=None, verified=False)
+
+
+
+class ChecksumRegistry:
+    """Family-scoped checksum adapters. Nothing is inferred or auto-enabled."""
+
+    def __init__(self, adapters: dict[str, ChecksumAdapter] | None = None):
+        self._adapters = {str(key).upper(): value for key, value in (adapters or {}).items()}
+
+    def adapter_for(self, ecu_family: str) -> ChecksumAdapter:
+        return self._adapters.get(str(ecu_family or "").upper(), ChecksumAdapter())
+
+    def verify(self, ecu_family: str, data: bytes) -> ChecksumResult:
+        return self.adapter_for(ecu_family).verify(data)
