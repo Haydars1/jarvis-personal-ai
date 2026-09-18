@@ -173,3 +173,20 @@ CREATE TABLE IF NOT EXISTS ecu_training_pairs (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_training_pairs_state ON ecu_training_pairs(state, updated_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS ecu_change_evidence (
+  id TEXT PRIMARY KEY,
+  pair_id TEXT NOT NULL,
+  operation_label TEXT NOT NULL DEFAULT '',
+  semantic_label TEXT NOT NULL,
+  range_start INTEGER NOT NULL,
+  range_end INTEGER NOT NULL,
+  map_offset INTEGER NOT NULL,
+  overlap_bytes INTEGER NOT NULL DEFAULT 0,
+  confidence REAL NOT NULL DEFAULT 0,
+  human_verified INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_change_evidence_pair ON ecu_change_evidence(pair_id, semantic_label);
+CREATE INDEX IF NOT EXISTS idx_ecu_change_evidence_label ON ecu_change_evidence(semantic_label, human_verified, created_at DESC);
