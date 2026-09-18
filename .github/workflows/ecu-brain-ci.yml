@@ -62,7 +62,7 @@ jobs:
           required_tables = {
               'ecu_files','ecu_jobs','ecu_analysis_results','ecu_map_candidates',
               'ecu_training_examples','ecu_change_evidence','ecu_rulepack_versions',
-              'ecu_mod_artifacts','ecu_model_versions'
+              'ecu_mod_artifacts','ecu_model_versions','ecu_workers'
           }
           tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
           missing = required_tables - tables
