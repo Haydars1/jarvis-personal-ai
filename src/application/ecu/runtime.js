@@ -57,7 +57,7 @@ function mapJob(row) {
   };
 }
 
-async function defaultCreateJob(env, { fileId, operation = 'analyze' }, dispatch) {
+async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBaseUrl = null }, dispatch) {
   const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
   const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
@@ -80,6 +80,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze' }, dispatch
     operation,
     modelVersion,
     rulepackVersion,
+    config: callbackBaseUrl ? { callback_base_url: callbackBaseUrl } : {},
   }, env);
   const state = dispatched?.accepted ? 'DISPATCHED' : 'QUEUED';
   await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
@@ -288,7 +289,7 @@ export function createEcuRuntime(core, overrides = {}) {
         const contentType = String(req.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim() || 'application/octet-stream';
         try {
           const file = await deps.uploadOriginal(env, { bytes: new Uint8Array(buffer), filename, contentType });
-          const job = await deps.createJob(env, { fileId: file.id, operation: 'analyze' });
+          const job = await deps.createJob(env, { fileId: file.id, operation: 'analyze', callbackBaseUrl: url.origin });
           return json({ file, job }, 202);
         } catch (error) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
@@ -302,7 +303,7 @@ export function createEcuRuntime(core, overrides = {}) {
         const operation = String(body.operation || 'analyze').trim() || 'analyze';
         if (!fileId) return json({ error: 'fileId is required' }, 400);
         try {
-          return json({ job: await deps.createJob(env, { fileId, operation }) }, 202);
+          return json({ job: await deps.createJob(env, { fileId, operation, callbackBaseUrl: url.origin }) }, 202);
         } catch (error) {
           if (error?.message === 'ECU_FILE_NOT_FOUND') return json({ error: 'ECU_FILE_NOT_FOUND' }, 404);
           throw error;
