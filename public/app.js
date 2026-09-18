@@ -72,6 +72,44 @@ $('#suSend').onclick=async()=>{const request=$('#suRequest').value.trim();if(!re
 async function loadPasskeys(){try{const a=await api('/api/auth/passkeys'),e=$('#passkeyList');e.innerHTML='';a.forEach((p,i)=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>Passkey ${i+1}</b><small>${p.device_type||'cihaz'} • ${p.last_used_at?new Date(p.last_used_at).toLocaleString('tr-TR'):'henüz kullanılmadı'}</small><button class="danger">SİL</button>`;d.querySelector('button').onclick=async()=>{await api('/api/auth/passkeys/'+encodeURIComponent(p.id),{method:'DELETE'});loadPasskeys()};e.appendChild(d)})}catch(e){toast(e.message)}}$('#registerPasskey').onclick=registerPasskey;
 
 
+
+async function uploadEcuBinary(file){
+ const r=await fetch('/api/ecu/files',{method:'POST',headers:{'content-type':file.type||'application/octet-stream','x-ecu-filename':encodeURIComponent(file.name)},body:file});
+ const x=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(x.detail||x.error||('HTTP '+r.status));
+ return x.file;
+}
+async function loadEcuPairs(){
+ const box=$('#ecuPairs');if(!box)return;
+ try{
+  const r=await api('/api/ecu/training/pairs?limit=20');
+  box.innerHTML='';
+  (r.pairs||[]).forEach(p=>{
+   const d=document.createElement('div');d.className='item';
+   d.innerHTML=`<b>${esc(p.operationLabel||'pair')} • ${esc(p.state||'')}</b><small>${p.changedByteCount?Number(p.changedByteCount)+' byte değişti • ':''}${p.rangeCount?Number(p.rangeCount)+' bölge • ':''}${p.workerKind?esc(p.workerKind)+' • ':''}${esc(p.id||'')}${p.error?' • '+esc(p.error):''}</small>`;
+   box.appendChild(d);
+  });
+  if(!(r.pairs||[]).length)box.innerHTML='<div class="muted">Henüz ORI/MOD öğrenme çifti yok.</div>';
+ }catch(e){box.textContent='ORI/MOD geçmişi alınamadı: '+e.message}
+}
+async function learnEcuPair(){
+ const ori=$('#ecuOriPair')?.files?.[0],mod=$('#ecuModPair')?.files?.[0];
+ const label=$('#ecuPairLabel')?.value?.trim();
+ if(!ori||!mod)return toast('ORI ve MOD dosyalarını seç');
+ if(!label)return toast('İşlem etiketini yaz');
+ if(ori.size!==mod.size)return toast('ORI ve MOD dosya boyutları aynı olmalı');
+ const status=$('#ecuPairStatus');if(status)status.textContent='ORI ve MOD dosyaları değişmeden kasaya yükleniyor...';
+ mode('THINKING','ORI/MOD farkını öğrenme kuyruğuna alıyorum');
+ try{
+  const [oriFile,modFile]=await Promise.all([uploadEcuBinary(ori),uploadEcuBinary(mod)]);
+  const pair=await api('/api/ecu/training/pairs',{method:'POST',body:JSON.stringify({oriFileId:oriFile.id,modFileId:modFile.id,operationLabel:label})});
+  if(status)status.textContent=`Çift kaydedildi • ${pair.pair?.state||'QUEUED'} • ${pair.pair?.id||''}`;
+  toast('ORI/MOD öğrenme işi kuyruğa alındı');
+  await loadEcuPairs();
+ }catch(e){if(status)status.textContent='Hata: '+e.message;toast('ORI/MOD: '+e.message)}
+ finally{mode('IDLE','Komut bekliyorum')}
+}
+
 async function loadEcuMaps(jobId){
  const box=$('#ecuMaps');if(!box)return;
  box.innerHTML='<div class="muted">Map adayları yükleniyor...</div>';
@@ -134,6 +172,7 @@ async function analyzeEcuFile(){
 }
 if($('#ecuAnalyze'))$('#ecuAnalyze').onclick=analyzeEcuFile;
 if($('#ecuRefresh'))$('#ecuRefresh').onclick=loadEcuStatus;
+if($('#ecuPairLearn'))$('#ecuPairLearn').onclick=learnEcuPair;
 if($('#ecuTrainNow'))$('#ecuTrainNow').onclick=async()=>{
  try{
   const r=await api('/api/ecu/training/run',{method:'POST'});
@@ -142,5 +181,5 @@ if($('#ecuTrainNow'))$('#ecuTrainNow').onclick=async()=>{
  }catch(e){toast('ECU eğitim: '+e.message)}
 };
 
-function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu')loadEcuStatus();if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu'){loadEcuStatus();loadEcuPairs();}if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
 $('#logout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});location.reload()};if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});init();
