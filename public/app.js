@@ -70,5 +70,38 @@ function renderActions(){const e=$('#actions');if(!e||!STATE)return;e.innerHTML=
 async function loadSelfUpdate(){try{const x=await api('/api/self-update/status'),st=$('#suStatus'),e=$('#suList');st.textContent=x.connected?`BAĞLI • ${x.repo}`:'BAĞLI DEĞİL • Credential Manager’dan GitHub token + owner/repo ekle.';e.innerHTML='';(x.changes||[]).forEach(c=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${esc(c.summary||c.request)}</b><small>${esc(c.status)} • ${esc(c.origin)} • ${new Date(c.created_at).toLocaleString('tr-TR')}</small>${c.pr_url?`<a target="_blank" rel="noopener" href="${esc(c.pr_url)}">GitHub değişikliğini aç</a>`:''}`;e.appendChild(d)})}catch(e){toast(e.message)}}
 $('#suSend').onclick=async()=>{const request=$('#suRequest').value.trim();if(!request)return;mode('THINKING','Kendi kodumu inceliyorum');try{const r=await api('/api/self-update/request',{method:'POST',body:JSON.stringify({request})});toast(r.ok?'Değişiklik test/deploy hattına gönderildi':(r.message||'Bağlantı gerekli'));$('#suRequest').value='';loadSelfUpdate();mode('IDLE','Komut bekliyorum')}catch(e){toast(e.message);mode('IDLE','Hata')}};
 async function loadPasskeys(){try{const a=await api('/api/auth/passkeys'),e=$('#passkeyList');e.innerHTML='';a.forEach((p,i)=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>Passkey ${i+1}</b><small>${p.device_type||'cihaz'} • ${p.last_used_at?new Date(p.last_used_at).toLocaleString('tr-TR'):'henüz kullanılmadı'}</small><button class="danger">SİL</button>`;d.querySelector('button').onclick=async()=>{await api('/api/auth/passkeys/'+encodeURIComponent(p.id),{method:'DELETE'});loadPasskeys()};e.appendChild(d)})}catch(e){toast(e.message)}}$('#registerPasskey').onclick=registerPasskey;
-function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+
+async function loadEcuStatus(){
+ try{
+  const [research,training,jobs]=await Promise.all([
+   api('/api/ecu/research/status'),
+   api('/api/ecu/training/status'),
+   api('/api/ecu/jobs?limit=20')
+  ]);
+  const learning=$('#ecuLearning');if(learning){
+   learning.innerHTML=
+    `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
+    `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış örnek ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`;
+  }
+  const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${j.error?' • '+esc(j.error):''}</small>`;list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
+ }catch(e){toast('ECU Brain: '+e.message)}
+}
+async function analyzeEcuFile(){
+ const file=$('#ecuFile')?.files?.[0];if(!file)return toast('Önce ECU dosyasını seç');
+ const status=$('#ecuUploadStatus');if(status)status.textContent=`Yükleniyor: ${file.name} • ${Math.round(file.size/1024)} KB`;
+ mode('THINKING','ECU dosyasını analiz kuyruğuna alıyorum');
+ try{
+  const r=await fetch('/api/ecu/analyze-file',{method:'POST',headers:{'content-type':file.type||'application/octet-stream','x-ecu-filename':encodeURIComponent(file.name)},body:file});
+  const x=await r.json().catch(()=>({}));
+  if(!r.ok)throw Error(x.detail||x.error||('HTTP '+r.status));
+  if(status)status.textContent=`Kaydedildi • SHA-256: ${x.file?.sha256||x.file?.id||'-'} • İş: ${x.job?.state||'QUEUED'}`;
+  toast('ECU dosyası kaydedildi ve analiz kuyruğuna alındı');
+  await loadEcuStatus();
+ }catch(e){if(status)status.textContent='Hata: '+e.message;toast('ECU: '+e.message)}
+ finally{mode('IDLE','Komut bekliyorum')}
+}
+if($('#ecuAnalyze'))$('#ecuAnalyze').onclick=analyzeEcuFile;
+if($('#ecuRefresh'))$('#ecuRefresh').onclick=loadEcuStatus;
+
+function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu')loadEcuStatus();if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
 $('#logout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});location.reload()};if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});init();
