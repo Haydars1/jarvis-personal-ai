@@ -27,7 +27,14 @@ function intent(text = '') {
 }
 function parseCapabilities(row) { try { return JSON.parse(row.capabilities || '[]'); } catch { return []; } }
 function limitation(text = '') {
-  return /(yeteneğim yok|yapamıyorum|yapamam|doğrudan .* yapamam|görsel .* yok|cannot (generate|create|draw)|i can.?t (generate|create|draw)|bu özelliğe sahip değilim)/i.test(String(text));
+  return /(yeteneğim yok|yapamıyorum|yapamam|doğrudan .* yapamam|görsel .* yok|cannot (generate|create|draw)|i can.?t (generate|create|draw)|bu özelliğe sahip değilim|internete? (?:doğrudan )?erişimim yok|platformlara? .*yükleyemem|video .*oluşturamam|video .*üretemem)/i.test(String(text));
+}
+function videoAutomationIntent(text = '') {
+  const value = String(text || '').toLowerCase();
+  const video = /(video|shorts?|reels?|klip|youtube)/i.test(value);
+  const action = /(yap|üret|oluştur|hazırla|düzenle|edit|generate|create)/i.test(value);
+  const publish = /(at|yükle|paylaş|yayınla|düzenli|otomatik|her gün|haftada|youtube|tiktok|instagram)/i.test(value);
+  return video && action && publish;
 }
 
 async function history(env, limit = 24) {
@@ -229,7 +236,8 @@ export function createSmartRouter(core) {
       if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
       const body = await readJson(req.clone()), text = String(body.text || '').trim();
       if (!text) return core.fetch(req, env, ctx);
-      const capability = intent(text);
+      let capability = intent(text);
+      if (videoAutomationIntent(text)) capability = 'video';
       if (capability === 'research') return core.fetch(req, env, ctx);
 
       await saveMessage(env, 'user', text);
@@ -242,7 +250,12 @@ export function createSmartRouter(core) {
           try {
             const video = await tryVideo(core, req, env, ctx, text), requestId = video.request_id || video.id || video.requestId || null;
             return synthetic(core, req, env, ctx, requestId ? `Videoyu Higgsfield'a gönderdim. İş ID: ${requestId}` : 'Video üretimini Higgsfield üzerinden başlattım.', 'Higgsfield', [{ type: 'video-job', data: video }]);
-          } catch {}
+          } catch (videoError) {
+            // Do not let a generic text model falsely claim JARVIS cannot make video.
+            // Route through the agent/core so configured media/publishing tools can be planned or used.
+            try { await execute(env, "DELETE FROM chat_messages WHERE id=(SELECT id FROM chat_messages WHERE role='user' AND content=? ORDER BY created_at DESC LIMIT 1)", text); } catch {}
+            return core.fetch(req, env, ctx);
+          }
         }
         const hist = await history(env, 20);
         const answer = await fastText(env, capability, messagesFor(hist.slice(0, -1), text));
