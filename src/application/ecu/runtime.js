@@ -255,6 +255,20 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
   };
 }
 
+async function defaultGetValidatedMod(env, jobId) {
+  const row=await env.DB.prepare('SELECT sha256,checksum_algorithm FROM ecu_mod_artifacts WHERE job_id=? LIMIT 1').bind(jobId).first();
+  if(!row)return null;
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const bytes=await store.getValidatedMod(String(row.sha256||'').toLowerCase());
+  if(!bytes)return null;
+  return {
+    bytes,
+    sha256:row.sha256,
+    checksumAlgorithm:row.checksum_algorithm,
+    filename:`${jobId}-MOD.bin`,
+  };
+}
+
 async function defaultStoreValidatedMod(env, jobId, { bytes, checksumAlgorithm }) {
   const existing=await env.DB.prepare('SELECT id,job_id,sha256,artifact_uri,size_bytes,checksum_algorithm,validation_json,created_at FROM ecu_mod_artifacts WHERE job_id=? LIMIT 1').bind(jobId).first();
   if(existing){
@@ -776,6 +790,7 @@ export function createEcuRuntime(core, overrides = {}) {
     listModels: defaultListModels,
     uploadOriginal: defaultUploadOriginal,
     storeValidatedMod: defaultStoreValidatedMod,
+    getValidatedMod: defaultGetValidatedMod,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
@@ -992,6 +1007,29 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/jobs' && req.method === 'GET') {
         return json({ jobs: await deps.listJobs(env, url.searchParams.get('limit')) });
+      }
+
+      if (url.pathname.startsWith('/api/ecu/jobs/') && url.pathname.endsWith('/mod') && req.method === 'GET') {
+        const jobId=decodeURIComponent(url.pathname.slice('/api/ecu/jobs/'.length,-'/mod'.length));
+        if(!jobId)return json({error:'ECU_JOB_ID_REQUIRED'},400);
+        try{
+          const mod=await deps.getValidatedMod(env,jobId);
+          if(!mod)return json({error:'ECU_MOD_NOT_FOUND'},404);
+          return new Response(mod.bytes,{
+            status:200,
+            headers:{
+              'content-type':'application/octet-stream',
+              'content-disposition':`attachment; filename="${mod.filename}"`,
+              'cache-control':'no-store',
+              'x-content-type-options':'nosniff',
+              'x-ecu-sha256':String(mod.sha256||''),
+              'x-ecu-checksum-algorithm':String(mod.checksumAlgorithm||''),
+            },
+          });
+        }catch(error){
+          if(String(error?.message||'').includes('ECU_ARTIFACTS binding'))return json({error:'ECU_STORAGE_UNAVAILABLE'},503);
+          throw error;
+        }
       }
 
       if (url.pathname.startsWith('/api/ecu/jobs/') && url.pathname.endsWith('/maps') && req.method === 'GET') {
