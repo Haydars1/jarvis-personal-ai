@@ -46,8 +46,11 @@ def test_worker_pulls_artifact_runs_analysis_and_posts_result():
     result = asyncio.run(process_dispatched_job(job, "secret", client=client))
 
     assert result.ecu_family == "EDC17C46"
-    assert client.calls[0][0] == "GET"
-    assert client.calls[0][1].endswith("/api/ecu/internal/artifacts/" + "a" * 64)
+    assert client.calls[0][0] == "POST"
+    assert client.calls[0][1].endswith("/api/ecu/internal/jobs/job-1/state")
+    assert client.calls[0][3]["state"] == "RUNNING"
+    assert client.calls[1][0] == "GET"
+    assert client.calls[1][1].endswith("/api/ecu/internal/artifacts/" + "a" * 64)
     assert client.calls[-1][0] == "POST"
     assert client.calls[-1][1].endswith("/api/ecu/internal/jobs/job-1/result")
     assert client.calls[-1][3]["status"] == "NEEDS_REVIEW"
