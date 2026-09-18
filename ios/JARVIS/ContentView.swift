@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var showCamera = false
     @State private var showFiles = false
     @State private var showSettings = false
+    @State private var showEcu = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -31,6 +32,9 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $state.showLogin) { loginView.environmentObject(state) }
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(state).presentationDetents([.large])
+        }
+        .sheet(isPresented: $showEcu) {
+            EcuBrainView().presentationDetents([.large])
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
@@ -66,10 +70,19 @@ struct ContentView: View {
 
     private var header: some View {
         HStack {
-            Button { showSettings = true } label: {
-                Image(systemName: "gearshape").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
+            HStack(spacing: 2) {
+                Button { showSettings = true } label: {
+                    Image(systemName: "gearshape").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
+                }
+                .buttonStyle(.plain)
+                Button { showEcu = true } label: {
+                    Image(systemName: "waveform.path.ecg.rectangle")
+                        .font(.system(size: 19, weight: .semibold))
+                        .frame(width: 42, height: 42)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("ECU Brain")
             }
-            .buttonStyle(.plain)
             Spacer()
             VStack(spacing: 1) {
                 Text("JARVIS").font(.system(size: 17, weight: .bold))
