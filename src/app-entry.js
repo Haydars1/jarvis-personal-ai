@@ -7,6 +7,7 @@ import { createEmergencyChatFallback } from './application/chat/emergency-fallba
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createEcuRuntime } from './application/ecu/runtime.js';
+import { createEcuChatTool } from './application/ecu/tool.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createJarvisOS } from './application/os/runtime.js';
@@ -41,7 +42,8 @@ const mediaCore = {
   }
 };
 
-const handleChat = createEmergencyChatFallback(createChatOrchestrator(mediaCore));
+const ecuChatCore = createEcuChatTool(mediaCore);
+const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuChatCore));
 const handlePush = createPushApi(ecuCore);
 
 function shouldFlushPush(req, response) {
