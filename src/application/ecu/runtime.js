@@ -54,6 +54,7 @@ function mapJob(row) {
     state: row.state,
     runFingerprint: row.run_fingerprint ?? null,
     modelVersion: row.model_version ?? null,
+    rulepackVersion: row.rulepack_version ?? null,
     workerKind: row.worker_kind ?? null,
     result: row.result_json ? JSON.parse(row.result_json) : null,
     error: row.error ?? null,
