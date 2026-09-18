@@ -28,7 +28,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Full validation
@@ -50,7 +49,7 @@ jobs:
             "https://haydojarvis.workers.dev/api/health" \
             "https://haydojarvis.workers.dev/"; do
             code="$(curl -L -sS -o /tmp/jarvis-health -w '%{http_code}' --max-time 12 "$url" || true)"
-            if [[ "$code" =~ ^2|3 ]]; then
+            if [[ "$code" =~ ^[23][0-9][0-9]$ ]]; then
               echo "JARVIS reachable: $url ($code)"
               exit 0
             fi
