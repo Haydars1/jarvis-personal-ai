@@ -71,6 +71,38 @@ async function loadSelfUpdate(){try{const x=await api('/api/self-update/status')
 $('#suSend').onclick=async()=>{const request=$('#suRequest').value.trim();if(!request)return;mode('THINKING','Kendi kodumu inceliyorum');try{const r=await api('/api/self-update/request',{method:'POST',body:JSON.stringify({request})});toast(r.ok?'Değişiklik test/deploy hattına gönderildi':(r.message||'Bağlantı gerekli'));$('#suRequest').value='';loadSelfUpdate();mode('IDLE','Komut bekliyorum')}catch(e){toast(e.message);mode('IDLE','Hata')}};
 async function loadPasskeys(){try{const a=await api('/api/auth/passkeys'),e=$('#passkeyList');e.innerHTML='';a.forEach((p,i)=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>Passkey ${i+1}</b><small>${p.device_type||'cihaz'} • ${p.last_used_at?new Date(p.last_used_at).toLocaleString('tr-TR'):'henüz kullanılmadı'}</small><button class="danger">SİL</button>`;d.querySelector('button').onclick=async()=>{await api('/api/auth/passkeys/'+encodeURIComponent(p.id),{method:'DELETE'});loadPasskeys()};e.appendChild(d)})}catch(e){toast(e.message)}}$('#registerPasskey').onclick=registerPasskey;
 
+
+async function loadEcuMaps(jobId){
+ const box=$('#ecuMaps');if(!box)return;
+ box.innerHTML='<div class="muted">Map adayları yükleniyor...</div>';
+ try{
+  const r=await api('/api/ecu/jobs/'+encodeURIComponent(jobId)+'/maps');
+  box.innerHTML='';
+  const labels=['torque_limiter','driver_wish','boost_target','fuel_quantity','rail_pressure','lambda_target','smoke_limiter','temperature_correction','UNKNOWN'];
+  (r.maps||[]).forEach(m=>{
+   const d=document.createElement('div');d.className='item';
+   const title=document.createElement('b');title.textContent=`0x${Number(m.offset||0).toString(16).toUpperCase()} • ${m.rows||'?'}×${m.cols||'?'} • ${m.dataType||''}`;
+   const meta=document.createElement('small');meta.textContent=`${m.endian||''} • skor ${Math.round(Number(m.confidence||0)*100)}% • ${m.semanticLabel||'UNKNOWN'}`;
+   const row=document.createElement('div');row.className='row';
+   const select=document.createElement('select');
+   labels.forEach(label=>{const o=document.createElement('option');o.value=label;o.textContent=label;if(label===(m.semanticLabel||'UNKNOWN'))o.selected=true;select.appendChild(o)});
+   const custom=document.createElement('input');custom.placeholder='Özel etiket (opsiyonel)';
+   const btn=document.createElement('button');btn.textContent='DOĞRULA';
+   btn.onclick=async()=>{
+    const semanticLabel=(custom.value.trim()||select.value).trim();
+    if(!semanticLabel||semanticLabel==='UNKNOWN')return toast('Doğrulanmış eğitim verisi için gerçek map etiketini seç');
+    try{
+     const x=await api('/api/ecu/maps/'+encodeURIComponent(m.id)+'/verify',{method:'POST',body:JSON.stringify({semanticLabel})});
+     toast('Map doğrulandı • '+semanticLabel+(x.example?.datasetVersion?' • '+x.example.datasetVersion:''));
+     await Promise.all([loadEcuMaps(jobId),loadEcuStatus()]);
+    }catch(e){toast('Map doğrulama: '+e.message)}
+   };
+   row.append(select,custom,btn);d.append(title,meta,row);box.appendChild(d);
+  });
+  if(!(r.maps||[]).length)box.innerHTML='<div class="muted">Bu analiz için kayıtlı map adayı yok.</div>';
+ }catch(e){box.textContent='Map listesi alınamadı: '+e.message}
+}
+
 async function loadEcuStatus(){
  try{
   const [research,training,jobs]=await Promise.all([
@@ -83,7 +115,7 @@ async function loadEcuStatus(){
     `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
     `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış örnek ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`;
   }
-  const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';const family=j.result?.ecu_family||'';const confidence=Number(j.result?.confidence||0);const maps=Array.isArray(j.result?.map_candidates)?j.result.map_candidates.length:0;d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${family?' • ECU '+esc(family):''}${confidence?' • '+Math.round(confidence*100)+'%':''}${maps?' • '+maps+' map adayı':''}${j.error?' • '+esc(j.error):''}</small>`;list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
+  const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';const family=j.result?.ecu_family||'';const confidence=Number(j.result?.confidence||0);const maps=Array.isArray(j.result?.map_candidates)?j.result.map_candidates.length:0;d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${family?' • ECU '+esc(family):''}${confidence?' • '+Math.round(confidence*100)+'%':''}${maps?' • '+maps+' map adayı':''}${j.error?' • '+esc(j.error):''}</small>`;d.onclick=()=>loadEcuMaps(j.id);list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
  }catch(e){toast('ECU Brain: '+e.message)}
 }
 async function analyzeEcuFile(){
