@@ -1,5 +1,5 @@
 export { EcuComputeContainer } from './infrastructure/ecu/cloud-container.js';
-import legacyBase from './worker.js';
+import legacyBase, { isAuthed as isOwnerAuthenticated } from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
@@ -7,6 +7,7 @@ import { createEmergencyChatFallback } from './application/chat/emergency-fallba
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createEcuRuntime } from './application/ecu/runtime.js';
+import { createEcuAuthGuard } from './application/ecu/auth-guard.js';
 import { createEcuChatTool } from './application/ecu/tool.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
 import { createMediaRescue } from './application/media/rescue.js';
@@ -29,7 +30,8 @@ const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const ecuCore = createEcuRuntime(capabilityCore);
+const ecuRuntimeCore = createEcuRuntime(capabilityCore);
+const ecuCore = createEcuAuthGuard(ecuRuntimeCore, { isOwnerAuthenticated });
 const handleMediaRescue = createMediaRescue(ecuCore);
 const mediaCore = {
   fetch(req, env, ctx) {
