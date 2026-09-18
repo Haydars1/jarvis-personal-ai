@@ -7,8 +7,9 @@ from typing import Any
 
 from fastapi import BackgroundTasks, Body, FastAPI, Header, HTTPException
 
-from .contracts import AnalysisJobInput, TrainingJobInput
+from .contracts import AnalysisJobInput, PairJobInput, TrainingJobInput
 from .service import process_dispatched_job
+from .pair_service import process_pair_job
 from .training_service import process_training_job
 
 app = FastAPI(title="JARVIS ECU Worker", version="0.1.0")
@@ -28,6 +29,11 @@ def _authorized(authorization: str | None) -> bool:
 async def _run_job(job: AnalysisJobInput, token: str) -> None:
     async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=15.0)) as client:
         await process_dispatched_job(job, token, client=client)
+
+
+async def _run_pair(job: PairJobInput, token: str) -> None:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=15.0)) as client:
+        await process_pair_job(job, token, client=client)
 
 
 async def _run_training(job: TrainingJobInput, token: str) -> None:
@@ -53,6 +59,9 @@ async def submit_job(
     if operation == "train":
         job = TrainingJobInput.model_validate(payload)
         background_tasks.add_task(_run_training, job, token)
+    elif operation == "diff_pair":
+        job = PairJobInput.model_validate(payload)
+        background_tasks.add_task(_run_pair, job, token)
     else:
         job = AnalysisJobInput.model_validate(payload)
         background_tasks.add_task(_run_job, job, token)
