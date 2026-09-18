@@ -72,8 +72,9 @@ export function createEcuChatTool(core){
         const required=Number(training?.minVerifiedExamples||0);
         const sources=Number(research?.counts?.sources||0);
         const verifiedClaims=Number(research?.counts?.verified_claims||0);
+        const verifiedChanges=Number(training?.verifiedChangeEvidence||0);
         const model=training?.productionModel?.version||'baseline';
-        const reply=`ECU Brain durumu: ${computeText}. Eğitim verisi: ${verified}/${required}. Aktif model: ${model}. Araştırma kaynağı: ${sources}; doğrulanmış claim: ${verifiedClaims}.`;
+        const reply=`ECU Brain durumu: ${computeText}. Doğrulanmış map verisi: ${verified}/${required}. ORI/MOD değişim kanıtı: ${verifiedChanges}. Aktif model: ${model}. Araştırma kaynağı: ${sources}; doğrulanmış claim: ${verifiedClaims}.`;
         return json(chatPayload(text,reply));
       }
 
