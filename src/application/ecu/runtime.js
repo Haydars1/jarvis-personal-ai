@@ -255,6 +255,59 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
   };
 }
 
+async function defaultStoreValidatedMod(env, jobId, { bytes, checksumAlgorithm }) {
+  const existing=await env.DB.prepare('SELECT id,job_id,sha256,artifact_uri,size_bytes,checksum_algorithm,validation_json,created_at FROM ecu_mod_artifacts WHERE job_id=? LIMIT 1').bind(jobId).first();
+  if(existing){
+    return {
+      id:existing.id,
+      jobId:existing.job_id,
+      sha256:existing.sha256,
+      artifactUri:existing.artifact_uri,
+      sizeBytes:Number(existing.size_bytes||0),
+      checksumAlgorithm:existing.checksum_algorithm,
+      validation:(()=>{try{return JSON.parse(existing.validation_json||'{}')}catch{return {}}})(),
+      createdAt:existing.created_at,
+      existed:true,
+    };
+  }
+
+  const job=await env.DB.prepare('SELECT id,state,result_json FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
+  if(!job)throw new Error('ECU_JOB_NOT_FOUND');
+  if(job.state!=='READY')throw new Error('ECU_MOD_JOB_NOT_READY');
+
+  let result={};
+  try{result=job.result_json?JSON.parse(job.result_json):{}}catch{}
+  const validation=result.validation||result.release_validation||null;
+  if(!validation?.ready)throw new Error('ECU_MOD_VALIDATION_NOT_READY');
+  const checksumStatus=String(validation?.checksum?.status||validation?.checksum_status||'');
+  const recordedAlgorithm=String(validation?.checksum?.algorithm||validation?.checksum_algorithm||'');
+  if(checksumStatus!=='VERIFIED')throw new Error('ECU_MOD_CHECKSUM_NOT_VERIFIED');
+  if(!checksumAlgorithm||!recordedAlgorithm||String(checksumAlgorithm)!==recordedAlgorithm){
+    throw new Error('ECU_MOD_CHECKSUM_ALGORITHM_MISMATCH');
+  }
+
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const saved=await store.putValidatedMod(bytes,{jobId,checksumAlgorithm});
+  const id=`mod-${jobId}`;
+  const artifactUri=`r2://ecu-artifacts/${saved.key}`;
+  const timestamp=now();
+  await env.DB.prepare(`INSERT INTO ecu_mod_artifacts(
+    id,job_id,sha256,artifact_uri,size_bytes,checksum_algorithm,validation_json,created_at
+  ) VALUES(?,?,?,?,?,?,?,?)`)
+    .bind(id,jobId,saved.sha256,artifactUri,saved.sizeBytes,checksumAlgorithm,JSON.stringify(validation),timestamp).run();
+  return {
+    id,
+    jobId,
+    sha256:saved.sha256,
+    artifactUri,
+    sizeBytes:saved.sizeBytes,
+    checksumAlgorithm,
+    validation,
+    createdAt:timestamp,
+    existed:false,
+  };
+}
+
 async function defaultReadModel(env, version) {
   const row=await env.DB.prepare('SELECT artifact_uri FROM ecu_model_versions WHERE version=? LIMIT 1').bind(version).first();
   if(!row?.artifact_uri)return null;
@@ -722,6 +775,7 @@ export function createEcuRuntime(core, overrides = {}) {
     rollbackModel: defaultRollbackModel,
     listModels: defaultListModels,
     uploadOriginal: defaultUploadOriginal,
+    storeValidatedMod: defaultStoreValidatedMod,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
@@ -821,6 +875,27 @@ export function createEcuRuntime(core, overrides = {}) {
         }catch(error){
           if(error?.message==='ECU_TRAINING_RUN_NOT_FOUND')return json({error:'ECU_TRAINING_RUN_NOT_FOUND'},404);
           if(error?.message==='INVALID_TRAINING_RESULT_STATUS'||error?.message==='ECU_MODEL_ARTIFACT_REQUIRED')return json({error:error.message},400);
+          if(String(error?.message||'').includes('ECU_ARTIFACTS binding'))return json({error:'ECU_STORAGE_UNAVAILABLE'},503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/jobs/') && url.pathname.endsWith('/mod') && req.method === 'POST') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const jobId=decodeURIComponent(url.pathname.slice('/api/ecu/internal/jobs/'.length,-'/mod'.length));
+        if(!jobId)return json({error:'ECU_JOB_ID_REQUIRED'},400);
+        const declaredLength=Number(req.headers.get('content-length')||0);
+        if(declaredLength>maxUploadBytes)return json({error:'ECU_FILE_TOO_LARGE',maxUploadBytes},413);
+        const buffer=await req.arrayBuffer();
+        if(!buffer.byteLength)return json({error:'ECU_FILE_EMPTY'},400);
+        if(buffer.byteLength>maxUploadBytes)return json({error:'ECU_FILE_TOO_LARGE',maxUploadBytes},413);
+        const checksumAlgorithm=String(req.headers.get('x-checksum-algorithm')||'').trim();
+        try{
+          const mod=await deps.storeValidatedMod(env,jobId,{bytes:new Uint8Array(buffer),checksumAlgorithm});
+          return json({mod},mod.existed?200:201);
+        }catch(error){
+          if(error?.message==='ECU_JOB_NOT_FOUND')return json({error:'ECU_JOB_NOT_FOUND'},404);
+          if(['ECU_MOD_JOB_NOT_READY','ECU_MOD_VALIDATION_NOT_READY','ECU_MOD_CHECKSUM_NOT_VERIFIED','ECU_MOD_CHECKSUM_ALGORITHM_MISMATCH'].includes(error?.message))return json({error:error.message},409);
           if(String(error?.message||'').includes('ECU_ARTIFACTS binding'))return json({error:'ECU_STORAGE_UNAVAILABLE'},503);
           throw error;
         }
