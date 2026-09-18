@@ -4,6 +4,7 @@ from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprin
 from .fingerprint import fingerprint_binary
 from .maps import extract_map_candidates
 from .training.semantic_model import load_semantic_model, predict_semantic
+from .proposal import stage1_proposal_from_config
 
 
 def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
@@ -44,6 +45,27 @@ def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
             "semantic_confidence": semantic.confidence if semantic is not None else 0.0,
             "needs_review": semantic.needs_review if semantic is not None else True,
         })
+    proposal = None
+    if job.operation == "stage1_proposal":
+        stage1 = stage1_proposal_from_config(map_candidates, job.config)
+        proposal = {
+            "blocked": stage1.blocked,
+            "reasons": stage1.reasons,
+            "unknown_maps": stage1.unknown_maps,
+            "requires_checksum": stage1.requires_checksum,
+            "items": [
+                {
+                    "semantic_label": item.semantic_label,
+                    "offset": item.offset,
+                    "rows": item.rows,
+                    "cols": item.cols,
+                    "max_delta_percent": item.max_delta_percent,
+                    "confidence": item.confidence,
+                }
+                for item in stage1.items
+            ],
+        }
+
     return AnalysisJobOutput(
         job_id=job.job_id,
         run_fingerprint=build_run_fingerprint(
@@ -61,4 +83,5 @@ def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
         confidence=fp.confidence,
         evidence=evidence,
         map_candidates=map_candidates,
+        proposal=proposal,
     )
