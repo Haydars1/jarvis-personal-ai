@@ -1,12 +1,15 @@
+-- ECU Brain core metadata. This branch migration has not been released;
+-- keep it aligned with the current runtime before first production merge.
 CREATE TABLE IF NOT EXISTS ecu_files (
   id TEXT PRIMARY KEY,
   sha256 TEXT NOT NULL UNIQUE,
-  original_name TEXT NOT NULL,
+  original_name TEXT NOT NULL DEFAULT '',
+  artifact_uri TEXT NOT NULL,
   size_bytes INTEGER NOT NULL CHECK(size_bytes >= 0),
-  storage_key TEXT NOT NULL UNIQUE,
-  content_type TEXT NOT NULL DEFAULT 'application/octet-stream',
+  immutable INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_ecu_files_sha ON ecu_files(sha256);
 CREATE INDEX IF NOT EXISTS idx_ecu_files_created ON ecu_files(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS ecu_jobs (
@@ -16,6 +19,7 @@ CREATE TABLE IF NOT EXISTS ecu_jobs (
   state TEXT NOT NULL DEFAULT 'QUEUED' CHECK(state IN ('QUEUED','DISPATCHED','RUNNING','NEEDS_REVIEW','READY','FAILED')),
   run_fingerprint TEXT,
   model_version TEXT,
+  rulepack_version TEXT,
   worker_kind TEXT,
   result_json TEXT,
   error TEXT,
