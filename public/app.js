@@ -83,7 +83,7 @@ async function loadEcuStatus(){
     `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
     `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış örnek ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`;
   }
-  const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${j.error?' • '+esc(j.error):''}</small>`;list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
+  const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';const family=j.result?.ecu_family||'';const confidence=Number(j.result?.confidence||0);const maps=Array.isArray(j.result?.map_candidates)?j.result.map_candidates.length:0;d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${family?' • ECU '+esc(family):''}${confidence?' • '+Math.round(confidence*100)+'%':''}${maps?' • '+maps+' map adayı':''}${j.error?' • '+esc(j.error):''}</small>`;list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
  }catch(e){toast('ECU Brain: '+e.message)}
 }
 async function analyzeEcuFile(){
