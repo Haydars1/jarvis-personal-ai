@@ -5,6 +5,7 @@ from .fingerprint import fingerprint_binary
 from .maps import extract_map_candidates
 from .training.semantic_model import load_semantic_model, predict_semantic
 from .proposal import stage1_proposal_from_config
+from .validation import ChecksumAdapter
 
 
 def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
@@ -48,11 +49,14 @@ def analyze_binary(job: AnalysisJobInput, data: bytes) -> AnalysisJobOutput:
     proposal = None
     if job.operation == "stage1_proposal":
         stage1 = stage1_proposal_from_config(map_candidates, job.config)
+        checksum_support=ChecksumAdapter().verify(data)
         proposal = {
             "blocked": stage1.blocked,
             "reasons": stage1.reasons,
             "unknown_maps": stage1.unknown_maps,
             "requires_checksum": stage1.requires_checksum,
+            "checksum_support": checksum_support.status,
+            "release_ready": False,
             "items": [
                 {
                     "semantic_label": item.semantic_label,
