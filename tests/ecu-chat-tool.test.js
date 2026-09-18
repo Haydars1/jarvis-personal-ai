@@ -27,7 +27,7 @@ test('answers explicit ECU status request without using a language model', async
   const body=await res.json();
   assert.match(body.reply,/Cloud container/i);
   assert.match(body.reply,/12\/50/);
-  assert.deepEqual(calls,['/api/ecu/compute/status','/api/ecu/training/status','/api/ecu/research/status']);
+  assert.deepEqual(calls,['/api/ecu/compute/status','/api/ecu/training/status','/api/ecu/research/status','/api/ecu/rulepacks/status']);
 });
 
 test('delegates unrelated chat unchanged',async()=>{
