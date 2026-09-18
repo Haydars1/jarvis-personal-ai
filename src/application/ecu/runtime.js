@@ -5,6 +5,7 @@ import { createEcuTraining } from './training.js';
 import { buildEcuDatasetSnapshot } from './dataset.js';
 import { decideEcuModelPromotion, ecuBenchmarkScore } from './promotion.js';
 import { extractVerifiedChangeEvidence } from './change-evidence.js';
+import { createEcuRulepackLearning } from './rulepacks.js';
 import { createEcuArtifactStore } from '../../infrastructure/ecu/artifact-store.js';
 import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch.js';
 
@@ -675,6 +676,7 @@ async function defaultUploadStatus(env) {
 
 export function createEcuRuntime(core, overrides = {}) {
   const research = overrides.research || createEcuResearch();
+  const rulepacks = overrides.rulepacks || createEcuRulepackLearning();
   const computeDispatch = overrides.computeDispatch || createComputeDispatch();
   const training = overrides.training || createEcuTraining({
     dispatch: (job, env) => computeDispatch({
@@ -696,6 +698,7 @@ export function createEcuRuntime(core, overrides = {}) {
     mapContextForArtifact: defaultMapContextForArtifact,
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
+    rulepackStatus: env => rulepacks.status(env),
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     computeStatus: defaultComputeStatus,
@@ -936,6 +939,10 @@ export function createEcuRuntime(core, overrides = {}) {
         return json(await deps.computeStatus(env));
       }
 
+      if (url.pathname === '/api/ecu/rulepacks/status' && req.method === 'GET') {
+        return json(await deps.rulepackStatus(env));
+      }
+
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
         return json(await deps.researchStatus(env));
       }
@@ -985,6 +992,11 @@ export function createEcuRuntime(core, overrides = {}) {
         await research.run(env, timestamp);
       } catch {
         // Background learning must never break the main JARVIS scheduler.
+      }
+      try {
+        await rulepacks.refresh(env);
+      } catch {
+        // Evidence-only rulepack learning is recoverable and never promotes itself.
       }
       try {
         await training.maybeRun(env, timestamp);
