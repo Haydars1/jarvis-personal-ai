@@ -141,6 +141,10 @@ async function loadEcuMaps(jobId){
  }catch(e){box.textContent='Map listesi alınamadı: '+e.message}
 }
 
+let ecuPollTimer=null;
+function startEcuPolling(){if(ecuPollTimer)clearInterval(ecuPollTimer);ecuPollTimer=setInterval(()=>{if(document.querySelector('#ecu.page.active')){loadEcuStatus();loadEcuPairs();}},5000)}
+function stopEcuPolling(){if(ecuPollTimer){clearInterval(ecuPollTimer);ecuPollTimer=null}}
+
 async function loadEcuStatus(){
  try{
   const [research,training,jobs]=await Promise.all([
@@ -181,5 +185,5 @@ if($('#ecuTrainNow'))$('#ecuTrainNow').onclick=async()=>{
  }catch(e){toast('ECU eğitim: '+e.message)}
 };
 
-function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu'){loadEcuStatus();loadEcuPairs();}if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
+function switchPage(id){$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id!=='ecu')stopEcuPolling();if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu'){loadEcuStatus();loadEcuPairs();startEcuPolling();}if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
 $('#logout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});location.reload()};if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});init();
