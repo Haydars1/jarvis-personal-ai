@@ -46,6 +46,7 @@ async def process_pair_job(
                 "data_type":item.get("data_type") or item.get("dataType"),
                 "semantic_label":item.get("semantic_label") or item.get("semanticLabel") or "UNKNOWN",
                 "semantic_confidence":item.get("semantic_confidence") if item.get("semantic_confidence") is not None else item.get("confidence",0),
+                "human_verified":bool(item.get("human_verified") or item.get("humanVerified") or False),
             }
             for item in maps
         ]
