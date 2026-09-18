@@ -63,7 +63,8 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
   const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
-  const modelVersion = 'baseline';
+  const productionModel=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
+  const modelVersion = productionModel?.version || 'baseline';
   const rulepackVersion = 'baseline';
   const runFingerprint = await sha256Text(JSON.stringify({
     artifactSha256: file.sha256,
@@ -128,6 +129,15 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
     existed: saved.existed,
     immutable: true,
   };
+}
+
+async function defaultReadModel(env, version) {
+  const row=await env.DB.prepare('SELECT artifact_uri FROM ecu_model_versions WHERE version=? LIMIT 1').bind(version).first();
+  if(!row?.artifact_uri)return null;
+  const match=String(row.artifact_uri).match(/models\/([a-f0-9]{64})\.json$/i);
+  if(!match)return null;
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  return store.getModelArtifact(match[1].toLowerCase());
 }
 
 async function defaultReadDataset(env, digest) {
@@ -397,6 +407,7 @@ export function createEcuRuntime(core, overrides = {}) {
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
+    readModel: defaultReadModel,
     applyWorkerResult: defaultApplyWorkerResult,
     applyWorkerState: defaultApplyWorkerState,
     verifyMap: defaultVerifyMap,
@@ -409,6 +420,23 @@ export function createEcuRuntime(core, overrides = {}) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname.startsWith('/api/ecu/internal/models/') && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const version=decodeURIComponent(url.pathname.slice('/api/ecu/internal/models/'.length));
+        if(!version)return json({error:'ECU_MODEL_VERSION_REQUIRED'},400);
+        try{
+          const modelJson=await deps.readModel(env,version);
+          if(!modelJson)return json({error:'ECU_MODEL_NOT_FOUND'},404);
+          return new Response(modelJson,{
+            status:200,
+            headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}
+          });
+        }catch(error){
+          if(String(error?.message||'').includes('ECU_ARTIFACTS binding'))return json({error:'ECU_STORAGE_UNAVAILABLE'},503);
+          throw error;
+        }
+      }
+
       if (url.pathname.startsWith('/api/ecu/internal/datasets/') && req.method === 'GET') {
         if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
         const digest = decodeURIComponent(url.pathname.slice('/api/ecu/internal/datasets/'.length)).toLowerCase();
