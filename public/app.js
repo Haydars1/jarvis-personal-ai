@@ -147,13 +147,15 @@ function stopEcuPolling(){if(ecuPollTimer){clearInterval(ecuPollTimer);ecuPollTi
 
 async function loadEcuStatus(){
  try{
-  const [research,training,jobs]=await Promise.all([
+  const [research,training,jobs,compute]=await Promise.all([
    api('/api/ecu/research/status'),
    api('/api/ecu/training/status'),
-   api('/api/ecu/jobs?limit=20')
+   api('/api/ecu/jobs?limit=20'),
+   api('/api/ecu/compute/status')
   ]);
   const learning=$('#ecuLearning');if(learning){
    learning.innerHTML=
+    `<div class="item"><b>COMPUTE</b><small>${compute.preferred==='local'?'Laptop GPU aktif':compute.preferred==='cloud-container'?'Cloud container hazır (laptop gerekmez)':compute.preferred==='cloud'?'Cloud worker hazır':'Compute endpoint bekliyor'}</small></div>`+
     `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
     `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış örnek ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`;
   }
