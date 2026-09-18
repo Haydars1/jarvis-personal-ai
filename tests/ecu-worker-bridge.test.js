@@ -102,3 +102,40 @@ test('compute worker can fetch immutable training dataset by digest', async () =
   assert.equal(body.digest, 'd'.repeat(64));
   assert.equal(body.examples[0].semantic_label, 'torque_limiter');
 });
+
+
+test('training worker callback stores candidate model through injected result writer', async () => {
+  const writes = [];
+  const runtime = createEcuRuntime(coreFallback(), {
+    async applyTrainingResult(_env, trainingId, body) {
+      writes.push([trainingId, body]);
+      return { id: trainingId, status: body.status, modelVersion: 'model-candidate-1' };
+    },
+  });
+  const env = { ECU_COMPUTE_TOKEN: 'secret-token' };
+  const body = {
+    status: 'CANDIDATE',
+    dataset_version: 'dataset-8-1',
+    dataset_digest: 'd'.repeat(64),
+    production_model_version: 'baseline',
+    model_json: '{"version":1,"labels":{}}',
+    label_count: 2,
+    example_count: 8,
+    metrics: { accuracy: .9, macro_f1: .88, unknown_precision: 1, calibration_error: .08 },
+    paid_api_used: false,
+  };
+
+  const response = await runtime.fetch(request('/api/ecu/internal/training/training-1/result', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: 'Bearer secret-token' },
+    body: JSON.stringify(body),
+  }), env, {});
+
+  assert.equal(response.status, 200);
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0][0], 'training-1');
+  assert.equal(writes[0][1].dataset_version, 'dataset-8-1');
+  assert.deepEqual(await response.json(), {
+    training: { id: 'training-1', status: 'CANDIDATE', modelVersion: 'model-candidate-1' },
+  });
+});
