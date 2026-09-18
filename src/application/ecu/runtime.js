@@ -235,7 +235,7 @@ export function createEcuRuntime(core, overrides = {}) {
     readOriginal: defaultReadOriginal,
     applyWorkerResult: defaultApplyWorkerResult,
     applyWorkerState: defaultApplyWorkerState,
-    ...overrides;
+    ...overrides,
   };
 
   const maxUploadBytes = Math.max(1, Number(overrides.maxUploadBytes || 16 * 1024 * 1024));
