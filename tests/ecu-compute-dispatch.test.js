@@ -194,3 +194,61 @@ test('dispatches training jobs through scale-to-zero container', async () => {
   assert.equal(calls[0].production_model_version,'model-1');
   assert.equal(calls[0].paid_api_allowed,false);
 });
+
+
+test('prefers a recently heartbeating local worker from D1 over cloud container', async () => {
+  const calls=[];
+  const now=1_000_000;
+  const db={
+    prepare(sql){
+      assert.match(sql,/ecu_workers/);
+      return {
+        bind(){return this;},
+        async first(){
+          return {
+            endpoint:'https://laptop-tunnel.example/jobs',
+            last_seen_at:now-10_000,
+            expires_at:now+60_000,
+          };
+        }
+      };
+    }
+  };
+  const dispatch=createComputeDispatch({
+    now:()=>now,
+    fetchImpl:async(url,init)=>{
+      calls.push({url,init});
+      return new Response(JSON.stringify({accepted:true}),{status:202,headers:{'content-type':'application/json'}});
+    }
+  });
+  const result=await dispatch(job(),{
+    DB:db,
+    ECU_COMPUTE_CONTAINER:{getByName(){throw new Error('cloud must not wake')}},
+    ECU_COMPUTE_TOKEN:'secret',
+  });
+  assert.equal(result.accepted,true);
+  assert.equal(result.workerKind,'local');
+  assert.equal(calls[0].url,'https://laptop-tunnel.example/jobs');
+});
+
+test('ignores expired local worker heartbeat and falls back to cloud container', async () => {
+  const now=2_000_000;
+  let cloudCalls=0;
+  const db={
+    prepare(){
+      return {
+        bind(){return this;},
+        async first(){return {endpoint:'https://old.example/jobs',last_seen_at:1,expires_at:now-1};}
+      };
+    }
+  };
+  const dispatch=createComputeDispatch({now:()=>now,fetchImpl:async()=>{throw new Error('external fetch must not run')}});
+  const result=await dispatch(job(),{
+    DB:db,
+    ECU_COMPUTE_CONTAINER:{getByName(){return {async fetch(){cloudCalls++;return new Response('{}',{status:202})}}}},
+    ECU_COMPUTE_TOKEN:'secret',
+  });
+  assert.equal(result.accepted,true);
+  assert.equal(result.workerKind,'cloud-container');
+  assert.equal(cloudCalls,1);
+});
