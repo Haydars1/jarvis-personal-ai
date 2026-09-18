@@ -103,6 +103,7 @@ def link_ranges_to_maps(report: DiffReport, maps: list[dict]) -> list[dict]:
                 "end":end,
                 "semantic_label":str(candidate.get("semantic_label") or "UNKNOWN"),
                 "semantic_confidence":float(candidate.get("semantic_confidence") or candidate.get("confidence") or 0.0),
+                "human_verified":bool(candidate.get("human_verified") or candidate.get("humanVerified") or False),
                 "overlap_bytes":overlap,
             })
         hits.sort(key=lambda item:(-item["overlap_bytes"],-item["semantic_confidence"],item["offset"]))
