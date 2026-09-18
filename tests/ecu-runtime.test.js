@@ -203,3 +203,20 @@ test('lists persisted map candidates for an analysis job', async () => {
   assert.equal(body.maps[0].id, 'job-1-map-0');
   assert.equal(body.maps[0].offset, 128);
 });
+
+
+test('exposes compute availability status without requiring the laptop', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async computeStatus() {
+      return { localOnline: false, cloudContainerReady: true, cloudUrlReady: false, preferred: 'cloud-container' };
+    },
+  });
+  const response = await runtime.fetch(request('/api/ecu/compute/status'), {}, {});
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), {
+    localOnline: false,
+    cloudContainerReady: true,
+    cloudUrlReady: false,
+    preferred: 'cloud-container',
+  });
+});
