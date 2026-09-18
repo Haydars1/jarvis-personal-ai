@@ -1,4 +1,19 @@
-function chooseEndpoint(env = {}) {
+async function chooseEndpoint(env = {}, now = Date.now) {
+  if (env.DB?.prepare) {
+    try {
+      const row = await env.DB.prepare(`SELECT endpoint,last_seen_at,expires_at
+        FROM ecu_workers
+        WHERE kind='local' AND enabled=1
+        ORDER BY last_seen_at DESC LIMIT 1`).first();
+      const current = Number(now());
+      if (row?.endpoint && Number(row.expires_at || 0) > current) {
+        return { url: String(row.endpoint), workerKind: 'local' };
+      }
+    } catch {
+      // Older schemas or transient D1 failures fall through to static/cloud routing.
+    }
+  }
+
   const localUrl = String(env.ECU_LOCAL_WORKER_URL || '').trim();
   const localOnline = String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1';
   if (localUrl && localOnline) return { url: localUrl, workerKind: 'local' };
@@ -51,9 +66,9 @@ function payloadFor(job, env = {}) {
   };
 }
 
-export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000 } = {}) {
+export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, now = Date.now } = {}) {
   return async function dispatch(job, env = {}) {
-    const endpoint = chooseEndpoint(env);
+    const endpoint = await chooseEndpoint(env, now);
     if (!endpoint) {
       return {
         accepted: false,
