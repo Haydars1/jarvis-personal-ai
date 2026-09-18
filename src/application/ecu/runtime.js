@@ -213,6 +213,66 @@ async function defaultApplyWorkerResult(env, jobId, body = {}) {
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
 }
 
+async function defaultVerifyMap(env, mapId, { semanticLabel }) {
+  const row = await env.DB.prepare(`SELECT
+      m.id AS map_id,m.job_id,m.map_offset,m.confidence AS map_confidence,m.features_json,
+      j.file_id,f.sha256,
+      a.ecu_family,a.hw_candidates,a.sw_candidates
+    FROM ecu_map_candidates m
+    JOIN ecu_jobs j ON j.id=m.job_id
+    JOIN ecu_files f ON f.id=j.file_id
+    LEFT JOIN ecu_analysis_results a ON a.job_id=j.id
+    WHERE m.id=? LIMIT 1`).bind(mapId).first();
+  if (!row) throw new Error('ECU_MAP_NOT_FOUND');
+
+  const parseFirstValue = raw => {
+    try {
+      const values = JSON.parse(raw || '[]');
+      const first = values?.[0];
+      return typeof first === 'string' ? first : String(first?.value || '');
+    } catch { return ''; }
+  };
+  const timestamp = now();
+  const exampleId = `verified-${mapId}`;
+  const label = String(semanticLabel || '').trim();
+  await env.DB.prepare(`INSERT INTO ecu_training_examples(
+      id,ecu_family,hw,sw,artifact_sha256,map_offset,semantic_label,source_type,source_ref,source_confidence,human_verified,created_at,updated_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET
+      semantic_label=excluded.semantic_label,
+      source_confidence=excluded.source_confidence,
+      human_verified=1,
+      updated_at=excluded.updated_at`)
+    .bind(
+      exampleId,
+      row.ecu_family || 'UNKNOWN',
+      parseFirstValue(row.hw_candidates),
+      parseFirstValue(row.sw_candidates),
+      row.sha256,
+      Number(row.map_offset || 0),
+      label,
+      'human_map_review',
+      mapId,
+      Math.max(0, Math.min(1, Number(row.map_confidence || 0))),
+      1,
+      timestamp,
+      timestamp,
+    ).run();
+  await env.DB.prepare(`INSERT INTO ecu_training_features(example_id,features_json,created_at,updated_at)
+      VALUES(?,?,?,?)
+      ON CONFLICT(example_id) DO UPDATE SET features_json=excluded.features_json,updated_at=excluded.updated_at`)
+    .bind(exampleId, row.features_json || '{}', timestamp, timestamp).run();
+  await env.DB.prepare('UPDATE ecu_map_candidates SET semantic_label=?,confidence=? WHERE id=?')
+    .bind(label, 1, mapId).run();
+
+  return {
+    exampleId,
+    mapId,
+    semanticLabel: label,
+    humanVerified: true,
+  };
+}
+
 async function defaultUploadStatus(env) {
   return {
     ready: Boolean(env.ECU_ARTIFACTS),
@@ -235,6 +295,7 @@ export function createEcuRuntime(core, overrides = {}) {
     readOriginal: defaultReadOriginal,
     applyWorkerResult: defaultApplyWorkerResult,
     applyWorkerState: defaultApplyWorkerState,
+    verifyMap: defaultVerifyMap,
     ...overrides,
   };
 
@@ -322,6 +383,20 @@ export function createEcuRuntime(core, overrides = {}) {
           return json({ file, job }, 202);
         } catch (error) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/maps/') && url.pathname.endsWith('/verify') && req.method === 'POST') {
+        const mapId = decodeURIComponent(url.pathname.slice('/api/ecu/maps/'.length, -'/verify'.length));
+        if (!mapId) return json({ error: 'ECU_MAP_ID_REQUIRED' }, 400);
+        const body = await readJson(req);
+        const semanticLabel = String(body.semanticLabel || '').trim();
+        if (!semanticLabel) return json({ error: 'semanticLabel is required' }, 400);
+        try {
+          return json({ example: await deps.verifyMap(env, mapId, { semanticLabel }) }, 201);
+        } catch (error) {
+          if (error?.message === 'ECU_MAP_NOT_FOUND') return json({ error: 'ECU_MAP_NOT_FOUND' }, 404);
           throw error;
         }
       }
