@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS ecu_change_evidence (
   map_offset INTEGER NOT NULL,
   overlap_bytes INTEGER NOT NULL DEFAULT 0,
   confidence REAL NOT NULL DEFAULT 0,
+  delta_stats_json TEXT NOT NULL DEFAULT '{}',
   human_verified INTEGER NOT NULL DEFAULT 1,
   created_at INTEGER NOT NULL
 );
