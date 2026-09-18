@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from hashlib import sha256
 import json
 
@@ -16,6 +16,7 @@ class TrainingExample:
     source_type: str
     source_confidence: float
     human_verified: bool = False
+    map_features: dict[str, float] = field(default_factory=dict)
 
     @property
     def group_key(self) -> tuple[str, str, str]:
