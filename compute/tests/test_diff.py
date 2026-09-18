@@ -33,3 +33,25 @@ def test_diff_rejects_length_change_for_ecu_binary_comparison():
         assert str(exc) == 'ECU_BINARY_SIZE_MISMATCH'
     else:
         raise AssertionError('expected ECU_BINARY_SIZE_MISMATCH')
+
+
+def test_diff_links_changed_ranges_to_overlapping_semantic_map_candidates():
+    from ecu_worker.diff import link_ranges_to_maps
+    ori=bytes([0])*64
+    mod=bytearray(ori)
+    mod[18]=1
+    mod[19]=2
+    mod[50]=3
+    report=diff_bytes(ori,bytes(mod))
+    maps=[
+        {"offset":16,"rows":2,"cols":4,"data_type":"u16","semantic_label":"torque_limiter","semantic_confidence":0.96},
+        {"offset":32,"rows":2,"cols":4,"data_type":"u16","semantic_label":"boost_target","semantic_confidence":0.91},
+    ]
+
+    linked=link_ranges_to_maps(report,maps)
+
+    assert linked[0]["start"]==18
+    assert linked[0]["map_hits"][0]["semantic_label"]=="torque_limiter"
+    assert linked[0]["map_hits"][0]["overlap_bytes"]==2
+    assert linked[1]["start"]==50
+    assert linked[1]["map_hits"]==[]
