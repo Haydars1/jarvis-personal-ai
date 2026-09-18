@@ -73,3 +73,36 @@ test('research never requires a paid language model', async () => {
   assert.equal(status.paidApiRequired, false);
   assert.equal(status.mode, 'continuous-research');
 });
+
+
+test('corroborates similar claims from distinct sources without marking them verified', async () => {
+  const repository=memoryRepository();
+  repository.listClaims=async()=>[
+    {id:'c1',sourceUrl:'https://a.example/doc',topic:'torque',text:'EDC17 torque limiter uses RPM and requested torque axes',verificationState:'UNVERIFIED'},
+    {id:'c2',sourceUrl:'https://b.example/doc',topic:'torque',text:'EDC17 torque limiter uses requested torque and RPM axes',verificationState:'UNVERIFIED'},
+    {id:'c3',sourceUrl:'https://c.example/doc',topic:'boost',text:'Unrelated compressor efficiency text',verificationState:'UNVERIFIED'},
+  ];
+  const patches=[];
+  repository.markClaimState=async(_env,id,state)=>patches.push([id,state]);
+
+  const research=createEcuResearch({repository,topics:[],search:async()=>[]});
+  const result=await research.corroborate({});
+
+  assert.equal(result.corroborated,2);
+  assert.deepEqual(patches.sort(),[['c1','CORROBORATED'],['c2','CORROBORATED']]);
+  assert.ok(patches.every(([,state])=>state!=='VERIFIED'));
+});
+
+test('does not corroborate claims from the same source URL alone', async () => {
+  const repository=memoryRepository();
+  repository.listClaims=async()=>[
+    {id:'c1',sourceUrl:'https://same.example/doc',topic:'torque',text:'torque limiter rpm requested torque axes',verificationState:'UNVERIFIED'},
+    {id:'c2',sourceUrl:'https://same.example/doc',topic:'torque',text:'requested torque rpm torque limiter axes',verificationState:'UNVERIFIED'},
+  ];
+  const patches=[];
+  repository.markClaimState=async(_env,id,state)=>patches.push([id,state]);
+  const research=createEcuResearch({repository,topics:[],search:async()=>[]});
+  const result=await research.corroborate({});
+  assert.equal(result.corroborated,0);
+  assert.equal(patches.length,0);
+});
