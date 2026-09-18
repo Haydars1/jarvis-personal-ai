@@ -44,3 +44,14 @@ test('reads back exact original bytes', async () => {
 test('fails explicitly when object storage binding is missing', async () => {
   assert.throws(() => createEcuArtifactStore(null), /ECU_ARTIFACTS binding/);
 });
+
+
+test('stores dataset snapshots content-addressed and reads JSON back', async () => {
+  const bucket = new FakeBucket();
+  const store = createEcuArtifactStore(bucket);
+  const snapshot = { version: 'dataset-1', digest: 'd'.repeat(64), examples: [{ semantic_label: 'torque_limiter' }] };
+  const saved = await store.putDatasetSnapshot(snapshot);
+  assert.equal(saved.key, 'datasets/' + 'd'.repeat(64) + '.json');
+  const restored = await store.getDatasetSnapshot('d'.repeat(64));
+  assert.deepEqual(restored, snapshot);
+});
