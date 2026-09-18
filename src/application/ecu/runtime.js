@@ -38,6 +38,18 @@ function isComputeAuthorized(req, env = {}) {
   return actual === `Bearer ${expected}`;
 }
 
+function validWorkerEndpoint(value) {
+  try {
+    const url=new URL(String(value||''));
+    if(url.protocol!=='https:')return false;
+    const host=url.hostname.toLowerCase();
+    if(host==='localhost'||host==='127.0.0.1'||host==='::1'||host.endsWith('.local'))return false;
+    return url.pathname.endsWith('/jobs');
+  } catch {
+    return false;
+  }
+}
+
 function requestFilename(req) {
   const raw = String(req.headers.get('x-ecu-filename') || 'original.bin').trim();
   let decoded = raw;
@@ -741,6 +753,32 @@ async function defaultMetricsStatus(env) {
   };
 }
 
+async function defaultHeartbeatWorker(env, body = {}) {
+  const workerId=String(body.workerId||'').trim().slice(0,120);
+  const kind=String(body.kind||'local').trim();
+  const endpoint=String(body.endpoint||'').trim();
+  const ttlSeconds=Math.max(30,Math.min(300,Number(body.ttlSeconds)||90));
+  const capabilities=Array.isArray(body.capabilities)?body.capabilities.map(x=>String(x).slice(0,64)).slice(0,20):[];
+  if(!workerId)throw new Error('ECU_WORKER_ID_REQUIRED');
+  if(kind!=='local')throw new Error('ECU_WORKER_KIND_INVALID');
+  if(!validWorkerEndpoint(endpoint))throw new Error('ECU_WORKER_ENDPOINT_INVALID');
+  const timestamp=now();
+  const expiresAt=timestamp+ttlSeconds*1000;
+  await env.DB.prepare(`INSERT INTO ecu_workers(
+    id,kind,endpoint,capabilities_json,enabled,last_seen_at,expires_at,created_at,updated_at
+  ) VALUES(?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(id) DO UPDATE SET
+    kind=excluded.kind,
+    endpoint=excluded.endpoint,
+    capabilities_json=excluded.capabilities_json,
+    enabled=1,
+    last_seen_at=excluded.last_seen_at,
+    expires_at=excluded.expires_at,
+    updated_at=excluded.updated_at`)
+    .bind(workerId,kind,endpoint,JSON.stringify(capabilities),1,timestamp,expiresAt,timestamp,timestamp).run();
+  return {id:workerId,kind,endpoint,capabilities,lastSeenAt:timestamp,expiresAt};
+}
+
 async function defaultComputeStatus(env = {}) {
   const tokenConfigured = Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim());
   const localOnline = tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
@@ -785,6 +823,7 @@ export function createEcuRuntime(core, overrides = {}) {
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     computeStatus: defaultComputeStatus,
+    heartbeatWorker: defaultHeartbeatWorker,
     metricsStatus: defaultMetricsStatus,
     rollbackModel: defaultRollbackModel,
     listModels: defaultListModels,
@@ -808,6 +847,18 @@ export function createEcuRuntime(core, overrides = {}) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/ecu/internal/workers/heartbeat' && req.method === 'POST') {
+        if(!isComputeAuthorized(req,env))return json({error:'UNAUTHORIZED'},401);
+        const body=await readJson(req);
+        if(!validWorkerEndpoint(body.endpoint))return json({error:'ECU_WORKER_ENDPOINT_INVALID'},400);
+        try{
+          return json({worker:await deps.heartbeatWorker(env,body)});
+        }catch(error){
+          if(['ECU_WORKER_ID_REQUIRED','ECU_WORKER_KIND_INVALID','ECU_WORKER_ENDPOINT_INVALID'].includes(error?.message))return json({error:error.message},400);
+          throw error;
+        }
+      }
+
       if (url.pathname.startsWith('/api/ecu/internal/models/') && req.method === 'GET') {
         if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
         const version=decodeURIComponent(url.pathname.slice('/api/ecu/internal/models/'.length));
