@@ -102,6 +102,10 @@ export function createEcuTraining({
       if (!state.latestDataset?.version || !state.latestDataset?.digest) {
         return { scheduled: false, reason: 'NO_DATASET_SNAPSHOT' };
       }
+      const callbackBaseUrl = String(env.JARVIS_PUBLIC_URL || '').trim();
+      if (!callbackBaseUrl) {
+        return { scheduled: false, reason: 'NO_CALLBACK_URL' };
+      }
 
       const bucket = Math.floor(Number(timestamp) / DAY_MS) * DAY_MS;
       if (!(await repository.claimRunBucket(env, bucket))) {
@@ -123,7 +127,7 @@ export function createEcuTraining({
         datasetDigest: state.latestDataset.digest,
         productionModelVersion,
         paidApiAllowed: false,
-        callbackBaseUrl: String(env.JARVIS_PUBLIC_URL || '').trim() || null,
+        callbackBaseUrl,
         runFingerprint,
       };
       const dispatched = await dispatch(job, env);
