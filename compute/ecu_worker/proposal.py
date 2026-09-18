@@ -69,3 +69,38 @@ def propose_stage1(
         unknown_maps=unknown_maps,
         requires_checksum=True,
     )
+
+
+def stage1_proposal_from_config(
+    maps: list[dict],
+    config: dict,
+    *,
+    min_confidence: float = 0.90,
+) -> Stage1Proposal:
+    if not bool(config.get("rulepack_verified")):
+        return Stage1Proposal(
+            items=[],
+            blocked=True,
+            reasons=["RULEPACK_UNVERIFIED"],
+            unknown_maps=len(maps),
+            requires_checksum=True,
+        )
+
+    raw_rules=config.get("rulepack") or {}
+    rules: dict[str, CalibrationRule] = {}
+    for label, payload in raw_rules.items():
+        try:
+            delta=float((payload or {}).get("max_delta_percent"))
+        except (TypeError,ValueError):
+            continue
+        if delta <= 0:
+            continue
+        rules[str(label)] = CalibrationRule(label=str(label), max_delta_percent=delta)
+
+    required_labels={str(x) for x in (config.get("required_labels") or []) if str(x)}
+    return propose_stage1(
+        maps,
+        rules,
+        min_confidence=min_confidence,
+        required_labels=required_labels or None,
+    )
