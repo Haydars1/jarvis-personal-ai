@@ -514,7 +514,41 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
         .bind('DISPATCHED',result.workerKind||null,now(),row.id).run();
     }
   }
-  return {attempted:rows.length,dispatched};
+  const pairRows=(await env.DB.prepare(`SELECT
+      p.id,p.operation_label,p.run_fingerprint,
+      of.sha256 AS ori_sha256,of.artifact_uri AS ori_artifact_uri,
+      mf.sha256 AS mod_sha256,mf.artifact_uri AS mod_artifact_uri
+    FROM ecu_training_pairs p
+    JOIN ecu_files of ON of.id=p.ori_file_id
+    JOIN ecu_files mf ON mf.id=p.mod_file_id
+    WHERE p.state='QUEUED'
+    ORDER BY p.created_at ASC
+    LIMIT 10`).all()).results||[];
+  let pairDispatched=0;
+  for(const row of pairRows){
+    const result=await dispatch({
+      id:row.id,
+      operation:'diff_pair',
+      runFingerprint:row.run_fingerprint,
+      oriArtifactSha256:row.ori_sha256,
+      modArtifactSha256:row.mod_sha256,
+      oriArtifactUri:row.ori_artifact_uri,
+      modArtifactUri:row.mod_artifact_uri,
+      operationLabel:row.operation_label,
+      config:{callback_base_url:callbackBaseUrl},
+    },env);
+    if(result?.accepted){
+      pairDispatched+=1;
+      await env.DB.prepare('UPDATE ecu_training_pairs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
+        .bind('DISPATCHED',result.workerKind||null,now(),row.id).run();
+    }
+  }
+  return {
+    attempted:rows.length+pairRows.length,
+    dispatched:dispatched+pairDispatched,
+    analysis:{attempted:rows.length,dispatched},
+    pairs:{attempted:pairRows.length,dispatched:pairDispatched},
+  };
 }
 
 async function defaultUploadStatus(env) {
