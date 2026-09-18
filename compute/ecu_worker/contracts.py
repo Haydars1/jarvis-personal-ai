@@ -50,3 +50,13 @@ def build_run_fingerprint(
         ensure_ascii=True,
     ).encode('utf-8')
     return sha256(canonical).hexdigest()
+
+
+class TrainingJobInput(BaseModel):
+    job_id: str
+    operation: Literal['train'] = 'train'
+    dataset_version: str
+    dataset_digest: str = Field(min_length=64, max_length=64)
+    production_model_version: str = 'baseline'
+    paid_api_allowed: bool = False
+    config: dict[str, Any] = Field(default_factory=dict)
