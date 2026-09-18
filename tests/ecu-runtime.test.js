@@ -311,3 +311,24 @@ test('lists ECU model history with rollback candidates', async () => {
   assert.equal(body.models[0].state,'PRODUCTION');
   assert.equal(body.models[1].state,'ROLLBACK');
 });
+
+
+test('exposes ECU observability metrics without binary payloads', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{
+    async metricsStatus(){
+      return {
+        counts:{QUEUED:2,RUNNING:1,NEEDS_REVIEW:3,READY:1,FAILED:1},
+        averageTurnaroundMs:4200,
+        productionModel:'model-1',
+        binaryPayloadLogged:false,
+      };
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/metrics'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.counts.QUEUED,2);
+  assert.equal(body.averageTurnaroundMs,4200);
+  assert.equal(body.productionModel,'model-1');
+  assert.equal(body.binaryPayloadLogged,false);
+});
