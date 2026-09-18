@@ -50,3 +50,29 @@ def test_pair_job_fetches_ori_and_mod_and_posts_diff_report():
     assert result["diff"]["ranges"][0]["start"]==2
     assert client.calls[-1][0]=="POST"
     assert client.calls[-1][1].endswith("/api/ecu/internal/pairs/pair-1/result")
+
+
+class BrokenPairClient(FakeClient):
+    async def get(self,url,headers=None):
+        self.calls.append(("GET",url,headers))
+        return FakeResponse(500,b"")
+
+
+def test_pair_worker_reports_failed_callback_on_fetch_error():
+    client=BrokenPairClient(b"",b"")
+    job=PairJobInput(
+        job_id="pair-fail",
+        ori_artifact_sha256="a"*64,
+        mod_artifact_sha256="b"*64,
+        ori_artifact_uri="r2://ecu-artifacts/originals/"+"a"*64,
+        mod_artifact_uri="r2://ecu-artifacts/originals/"+"b"*64,
+        operation_label="stage1",
+        config={"callback_base_url":"https://jarvis.example"},
+    )
+    try:
+        asyncio.run(process_pair_job(job,"secret",client=client))
+    except RuntimeError:
+        pass
+    callbacks=[call for call in client.calls if call[0]=="POST" and call[1].endswith("/api/ecu/internal/pairs/pair-fail/result")]
+    assert len(callbacks)==1
+    assert callbacks[0][3]["status"]=="FAILED"
