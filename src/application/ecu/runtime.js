@@ -8,6 +8,16 @@ import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
 
+function compositeBenchmarkScore(metrics = {}) {
+  const bounded = value => Math.max(0, Math.min(1, Number(value || 0)));
+  return Math.max(0, Math.min(1,
+    0.35 * bounded(metrics.accuracy) +
+    0.35 * bounded(metrics.macro_f1) +
+    0.20 * bounded(metrics.unknown_precision) +
+    0.10 * (1 - bounded(metrics.calibration_error))
+  ));
+}
+
 async function sha256Text(value) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
   return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -137,6 +147,47 @@ async function defaultReadDataset(env, digest) {
 async function defaultReadOriginal(env, sha256) {
   const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
   return store.getOriginal(sha256);
+}
+
+async function defaultApplyTrainingResult(env, trainingId, body = {}) {
+  const status=String(body.status||'FAILED');
+  const allowed=new Set(['CANDIDATE','NEEDS_MORE_DATA','FAILED']);
+  if(!allowed.has(status))throw new Error('INVALID_TRAINING_RESULT_STATUS');
+  const run=await env.DB.prepare('SELECT id FROM ecu_training_runs WHERE id=? LIMIT 1').bind(trainingId).first();
+  if(!run)throw new Error('ECU_TRAINING_RUN_NOT_FOUND');
+
+  const timestamp=now();
+  if(status==='FAILED'){
+    await env.DB.prepare('UPDATE ecu_training_runs SET status=?,reason=?,updated_at=? WHERE id=?')
+      .bind('FAILED',String(body.error||'TRAINING_FAILED'),timestamp,trainingId).run();
+    return {id:trainingId,status:'FAILED',modelVersion:null};
+  }
+
+  const modelJson=String(body.model_json||'');
+  if(!modelJson)throw new Error('ECU_MODEL_ARTIFACT_REQUIRED');
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const provisionalVersion='candidate-'+String(body.dataset_version||'dataset');
+  const artifact=await store.putModelArtifact(modelJson,{modelVersion:provisionalVersion});
+  const modelVersion=`model-${artifact.sha256.slice(0,16)}`;
+  const artifactUri=`r2://ecu-artifacts/${artifact.key}`;
+  const metrics=body.metrics&&typeof body.metrics==='object'?body.metrics:{};
+  const score=compositeBenchmarkScore(metrics);
+  const benchmarkId=`benchmark-${modelVersion}-${String(body.dataset_version||'unknown')}`;
+
+  if(status==='CANDIDATE'){
+    await env.DB.prepare(`INSERT INTO ecu_model_versions(
+      version,dataset_version,benchmark_score,artifact_uri,state,rollback_target,created_at,promoted_at
+    ) VALUES(?,?,?,?,?,?,?,?)
+    ON CONFLICT(version) DO UPDATE SET benchmark_score=excluded.benchmark_score,artifact_uri=excluded.artifact_uri`)
+      .bind(modelVersion,String(body.dataset_version||''),score,artifactUri,'CANDIDATE',null,timestamp,null).run();
+    await env.DB.prepare(`INSERT INTO ecu_benchmarks(id,model_version,dataset_version,metrics_json,score,passed,created_at)
+      VALUES(?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET metrics_json=excluded.metrics_json,score=excluded.score,passed=excluded.passed`)
+      .bind(benchmarkId,modelVersion,String(body.dataset_version||''),JSON.stringify(metrics),score,0,timestamp).run();
+  }
+  await env.DB.prepare('UPDATE ecu_training_runs SET status=?,reason=?,updated_at=? WHERE id=?')
+    .bind(status,status==='NEEDS_MORE_DATA'?'NEEDS_HELDOUT_DATA':null,timestamp,trainingId).run();
+  return {id:trainingId,status,modelVersion:status==='CANDIDATE'?modelVersion:null,benchmarkScore:score};
 }
 
 async function defaultApplyWorkerState(env, jobId, body = {}) {
@@ -329,6 +380,7 @@ export function createEcuRuntime(core, overrides = {}) {
     applyWorkerResult: defaultApplyWorkerResult,
     applyWorkerState: defaultApplyWorkerState,
     verifyMap: defaultVerifyMap,
+    applyTrainingResult: defaultApplyTrainingResult,
     ...overrides,
   };
 
@@ -367,6 +419,21 @@ export function createEcuRuntime(core, overrides = {}) {
           });
         } catch (error) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/training/') && url.pathname.endsWith('/result') && req.method === 'POST') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const trainingId=decodeURIComponent(url.pathname.slice('/api/ecu/internal/training/'.length,-'/result'.length));
+        if(!trainingId)return json({error:'ECU_TRAINING_ID_REQUIRED'},400);
+        const body=await readJson(req);
+        try{
+          return json({training:await deps.applyTrainingResult(env,trainingId,body)});
+        }catch(error){
+          if(error?.message==='ECU_TRAINING_RUN_NOT_FOUND')return json({error:'ECU_TRAINING_RUN_NOT_FOUND'},404);
+          if(error?.message==='INVALID_TRAINING_RESULT_STATUS'||error?.message==='ECU_MODEL_ARTIFACT_REQUIRED')return json({error:error.message},400);
+          if(String(error?.message||'').includes('ECU_ARTIFACTS binding'))return json({error:'ECU_STORAGE_UNAVAILABLE'},503);
           throw error;
         }
       }
