@@ -6,8 +6,16 @@ function reasoningLeak(text = '') {
     || /<think>[\s\S]*?<\/think>/i.test(value);
 }
 
+function stripTechnicalLeak(text = '') {
+  let value = String(text || '');
+  value = value.replace(/^\s*(?:JARVIS\s+)?(?:LIVE\s+SEARCH(?::\s*EMPTY)?|LOCAL|CLOUDFLARE\s+AI[^\n]*)\s*$/gim, '');
+  value = value.replace(/(?:^|\n)\s*(?:Yanıt gecikti\.|Canlı kaynak şu an boş döndü\.|Şu an bağlı cevap motoru zamanında dönemedi\.)[^\n]*(?=\n|$)/gi, '\n');
+  value = value.replace(/(?:[?&](?:rut|uddg|u|url)=[^\s)]+)+/gi, '');
+  return value.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function stripThink(text = '') {
-  let value = String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  let value = stripTechnicalLeak(String(text || '').replace(/<think>[\s\S]*?<\/think>/gi, '')).trim();
   const final = value.match(/(?:final answer|final response|cevap)\s*[:：]\s*([\s\S]+)/i);
   if (final?.[1]?.trim()) value = final[1].trim();
   if (reasoningLeak(value)) return '';
