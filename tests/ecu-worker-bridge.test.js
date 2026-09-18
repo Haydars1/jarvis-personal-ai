@@ -202,3 +202,38 @@ test('compute worker can fetch map context for an immutable artifact hash', asyn
   const body=await response.json();
   assert.equal(body.maps[0].semanticLabel,'torque_limiter');
 });
+
+
+test('compute worker can store a validated MOD only through authenticated bridge', async () => {
+  const writes=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async storeValidatedMod(_env,jobId,input){
+      writes.push([jobId,input]);
+      return {id:'mod-1',jobId,sha256:'m'.repeat(64),sizeBytes:input.bytes.byteLength,checksumAlgorithm:input.checksumAlgorithm};
+    }
+  });
+  const env={ECU_COMPUTE_TOKEN:'secret-token'};
+  const bytes=Uint8Array.from([9,8,7]);
+
+  let response=await runtime.fetch(request('/api/ecu/internal/jobs/job-1/mod',{
+    method:'POST',
+    headers:{'content-type':'application/octet-stream','x-checksum-algorithm':'verified-fixture'},
+    body:bytes,
+  }),env,{});
+  assert.equal(response.status,401);
+
+  response=await runtime.fetch(request('/api/ecu/internal/jobs/job-1/mod',{
+    method:'POST',
+    headers:{
+      'content-type':'application/octet-stream',
+      'authorization':'Bearer secret-token',
+      'x-checksum-algorithm':'verified-fixture',
+    },
+    body:bytes,
+  }),env,{});
+  assert.equal(response.status,201);
+  assert.equal(writes.length,1);
+  assert.equal(writes[0][0],'job-1');
+  assert.deepEqual([...writes[0][1].bytes],[9,8,7]);
+  assert.equal(writes[0][1].checksumAlgorithm,'verified-fixture');
+});
