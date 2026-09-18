@@ -781,11 +781,25 @@ async function defaultHeartbeatWorker(env, body = {}) {
 
 async function defaultComputeStatus(env = {}) {
   const tokenConfigured = Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim());
-  const localOnline = tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
+  let localEndpoint = null;
+  if (tokenConfigured && env.DB?.prepare) {
+    try {
+      const row=await env.DB.prepare(`SELECT endpoint,last_seen_at,expires_at
+        FROM ecu_workers
+        WHERE kind='local' AND enabled=1
+        ORDER BY last_seen_at DESC LIMIT 1`).first();
+      if(row?.endpoint && Number(row.expires_at||0)>now())localEndpoint=String(row.endpoint);
+    } catch {}
+  }
+  if(!localEndpoint && tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim()==='1'){
+    const configured=String(env.ECU_LOCAL_WORKER_URL||'').trim();
+    if(configured)localEndpoint=configured;
+  }
+  const localOnline = Boolean(localEndpoint);
   const cloudContainerReady = tokenConfigured && Boolean(env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function');
   const cloudUrlReady = tokenConfigured && Boolean(String(env.ECU_CLOUD_WORKER_URL || '').trim());
   const preferred = localOnline ? 'local' : cloudContainerReady ? 'cloud-container' : cloudUrlReady ? 'cloud' : 'none';
-  return { tokenConfigured, localOnline, cloudContainerReady, cloudUrlReady, preferred };
+  return { tokenConfigured, localOnline, localEndpoint, cloudContainerReady, cloudUrlReady, preferred };
 }
 
 async function defaultUploadStatus(env) {
