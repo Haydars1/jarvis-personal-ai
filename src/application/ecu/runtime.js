@@ -555,6 +555,19 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
   };
 }
 
+async function defaultRollbackModel(env, targetVersion) {
+  const target = await env.DB.prepare('SELECT version,state FROM ecu_model_versions WHERE version=? LIMIT 1').bind(targetVersion).first();
+  if (!target) throw new Error('ECU_MODEL_NOT_FOUND');
+  const production = await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
+  if (!production?.version) throw new Error('ECU_PRODUCTION_MODEL_NOT_FOUND');
+  if (production.version === targetVersion) return { from: production.version, to: targetVersion, state: 'PRODUCTION', noop: true };
+  const timestamp = now();
+  await env.DB.prepare("UPDATE ecu_model_versions SET state='ROLLBACK' WHERE version=?").bind(production.version).run();
+  await env.DB.prepare("UPDATE ecu_model_versions SET state='PRODUCTION',promoted_at=? WHERE version=?")
+    .bind(timestamp, targetVersion).run();
+  return { from: production.version, to: targetVersion, state: 'PRODUCTION' };
+}
+
 async function defaultComputeStatus(env = {}) {
   const tokenConfigured = Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim());
   const localOnline = tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
@@ -586,6 +599,7 @@ export function createEcuRuntime(core, overrides = {}) {
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     computeStatus: defaultComputeStatus,
+    rollbackModel: defaultRollbackModel,
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
@@ -787,6 +801,18 @@ export function createEcuRuntime(core, overrides = {}) {
         const id = decodeURIComponent(url.pathname.slice('/api/ecu/jobs/'.length));
         const job = await deps.getJob(env, id);
         return job ? json({ job }) : json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
+      }
+
+      if (url.pathname.startsWith('/api/ecu/models/') && url.pathname.endsWith('/rollback') && req.method === 'POST') {
+        const version=decodeURIComponent(url.pathname.slice('/api/ecu/models/'.length,-'/rollback'.length));
+        if(!version)return json({error:'ECU_MODEL_VERSION_REQUIRED'},400);
+        try{
+          return json({rollback:await deps.rollbackModel(env,version)});
+        }catch(error){
+          if(error?.message==='ECU_MODEL_NOT_FOUND')return json({error:'ECU_MODEL_NOT_FOUND'},404);
+          if(error?.message==='ECU_PRODUCTION_MODEL_NOT_FOUND')return json({error:'ECU_PRODUCTION_MODEL_NOT_FOUND'},409);
+          throw error;
+        }
       }
 
       if (url.pathname === '/api/ecu/compute/status' && req.method === 'GET') {
