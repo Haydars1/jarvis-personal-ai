@@ -112,7 +112,19 @@ final class AppState: ObservableObject {
         messages.append(ChatMessage(role: "user", content: visible, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
         do {
             let result = try await api.send(text: text, attachments: pendingAttachments)
-            messages = result.history
+            var updatedHistory = result.history
+            // Some providers can return a reply before the persisted history catches up.
+            // Never leave the UI showing a visibly truncated assistant answer.
+            if let reply = result.reply?.trimmingCharacters(in: .whitespacesAndNewlines), !reply.isEmpty {
+                if let last = updatedHistory.last, last.role == "assistant" {
+                    if reply.count > last.content.count {
+                        updatedHistory[updatedHistory.count - 1] = ChatMessage(role: "assistant", content: reply, provider: result.provider, createdAt: Date().timeIntervalSince1970 * 1000)
+                    }
+                } else {
+                    updatedHistory.append(ChatMessage(role: "assistant", content: reply, provider: result.provider, createdAt: Date().timeIntervalSince1970 * 1000))
+                }
+            }
+            messages = updatedHistory
             statusText = "Hazır"
         } catch {
             let raw = error.localizedDescription
