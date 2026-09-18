@@ -98,7 +98,6 @@ async function defaultCreatePair(env,{oriFileId,modFileId,operationLabel,callbac
 async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBaseUrl = null }, dispatch) {
   const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
-  const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
   const productionModel=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
   const modelVersion = productionModel?.version || 'baseline';
   const rulepackVersion = 'baseline';
@@ -108,6 +107,9 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
     modelVersion,
     rulepackVersion,
   }));
+  const existing = await env.DB.prepare('SELECT * FROM ecu_jobs WHERE run_fingerprint=? LIMIT 1').bind(runFingerprint).first();
+  if (existing) return { ...mapJob(existing), cached: true };
+  const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
   await env.DB.prepare('INSERT INTO ecu_jobs(id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
     .bind(record.id, fileId, operation, record.state, runFingerprint, modelVersion, rulepackVersion, record.createdAt, record.updatedAt).run();
 
