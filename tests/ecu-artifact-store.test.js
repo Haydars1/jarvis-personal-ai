@@ -78,3 +78,18 @@ test('reads semantic model artifact back by digest', async () => {
   const restored = await store.getModelArtifact(saved.sha256);
   assert.equal(restored, modelJson);
 });
+
+
+test('stores validated MOD artifacts content-addressed and immutable', async () => {
+  const bucket=new FakeBucket();
+  const store=createEcuArtifactStore(bucket);
+  const bytes=Uint8Array.from([9,8,7,6]);
+  const first=await store.putValidatedMod(bytes,{jobId:'job-1',checksumAlgorithm:'verified-fixture'});
+  const second=await store.putValidatedMod(bytes,{jobId:'job-2',checksumAlgorithm:'verified-fixture'});
+  assert.match(first.sha256,/^[a-f0-9]{64}$/);
+  assert.equal(first.key,'mods/'+first.sha256);
+  assert.equal(second.key,first.key);
+  assert.equal(bucket.putCalls,1);
+  const restored=await store.getValidatedMod(first.sha256);
+  assert.deepEqual([...restored],[9,8,7,6]);
+});
