@@ -602,8 +602,18 @@ async function defaultUploadStatus(env) {
 
 export function createEcuRuntime(core, overrides = {}) {
   const research = overrides.research || createEcuResearch();
-  const training = overrides.training || createEcuTraining();
   const computeDispatch = overrides.computeDispatch || createComputeDispatch();
+  const training = overrides.training || createEcuTraining({
+    dispatch: (job, env) => computeDispatch({
+      id: job.id,
+      operation: 'train',
+      runFingerprint: job.runFingerprint,
+      datasetVersion: job.datasetVersion,
+      datasetDigest: job.datasetDigest,
+      productionModelVersion: job.productionModelVersion,
+      config: job.callbackBaseUrl ? { callback_base_url: job.callbackBaseUrl } : {},
+    }, env),
+  });
   const deps = {
     createJob: (env, input) => defaultCreateJob(env, input, computeDispatch),
     createPair: (env, input) => defaultCreatePair(env, input, computeDispatch),
