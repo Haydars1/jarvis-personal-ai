@@ -139,3 +139,21 @@ test('training worker callback stores candidate model through injected result wr
     training: { id: 'training-1', status: 'CANDIDATE', modelVersion: 'model-candidate-1' },
   });
 });
+
+
+test('compute worker can fetch production semantic model by version', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async readModel(_env, version) {
+      assert.equal(version, 'model-abc123');
+      return '{"version":1,"unknown_distance":3,"min_label_examples":2,"labels":{}}';
+    },
+  });
+  const env = { ECU_COMPUTE_TOKEN: 'secret-token' };
+  const response = await runtime.fetch(request('/api/ecu/internal/models/model-abc123', {
+    headers: { authorization: 'Bearer secret-token' },
+  }), env, {});
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('content-type'), 'application/json; charset=utf-8');
+  const body = await response.json();
+  assert.equal(body.version, 1);
+});
