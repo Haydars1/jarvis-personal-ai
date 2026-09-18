@@ -29,6 +29,7 @@ class AnalysisJobOutput(BaseModel):
     confidence: float = 0.0
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     map_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    proposal: dict[str, Any] | None = None
     error: str | None = None
 
 
