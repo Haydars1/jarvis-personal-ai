@@ -1,4 +1,4 @@
-from ecu_worker.diff import diff_bytes
+from ecu_worker.diff import diff_bytes, link_ranges_to_maps
 
 
 def test_diff_groups_contiguous_changed_ranges_and_deltas():
@@ -36,7 +36,6 @@ def test_diff_rejects_length_change_for_ecu_binary_comparison():
 
 
 def test_diff_links_changed_ranges_to_overlapping_semantic_map_candidates():
-    from ecu_worker.diff import link_ranges_to_maps
     ori=bytes([0])*64
     mod=bytearray(ori)
     mod[18]=1
