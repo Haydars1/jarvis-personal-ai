@@ -187,7 +187,7 @@ async function loadEcuStatus(){
   const learning=$('#ecuLearning');if(learning){
    learning.innerHTML=
     `<div class="item"><b>COMPUTE</b><small>${compute.preferred==='local'?'Laptop GPU aktif':compute.preferred==='cloud-container'?'Cloud container hazır (laptop gerekmez)':compute.preferred==='cloud'?'Cloud worker hazır':'Compute endpoint bekliyor'}</small></div>`+
-    `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
+    `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • corroborated ${Number(research.counts?.corroborated_claims||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
     `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış map ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • ORI/MOD kanıtı ${Number(training.verifiedChangeEvidence||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`+
     `<div class="item"><b>RULEPACK ÖĞRENME</b><small>${rulepacks.production?.version?'production '+esc(rulepacks.production.version):rulepacks.latest?.version?'kanıt adayı '+esc(rulepacks.latest.version)+' • '+Number(rulepacks.latest.evidenceCount||0)+' kanıt':'henüz yeterli doğrulanmış kanıt yok'}</small></div>`;
   }
