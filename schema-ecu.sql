@@ -156,3 +156,20 @@ CREATE TABLE IF NOT EXISTS ecu_training_features (
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
+
+
+CREATE TABLE IF NOT EXISTS ecu_training_pairs (
+  id TEXT PRIMARY KEY,
+  ori_file_id TEXT NOT NULL,
+  mod_file_id TEXT NOT NULL,
+  operation_label TEXT NOT NULL DEFAULT '',
+  state TEXT NOT NULL DEFAULT 'QUEUED',
+  run_fingerprint TEXT,
+  worker_kind TEXT,
+  diff_digest TEXT,
+  diff_json TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_training_pairs_state ON ecu_training_pairs(state, updated_at DESC);
