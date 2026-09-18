@@ -84,3 +84,21 @@ test('compute worker can mark a dispatched job running before analysis', async (
   assert.deepEqual(writes, [['job-1', { state: 'RUNNING', workerKind: 'cloud' }]]);
   assert.deepEqual(await response.json(), { job: { id: 'job-1', state: 'RUNNING' } });
 });
+
+
+test('compute worker can fetch immutable training dataset by digest', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async readDataset(_env, digest) {
+      assert.equal(digest, 'd'.repeat(64));
+      return { version: 'dataset-1', digest, examples: [{ semantic_label: 'torque_limiter' }] };
+    },
+  });
+  const env = { ECU_COMPUTE_TOKEN: 'secret-token' };
+  const response = await runtime.fetch(request('/api/ecu/internal/datasets/' + 'd'.repeat(64), {
+    headers: { authorization: 'Bearer secret-token' },
+  }), env, {});
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.digest, 'd'.repeat(64));
+  assert.equal(body.examples[0].semantic_label, 'torque_limiter');
+});
