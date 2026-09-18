@@ -551,6 +551,14 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
   };
 }
 
+async function defaultComputeStatus(env = {}) {
+  const localOnline = String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
+  const cloudContainerReady = Boolean(env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function');
+  const cloudUrlReady = Boolean(String(env.ECU_CLOUD_WORKER_URL || '').trim());
+  const preferred = localOnline ? 'local' : cloudContainerReady ? 'cloud-container' : cloudUrlReady ? 'cloud' : 'none';
+  return { localOnline, cloudContainerReady, cloudUrlReady, preferred };
+}
+
 async function defaultUploadStatus(env) {
   return {
     ready: Boolean(env.ECU_ARTIFACTS),
@@ -572,6 +580,7 @@ export function createEcuRuntime(core, overrides = {}) {
     researchStatus: env => research.status(env),
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
+    computeStatus: defaultComputeStatus,
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
     readDataset: defaultReadDataset,
@@ -773,6 +782,10 @@ export function createEcuRuntime(core, overrides = {}) {
         const id = decodeURIComponent(url.pathname.slice('/api/ecu/jobs/'.length));
         const job = await deps.getJob(env, id);
         return job ? json({ job }) : json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
+      }
+
+      if (url.pathname === '/api/ecu/compute/status' && req.method === 'GET') {
+        return json(await deps.computeStatus(env));
       }
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
