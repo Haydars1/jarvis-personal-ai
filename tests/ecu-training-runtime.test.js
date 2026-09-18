@@ -46,3 +46,15 @@ test('training status route comes from controlled training service', async () =>
   assert.equal(payload.verifiedExamples, 75);
   assert.equal(payload.paidApiRequired, false);
 });
+
+
+test('scheduled ECU runtime also refreshes evidence-only rulepack learning', async () => {
+  const core=coreRecorder();
+  const calls=[];
+  const research={async run(){calls.push('research')},async status(){return {status:'IDLE'}}};
+  const rulepacks={async refresh(){calls.push('rulepacks')},async status(){return {latest:null,production:null}}};
+  const training={async maybeRun(){calls.push('training');return {scheduled:false}},async status(){return {status:'COLLECTING_DATA'}}};
+  const runtime=createEcuRuntime(core,{research,rulepacks,training,dispatchQueuedJobs:async()=>{calls.push('dispatch')}});
+  await runtime.scheduled({scheduledTime:123},{},{});
+  assert.deepEqual(calls,['dispatch','research','rulepacks','training']);
+});
