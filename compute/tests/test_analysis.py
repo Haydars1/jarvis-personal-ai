@@ -96,3 +96,5 @@ def test_stage1_proposal_remains_blocked_without_verified_rulepack():
     assert result.proposal is not None
     assert result.proposal["blocked"] is True
     assert "RULEPACK_UNVERIFIED" in result.proposal["reasons"]
+    assert result.proposal["checksum_support"]=="UNSUPPORTED"
+    assert result.proposal["release_ready"] is False
