@@ -20,6 +20,13 @@ async function readJson(req) {
   try { return await req.json(); } catch { return {}; }
 }
 
+function requestFilename(req) {
+  const raw = String(req.headers.get('x-ecu-filename') || 'original.bin').trim();
+  let decoded = raw;
+  try { decoded = decodeURIComponent(raw); } catch {}
+  return decoded.slice(0, 180) || 'original.bin';
+}
+
 function mapJob(row) {
   if (!row) return null;
   return {
@@ -109,7 +116,7 @@ export function createEcuRuntime(core, overrides = {}) {
         const buffer = await req.arrayBuffer();
         if (!buffer.byteLength) return json({ error: 'ECU_FILE_EMPTY' }, 400);
         if (buffer.byteLength > maxUploadBytes) return json({ error: 'ECU_FILE_TOO_LARGE', maxUploadBytes }, 413);
-        const filename = String(req.headers.get('x-ecu-filename') || 'original.bin').trim().slice(0, 180) || 'original.bin';
+        const filename = requestFilename(req);
         const contentType = String(req.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim() || 'application/octet-stream';
         try {
           const file = await deps.uploadOriginal(env, { bytes: new Uint8Array(buffer), filename, contentType });
@@ -125,7 +132,7 @@ export function createEcuRuntime(core, overrides = {}) {
         const buffer = await req.arrayBuffer();
         if (!buffer.byteLength) return json({ error: 'ECU_FILE_EMPTY' }, 400);
         if (buffer.byteLength > maxUploadBytes) return json({ error: 'ECU_FILE_TOO_LARGE', maxUploadBytes }, 413);
-        const filename = String(req.headers.get('x-ecu-filename') || 'original.bin').trim().slice(0, 180) || 'original.bin';
+        const filename = requestFilename(req);
         const contentType = String(req.headers.get('content-type') || 'application/octet-stream').split(';')[0].trim() || 'application/octet-stream';
         try {
           const file = await deps.uploadOriginal(env, { bytes: new Uint8Array(buffer), filename, contentType });
