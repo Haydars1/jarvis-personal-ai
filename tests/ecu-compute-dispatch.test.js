@@ -101,3 +101,46 @@ test('dispatches ORI MOD pair jobs with both immutable artifact hashes', async (
   assert.equal(calls[0].body.mod_artifact_sha256,'b'.repeat(64));
   assert.equal(calls[0].body.operation_label,'stage1');
 });
+
+
+test('uses scale-to-zero Cloudflare container binding when local worker is offline', async () => {
+  const calls = [];
+  const stub = {
+    async fetch(request) {
+      calls.push(request);
+      return new Response(JSON.stringify({ accepted: true }), {
+        status: 202,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  };
+  const dispatch = createComputeDispatch({
+    fetchImpl: async () => { throw new Error('external fetch should not run'); },
+  });
+
+  const result = await dispatch(job(), {
+    ECU_LOCAL_WORKER_ONLINE: '0',
+    ECU_COMPUTE_CONTAINER: { getByName(name) { assert.equal(name, 'jarvis-ecu-compute'); return stub; } },
+    ECU_COMPUTE_TOKEN: 'secret',
+  });
+
+  assert.equal(result.accepted, true);
+  assert.equal(result.workerKind, 'cloud-container');
+  assert.equal(calls.length, 1);
+  assert.equal(new URL(calls[0].url).pathname, '/jobs');
+  assert.equal(calls[0].headers.get('authorization'), 'Bearer secret');
+});
+
+test('prefers local worker over Cloudflare container binding', async () => {
+  let containerCalls = 0;
+  const dispatch = createComputeDispatch({
+    fetchImpl: async () => new Response(JSON.stringify({ accepted: true }), { status: 202 }),
+  });
+  const result = await dispatch(job(), {
+    ECU_LOCAL_WORKER_URL: 'https://local.example/jobs',
+    ECU_LOCAL_WORKER_ONLINE: '1',
+    ECU_COMPUTE_CONTAINER: { getByName() { containerCalls++; return { fetch(){} }; } },
+  });
+  assert.equal(result.workerKind, 'local');
+  assert.equal(containerCalls, 0);
+});
