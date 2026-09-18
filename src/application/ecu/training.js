@@ -37,6 +37,7 @@ async function defaultDispatch(job, env = {}) {
         dataset_digest: job.datasetDigest,
         production_model_version: job.productionModelVersion,
         paid_api_allowed: false,
+        config: { callback_base_url: job.callbackBaseUrl || String(env.JARVIS_PUBLIC_URL || '').trim() || null },
       }),
     });
     if (!response.ok) return { accepted: false, state: 'QUEUED', workerKind: endpoint.workerKind, reason: `DISPATCH_HTTP_${response.status}` };
@@ -122,6 +123,7 @@ export function createEcuTraining({
         datasetDigest: state.latestDataset.digest,
         productionModelVersion,
         paidApiAllowed: false,
+        callbackBaseUrl: String(env.JARVIS_PUBLIC_URL || '').trim() || null,
         runFingerprint,
       };
       const dispatched = await dispatch(job, env);
