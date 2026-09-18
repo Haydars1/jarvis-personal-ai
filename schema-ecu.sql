@@ -191,3 +191,17 @@ CREATE TABLE IF NOT EXISTS ecu_change_evidence (
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_change_evidence_pair ON ecu_change_evidence(pair_id, semantic_label);
 CREATE INDEX IF NOT EXISTS idx_ecu_change_evidence_label ON ecu_change_evidence(semantic_label, human_verified, created_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS ecu_rulepack_versions (
+  version TEXT PRIMARY KEY,
+  operation_label TEXT NOT NULL DEFAULT 'stage1',
+  state TEXT NOT NULL DEFAULT 'EVIDENCE_CANDIDATE',
+  verified INTEGER NOT NULL DEFAULT 0,
+  rules_json TEXT NOT NULL DEFAULT '{}',
+  evidence_count INTEGER NOT NULL DEFAULT 0,
+  digest TEXT NOT NULL UNIQUE,
+  created_at INTEGER NOT NULL,
+  promoted_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_rulepacks_state ON ecu_rulepack_versions(state, verified, created_at DESC);
