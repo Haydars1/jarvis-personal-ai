@@ -9,7 +9,7 @@ function chooseEndpoint(env = {}) {
   return null;
 }
 
-function payloadFor(job) {
+function payloadFor(job, env = {}) {
   return {
     job_id: job.id,
     artifact_sha256: job.artifactSha256,
@@ -18,7 +18,7 @@ function payloadFor(job) {
     model_version: job.modelVersion || 'baseline',
     rulepack_version: job.rulepackVersion || 'baseline',
     paid_api_allowed: false,
-    config: job.config || {},
+    config: { ...(job.config || {}), callback_base_url: String(env.JARVIS_PUBLIC_URL || '').trim() || null },
   };
 }
 
@@ -47,7 +47,7 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000 } =
       const response = await fetchImpl(endpoint.url, {
         method: 'POST',
         headers,
-        body: JSON.stringify(payloadFor(job)),
+        body: JSON.stringify(payloadFor(job, env)),
         signal: controller.signal,
       });
 
