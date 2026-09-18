@@ -139,6 +139,32 @@ async function defaultGetJob(env, id) {
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(id).first());
 }
 
+async function defaultListPairs(env,limit=20){
+  const safeLimit=Math.max(1,Math.min(100,Number(limit)||20));
+  const rows=(await env.DB.prepare(`SELECT
+      id,ori_file_id,mod_file_id,operation_label,state,run_fingerprint,worker_kind,diff_digest,diff_json,error,created_at,updated_at
+    FROM ecu_training_pairs ORDER BY created_at DESC LIMIT ?`).bind(safeLimit).all()).results||[];
+  return rows.map(row=>{
+    let diff=null;
+    try{diff=row.diff_json?JSON.parse(row.diff_json):null}catch{}
+    return {
+      id:row.id,
+      oriFileId:row.ori_file_id,
+      modFileId:row.mod_file_id,
+      operationLabel:row.operation_label,
+      state:row.state,
+      runFingerprint:row.run_fingerprint||null,
+      workerKind:row.worker_kind||null,
+      diffDigest:row.diff_digest||null,
+      changedByteCount:Number(diff?.changed_byte_count||0),
+      rangeCount:Array.isArray(diff?.ranges)?diff.ranges.length:0,
+      error:row.error||null,
+      createdAt:row.created_at,
+      updatedAt:row.updated_at,
+    };
+  });
+}
+
 async function defaultListMaps(env, jobId) {
   const rows=(await env.DB.prepare(`SELECT
       id,map_offset,rows,cols,data_type,endian,semantic_label,confidence,features_json,created_at
@@ -508,6 +534,7 @@ export function createEcuRuntime(core, overrides = {}) {
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
     listMaps: defaultListMaps,
+    listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
@@ -716,6 +743,10 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
         return json(await deps.researchStatus(env));
+      }
+
+      if (url.pathname === '/api/ecu/training/pairs' && req.method === 'GET') {
+        return json({pairs:await deps.listPairs(env,url.searchParams.get('limit'))});
       }
 
       if (url.pathname === '/api/ecu/training/pairs' && req.method === 'POST') {
