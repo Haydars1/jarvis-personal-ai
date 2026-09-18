@@ -140,3 +140,33 @@ test('rejects empty or oversized ECU uploads before storage', async () => {
   }), {}, {});
   assert.equal(response.status, 413);
 });
+
+test('upload-and-analyze pipeline stores the original first and queues analysis by immutable file id', async () => {
+  const calls = [];
+  const runtime = createEcuRuntime(coreFallback(), {
+    async uploadOriginal(_env, input) {
+      calls.push(['upload', input.filename, input.bytes.byteLength]);
+      return { id: 'b'.repeat(64), sha256: 'b'.repeat(64), sizeBytes: input.bytes.byteLength, existed: false };
+    },
+    async createJob(_env, input) {
+      calls.push(['job', input.fileId, input.operation]);
+      return { id: 'job-analysis-1', fileId: input.fileId, operation: input.operation, state: 'QUEUED' };
+    },
+  });
+
+  const response = await runtime.fetch(request('/api/ecu/analyze-file', {
+    method: 'POST',
+    headers: { 'content-type': 'application/octet-stream', 'x-ecu-filename': 'ori.bin' },
+    body: Uint8Array.from([9, 8, 7]),
+  }), {}, {});
+
+  assert.equal(response.status, 202);
+  assert.deepEqual(calls, [
+    ['upload', 'ori.bin', 3],
+    ['job', 'b'.repeat(64), 'analyze'],
+  ]);
+  const payload = await response.json();
+  assert.equal(payload.file.id, 'b'.repeat(64));
+  assert.equal(payload.job.id, 'job-analysis-1');
+  assert.equal(payload.job.state, 'QUEUED');
+});
