@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from math import exp, sqrt
 from statistics import mean
@@ -108,4 +109,42 @@ def predict_semantic(model: SemanticModel, features: dict[str, float]) -> Semant
         confidence=confidence,
         distance=best_distance,
         needs_review=needs_review,
+    )
+
+
+def dump_semantic_model(model: SemanticModel) -> str:
+    payload = {
+        "version": 1,
+        "unknown_distance": model.unknown_distance,
+        "min_label_examples": model.min_label_examples,
+        "labels": {
+            label: {
+                "centroid": stats.centroid,
+                "scale": stats.scale,
+                "count": stats.count,
+            }
+            for label, stats in sorted(model.labels.items())
+        },
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+
+
+def load_semantic_model(payload: str | bytes) -> SemanticModel:
+    if isinstance(payload, bytes):
+        payload = payload.decode("utf-8")
+    raw = json.loads(payload)
+    if int(raw.get("version", 0)) != 1:
+        raise ValueError("UNSUPPORTED_SEMANTIC_MODEL_VERSION")
+    labels = {
+        label: SemanticLabelStats(
+            centroid={name: float(values["centroid"][name]) for name in FEATURES},
+            scale={name: float(values["scale"][name]) for name in FEATURES},
+            count=int(values["count"]),
+        )
+        for label, values in sorted((raw.get("labels") or {}).items())
+    }
+    return SemanticModel(
+        labels=labels,
+        unknown_distance=float(raw.get("unknown_distance", 3.0)),
+        min_label_examples=int(raw.get("min_label_examples", 2)),
     )
