@@ -386,6 +386,38 @@ async function defaultVerifyMap(env, mapId, { semanticLabel }) {
   };
 }
 
+async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
+  const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
+  if(!callbackBaseUrl)return {attempted:0,dispatched:0,reason:'NO_CALLBACK_URL'};
+  const rows=(await env.DB.prepare(`SELECT
+      j.id,j.operation,j.run_fingerprint,j.model_version,j.rulepack_version,j.file_id,
+      f.sha256,f.artifact_uri
+    FROM ecu_jobs j
+    JOIN ecu_files f ON f.id=j.file_id
+    WHERE j.state='QUEUED'
+    ORDER BY j.created_at ASC
+    LIMIT 10`).all()).results||[];
+  let dispatched=0;
+  for(const row of rows){
+    const result=await dispatch({
+      id:row.id,
+      runFingerprint:row.run_fingerprint,
+      artifactUri:row.artifact_uri,
+      artifactSha256:row.sha256,
+      operation:row.operation||'analyze',
+      modelVersion:row.model_version||'baseline',
+      rulepackVersion:row.rulepack_version||'baseline',
+      config:{callback_base_url:callbackBaseUrl},
+    },env);
+    if(result?.accepted){
+      dispatched+=1;
+      await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
+        .bind('DISPATCHED',result.workerKind||null,now(),row.id).run();
+    }
+  }
+  return {attempted:rows.length,dispatched};
+}
+
 async function defaultUploadStatus(env) {
   return {
     ready: Boolean(env.ECU_ARTIFACTS),
@@ -412,6 +444,7 @@ export function createEcuRuntime(core, overrides = {}) {
     applyWorkerState: defaultApplyWorkerState,
     verifyMap: defaultVerifyMap,
     applyTrainingResult: defaultApplyTrainingResult,
+    dispatchQueuedJobs: (env, timestamp) => defaultDispatchQueuedJobs(env, timestamp, computeDispatch),
     ...overrides,
   };
 
@@ -601,6 +634,11 @@ export function createEcuRuntime(core, overrides = {}) {
     },
     async scheduled(event, env, ctx) {
       const timestamp = Number(event?.scheduledTime || Date.now());
+      try {
+        await deps.dispatchQueuedJobs(env, timestamp);
+      } catch {
+        // Queue retries are recoverable and must not break the main scheduler.
+      }
       try {
         await research.run(env, timestamp);
       } catch {
