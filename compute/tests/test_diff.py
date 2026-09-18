@@ -55,3 +55,15 @@ def test_diff_links_changed_ranges_to_overlapping_semantic_map_candidates():
     assert linked[0]["map_hits"][0]["overlap_bytes"]==2
     assert linked[1]["start"]==50
     assert linked[1]["map_hits"]==[]
+
+
+def test_diff_map_link_preserves_human_verification_evidence():
+    ori=bytes([0])*16
+    mod=bytearray(ori);mod[4]=1
+    report=diff_bytes(ori,bytes(mod))
+    linked=link_ranges_to_maps(report,[{
+        "offset":4,"rows":1,"cols":1,"data_type":"u16",
+        "semantic_label":"torque_limiter","semantic_confidence":1.0,
+        "human_verified":True,
+    }])
+    assert linked[0]["map_hits"][0]["human_verified"] is True
