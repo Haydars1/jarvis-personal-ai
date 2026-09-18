@@ -102,7 +102,19 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
   const productionModel=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
   const modelVersion = productionModel?.version || 'baseline';
-  const rulepackVersion = 'baseline';
+  let rulepackVersion = 'baseline';
+  let rulepackConfig = {};
+  if (operation === 'stage1_proposal') {
+    const rulepack=await env.DB.prepare("SELECT version,rules_json FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 AND operation_label='stage1' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
+    if (rulepack?.version) {
+      let rules={};
+      try { rules=JSON.parse(rulepack.rules_json||'{}'); } catch {}
+      rulepackVersion=rulepack.version;
+      rulepackConfig={rulepack_verified:true,rulepack:rules};
+    } else {
+      rulepackConfig={rulepack_verified:false};
+    }
+  }
   const runFingerprint = await sha256Text(JSON.stringify({
     artifactSha256: file.sha256,
     operation,
@@ -123,7 +135,10 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
     operation,
     modelVersion,
     rulepackVersion,
-    config: callbackBaseUrl ? { callback_base_url: callbackBaseUrl } : {},
+    config: {
+      ...(callbackBaseUrl ? { callback_base_url: callbackBaseUrl } : {}),
+      ...rulepackConfig,
+    },
   }, env);
   const state = dispatched?.accepted ? 'DISPATCHED' : 'QUEUED';
   await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
