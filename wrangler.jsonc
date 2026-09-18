@@ -17,6 +17,12 @@
     }
   ],
   "ai": { "binding": "AI" },
+  "r2_buckets": [
+    {
+      "binding": "ECU_ARTIFACTS",
+      "bucket_name": "jarvis-ecu-artifacts"
+    }
+  ],
   "triggers": { "crons": ["*/30 * * * *"] },
   "observability": { "enabled": true }
 }
