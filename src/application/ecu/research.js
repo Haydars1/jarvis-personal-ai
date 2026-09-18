@@ -44,6 +44,23 @@ async function defaultSearch(env, query) {
   }));
 }
 
+function claimTokens(text) {
+  return new Set(String(text||'').toLowerCase()
+    .normalize('NFKD')
+    .replace(/[^a-z0-9çğıöşü]+/gi,' ')
+    .split(/\s+/)
+    .filter(token=>token.length>=3));
+}
+
+function claimSimilarity(a,b) {
+  const left=claimTokens(a),right=claimTokens(b);
+  if(!left.size||!right.size)return 0;
+  let intersection=0;
+  for(const token of left)if(right.has(token))intersection+=1;
+  const union=left.size+right.size-intersection;
+  return union?intersection/union:0;
+}
+
 function normalizeResult(row, topic) {
   const url = String(row?.url || '').trim();
   if (!url) return null;
@@ -86,6 +103,24 @@ const defaultRepository = {
       .bind(id, claim.sourceUrl, claim.topic, claim.text, claim.verificationState, now, now).run();
   },
 
+  async listClaims(env) {
+    return (await env.DB.prepare(`SELECT id,source_url,topic,text,verification_state
+      FROM ecu_knowledge_claims
+      WHERE verification_state='UNVERIFIED'
+      ORDER BY created_at DESC LIMIT 500`).all()).results?.map(row=>({
+        id:row.id,
+        sourceUrl:row.source_url,
+        topic:row.topic,
+        text:row.text,
+        verificationState:row.verification_state,
+      })) || [];
+  },
+
+  async markClaimState(env, id, state) {
+    await env.DB.prepare('UPDATE ecu_knowledge_claims SET verification_state=?,updated_at=? WHERE id=?')
+      .bind(state,Date.now(),id).run();
+  },
+
   async finishRun(env, bucket, summary) {
     const now = Date.now();
     await env.DB.prepare(`UPDATE ecu_research_runs
@@ -98,8 +133,9 @@ const defaultRepository = {
     const counts = await env.DB.prepare(`SELECT
       (SELECT COUNT(*) FROM ecu_knowledge_sources) AS sources,
       (SELECT COUNT(*) FROM ecu_knowledge_claims) AS claims,
+      (SELECT COUNT(*) FROM ecu_knowledge_claims WHERE verification_state='CORROBORATED') AS corroborated_claims,
       (SELECT COUNT(*) FROM ecu_knowledge_claims WHERE verification_state='VERIFIED') AS verified_claims`).first();
-    return { latest: latest || null, counts: counts || { sources: 0, claims: 0, verified_claims: 0 } };
+    return { latest: latest || null, counts: counts || { sources: 0, claims: 0, corroborated_claims: 0, verified_claims: 0 } };
   },
 };
 
@@ -108,6 +144,27 @@ export function createEcuResearch({
   topics = DEFAULT_ECU_RESEARCH_TOPICS,
   search = defaultSearch,
 } = {}) {
+  const corroborate = async env => {
+    if(typeof repository.listClaims!=='function'||typeof repository.markClaimState!=='function'){
+      return {corroborated:0,scanned:0};
+    }
+    const claims=await repository.listClaims(env);
+    const supported=new Set();
+    for(let i=0;i<claims.length;i+=1){
+      const a=claims[i];
+      for(let j=i+1;j<claims.length;j+=1){
+        const b=claims[j];
+        if(String(a.sourceUrl||'')===String(b.sourceUrl||''))continue;
+        if(String(a.topic||'')!==String(b.topic||''))continue;
+        if(claimSimilarity(a.text,b.text)<0.72)continue;
+        supported.add(a.id);
+        supported.add(b.id);
+      }
+    }
+    for(const id of supported)await repository.markClaimState(env,id,'CORROBORATED');
+    return {corroborated:supported.size,scanned:claims.length};
+  };
+
   return {
     async run(env, timestamp = Date.now()) {
       const bucket = Math.floor(Number(timestamp) / RESEARCH_INTERVAL_MS) * RESEARCH_INTERVAL_MS;
@@ -149,7 +206,12 @@ export function createEcuResearch({
 
       const summary = { sourcesFound, claimsFound, errors };
       await repository.finishRun(env, bucket, summary);
-      return { skipped: false, bucket, ...summary };
+      const corroboration = await corroborate(env);
+      return { skipped: false, bucket, ...summary, ...corroboration };
+    },
+
+    async corroborate(env) {
+      return corroborate(env);
     },
 
     async status(env) {
