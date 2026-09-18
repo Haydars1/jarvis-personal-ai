@@ -102,6 +102,13 @@ async function analyzeEcuFile(){
 }
 if($('#ecuAnalyze'))$('#ecuAnalyze').onclick=analyzeEcuFile;
 if($('#ecuRefresh'))$('#ecuRefresh').onclick=loadEcuStatus;
+if($('#ecuTrainNow'))$('#ecuTrainNow').onclick=async()=>{
+ try{
+  const r=await api('/api/ecu/training/run',{method:'POST'});
+  toast(r.scheduled?'ECU eğitimi kuyruğa alındı':'Eğitim henüz başlamadı: '+(r.reason||'hazır değil'));
+  await loadEcuStatus();
+ }catch(e){toast('ECU eğitim: '+e.message)}
+};
 
 function switchPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===id));if(id==='chat')loadChat();if(id==='files')loadFiles();if(id==='ecu')loadEcuStatus();if(id==='credentials')loadCredentials();if(id==='selfupdate')loadSelfUpdate();if(id==='settings'){loadPasskeys();renderSystemStatus()}if(id==='communication')renderActions()}$$('[data-page]').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));
 $('#logout').onclick=async()=>{await api('/api/auth/logout',{method:'POST'});location.reload()};if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});init();
