@@ -237,3 +237,40 @@ test('compute worker can store a validated MOD only through authenticated bridge
   assert.deepEqual([...writes[0][1].bytes],[9,8,7]);
   assert.equal(writes[0][1].checksumAlgorithm,'verified-fixture');
 });
+
+
+test('local worker heartbeat registers a temporary dispatch endpoint', async () => {
+  const writes=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async heartbeatWorker(_env,body){
+      writes.push(body);
+      return {id:'local-laptop',kind:'local',endpoint:body.endpoint,expiresAt:123456};
+    }
+  });
+  const env={ECU_COMPUTE_TOKEN:'secret-token'};
+  const payload={workerId:'local-laptop',kind:'local',endpoint:'https://laptop-tunnel.example/jobs',ttlSeconds:90,capabilities:['analyze','train']};
+
+  let response=await runtime.fetch(request('/api/ecu/internal/workers/heartbeat',{
+    method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)
+  }),env,{});
+  assert.equal(response.status,401);
+
+  response=await runtime.fetch(request('/api/ecu/internal/workers/heartbeat',{
+    method:'POST',headers:{'content-type':'application/json',authorization:'Bearer secret-token'},body:JSON.stringify(payload)
+  }),env,{});
+  assert.equal(response.status,200);
+  assert.equal(writes.length,1);
+  assert.equal(writes[0].endpoint,'https://laptop-tunnel.example/jobs');
+  assert.equal((await response.json()).worker.kind,'local');
+});
+
+test('worker heartbeat rejects non HTTPS endpoints', async () => {
+  const runtime=createEcuRuntime(coreFallback(),{async heartbeatWorker(){throw new Error('must not run')}});
+  const env={ECU_COMPUTE_TOKEN:'secret-token'};
+  const response=await runtime.fetch(request('/api/ecu/internal/workers/heartbeat',{
+    method:'POST',
+    headers:{'content-type':'application/json',authorization:'Bearer secret-token'},
+    body:JSON.stringify({workerId:'x',kind:'local',endpoint:'http://127.0.0.1:8080/jobs',ttlSeconds:90}),
+  }),env,{});
+  assert.equal(response.status,400);
+});
