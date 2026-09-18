@@ -63,6 +63,13 @@ export function createEcuArtifactStore(bucket) {
       return JSON.parse(new TextDecoder().decode(bytes));
     },
 
+    async getModelArtifact(digest) {
+      const object = await bucket.get(`models/${String(digest).toLowerCase()}.json`);
+      if (!object) return null;
+      const bytes = new Uint8Array(await object.arrayBuffer());
+      return new TextDecoder().decode(bytes);
+    },
+
     async putModelArtifact(modelJson, { modelVersion = '' } = {}) {
       const bytes = new TextEncoder().encode(String(modelJson || ''));
       const digest = await sha256(bytes);
