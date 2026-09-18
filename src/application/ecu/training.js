@@ -50,10 +50,12 @@ async function defaultDispatch(job, env = {}) {
 const defaultRepository = {
   async getState(env) {
     const verified = await env.DB.prepare('SELECT COUNT(*) AS count FROM ecu_training_examples WHERE human_verified=1').first();
+    const verifiedChanges = await env.DB.prepare('SELECT COUNT(*) AS count FROM ecu_change_evidence WHERE human_verified=1').first();
     const productionModel = await env.DB.prepare("SELECT version,dataset_version,benchmark_score,artifact_uri,state FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
     const latestDataset = await env.DB.prepare('SELECT version,digest,example_count,artifact_uri,created_at FROM ecu_dataset_versions ORDER BY created_at DESC LIMIT 1').first();
     return {
       verifiedExamples: Number(verified?.count || 0),
+      verifiedChangeEvidence: Number(verifiedChanges?.count || 0),
       productionModel: productionModel || null,
       latestDataset: latestDataset || null,
     };
@@ -150,6 +152,7 @@ export function createEcuTraining({
       return {
         status: Number(state.verifiedExamples || 0) >= minVerifiedExamples ? 'READY_TO_TRAIN' : 'COLLECTING_DATA',
         verifiedExamples: Number(state.verifiedExamples || 0),
+        verifiedChangeEvidence: Number(state.verifiedChangeEvidence || 0),
         minVerifiedExamples,
         productionModel: state.productionModel || null,
         latestDataset: state.latestDataset || null,
