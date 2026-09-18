@@ -18,10 +18,10 @@ test('blocks public ECU API routes without owner session',async()=>{
 
 test('allows public ECU API routes for authenticated owner',async()=>{
   let calls=0;
-  const core={async fetch(){calls++;return new Response('ok',{status:204})}};
+  const core={async fetch(){calls++;return new Response('ok',{status:200})}};
   const guard=createEcuAuthGuard(core,{isOwnerAuthenticated:async()=>true});
   const res=await guard.fetch(req('/api/ecu/jobs'),{},{});
-  assert.equal(res.status,204);
+  assert.equal(res.status,200);
   assert.equal(calls,1);
 });
 
