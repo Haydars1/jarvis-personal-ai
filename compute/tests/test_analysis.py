@@ -78,3 +78,21 @@ def test_analyze_binary_applies_verified_semantic_model_when_supplied():
     assert result.map_candidates
     assert "semantic_label" in result.map_candidates[0]
     assert "semantic_confidence" in result.map_candidates[0]
+
+
+def test_stage1_proposal_remains_blocked_without_verified_rulepack():
+    marker=b"BOSCH EDC17C46\x00"
+    table=b"".join((100+r*20+c*3).to_bytes(2,"big") for r in range(8) for c in range(8))
+    data=marker+(b"\x00"*32)+table
+    job=AnalysisJobInput(
+        job_id="job-stage1",
+        artifact_sha256="f"*64,
+        artifact_uri="r2://ecu-artifacts/originals/"+"f"*64,
+        operation="stage1_proposal",
+        config={"rulepack_verified":False},
+    )
+    result=analyze_binary(job,data)
+    assert result.status=="NEEDS_REVIEW"
+    assert result.proposal is not None
+    assert result.proposal["blocked"] is True
+    assert "RULEPACK_UNVERIFIED" in result.proposal["reasons"]
