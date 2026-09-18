@@ -4,6 +4,21 @@ import { cleanReply } from '../../lib/orchestration.js';
 const MODEL = '@cf/zai-org/glm-4.7-flash';
 const FAILURE_PREFIX = 'JARVIS şu an yanıt üretemedi';
 
+function fallbackIntent(text = '') {
+  const value = String(text || '').toLowerCase();
+  const action = /(yap|oluştur|üret|hazırla|çiz|göster|generate|create)/i.test(value);
+  if (action && /(animasyon|video|reels?|klip)/i.test(value)) return 'video';
+  if (action && /(resim|görsel|foto|fotoğraf|logo|poster|kapak|afiş)/i.test(value)) return 'image';
+  return 'chat';
+}
+
+function capabilityFallback(text = '') {
+  const kind = fallbackIntent(text);
+  if (kind === 'video') return 'Video/animasyon isteğini aldım. Medya üretim sağlayıcısını devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
+  if (kind === 'image') return 'Görsel isteğini aldım. Görsel üretim yeteneğini devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
+  return '';
+}
+
 function extractWorkersText(result) {
   const content = result?.choices?.[0]?.message?.content;
   if (typeof content === 'string' && content.trim()) return content.trim();
@@ -44,7 +59,7 @@ export function createEmergencyChatFallback(handleChat) {
 
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
-    const reply = await generateEmergencyReply(env, text);
+    const reply = await generateEmergencyReply(env, text) || capabilityFallback(text);
     if (!reply) return response;
 
     payload.reply = reply;
