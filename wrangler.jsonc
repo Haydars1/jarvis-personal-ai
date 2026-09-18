@@ -6,6 +6,9 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "vars": {
+    "JARVIS_PUBLIC_URL": "https://jarvis-personal-ai.haydojarvis.workers.dev"
+  },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
