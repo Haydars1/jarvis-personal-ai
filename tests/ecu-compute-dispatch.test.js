@@ -144,3 +144,18 @@ test('prefers local worker over Cloudflare container binding', async () => {
   assert.equal(result.workerKind, 'local');
   assert.equal(containerCalls, 0);
 });
+
+
+test('does not wake cloud container without compute token', async () => {
+  let woke = false;
+  const dispatch = createComputeDispatch({ fetchImpl: async () => { throw new Error('should not fetch'); } });
+  const result = await dispatch(job(), {
+    ECU_COMPUTE_CONTAINER: {
+      getByName() { woke = true; return { fetch: async () => new Response('{}', { status: 202 }) }; },
+    },
+  });
+  assert.equal(result.accepted, false);
+  assert.equal(result.state, 'QUEUED');
+  assert.equal(result.reason, 'NO_COMPUTE_TOKEN');
+  assert.equal(woke, false);
+});
