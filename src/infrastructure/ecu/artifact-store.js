@@ -37,6 +37,32 @@ export function createEcuArtifactStore(bucket) {
       return new Uint8Array(await object.arrayBuffer());
     },
 
+    async putValidatedMod(bytes, { jobId = '', checksumAlgorithm = '' } = {}) {
+      const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      const digest = await sha256(view);
+      const key = `mods/${digest}`;
+      const existing = typeof bucket.head === 'function' ? await bucket.head(key) : null;
+      if (!existing) {
+        await bucket.put(key, view, {
+          httpMetadata: { contentType: 'application/octet-stream' },
+          customMetadata: {
+            sha256: digest,
+            jobId: String(jobId),
+            checksumAlgorithm: String(checksumAlgorithm),
+            validated: 'true',
+            immutable: 'true',
+          },
+        });
+      }
+      return { sha256: digest, key, sizeBytes: view.byteLength, existed: Boolean(existing) };
+    },
+
+    async getValidatedMod(digest) {
+      const object = await bucket.get(`mods/${String(digest).toLowerCase()}`);
+      if (!object) return null;
+      return new Uint8Array(await object.arrayBuffer());
+    },
+
     async putDatasetSnapshot(snapshot) {
       const digest = String(snapshot?.digest || '').trim().toLowerCase();
       if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('INVALID_DATASET_DIGEST');
