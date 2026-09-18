@@ -157,3 +157,31 @@ test('compute worker can fetch production semantic model by version', async () =
   const body = await response.json();
   assert.equal(body.version, 1);
 });
+
+
+test('ORI MOD pair callback persists diff result through injected writer', async () => {
+  const writes=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async applyPairResult(_env,pairId,body){
+      writes.push([pairId,body]);
+      return {id:pairId,state:body.status,diffDigest:body.diff.digest};
+    }
+  });
+  const env={ECU_COMPUTE_TOKEN:'secret-token'};
+  const body={
+    status:'COMPLETE',
+    operation_label:'stage1',
+    diff:{original_size:6,modified_size:6,changed_byte_count:2,ranges:[{start:2,end:4,deltas:[7,7]}],digest:'c'.repeat(64)},
+    paid_api_used:false,
+  };
+  const response=await runtime.fetch(request('/api/ecu/internal/pairs/pair-1/result',{
+    method:'POST',
+    headers:{'content-type':'application/json',authorization:'Bearer secret-token'},
+    body:JSON.stringify(body),
+  }),env,{});
+  assert.equal(response.status,200);
+  assert.equal(writes.length,1);
+  assert.equal(writes[0][0],'pair-1');
+  assert.equal(writes[0][1].diff.changed_byte_count,2);
+  assert.deepEqual(await response.json(),{pair:{id:'pair-1',state:'COMPLETE',diffDigest:'c'.repeat(64)}});
+});
