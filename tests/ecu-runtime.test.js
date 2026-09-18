@@ -83,3 +83,60 @@ test('delegates unknown routes and scheduled events to core', async () => {
   assert.equal(response.status, 299);
   assert.equal(await runtime.scheduled({}, {}, {}), 'scheduled-core');
 });
+
+test('uploads an immutable ECU original and returns its content-addressed file id', async () => {
+  const uploaded = [];
+  const runtime = createEcuRuntime(coreFallback(), {
+    async uploadOriginal(_env, input) {
+      uploaded.push(input);
+      return {
+        id: 'a'.repeat(64),
+        sha256: 'a'.repeat(64),
+        artifactUri: 'r2://ecu-artifacts/originals/' + 'a'.repeat(64),
+        originalName: input.filename,
+        sizeBytes: input.bytes.byteLength,
+        existed: false,
+      };
+    },
+  });
+
+  const bytes = Uint8Array.from([1, 2, 3, 4]);
+  const response = await runtime.fetch(request('/api/ecu/files', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/octet-stream',
+      'x-ecu-filename': 'passat-original.bin',
+    },
+    body: bytes,
+  }), {}, {});
+
+  assert.equal(response.status, 201);
+  assert.equal(uploaded.length, 1);
+  assert.equal(uploaded[0].filename, 'passat-original.bin');
+  assert.deepEqual([...uploaded[0].bytes], [...bytes]);
+  const payload = await response.json();
+  assert.equal(payload.file.id, 'a'.repeat(64));
+  assert.equal(payload.file.sha256, 'a'.repeat(64));
+  assert.equal(payload.file.sizeBytes, 4);
+});
+
+test('rejects empty or oversized ECU uploads before storage', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async uploadOriginal() { throw new Error('should not run'); },
+    maxUploadBytes: 4,
+  });
+
+  let response = await runtime.fetch(request('/api/ecu/files', {
+    method: 'POST',
+    headers: { 'content-type': 'application/octet-stream' },
+    body: new Uint8Array([]),
+  }), {}, {});
+  assert.equal(response.status, 400);
+
+  response = await runtime.fetch(request('/api/ecu/files', {
+    method: 'POST',
+    headers: { 'content-type': 'application/octet-stream' },
+    body: Uint8Array.from([1, 2, 3, 4, 5]),
+  }), {}, {});
+  assert.equal(response.status, 413);
+});
