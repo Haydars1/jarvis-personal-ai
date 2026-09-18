@@ -36,3 +36,34 @@ def test_stage1_proposal_never_modifies_unknown_or_low_confidence_maps():
     proposal=propose_stage1(maps,rules,min_confidence=0.9)
     assert proposal.items == []
     assert proposal.unknown_maps == 2
+
+
+def test_stage1_rulepack_must_be_explicitly_verified():
+    from ecu_worker.proposal import stage1_proposal_from_config
+    maps=[{"offset":100,"rows":8,"cols":8,"semantic_label":"torque_limiter","semantic_confidence":.99}]
+    result=stage1_proposal_from_config(maps,{
+        "rulepack_verified":False,
+        "rulepack":{"torque_limiter":{"max_delta_percent":8}},
+    })
+    assert result.blocked is True
+    assert "RULEPACK_UNVERIFIED" in result.reasons
+    assert result.items == []
+
+
+def test_verified_rulepack_builds_bounded_stage1_proposal_without_modifying_bytes():
+    from ecu_worker.proposal import stage1_proposal_from_config
+    maps=[
+        {"offset":100,"rows":8,"cols":8,"semantic_label":"torque_limiter","semantic_confidence":.99},
+        {"offset":300,"rows":8,"cols":8,"semantic_label":"boost_target","semantic_confidence":.97},
+    ]
+    result=stage1_proposal_from_config(maps,{
+        "rulepack_verified":True,
+        "required_labels":["torque_limiter","boost_target"],
+        "rulepack":{
+            "torque_limiter":{"max_delta_percent":8},
+            "boost_target":{"max_delta_percent":5},
+        },
+    })
+    assert result.blocked is False
+    assert [x.max_delta_percent for x in result.items]==[8.0,5.0]
+    assert result.requires_checksum is True
