@@ -1,4 +1,5 @@
 import { createEcuJobRecord } from './models.js';
+import { assertEcuJobTransition } from './state-machine.js';
 import { createEcuResearch } from './research.js';
 import { createEcuTraining } from './training.js';
 import { buildEcuDatasetSnapshot } from './dataset.js';
@@ -336,8 +337,9 @@ async function defaultApplyWorkerResult(env, jobId, body = {}) {
   const allowed = new Set(['NEEDS_REVIEW', 'READY', 'FAILED']);
   const status = allowed.has(String(body.status || '')) ? String(body.status) : 'NEEDS_REVIEW';
   const timestamp = now();
-  const job = await env.DB.prepare('SELECT id FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
+  const job = await env.DB.prepare('SELECT id,state FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
   if (!job) throw new Error('ECU_JOB_NOT_FOUND');
+  assertEcuJobTransition(job.state, status);
 
   const resultJson = JSON.stringify(body);
   await env.DB.prepare(`UPDATE ecu_jobs
