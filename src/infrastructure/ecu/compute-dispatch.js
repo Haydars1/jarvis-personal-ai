@@ -10,6 +10,20 @@ function chooseEndpoint(env = {}) {
 }
 
 function payloadFor(job, env = {}) {
+  const callbackBaseUrl=(job.config||{}).callback_base_url||String(env.JARVIS_PUBLIC_URL||'').trim()||null;
+  if((job.operation||'')==='diff_pair'){
+    return {
+      job_id:job.id,
+      operation:'diff_pair',
+      ori_artifact_sha256:job.oriArtifactSha256,
+      mod_artifact_sha256:job.modArtifactSha256,
+      ori_artifact_uri:job.oriArtifactUri,
+      mod_artifact_uri:job.modArtifactUri,
+      operation_label:job.operationLabel||'',
+      paid_api_allowed:false,
+      config:{...(job.config||{}),callback_base_url:callbackBaseUrl},
+    };
+  }
   return {
     job_id: job.id,
     artifact_sha256: job.artifactSha256,
@@ -18,7 +32,7 @@ function payloadFor(job, env = {}) {
     model_version: job.modelVersion || 'baseline',
     rulepack_version: job.rulepackVersion || 'baseline',
     paid_api_allowed: false,
-    config: { ...(job.config || {}), callback_base_url: String(env.JARVIS_PUBLIC_URL || '').trim() || null },
+    config: { ...(job.config || {}), callback_base_url: callbackBaseUrl },
   };
 }
 
