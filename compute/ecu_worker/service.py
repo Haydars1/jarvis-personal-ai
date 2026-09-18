@@ -25,11 +25,21 @@ async def process_dispatched_job(
     )
     state_response.raise_for_status()
 
+    effective_job = job
+    if job.model_version and job.model_version != "baseline":
+        model_url = f"{base_url}/api/ecu/internal/models/{job.model_version}"
+        model_response = await client.get(model_url, headers=headers)
+        model_response.raise_for_status()
+        model_json = model_response.content.decode("utf-8")
+        effective_job = job.model_copy(update={
+            "config": {**job.config, "semantic_model_json": model_json},
+        })
+
     artifact_url = f"{base_url}/api/ecu/internal/artifacts/{job.artifact_sha256}"
     artifact_response = await client.get(artifact_url, headers=headers)
     artifact_response.raise_for_status()
 
-    result = analyze_binary(job, bytes(artifact_response.content))
+    result = analyze_binary(effective_job, bytes(artifact_response.content))
 
     callback_url = f"{base_url}/api/ecu/internal/jobs/{job.job_id}/result"
     callback_response = await client.post(
