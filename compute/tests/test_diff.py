@@ -66,3 +66,39 @@ def test_diff_map_link_preserves_human_verification_evidence():
         "human_verified":True,
     }])
     assert linked[0]["map_hits"][0]["human_verified"] is True
+
+
+def test_diff_measures_verified_u16_map_percent_deltas():
+    from ecu_worker.diff import measure_verified_map_deltas
+    ori=bytearray(16)
+    mod=bytearray(16)
+    values=[100,200,300,400]
+    changed=[110,220,300,360]
+    for i,value in enumerate(values):
+        ori[4+i*2:6+i*2]=value.to_bytes(2,"big")
+    for i,value in enumerate(changed):
+        mod[4+i*2:6+i*2]=value.to_bytes(2,"big")
+    maps=[{
+        "offset":4,"rows":1,"cols":4,"data_type":"u16","endian":"big",
+        "semantic_label":"torque_limiter","semantic_confidence":1.0,"human_verified":True,
+    }]
+    rows=measure_verified_map_deltas(bytes(ori),bytes(mod),maps)
+    assert len(rows)==1
+    row=rows[0]
+    assert row["semantic_label"]=="torque_limiter"
+    assert row["changed_cells"]==3
+    assert round(row["max_abs_percent"],2)==10.0
+    assert round(row["mean_abs_percent"],2)==10.0
+
+
+def test_delta_measurement_ignores_unverified_or_unknown_maps():
+    from ecu_worker.diff import measure_verified_map_deltas
+    data=bytes([0])*16
+    assert measure_verified_map_deltas(data,data,[{
+        "offset":0,"rows":1,"cols":2,"data_type":"u16","endian":"big",
+        "semantic_label":"UNKNOWN","human_verified":True,
+    }])==[]
+    assert measure_verified_map_deltas(data,data,[{
+        "offset":0,"rows":1,"cols":2,"data_type":"u16","endian":"big",
+        "semantic_label":"boost_target","human_verified":False,
+    }])==[]
