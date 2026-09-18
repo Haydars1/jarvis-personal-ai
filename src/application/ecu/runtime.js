@@ -584,6 +584,22 @@ async function defaultRollbackModel(env, targetVersion) {
   return { from: production.version, to: targetVersion, state: 'PRODUCTION' };
 }
 
+async function defaultMetricsStatus(env) {
+  const states=['QUEUED','DISPATCHED','RUNNING','NEEDS_REVIEW','READY','FAILED'];
+  const rows=(await env.DB.prepare('SELECT state,COUNT(*) AS count FROM ecu_jobs GROUP BY state').all()).results||[];
+  const counts=Object.fromEntries(states.map(state=>[state,0]));
+  for(const row of rows){ if(Object.hasOwn(counts,row.state)) counts[row.state]=Number(row.count||0); }
+  const timing=await env.DB.prepare(`SELECT AVG(updated_at-created_at) AS avg_ms
+    FROM ecu_jobs WHERE state IN ('NEEDS_REVIEW','READY','FAILED')`).first();
+  const production=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
+  return {
+    counts,
+    averageTurnaroundMs:Math.round(Number(timing?.avg_ms||0)),
+    productionModel:production?.version||'baseline',
+    binaryPayloadLogged:false,
+  };
+}
+
 async function defaultComputeStatus(env = {}) {
   const tokenConfigured = Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim());
   const localOnline = tokenConfigured && String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1' && Boolean(String(env.ECU_LOCAL_WORKER_URL || '').trim());
@@ -625,6 +641,7 @@ export function createEcuRuntime(core, overrides = {}) {
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     computeStatus: defaultComputeStatus,
+    metricsStatus: defaultMetricsStatus,
     rollbackModel: defaultRollbackModel,
     listModels: defaultListModels,
     uploadOriginal: defaultUploadOriginal,
@@ -844,6 +861,10 @@ export function createEcuRuntime(core, overrides = {}) {
           if(error?.message==='ECU_PRODUCTION_MODEL_NOT_FOUND')return json({error:'ECU_PRODUCTION_MODEL_NOT_FOUND'},409);
           throw error;
         }
+      }
+
+      if (url.pathname === '/api/ecu/metrics' && req.method === 'GET') {
+        return json(await deps.metricsStatus(env));
       }
 
       if (url.pathname === '/api/ecu/compute/status' && req.method === 'GET') {
