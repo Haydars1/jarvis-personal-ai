@@ -20,6 +20,13 @@ async function readJson(req) {
   try { return await req.json(); } catch { return {}; }
 }
 
+function isComputeAuthorized(req, env = {}) {
+  const expected = String(env.ECU_COMPUTE_TOKEN || '').trim();
+  if (!expected) return false;
+  const actual = String(req.headers.get('authorization') || '');
+  return actual === `Bearer ${expected}`;
+}
+
 function requestFilename(req) {
   const raw = String(req.headers.get('x-ecu-filename') || 'original.bin').trim();
   let decoded = raw;
@@ -84,6 +91,78 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
   };
 }
 
+async function defaultReadOriginal(env, sha256) {
+  const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
+  return store.getOriginal(sha256);
+}
+
+async function defaultApplyWorkerResult(env, jobId, body = {}) {
+  const allowed = new Set(['NEEDS_REVIEW', 'READY', 'FAILED']);
+  const status = allowed.has(String(body.status || '')) ? String(body.status) : 'NEEDS_REVIEW';
+  const timestamp = now();
+  const job = await env.DB.prepare('SELECT id FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
+  if (!job) throw new Error('ECU_JOB_NOT_FOUND');
+
+  const resultJson = JSON.stringify(body);
+  await env.DB.prepare(`UPDATE ecu_jobs
+    SET state=?,run_fingerprint=?,result_json=?,error=?,updated_at=?
+    WHERE id=?`)
+    .bind(
+      status,
+      body.run_fingerprint || null,
+      resultJson,
+      body.error || null,
+      timestamp,
+      jobId,
+    ).run();
+
+  if (status !== 'FAILED') {
+    const resultId = `analysis-${jobId}`;
+    await env.DB.prepare(`INSERT INTO ecu_analysis_results(
+      id,job_id,ecu_family,hw_candidates,sw_candidates,confidence,evidence,feature_schema_version,created_at
+    ) VALUES(?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(job_id) DO UPDATE SET
+      ecu_family=excluded.ecu_family,
+      hw_candidates=excluded.hw_candidates,
+      sw_candidates=excluded.sw_candidates,
+      confidence=excluded.confidence,
+      evidence=excluded.evidence,
+      feature_schema_version=excluded.feature_schema_version`)
+      .bind(
+        resultId,
+        jobId,
+        body.ecu_family || 'UNKNOWN',
+        JSON.stringify(body.hw_candidates || []),
+        JSON.stringify(body.sw_candidates || []),
+        Number(body.confidence || 0),
+        JSON.stringify(body.evidence || []),
+        String(body.feature_schema_version || 'v1'),
+        timestamp,
+      ).run();
+
+    await env.DB.prepare('DELETE FROM ecu_map_candidates WHERE job_id=?').bind(jobId).run();
+    for (const [index, candidate] of (body.map_candidates || []).entries()) {
+      await env.DB.prepare(`INSERT INTO ecu_map_candidates(
+        id,job_id,map_offset,rows,cols,data_type,endian,semantic_label,confidence,features_json,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+        .bind(
+          `${jobId}-map-${index}`,
+          jobId,
+          Number(candidate.offset || 0),
+          candidate.rows == null ? null : Number(candidate.rows),
+          candidate.cols == null ? null : Number(candidate.cols),
+          candidate.data_type || null,
+          candidate.endian || null,
+          candidate.semantic_label || null,
+          Number(candidate.score ?? candidate.confidence ?? 0),
+          JSON.stringify(candidate),
+          timestamp,
+        ).run();
+    }
+  }
+  return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
+}
+
 async function defaultUploadStatus(env) {
   return {
     ready: Boolean(env.ECU_ARTIFACTS),
@@ -102,6 +181,8 @@ export function createEcuRuntime(core, overrides = {}) {
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
     uploadOriginal: defaultUploadOriginal,
+    readOriginal: defaultReadOriginal,
+    applyWorkerResult: defaultApplyWorkerResult,
     ...overrides,
   };
 
@@ -110,6 +191,40 @@ export function createEcuRuntime(core, overrides = {}) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname.startsWith('/api/ecu/internal/artifacts/') && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const sha256 = decodeURIComponent(url.pathname.slice('/api/ecu/internal/artifacts/'.length));
+        if (!/^[a-f0-9]{64}$/i.test(sha256)) return json({ error: 'INVALID_ARTIFACT_SHA256' }, 400);
+        try {
+          const bytes = await deps.readOriginal(env, sha256.toLowerCase());
+          if (!bytes) return json({ error: 'ECU_FILE_NOT_FOUND' }, 404);
+          return new Response(bytes, {
+            status: 200,
+            headers: {
+              'content-type': 'application/octet-stream',
+              'cache-control': 'no-store',
+              'x-content-type-options': 'nosniff',
+            },
+          });
+        } catch (error) {
+          if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/jobs/') && url.pathname.endsWith('/result') && req.method === 'POST') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const jobId = decodeURIComponent(url.pathname.slice('/api/ecu/internal/jobs/'.length, -'/result'.length));
+        if (!jobId) return json({ error: 'ECU_JOB_ID_REQUIRED' }, 400);
+        const body = await readJson(req);
+        try {
+          return json({ job: await deps.applyWorkerResult(env, jobId, body) });
+        } catch (error) {
+          if (error?.message === 'ECU_JOB_NOT_FOUND') return json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
+          throw error;
+        }
+      }
+
       if (url.pathname === '/api/ecu/files' && req.method === 'POST') {
         const declaredLength = Number(req.headers.get('content-length') || 0);
         if (declaredLength > maxUploadBytes) return json({ error: 'ECU_FILE_TOO_LARGE', maxUploadBytes }, 413);
