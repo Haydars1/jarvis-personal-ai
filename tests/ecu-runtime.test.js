@@ -170,3 +170,21 @@ test('upload-and-analyze pipeline stores the original first and queues analysis 
   assert.equal(payload.job.id, 'job-analysis-1');
   assert.equal(payload.job.state, 'QUEUED');
 });
+
+
+test('manual training endpoint triggers controlled retraining check', async () => {
+  const calls = [];
+  const training = {
+    async maybeRun(_env, timestamp) {
+      calls.push(timestamp);
+      return { scheduled: true, job: { id: 'training-1' } };
+    },
+    async status() { return { status: 'READY_TO_TRAIN' }; },
+  };
+  const runtime = createEcuRuntime(coreFallback(), { training });
+  const response = await runtime.fetch(request('/api/ecu/training/run', { method: 'POST' }), {}, {});
+  assert.equal(response.status, 202);
+  const body = await response.json();
+  assert.equal(body.scheduled, true);
+  assert.equal(calls.length, 1);
+});
