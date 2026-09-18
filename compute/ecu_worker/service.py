@@ -17,6 +17,14 @@ async def process_dispatched_job(
         raise ValueError("callback_base_url is required")
     headers = {"authorization": f"Bearer {compute_token}"}
 
+    state_url = f"{base_url}/api/ecu/internal/jobs/{job.job_id}/state"
+    state_response = await client.post(
+        state_url,
+        headers={**headers, "content-type": "application/json"},
+        json={"state": "RUNNING"},
+    )
+    state_response.raise_for_status()
+
     artifact_url = f"{base_url}/api/ecu/internal/artifacts/{job.artifact_sha256}"
     artifact_response = await client.get(artifact_url, headers=headers)
     artifact_response.raise_for_status()
