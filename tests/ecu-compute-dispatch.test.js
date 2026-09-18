@@ -96,7 +96,7 @@ test('dispatches ORI MOD pair jobs with both immutable artifact hashes', async (
     operationLabel:'stage1',
     config:{callback_base_url:'https://jarvis.example'},
   };
-  const result=await dispatch(pair,{ECU_CLOUD_WORKER_URL:'https://worker.example/jobs'});
+  const result=await dispatch(pair,{ECU_CLOUD_WORKER_URL:'https://worker.example/jobs',ECU_COMPUTE_TOKEN:'secret'});
   assert.equal(result.accepted,true);
   assert.equal(calls[0].body.operation,'diff_pair');
   assert.equal(calls[0].body.ori_artifact_sha256,'a'.repeat(64));
