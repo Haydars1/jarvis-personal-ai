@@ -168,6 +168,27 @@ async function defaultListPairs(env,limit=20){
   });
 }
 
+async function defaultMapContextForArtifact(env, sha256) {
+  const rows=(await env.DB.prepare(`SELECT
+      m.map_offset,m.rows,m.cols,m.data_type,m.endian,m.semantic_label,m.confidence,m.features_json
+    FROM ecu_map_candidates m
+    JOIN ecu_jobs j ON j.id=m.job_id
+    JOIN ecu_files f ON f.id=j.file_id
+    WHERE f.sha256=?
+      AND j.state IN ('NEEDS_REVIEW','READY')
+    ORDER BY j.updated_at DESC,m.confidence DESC,m.map_offset ASC`).bind(sha256).all()).results||[];
+  return rows.map(row=>({
+    offset:Number(row.map_offset||0),
+    rows:row.rows==null?null:Number(row.rows),
+    cols:row.cols==null?null:Number(row.cols),
+    dataType:row.data_type||null,
+    endian:row.endian||null,
+    semanticLabel:row.semantic_label||'UNKNOWN',
+    confidence:Number(row.confidence||0),
+    features:(()=>{try{return JSON.parse(row.features_json||'{}')}catch{return {}}})(),
+  }));
+}
+
 async function defaultListMaps(env, jobId) {
   const rows=(await env.DB.prepare(`SELECT
       id,map_offset,rows,cols,data_type,endian,semantic_label,confidence,features_json,created_at
@@ -636,6 +657,7 @@ export function createEcuRuntime(core, overrides = {}) {
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
     listMaps: defaultListMaps,
+    mapContextForArtifact: defaultMapContextForArtifact,
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
     trainingStatus: env => training.status(env),
@@ -690,6 +712,13 @@ export function createEcuRuntime(core, overrides = {}) {
           if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
           throw error;
         }
+      }
+
+      if (url.pathname.startsWith('/api/ecu/internal/map-context/') && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const sha256=decodeURIComponent(url.pathname.slice('/api/ecu/internal/map-context/'.length)).toLowerCase();
+        if(!/^[a-f0-9]{64}$/.test(sha256))return json({error:'INVALID_ARTIFACT_SHA256'},400);
+        return json({maps:await deps.mapContextForArtifact(env,sha256)});
       }
 
       if (url.pathname.startsWith('/api/ecu/internal/artifacts/') && req.method === 'GET') {
