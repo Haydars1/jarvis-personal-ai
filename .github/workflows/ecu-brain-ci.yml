@@ -74,6 +74,16 @@ jobs:
           assert {'artifact_uri','immutable'} <= file_columns
           evidence_columns = {row[1] for row in db.execute("PRAGMA table_info(ecu_change_evidence)")}
           assert 'delta_stats_json' in evidence_columns
+
+          # The deployment schema must independently produce the same runtime-critical shape.
+          fresh = sqlite3.connect(':memory:')
+          fresh.executescript(Path('schema-ecu.sql').read_text())
+          fresh_tables = {row[0] for row in fresh.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          assert required_tables <= fresh_tables
+          fresh_jobs = {row[1] for row in fresh.execute("PRAGMA table_info(ecu_jobs)")}
+          assert 'rulepack_version' in fresh_jobs
+          fresh_files = {row[1] for row in fresh.execute("PRAGMA table_info(ecu_files)")}
+          assert {'artifact_uri','immutable'} <= fresh_files
           PY
       - name: Validate Cloudflare dry-run bundle
         run: npx wrangler deploy --dry-run --outdir=/tmp/jarvis-ecu-dryrun
