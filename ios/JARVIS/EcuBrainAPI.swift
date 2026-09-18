@@ -1,0 +1,112 @@
+import Foundation
+
+struct EcuComputeStatus: Decodable {
+    let tokenConfigured: Bool?
+    let localOnline: Bool
+    let cloudContainerReady: Bool
+    let cloudUrlReady: Bool
+    let preferred: String
+}
+
+struct EcuTrainingStatus: Decodable {
+    let status: String
+    let verifiedExamples: Int
+    let minVerifiedExamples: Int
+    let productionModel: EcuModelSummary?
+}
+
+struct EcuModelSummary: Decodable, Identifiable {
+    var id: String { version }
+    let version: String
+    let state: String?
+    let benchmarkScore: Double?
+    let datasetVersion: String?
+}
+
+struct EcuJobResult: Decodable {
+    let ecu_family: String?
+    let confidence: Double?
+    let map_candidates: [EcuMapCandidate]?
+}
+
+struct EcuMapCandidate: Decodable {}
+
+struct EcuJob: Decodable, Identifiable {
+    let id: String
+    let state: String
+    let workerKind: String?
+    let result: EcuJobResult?
+}
+
+struct EcuJobsResponse: Decodable { let jobs: [EcuJob] }
+struct EcuModelsResponse: Decodable { let models: [EcuModelSummary] }
+
+struct EcuUploadFile: Decodable {
+    let id: String
+    let sha256: String?
+}
+
+struct EcuUploadResponse: Decodable {
+    let file: EcuUploadFile
+    let job: EcuJob
+}
+
+final class EcuBrainAPI {
+    private let baseURL = URL(string: "https://jarvis-personal-ai.haydojarvis.workers.dev")!
+    private let session: URLSession
+    private let decoder = JSONDecoder()
+
+    init() {
+        let config = URLSessionConfiguration.default
+        config.httpCookieStorage = .shared
+        config.httpShouldSetCookies = true
+        config.requestCachePolicy = .reloadIgnoringLocalCacheData
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 180
+        session = URLSession(configuration: config)
+    }
+
+    private func request(_ path: String, method: String = "GET", body: Data? = nil, headers: [String:String] = [:]) async throws -> Data {
+        var req = URLRequest(url: URL(string: path, relativeTo: baseURL)!)
+        req.httpMethod = method
+        req.httpBody = body
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        for (key,value) in headers { req.setValue(value, forHTTPHeaderField: key) }
+        let (data,response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200..<300).contains(http.statusCode) else {
+            let text = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw NSError(domain: "ECU", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey:text])
+        }
+        return data
+    }
+
+    func computeStatus() async throws -> EcuComputeStatus {
+        try decoder.decode(EcuComputeStatus.self, from: request("/api/ecu/compute/status"))
+    }
+
+    func trainingStatus() async throws -> EcuTrainingStatus {
+        try decoder.decode(EcuTrainingStatus.self, from: request("/api/ecu/training/status"))
+    }
+
+    func jobs() async throws -> [EcuJob] {
+        try decoder.decode(EcuJobsResponse.self, from: request("/api/ecu/jobs?limit=20")).jobs
+    }
+
+    func models() async throws -> [EcuModelSummary] {
+        try decoder.decode(EcuModelsResponse.self, from: request("/api/ecu/models?limit=20")).models
+    }
+
+    func analyze(data: Data, filename: String, mimeType: String = "application/octet-stream") async throws -> EcuUploadResponse {
+        let encoded = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filename
+        let payload = try await request("/api/ecu/analyze-file", method: "POST", body: data, headers: [
+            "Content-Type": mimeType,
+            "X-ECU-Filename": encoded,
+        ])
+        return try decoder.decode(EcuUploadResponse.self, from: payload)
+    }
+
+    func rollback(version: String) async throws {
+        _ = try await request("/api/ecu/models/\(version.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? version)/rollback", method: "POST")
+    }
+}
