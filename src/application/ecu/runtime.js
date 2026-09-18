@@ -1,6 +1,7 @@
 import { createEcuJobRecord } from './models.js';
 import { createEcuResearch } from './research.js';
 import { createEcuTraining } from './training.js';
+import { buildEcuDatasetSnapshot } from './dataset.js';
 import { createEcuArtifactStore } from '../../infrastructure/ecu/artifact-store.js';
 import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch.js';
 
@@ -213,6 +214,26 @@ async function defaultApplyWorkerResult(env, jobId, body = {}) {
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
 }
 
+async function refreshDatasetSnapshot(env) {
+  const rows=(await env.DB.prepare(`SELECT
+      e.ecu_family,e.hw,e.sw,e.artifact_sha256,e.map_offset,e.semantic_label,
+      e.source_type,e.source_confidence,e.human_verified,e.updated_at,
+      f.features_json
+    FROM ecu_training_examples e
+    LEFT JOIN ecu_training_features f ON f.example_id=e.id
+    WHERE e.human_verified=1
+    ORDER BY e.ecu_family,e.hw,e.sw,e.artifact_sha256,e.map_offset,e.semantic_label`).all()).results||[];
+  if(!rows.length)return null;
+  const maxUpdated=rows.reduce((m,row)=>Math.max(m,Number(row.updated_at||0)),0);
+  const version=`dataset-${rows.length}-${maxUpdated}`;
+  const snapshot=await buildEcuDatasetSnapshot(rows,version);
+  await env.DB.prepare(`INSERT INTO ecu_dataset_versions(version,digest,example_count,artifact_uri,created_at)
+    VALUES(?,?,?,?,?)
+    ON CONFLICT(version) DO UPDATE SET digest=excluded.digest,example_count=excluded.example_count`)
+    .bind(snapshot.version,snapshot.digest,snapshot.exampleCount,`d1://ecu-dataset/${snapshot.version}`,now()).run();
+  return snapshot;
+}
+
 async function defaultVerifyMap(env, mapId, { semanticLabel }) {
   const row = await env.DB.prepare(`SELECT
       m.id AS map_id,m.job_id,m.map_offset,m.confidence AS map_confidence,m.features_json,
@@ -264,12 +285,15 @@ async function defaultVerifyMap(env, mapId, { semanticLabel }) {
     .bind(exampleId, row.features_json || '{}', timestamp, timestamp).run();
   await env.DB.prepare('UPDATE ecu_map_candidates SET semantic_label=?,confidence=? WHERE id=?')
     .bind(label, 1, mapId).run();
+  const dataset=await refreshDatasetSnapshot(env);
 
   return {
     exampleId,
     mapId,
     semanticLabel: label,
     humanVerified: true,
+    datasetVersion: dataset?.version || null,
+    datasetDigest: dataset?.digest || null,
   };
 }
 
