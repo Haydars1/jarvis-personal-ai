@@ -36,5 +36,31 @@ export function createEcuArtifactStore(bucket) {
       if (!object) return null;
       return new Uint8Array(await object.arrayBuffer());
     },
+
+    async putDatasetSnapshot(snapshot) {
+      const digest = String(snapshot?.digest || '').trim().toLowerCase();
+      if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('INVALID_DATASET_DIGEST');
+      const key = `datasets/${digest}.json`;
+      const existing = typeof bucket.head === 'function' ? await bucket.head(key) : null;
+      if (!existing) {
+        const bytes = new TextEncoder().encode(JSON.stringify(snapshot));
+        await bucket.put(key, bytes, {
+          httpMetadata: { contentType: 'application/json' },
+          customMetadata: {
+            digest,
+            version: String(snapshot?.version || ''),
+            immutable: 'true',
+          },
+        });
+      }
+      return { digest, key, existed: Boolean(existing) };
+    },
+
+    async getDatasetSnapshot(digest) {
+      const object = await bucket.get(`datasets/${String(digest).toLowerCase()}.json`);
+      if (!object) return null;
+      const bytes = new Uint8Array(await object.arrayBuffer());
+      return JSON.parse(new TextDecoder().decode(bytes));
+    },
   };
 }
