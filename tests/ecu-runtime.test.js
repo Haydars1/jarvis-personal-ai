@@ -220,3 +220,15 @@ test('exposes compute availability status without requiring the laptop', async (
     preferred: 'cloud-container',
   });
 });
+
+
+test('reports compute unavailable when auth token is missing', async () => {
+  const runtime = createEcuRuntime(coreFallback());
+  const response = await runtime.fetch(request('/api/ecu/compute/status'), {
+    ECU_COMPUTE_CONTAINER: { getByName() { return {}; } },
+  }, {});
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.tokenConfigured, false);
+  assert.equal(body.preferred, 'none');
+});
