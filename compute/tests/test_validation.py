@@ -39,3 +39,24 @@ def test_validation_never_fabricates_checksum_support():
     )
     assert result.ready is True
     assert result.errors == []
+
+
+def test_checksum_registry_defaults_to_unsupported_for_unknown_family():
+    from ecu_worker.validation import ChecksumRegistry
+    registry=ChecksumRegistry()
+    result=registry.verify("EDC17C46",b"abc")
+    assert result.status=="UNSUPPORTED"
+    assert result.verified is False
+
+
+def test_checksum_registry_uses_only_explicitly_registered_adapter():
+    from ecu_worker.validation import ChecksumAdapter, ChecksumRegistry
+
+    class VerifiedFixture(ChecksumAdapter):
+        name="verified-fixture"
+        def verify(self,data:bytes)->ChecksumResult:
+            return ChecksumResult(status="VERIFIED",algorithm=self.name,verified=True)
+
+    registry=ChecksumRegistry({"FIXTURE_ECU":VerifiedFixture()})
+    assert registry.verify("FIXTURE_ECU",b"abc").verified is True
+    assert registry.verify("EDC17C46",b"abc").status=="UNSUPPORTED"
