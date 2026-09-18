@@ -31,3 +31,21 @@ test('deduplicates repeated verified hits deterministically',()=>{
   const rows=extractVerifiedChangeEvidence(diff);
   assert.equal(rows.length,1);
 });
+
+
+test('attaches verified map delta statistics to semantic change evidence',()=>{
+  const diff={
+    linked_ranges:[{start:10,end:12,map_hits:[
+      {offset:8,semantic_label:'boost_target',semantic_confidence:1,human_verified:true,overlap_bytes:2}
+    ]}],
+    map_delta_evidence:[{
+      semantic_label:'boost_target',map_offset:8,changed_cells:3,measured_cells:3,
+      mean_abs_percent:4.2,max_abs_percent:5.1,p95_abs_percent:5.1,
+      semantic_confidence:1,human_verified:true
+    }]
+  };
+  const rows=extractVerifiedChangeEvidence(diff);
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].deltaStats.changedCells,3);
+  assert.equal(rows[0].deltaStats.maxAbsPercent,5.1);
+});
