@@ -2,9 +2,15 @@ import { createEcuJobRecord } from './models.js';
 import { createEcuResearch } from './research.js';
 import { createEcuTraining } from './training.js';
 import { createEcuArtifactStore } from '../../infrastructure/ecu/artifact-store.js';
+import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch.js';
 
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
+
+async function sha256Text(value) {
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
+  return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
 function json(payload, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -51,13 +57,43 @@ function mapJob(row) {
   };
 }
 
-async function defaultCreateJob(env, { fileId, operation = 'analyze' }) {
-  const file = await env.DB.prepare('SELECT id FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
+async function defaultCreateJob(env, { fileId, operation = 'analyze' }, dispatch) {
+  const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
   const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
-  await env.DB.prepare('INSERT INTO ecu_jobs(id,file_id,operation,state,created_at,updated_at) VALUES(?,?,?,?,?,?)')
-    .bind(record.id, fileId, operation, record.state, record.createdAt, record.updatedAt).run();
-  return { ...record, fileId };
+  const modelVersion = 'baseline';
+  const rulepackVersion = 'baseline';
+  const runFingerprint = await sha256Text(JSON.stringify({
+    artifactSha256: file.sha256,
+    operation,
+    modelVersion,
+    rulepackVersion,
+  }));
+  await env.DB.prepare('INSERT INTO ecu_jobs(id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
+    .bind(record.id, fileId, operation, record.state, runFingerprint, modelVersion, rulepackVersion, record.createdAt, record.updatedAt).run();
+
+  const dispatched = await dispatch({
+    id: record.id,
+    runFingerprint,
+    artifactUri: file.artifact_uri,
+    artifactSha256: file.sha256,
+    operation,
+    modelVersion,
+    rulepackVersion,
+  }, env);
+  const state = dispatched?.accepted ? 'DISPATCHED' : 'QUEUED';
+  await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=?,updated_at=? WHERE id=?')
+    .bind(state, dispatched?.workerKind || null, now(), record.id).run();
+  return {
+    ...record,
+    fileId,
+    state,
+    runFingerprint,
+    modelVersion,
+    rulepackVersion,
+    workerKind: dispatched?.workerKind || null,
+    dispatchReason: dispatched?.reason || null,
+  };
 }
 
 async function defaultGetJob(env, id) {
@@ -173,8 +209,9 @@ async function defaultUploadStatus(env) {
 export function createEcuRuntime(core, overrides = {}) {
   const research = overrides.research || createEcuResearch();
   const training = overrides.training || createEcuTraining();
+  const computeDispatch = overrides.computeDispatch || createComputeDispatch();
   const deps = {
-    createJob: defaultCreateJob,
+    createJob: (env, input) => defaultCreateJob(env, input, computeDispatch),
     getJob: defaultGetJob,
     listJobs: defaultListJobs,
     researchStatus: env => research.status(env),
