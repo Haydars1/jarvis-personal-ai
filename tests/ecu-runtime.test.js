@@ -232,3 +232,49 @@ test('reports compute unavailable when auth token is missing', async () => {
   assert.equal(body.tokenConfigured, false);
   assert.equal(body.preferred, 'none');
 });
+
+
+test('reuses identical ECU analysis jobs by deterministic fingerprint', async () => {
+  const rows = new Map();
+  const db = {
+    prepare(sql) {
+      return {
+        _bind: [],
+        bind(...args){ this._bind=args; return this; },
+        async first(){
+          if(sql.includes('FROM ecu_files WHERE id=')) return { id:'f1', sha256:'a'.repeat(64), artifact_uri:'r2://ecu-artifacts/originals/'+'a'.repeat(64) };
+          if(sql.includes('FROM ecu_jobs WHERE run_fingerprint=')) return rows.get(this._bind[0]) || null;
+          return null;
+        },
+        async run(){
+          if(sql.startsWith('INSERT INTO ecu_jobs')){
+            const [id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at]=this._bind;
+            rows.set(run_fingerprint,{id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,worker_kind:null,result_json:null,error:null,created_at,updated_at});
+          }
+          if(sql.startsWith('UPDATE ecu_jobs SET state=')){
+            const [state,worker_kind,updated_at,id]=this._bind;
+            for(const [key,row] of rows){ if(row.id===id) rows.set(key,{...row,state,worker_kind,updated_at}); }
+          }
+          return { success:true };
+        }
+      };
+    }
+  };
+  let dispatchCount=0;
+  const runtime=createEcuRuntime(coreFallback(),{
+    computeDispatch:async()=>{dispatchCount++;return {accepted:true,workerKind:'cloud-container'};}
+  });
+  const env={DB:db};
+  const body=JSON.stringify({fileId:'f1',operation:'analyze'});
+  let response=await runtime.fetch(request('/api/ecu/jobs',{method:'POST',headers:{'content-type':'application/json'},body}),env,{});
+  assert.equal(response.status,202);
+  const first=(await response.json()).job;
+
+  response=await runtime.fetch(request('/api/ecu/jobs',{method:'POST',headers:{'content-type':'application/json'},body}),env,{});
+  assert.equal(response.status,202);
+  const second=(await response.json()).job;
+
+  assert.equal(second.id,first.id);
+  assert.equal(second.runFingerprint,first.runFingerprint);
+  assert.equal(dispatchCount,1);
+});
