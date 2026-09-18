@@ -54,3 +54,31 @@ def test_worker_pulls_artifact_runs_analysis_and_posts_result():
     assert client.calls[-1][0] == "POST"
     assert client.calls[-1][1].endswith("/api/ecu/internal/jobs/job-1/result")
     assert client.calls[-1][3]["status"] == "NEEDS_REVIEW"
+
+
+class ModelAwareClient(FakeClient):
+    async def get(self, url, headers=None):
+        self.calls.append(("GET", url, headers))
+        if "/internal/models/" in url:
+            return FakeResponse(200, b'{"version":1,"unknown_distance":3,"min_label_examples":2,"labels":{}}')
+        return FakeResponse(200, self.artifact)
+
+
+def test_analysis_worker_fetches_production_model_before_analysis():
+    marker = b"BOSCH EDC17C46\x00"
+    table = b"".join((100 + r * 20 + c * 3).to_bytes(2, "big") for r in range(8) for c in range(8))
+    client = ModelAwareClient(marker + b"\x00" * 32 + table)
+    job = AnalysisJobInput(
+        job_id="job-model",
+        artifact_sha256="c" * 64,
+        artifact_uri="r2://ecu-artifacts/originals/" + "c" * 64,
+        model_version="model-abc123",
+        config={"callback_base_url": "https://jarvis.example"},
+    )
+
+    result = asyncio.run(process_dispatched_job(job, "secret", client=client))
+
+    model_calls = [call for call in client.calls if call[0] == "GET" and "/internal/models/" in call[1]]
+    assert len(model_calls) == 1
+    assert model_calls[0][1].endswith("/api/ecu/internal/models/model-abc123")
+    assert result.ecu_family == "EDC17C46"
