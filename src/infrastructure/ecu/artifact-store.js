@@ -62,5 +62,23 @@ export function createEcuArtifactStore(bucket) {
       const bytes = new Uint8Array(await object.arrayBuffer());
       return JSON.parse(new TextDecoder().decode(bytes));
     },
+
+    async putModelArtifact(modelJson, { modelVersion = '' } = {}) {
+      const bytes = new TextEncoder().encode(String(modelJson || ''));
+      const digest = await sha256(bytes);
+      const key = `models/${digest}.json`;
+      const existing = typeof bucket.head === 'function' ? await bucket.head(key) : null;
+      if (!existing) {
+        await bucket.put(key, bytes, {
+          httpMetadata: { contentType: 'application/json' },
+          customMetadata: {
+            sha256: digest,
+            modelVersion: String(modelVersion),
+            immutable: 'true',
+          },
+        });
+      }
+      return { sha256: digest, key, existed: Boolean(existing) };
+    },
   };
 }
