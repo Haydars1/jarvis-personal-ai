@@ -44,7 +44,7 @@ test('schedules a deterministic training job when verified threshold is met', as
     dispatch: async (job) => { jobs.push(job); return { accepted: true, workerKind: 'cloud', state: 'DISPATCHED' }; },
   });
 
-  const result = await training.maybeRun({ ECU_CLOUD_WORKER_URL: 'https://worker.example/jobs' }, 172_800_000);
+  const result = await training.maybeRun({ ECU_CLOUD_WORKER_URL: 'https://worker.example/jobs', JARVIS_PUBLIC_URL: 'https://jarvis.example' }, 172_800_000);
 
   assert.equal(result.scheduled, true);
   assert.equal(jobs.length, 1);
@@ -52,6 +52,7 @@ test('schedules a deterministic training job when verified threshold is met', as
   assert.equal(jobs[0].datasetVersion, 'dataset-4');
   assert.equal(jobs[0].productionModelVersion, 'v1');
   assert.equal(jobs[0].paidApiAllowed, false);
+  assert.equal(jobs[0].callbackBaseUrl, 'https://jarvis.example');
   assert.equal(jobs[0].runFingerprint.length, 64);
 });
 
