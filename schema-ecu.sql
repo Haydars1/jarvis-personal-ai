@@ -148,3 +148,11 @@ CREATE TABLE IF NOT EXISTS ecu_training_runs (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_training_runs_created ON ecu_training_runs(created_at DESC);
+
+
+CREATE TABLE IF NOT EXISTS ecu_training_features (
+  example_id TEXT PRIMARY KEY,
+  features_json TEXT NOT NULL DEFAULT '{}',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
