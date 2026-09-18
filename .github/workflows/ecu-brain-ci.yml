@@ -12,6 +12,9 @@ on:
       - 'migrations/**'
       - 'src/app-entry.js'
       - '.github/workflows/ecu-brain-ci.yml'
+      - '.github/workflows/deploy-cloudflare.yml'
+      - 'schema-ecu.sql'
+      - 'wrangler.jsonc'
   pull_request:
     paths:
       - 'src/application/ecu/**'
@@ -40,6 +43,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run JARVIS checks
         run: npm run check
+      - name: Validate Cloudflare dry-run bundle
+        run: npx wrangler deploy --dry-run --outdir=/tmp/jarvis-ecu-dryrun
       - name: Install ECU compute worker
         run: python -m pip install -e './compute[dev]'
       - name: Run ECU compute tests
