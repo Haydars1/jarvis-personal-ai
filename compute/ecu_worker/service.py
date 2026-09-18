@@ -58,6 +58,7 @@ async def process_dispatched_job(
                 job.model_version,
                 job.rulepack_version,
                 job.config,
+                operation=job.operation,
             ),
             "status": "FAILED",
             "ecu_family": "UNKNOWN",
