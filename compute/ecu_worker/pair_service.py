@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from .contracts import PairJobInput
-from .diff import diff_bytes
+from .diff import diff_bytes, link_ranges_to_maps
 
 
 async def process_pair_job(
@@ -28,6 +28,28 @@ async def process_pair_job(
         mod_response.raise_for_status()
 
         report=diff_bytes(bytes(ori_response.content),bytes(mod_response.content))
+        maps=[]
+        map_context_url=f"{base_url}/api/ecu/internal/map-context/{job.ori_artifact_sha256}"
+        map_context_response=await client.get(map_context_url,headers=headers)
+        if map_context_response.status_code==200:
+            try:
+                maps=(map_context_response.json() or {}).get("maps") or []
+            except Exception:
+                maps=[]
+        elif map_context_response.status_code not in {404}:
+            map_context_response.raise_for_status()
+        normalized_maps=[
+            {
+                "offset":item.get("offset",0),
+                "rows":item.get("rows"),
+                "cols":item.get("cols"),
+                "data_type":item.get("data_type") or item.get("dataType"),
+                "semantic_label":item.get("semantic_label") or item.get("semanticLabel") or "UNKNOWN",
+                "semantic_confidence":item.get("semantic_confidence") if item.get("semantic_confidence") is not None else item.get("confidence",0),
+            }
+            for item in maps
+        ]
+        linked_ranges=link_ranges_to_maps(report,normalized_maps)
         payload={
             "status":"COMPLETE",
             "operation_label":job.operation_label,
@@ -36,6 +58,7 @@ async def process_pair_job(
                 "modified_size":report.modified_size,
                 "changed_byte_count":report.changed_byte_count,
                 "ranges":[asdict(item) for item in report.ranges],
+                "linked_ranges":linked_ranges,
                 "digest":report.digest,
             },
             "paid_api_used":False,
