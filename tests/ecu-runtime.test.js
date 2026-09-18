@@ -188,3 +188,18 @@ test('manual training endpoint triggers controlled retraining check', async () =
   assert.equal(body.scheduled, true);
   assert.equal(calls.length, 1);
 });
+
+
+test('lists persisted map candidates for an analysis job', async () => {
+  const runtime = createEcuRuntime(coreFallback(), {
+    async listMaps(_env, jobId) {
+      assert.equal(jobId, 'job-1');
+      return [{ id: 'job-1-map-0', offset: 128, rows: 8, cols: 8, semanticLabel: 'UNKNOWN', confidence: .91 }];
+    },
+  });
+  const response = await runtime.fetch(request('/api/ecu/jobs/job-1/maps'), {}, {});
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.maps[0].id, 'job-1-map-0');
+  assert.equal(body.maps[0].offset, 128);
+});
