@@ -46,6 +46,35 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Run JARVIS checks
         run: npm run check
+      - name: Validate ECU SQLite migrations
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+
+          db = sqlite3.connect(':memory:')
+          for path in [
+              Path('migrations/0010_ecu_brain_core.sql'),
+              Path('migrations/0011_ecu_brain_learning_release.sql'),
+          ]:
+              db.executescript(path.read_text())
+
+          required_tables = {
+              'ecu_files','ecu_jobs','ecu_analysis_results','ecu_map_candidates',
+              'ecu_training_examples','ecu_change_evidence','ecu_rulepack_versions',
+              'ecu_mod_artifacts','ecu_model_versions'
+          }
+          tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          missing = required_tables - tables
+          assert not missing, f'missing ECU tables: {sorted(missing)}'
+
+          job_columns = {row[1] for row in db.execute("PRAGMA table_info(ecu_jobs)")}
+          assert 'rulepack_version' in job_columns
+          file_columns = {row[1] for row in db.execute("PRAGMA table_info(ecu_files)")}
+          assert {'artifact_uri','immutable'} <= file_columns
+          evidence_columns = {row[1] for row in db.execute("PRAGMA table_info(ecu_change_evidence)")}
+          assert 'delta_stats_json' in evidence_columns
+          PY
       - name: Validate Cloudflare dry-run bundle
         run: npx wrangler deploy --dry-run --outdir=/tmp/jarvis-ecu-dryrun
       - name: Install ECU compute worker
