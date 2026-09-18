@@ -240,8 +240,7 @@ export function createSmartRouter(core) {
       if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
       const body = await readJson(req.clone()), text = String(body.text || '').trim();
       if (!text) return core.fetch(req, env, ctx);
-      let capability = intent(text);
-      if (videoAutomationIntent(text)) capability = 'video';
+      let capability = classifyIntent(text);
       if (capability === 'research') return core.fetch(req, env, ctx);
 
       await saveMessage(env, 'user', text);
