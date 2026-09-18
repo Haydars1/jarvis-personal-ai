@@ -129,6 +129,11 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
   };
 }
 
+async function defaultReadDataset(env, digest) {
+  const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
+  return store.getDatasetSnapshot(digest);
+}
+
 async function defaultReadOriginal(env, sha256) {
   const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
   return store.getOriginal(sha256);
@@ -320,6 +325,7 @@ export function createEcuRuntime(core, overrides = {}) {
     uploadStatus: defaultUploadStatus,
     uploadOriginal: defaultUploadOriginal,
     readOriginal: defaultReadOriginal,
+    readDataset: defaultReadDataset,
     applyWorkerResult: defaultApplyWorkerResult,
     applyWorkerState: defaultApplyWorkerState,
     verifyMap: defaultVerifyMap,
@@ -331,6 +337,19 @@ export function createEcuRuntime(core, overrides = {}) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname.startsWith('/api/ecu/internal/datasets/') && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const digest = decodeURIComponent(url.pathname.slice('/api/ecu/internal/datasets/'.length)).toLowerCase();
+        if (!/^[a-f0-9]{64}$/.test(digest)) return json({ error: 'INVALID_DATASET_DIGEST' }, 400);
+        try {
+          const snapshot = await deps.readDataset(env, digest);
+          return snapshot ? json(snapshot) : json({ error: 'ECU_DATASET_NOT_FOUND' }, 404);
+        } catch (error) {
+          if (String(error?.message || '').includes('ECU_ARTIFACTS binding')) return json({ error: 'ECU_STORAGE_UNAVAILABLE' }, 503);
+          throw error;
+        }
+      }
+
       if (url.pathname.startsWith('/api/ecu/internal/artifacts/') && req.method === 'GET') {
         if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
         const sha256 = decodeURIComponent(url.pathname.slice('/api/ecu/internal/artifacts/'.length));
