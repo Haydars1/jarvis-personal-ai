@@ -30,3 +30,15 @@ test('rejects incomplete ORI MOD pair requests',async()=>{
   }),{},{});
   assert.equal(response.status,400);
 });
+
+
+test('lists ORI MOD learning pair jobs',async()=>{
+  const runtime=createEcuRuntime(core(),{
+    async listPairs(){return [{id:'pair-1',state:'COMPLETE',operationLabel:'stage1',changedByteCount:2}]}
+  });
+  const response=await runtime.fetch(request('/api/ecu/training/pairs?limit=10'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.pairs[0].id,'pair-1');
+  assert.equal(body.pairs[0].changedByteCount,2);
+});
