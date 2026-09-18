@@ -61,8 +61,9 @@ test('same daily training bucket is idempotent', async () => {
   let dispatched = 0;
   const training = createEcuTraining({ repository: repo, dispatch: async () => { dispatched += 1; return { accepted: true }; } });
 
-  const first = await training.maybeRun({}, 259_200_000);
-  const second = await training.maybeRun({}, 259_200_001);
+  const env = { JARVIS_PUBLIC_URL: 'https://jarvis.example' };
+  const first = await training.maybeRun(env, 259_200_000);
+  const second = await training.maybeRun(env, 259_200_001);
 
   assert.equal(first.scheduled, true);
   assert.equal(second.scheduled, false);
@@ -80,4 +81,15 @@ test('training status exposes verified data and never requires paid LLM API', as
   assert.equal(status.verifiedExamples, 63);
   assert.equal(status.productionModel.version, 'v3');
   assert.equal(status.latestDataset.version, 'dataset-9');
+});
+
+
+test('does not dispatch training without a public callback URL', async () => {
+  const repo = repository({ verified: 60, production: { version: 'v1' }, lastDataset: { version: 'dataset-1', digest: 'a'.repeat(64) } });
+  let dispatched = 0;
+  const training = createEcuTraining({ repository: repo, dispatch: async () => { dispatched += 1; } });
+  const result = await training.maybeRun({}, 345_600_000);
+  assert.equal(result.scheduled, false);
+  assert.equal(result.reason, 'NO_CALLBACK_URL');
+  assert.equal(dispatched, 0);
 });
