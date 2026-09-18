@@ -6,12 +6,20 @@ function reasoningLeak(text = '') {
     || /<think>[\s\S]*?<\/think>/i.test(value);
 }
 
+function normalizeReadableText(text = '') {
+  let value = String(text || '').replace(/\r\n/g, '\n');
+  value = value.replace(/([.!?])(?=[A-ZÇĞİÖŞÜ])/g, '$1\n\n');
+  value = value.replace(/(:)(?=\*\*|[A-ZÇĞİÖŞÜ][\p{L}]{2,})/gu, '$1\n\n');
+  value = value.replace(/([^\s\n])(?=\*\*[A-ZÇĞİÖŞÜ])/gu, '$1\n\n');
+  return value.replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function stripTechnicalLeak(text = '') {
   let value = String(text || '');
   value = value.replace(/^\s*(?:JARVIS\s+)?(?:LIVE\s+SEARCH(?::\s*EMPTY)?|LOCAL|CLOUDFLARE\s+AI[^\n]*)\s*$/gim, '');
   value = value.replace(/(?:^|\n)\s*(?:Yanıt gecikti\.|Canlı kaynak şu an boş döndü\.|Şu an bağlı cevap motoru zamanında dönemedi\.)[^\n]*(?=\n|$)/gi, '\n');
   value = value.replace(/(?:[?&](?:rut|uddg|u|url)=[^\s)]+)+/gi, '');
-  return value.replace(/\n{3,}/g, '\n\n').trim();
+  return normalizeReadableText(value);
 }
 
 function stripThink(text = '') {
