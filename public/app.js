@@ -177,17 +177,19 @@ async function loadEcuModels(){
 
 async function loadEcuStatus(){
  try{
-  const [research,training,jobs,compute]=await Promise.all([
+  const [research,training,jobs,compute,rulepacks]=await Promise.all([
    api('/api/ecu/research/status'),
    api('/api/ecu/training/status'),
    api('/api/ecu/jobs?limit=20'),
-   api('/api/ecu/compute/status')
+   api('/api/ecu/compute/status'),
+   api('/api/ecu/rulepacks/status')
   ]);
   const learning=$('#ecuLearning');if(learning){
    learning.innerHTML=
     `<div class="item"><b>COMPUTE</b><small>${compute.preferred==='local'?'Laptop GPU aktif':compute.preferred==='cloud-container'?'Cloud container hazır (laptop gerekmez)':compute.preferred==='cloud'?'Cloud worker hazır':'Compute endpoint bekliyor'}</small></div>`+
     `<div class="item"><b>ARAŞTIRMA</b><small>${esc(research.status||'IDLE')} • kaynak ${Number(research.counts?.sources||0)} • doğrulanmış claim ${Number(research.counts?.verified_claims||0)}</small></div>`+
-    `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış map ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • ORI/MOD kanıtı ${Number(training.verifiedChangeEvidence||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`;
+    `<div class="item"><b>EĞİTİM</b><small>${esc(training.status||'IDLE')} • doğrulanmış map ${Number(training.verifiedExamples||0)}/${Number(training.minVerifiedExamples||0)} • ORI/MOD kanıtı ${Number(training.verifiedChangeEvidence||0)} • model ${esc(training.productionModel?.version||'baseline')}</small></div>`+
+    `<div class="item"><b>RULEPACK ÖĞRENME</b><small>${rulepacks.production?.version?'production '+esc(rulepacks.production.version):rulepacks.latest?.version?'kanıt adayı '+esc(rulepacks.latest.version)+' • '+Number(rulepacks.latest.evidenceCount||0)+' kanıt':'henüz yeterli doğrulanmış kanıt yok'}</small></div>`;
   }
   const list=$('#ecuJobs');if(list){list.innerHTML='';(jobs.jobs||[]).forEach(j=>{const d=document.createElement('div');d.className='item';const family=j.result?.ecu_family||'';const confidence=Number(j.result?.confidence||0);const maps=Array.isArray(j.result?.map_candidates)?j.result.map_candidates.length:0;const proposal=j.result?.proposal;const proposalText=proposal?(proposal.blocked?' • Stage1 BLOK: '+(proposal.reasons||[]).join(', '):' • Stage1 önizleme hazır'):'';d.innerHTML=`<b>${esc(j.operation||'analyze')} • ${esc(j.state||'')}</b><small>${esc(j.id||'')} ${j.workerKind?'• '+esc(j.workerKind):''}${family?' • ECU '+esc(family):''}${confidence?' • '+Math.round(confidence*100)+'%':''}${maps?' • '+maps+' map adayı':''}${esc(proposalText)}${j.error?' • '+esc(j.error):''}</small>`;d.onclick=()=>{selectedEcuJob=j;const btn=$('#ecuStage1Preview');if(btn)btn.disabled=!j.fileId;loadEcuMaps(j.id)};list.appendChild(d)});if(!(jobs.jobs||[]).length)list.innerHTML='<div class="muted">Henüz ECU analiz işi yok.</div>'}
  }catch(e){toast('ECU Brain: '+e.message)}
