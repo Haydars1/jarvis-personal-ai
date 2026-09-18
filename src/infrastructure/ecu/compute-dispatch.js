@@ -51,6 +51,15 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000 } =
         reason: 'NO_COMPUTE_ENDPOINT',
       };
     }
+    const token = String(env.ECU_COMPUTE_TOKEN || '').trim();
+    if (!token) {
+      return {
+        accepted: false,
+        state: 'QUEUED',
+        workerKind: endpoint.workerKind,
+        reason: 'NO_COMPUTE_TOKEN',
+      };
+    }
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -59,8 +68,7 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000 } =
         'content-type': 'application/json',
         'idempotency-key': String(job.runFingerprint || ''),
       };
-      const token = String(env.ECU_COMPUTE_TOKEN || '').trim();
-      if (token) headers.authorization = `Bearer ${token}`;
+      headers.authorization = `Bearer ${token}`;
 
       let response;
       const body = JSON.stringify(payloadFor(job, env));
