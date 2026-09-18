@@ -34,6 +34,7 @@ struct EcuMapCandidate: Decodable {}
 
 struct EcuJob: Decodable, Identifiable {
     let id: String
+    let fileId: String?
     let state: String
     let workerKind: String?
     let result: EcuJobResult?
@@ -109,6 +110,13 @@ final class EcuBrainAPI {
             "X-ECU-Filename": encoded,
         ])
         return try decoder.decode(EcuUploadResponse.self, from: payload)
+    }
+
+    func stage1Preview(fileId: String) async throws -> EcuJob {
+        let body = try JSONSerialization.data(withJSONObject: ["fileId": fileId, "operation": "stage1_proposal"])
+        let payload = try await request("/api/ecu/jobs", method: "POST", body: body, headers: ["Content-Type":"application/json"])
+        struct ResponseBody: Decodable { let job: EcuJob }
+        return try decoder.decode(ResponseBody.self, from: payload).job
     }
 
     func rollback(version: String) async throws {
