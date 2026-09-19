@@ -24,3 +24,12 @@ test('current provider models use verified stable identifiers', () => {
   assert.equal(VIDEO_PROVIDER_CATALOG.veo.defaultModel, 'veo-3.1-generate-001');
   assert.equal(VIDEO_PROVIDER_CATALOG.kling.defaultModel, 'fal-ai/kling-video/v1/standard/text-to-video');
 });
+
+
+test('availability only selects providers with matching configured transports', () => {
+  const configured = new Set(['fal', 'runway']);
+  const available = videoProviderOrder({ format: 'shorts', animation: true }).filter(id => configured.has(VIDEO_PROVIDER_CATALOG[id].transport));
+  assert.deepEqual(available, ['kling', 'runway']);
+  assert.ok(!available.includes('veo'));
+  assert.ok(!available.includes('hailuo'));
+});
