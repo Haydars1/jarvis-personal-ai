@@ -4,7 +4,7 @@ import { cleanReply } from '../../lib/orchestration.js';
 const MODEL = '@cf/zai-org/glm-4.7-flash';
 const FAILURE_PREFIX = 'JARVIS şu an yanıt üretemedi';
 
-function fallbackIntent(text = '') {
+export function mediaFallbackIntent(text = '') {
   const value = String(text || '').toLowerCase();
   const action = /(yap|oluştur|üret|hazırla|çiz|göster|generate|create)/i.test(value);
   if (action && /(animasyon|video|reels?|klip)/i.test(value)) return 'video';
@@ -58,7 +58,7 @@ export function createEmergencyChatFallback(handleChat) {
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
 
-    const capabilityReply = capabilityFallback(text);
+    const capabilityReply = mediaCapabilityFallback(text);
     if (!current.startsWith(FAILURE_PREFIX)) {
       if (!capabilityReply || !/(video .*oluşturam|video .*üretem|doğrudan .*video|yapamıyorum|yapamam)/i.test(current)) return response;
       payload.reply = capabilityReply;
