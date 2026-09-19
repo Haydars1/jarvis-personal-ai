@@ -12,8 +12,7 @@ export function mediaFallbackIntent(text = '') {
   return 'chat';
 }
 
-function capabilityFallback(text = '') {
-  const kind = fallbackIntent(text);
+export function mediaCapabilityFallback(text = '') {\n  const kind = mediaFallbackIntent(text);
   if (kind === 'video') return 'Video/animasyon isteğini aldım. Medya üretim sağlayıcısını devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
   if (kind === 'image') return 'Görsel isteğini aldım. Görsel üretim yeteneğini devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
   return '';
