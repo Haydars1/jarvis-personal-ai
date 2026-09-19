@@ -11,3 +11,8 @@ test('video actions never fall back to generic failure text', () => {
   assert.match(reply, /video|animasyon/i);
   assert.doesNotMatch(reply, /yanıt üretemedi/i);
 });
+
+
+test('follow-up media commands are recognized without forcing user to repeat the full brief', () => {
+  assert.equal(mediaFallbackIntent('4 yaşında gerisini sen kendin ayarla'), 'chat');
+});
