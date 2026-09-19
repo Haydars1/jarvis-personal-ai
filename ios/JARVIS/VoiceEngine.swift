@@ -12,6 +12,7 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private var shouldResume = false
+    private var isSpeaking = false
 
     override init() {
         super.init()
@@ -58,6 +59,10 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
 
             recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
                 guard let self else { return }
+                if let result, self.isSpeaking, !result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.synthesizer.stopSpeaking(at: .immediate)
+                    self.isSpeaking = false
+                }
                 if let result, result.isFinal {
                     let text = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.stopListeningForSpeechOnly()
@@ -80,8 +85,8 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     func speak(_ text: String) {
-        stopListeningForSpeechOnly()
         synthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = true
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "tr-TR")
         utterance.rate = 0.5
@@ -89,6 +94,11 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        if shouldResume { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.beginRecognition() } }
+        isSpeaking = false
+        if shouldResume && !audioEngine.isRunning { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.beginRecognition() } }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        isSpeaking = false
     }
 }
