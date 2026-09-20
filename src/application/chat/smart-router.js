@@ -57,6 +57,15 @@ async function state(core, req, env, ctx) {
   const response = await core.fetch(new Request(new URL('/api/state', req.url), { headers: req.headers }), env, ctx);
   try { return await response.json(); } catch { return {}; }
 }
+function mediaContextIntent(text = '', hist = []) {
+  const current = classifyIntent(text);
+  if (current !== 'chat') return current;
+  const followUp = /(yaşında|gerisini sen|kendin ayarla|önceki|aynı video|onun videosu|devam et|hazırla|yap işte|tamamla)/i.test(String(text));
+  if (!followUp) return current;
+  const recent = (hist || []).slice(-12).map(item => String(item.content || '')).join('\n');
+  return /(video|animasyon|shorts?|reels?|klip|youtube)/i.test(recent) ? 'video' : current;
+}
+
 function messagesFor(hist, text) {
   const system = { role: 'system', content: 'Sen JARVIS kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür.' };
   const recent = (hist || []).slice(-14).map(item => ({ role: item.role === 'assistant' ? 'assistant' : 'user', content: item.content }));
@@ -241,6 +250,11 @@ export function createSmartRouter(core) {
       const body = await readJson(req.clone()), text = String(body.text || '').trim();
       if (!text) return core.fetch(req, env, ctx);
       let capability = classifyIntent(text);
+      let priorHistory = [];
+      if (capability === 'chat') {
+        priorHistory = await history(env, 24);
+        capability = mediaContextIntent(text, priorHistory);
+      }
       if (capability === 'research') return core.fetch(req, env, ctx);
 
       await saveMessage(env, 'user', text);
@@ -250,8 +264,10 @@ export function createSmartRouter(core) {
           return synthetic(core, req, env, ctx, 'Görseli doğrudan oluşturdum.', image.provider, [{ type: 'image', src: image.dataURI, alt: text }]);
         }
         if (capability === 'video') {
+          const recent = priorHistory.length ? priorHistory.slice(-10).map(item => `${item.role}: ${item.content}`).join('\n') : '';
+          const videoPrompt = recent ? `Önceki konuşma bağlamı:\n${recent}\n\nKullanıcının devam komutu: ${text}\nEksik yaratıcı ayrıntıları kullanıcıdan tekrar istemeden çocuklara uygun biçimde tamamla.` : text;
           try {
-            const video = await tryVideo(core, req, env, ctx, text), requestId = video.request_id || video.id || video.requestId || null;
+            const video = await tryVideo(core, req, env, ctx, videoPrompt), requestId = video.request_id || video.id || video.requestId || null;
             return synthetic(core, req, env, ctx, requestId ? `Videoyu Higgsfield'a gönderdim. İş ID: ${requestId}` : 'Video üretimini Higgsfield üzerinden başlattım.', 'Higgsfield', [{ type: 'video-job', data: video }]);
           } catch (videoError) {
             // Do not let a generic text model falsely claim JARVIS cannot make video.
