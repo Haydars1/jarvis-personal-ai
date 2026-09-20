@@ -9,6 +9,13 @@ function isSafeRegisteredWorkerEndpoint(value) {
     if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return false;
     const ipv6 = host.replace(/^\[|\]$/g, '');
     if (/^(fc|fd)[0-9a-f]{2}:/i.test(ipv6) || /^fe[89ab][0-9a-f]:/i.test(ipv6)) return false;
+    const mapped = ipv6.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
+    if (mapped) {
+      const octets = mapped.slice(1).map(Number);
+      const [a, b] = octets;
+      if (octets.some(part => part < 0 || part > 255)) return false;
+      if (a === 10 || a === 127 || (a === 169 && b === 254) || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31)) return false;
+    }
     return true;
   } catch {
     return false;
