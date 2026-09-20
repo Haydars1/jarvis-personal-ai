@@ -29,9 +29,13 @@ function payloadFor(job, env = {}) {
   return {job_id:job.id,artifact_sha256:job.artifactSha256,artifact_uri:job.artifactUri,operation:job.operation||'analyze',model_version:job.modelVersion||'baseline',rulepack_version:job.rulepackVersion||'baseline',paid_api_allowed:false,config:{...(job.config||{}),callback_base_url:callbackBaseUrl}};
 }
 
-export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, now = Date.now } = {}) {
+export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, localCooldownMs = 30_000, now = Date.now } = {}) {
+  let localCooldownUntil = 0;
+
   return async function dispatch(job, env = {}) {
-    const endpoint = await chooseEndpoint(env, now);
+    const current = Number(now());
+    const localCoolingDown = current < localCooldownUntil;
+    const endpoint = await chooseEndpoint(env, now, { allowLocal: !localCoolingDown });
     if (!endpoint) return {accepted:false,state:'QUEUED',workerKind:null,reason:'NO_COMPUTE_ENDPOINT'};
     const token = String(env.ECU_COMPUTE_TOKEN || '').trim();
     if (!token) return {accepted:false,state:'QUEUED',workerKind:endpoint.workerKind,reason:'NO_COMPUTE_TOKEN'};
@@ -61,9 +65,14 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, no
     const first=await attempt(endpoint);
     if(first.accepted || endpoint.workerKind!=='local') return first;
 
-    // A heartbeat can be fresh while a laptop tunnel has already disappeared. The
-    // idempotency key makes a second dispatch safe, so fail over without waiting
-    // for the heartbeat TTL to expire. Local is explicitly excluded on retry.
+    // A fresh heartbeat does not prove the laptop tunnel can accept work. Keep a
+    // short per-isolate circuit-breaker cooldown after a failed local dispatch so
+    // following jobs avoid paying the same timeout repeatedly. A successful local
+    // dispatch never opens the breaker, and local eligibility is retried after it.
+    localCooldownUntil = Number(now()) + Math.max(0, Number(localCooldownMs) || 0);
+
+    // The idempotency key makes a second dispatch safe, so fail over without
+    // waiting for the heartbeat TTL to expire. Local is explicitly excluded.
     const fallback=await chooseEndpoint(env,now,{allowLocal:false});
     if(!fallback) return first;
     const second=await attempt(fallback);
