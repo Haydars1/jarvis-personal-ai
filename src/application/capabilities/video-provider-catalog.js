@@ -10,3 +10,8 @@ export function videoProviderOrder({ format = 'shorts', animation = false } = {}
   const preferred = animation ? ['veo','kling','hailuo','higgsfield','runway'] : ['veo','runway','kling','higgsfield','hailuo'];
   return format === 'shorts' ? preferred.filter(id => VIDEO_PROVIDER_CATALOG[id]?.portrait) : preferred;
 }
+
+export function availableVideoProviders({ configuredTransports = [], format = 'shorts', animation = false } = {}) {
+  const configured = new Set((configuredTransports || []).map(value => String(value || '').toLowerCase()).filter(Boolean));
+  return videoProviderOrder({ format, animation }).filter(id => configured.has(String(VIDEO_PROVIDER_CATALOG[id]?.transport || '').toLowerCase()));
+}
