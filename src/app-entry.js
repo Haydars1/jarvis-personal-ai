@@ -18,6 +18,7 @@ import { createGoogleSearch } from './application/search/google.js';
 import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
+import { createComputeDispatch } from './infrastructure/ecu/compute-dispatch.js';
 
 const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
 const integrationCore = createIntegrationHub(higgsfieldCore);
@@ -30,7 +31,11 @@ const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const ecuRuntimeCore = createEcuRuntime(capabilityCore);
+const ecuComputeDispatch = createComputeDispatch();
+const ecuRuntimeCore = createEcuRuntime(capabilityCore, {
+  computeDispatch: ecuComputeDispatch,
+  computeStatus: env => ecuComputeDispatch.getRoutingStatus(env),
+});
 const ecuCore = createEcuAuthGuard(ecuRuntimeCore, { isOwnerAuthenticated });
 const handleMediaRescue = createMediaRescue(ecuCore);
 const mediaCore = {
