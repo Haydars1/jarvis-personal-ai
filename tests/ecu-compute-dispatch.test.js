@@ -50,6 +50,26 @@ test('falls back to cloud after a heartbeating local worker cannot accept the jo
   assert.equal(result.fallbackFrom,'local');
 });
 
+test('temporarily cools down a failed local worker so following jobs go straight to cloud', async () => {
+  const calls=[];
+  let clock=4_000_000;
+  const db={prepare(){return {async first(){return {endpoint:'https://dead-local.example/jobs',last_seen_at:clock-1000,expires_at:clock+60_000};}}}};
+  const dispatch=createComputeDispatch({now:()=>clock,localCooldownMs:30_000,fetchImpl:async(url)=>{
+    calls.push(url);
+    if(String(url).includes('dead-local')) throw new Error('tunnel offline');
+    return new Response(JSON.stringify({accepted:true}),{status:202,headers:{'content-type':'application/json'}});
+  }});
+  const env={DB:db,ECU_CLOUD_WORKER_URL:'https://cloud-worker.example/jobs',ECU_COMPUTE_TOKEN:'secret'};
+  const first=await dispatch(job({id:'job-a',runFingerprint:'a'.repeat(64)}),env);
+  const second=await dispatch(job({id:'job-b',runFingerprint:'b'.repeat(64)}),env);
+  assert.equal(first.workerKind,'cloud');
+  assert.equal(second.workerKind,'cloud');
+  assert.deepEqual(calls,['https://dead-local.example/jobs','https://cloud-worker.example/jobs','https://cloud-worker.example/jobs']);
+  clock+=30_001;
+  await dispatch(job({id:'job-c',runFingerprint:'c'.repeat(64)}),env);
+  assert.equal(calls[3],'https://dead-local.example/jobs');
+});
+
 test('keeps the job recoverable when no worker is configured or dispatch fails', async () => {
   const noEndpoint = createComputeDispatch({ fetchImpl: async () => { throw new Error('should not run'); } });
   assert.deepEqual(await noEndpoint(job(), {}), { accepted: false, state: 'QUEUED', workerKind: null, reason: 'NO_COMPUTE_ENDPOINT' });
