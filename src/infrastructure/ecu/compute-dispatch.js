@@ -30,7 +30,24 @@ function payloadFor(job, env = {}) {
 export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, localCooldownMs = 30_000, now = Date.now } = {}) {
   let localCooldownUntil = 0;
 
-  return async function dispatch(job, env = {}) {
+  async function getRoutingStatus(env = {}) {
+    const current = Number(now());
+    const coolingDown = current < localCooldownUntil;
+    const preferred = await chooseEndpoint(env, now, { allowLocal: !coolingDown });
+    const local = coolingDown
+      ? { state:'cooldown', cooldownRemainingMs:Math.max(0, localCooldownUntil-current) }
+      : (await chooseEndpoint(env, now, { allowLocal:true }))?.workerKind === 'local'
+        ? { state:'healthy', cooldownRemainingMs:0 }
+        : { state:'unavailable', cooldownRemainingMs:0 };
+    return {
+      local,
+      preferredWorkerKind: preferred?.workerKind || null,
+      computeAvailable: Boolean(preferred),
+      computeTokenConfigured: Boolean(String(env.ECU_COMPUTE_TOKEN || '').trim()),
+    };
+  }
+
+  async function dispatch(job, env = {}) {
     const current = Number(now());
     const localCoolingDown = current < localCooldownUntil;
     const endpoint = await chooseEndpoint(env, now, { allowLocal: !localCoolingDown });
@@ -68,5 +85,8 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, lo
     if(!fallback) return first;
     const second=await attempt(fallback);
     return {...second,fallbackFrom:'local'};
-  };
+  }
+
+  dispatch.getRoutingStatus = getRoutingStatus;
+  return dispatch;
 }
