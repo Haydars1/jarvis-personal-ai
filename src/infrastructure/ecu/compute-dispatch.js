@@ -3,10 +3,12 @@ function isSafeRegisteredWorkerEndpoint(value) {
     const url = new URL(String(value || ''));
     if (url.protocol !== 'https:' || !url.pathname.endsWith('/jobs')) return false;
     const host = url.hostname.toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host.endsWith('.local')) return false;
+    if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]' || host.endsWith('.local')) return false;
     if (/^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return false;
     const private172 = host.match(/^172\.(\d{1,3})\./);
     if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return false;
+    const ipv6 = host.replace(/^\[|\]$/g, '');
+    if (/^(fc|fd)[0-9a-f]{2}:/i.test(ipv6) || /^fe[89ab][0-9a-f]:/i.test(ipv6)) return false;
     return true;
   } catch {
     return false;
