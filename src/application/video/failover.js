@@ -175,6 +175,20 @@ async function startWithProvider(env, credential, prompt) {
     throw error;
   }
 }
+async function runDirectVideo(req, env) {
+  const body = await readJson(req), prompt = String(body.prompt || body.input?.prompt || '').trim();
+  if (!prompt) return jsonResponse({ error:'VIDEO_PROMPT_REQUIRED' }, 400);
+  const pool = (await providers(env)).filter(credential => !credential.cooldown), errors = [];
+  for (const credential of pool) {
+    try {
+      const result = await startWithProvider(env, credential, prompt);
+      return jsonResponse({ ok:true, provider:credential.provider, credential_id:credential.id, ...result, failover_errors:errors });
+    } catch (error) {
+      errors.push({ provider:credential.provider, error:error.message });
+    }
+  }
+  return jsonResponse({ ok:false, error:'NO_VIDEO_PROVIDER_AVAILABLE', errors }, 503);
+}
 async function pollProvider(env, credential, meta) {
   if (String(credential.provider).toLowerCase() === 'higgsfield') return higgsfieldPoll(env, credential, meta);
   if (String(credential.provider).toLowerCase() === 'replicate') return replicatePoll(env, credential, meta);
@@ -265,7 +279,7 @@ export function createVideoFailover(core) {
         if (path === '/api/video-pool/status' && method === 'GET') return poolStatus(env);
         if (path === '/api/video-pool/replicate/setup' && method === 'POST') return setupReplicate(req, env);
         if (path === '/api/video-pool/replicate/test' && method === 'POST') return testReplicate(env);
-        if (path === '/api/video-pool/run' && method === 'POST') { await processVideoQueue(env); return poolStatus(env); }
+        if (path === '/api/video-pool/run' && method === 'POST') return runDirectVideo(req, env);
       }
       return core.fetch(req, env, ctx);
     },
