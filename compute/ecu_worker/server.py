@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import os
+from contextlib import asynccontextmanager, suppress
 
 import httpx
 from typing import Any
@@ -8,11 +10,39 @@ from typing import Any
 from fastapi import BackgroundTasks, Body, FastAPI, Header, HTTPException
 
 from .contracts import AnalysisJobInput, PairJobInput, TrainingJobInput
+from .heartbeat_daemon import heartbeat_config_from_env, run_heartbeat_loop
 from .service import process_dispatched_job
 from .pair_service import process_pair_job
 from .training_service import process_training_job
 
-app = FastAPI(title="JARVIS ECU Worker", version="0.1.0")
+
+def _local_heartbeat_enabled() -> bool:
+    return os.getenv("ECU_LOCAL_HEARTBEAT_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI):
+    heartbeat_task: asyncio.Task[None] | None = None
+    heartbeat_client: httpx.AsyncClient | None = None
+    if _local_heartbeat_enabled():
+        config = heartbeat_config_from_env()
+        heartbeat_client = httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0))
+        heartbeat_task = asyncio.create_task(
+            run_heartbeat_loop(client=heartbeat_client, **config),
+            name="ecu-local-heartbeat",
+        )
+    try:
+        yield
+    finally:
+        if heartbeat_task is not None:
+            heartbeat_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await heartbeat_task
+        if heartbeat_client is not None:
+            await heartbeat_client.aclose()
+
+
+app = FastAPI(title="JARVIS ECU Worker", version="0.1.0", lifespan=_lifespan)
 
 
 def _expected_token() -> str:
