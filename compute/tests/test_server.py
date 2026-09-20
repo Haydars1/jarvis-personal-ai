@@ -23,3 +23,12 @@ def test_worker_job_endpoint_requires_compute_token(monkeypatch):
     }
     response = client.post("/jobs", json=payload)
     assert response.status_code == 401
+
+
+def test_local_heartbeat_is_opt_in(monkeypatch):
+    monkeypatch.delenv("ECU_LOCAL_HEARTBEAT_ENABLED", raising=False)
+    assert server._local_heartbeat_enabled() is False
+    monkeypatch.setenv("ECU_LOCAL_HEARTBEAT_ENABLED", "true")
+    assert server._local_heartbeat_enabled() is True
+    monkeypatch.setenv("ECU_LOCAL_HEARTBEAT_ENABLED", "0")
+    assert server._local_heartbeat_enabled() is False
