@@ -1,3 +1,17 @@
+function isPrivateOrLocalIpv4(octets) {
+  if (!Array.isArray(octets) || octets.length !== 4 || octets.some(part => !Number.isInteger(part) || part < 0 || part > 255)) return true;
+  const [a, b] = octets;
+  return a === 10 || a === 127 || (a === 169 && b === 254) || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31);
+}
+
+function mappedIpv4Octets(ipv6) {
+  const match = String(ipv6 || '').match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (!match) return null;
+  const high = Number.parseInt(match[1], 16);
+  const low = Number.parseInt(match[2], 16);
+  return [high >> 8, high & 0xff, low >> 8, low & 0xff];
+}
+
 function isSafeRegisteredWorkerEndpoint(value) {
   try {
     const url = new URL(String(value || ''));
@@ -9,13 +23,8 @@ function isSafeRegisteredWorkerEndpoint(value) {
     if (private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31) return false;
     const ipv6 = host.replace(/^\[|\]$/g, '');
     if (/^(fc|fd)[0-9a-f]{2}:/i.test(ipv6) || /^fe[89ab][0-9a-f]:/i.test(ipv6)) return false;
-    const mapped = ipv6.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i);
-    if (mapped) {
-      const octets = mapped.slice(1).map(Number);
-      const [a, b] = octets;
-      if (octets.some(part => part < 0 || part > 255)) return false;
-      if (a === 10 || a === 127 || (a === 169 && b === 254) || (a === 192 && b === 168) || (a === 172 && b >= 16 && b <= 31)) return false;
-    }
+    const mappedIpv4 = mappedIpv4Octets(ipv6);
+    if (mappedIpv4 && isPrivateOrLocalIpv4(mappedIpv4)) return false;
     return true;
   } catch {
     return false;
