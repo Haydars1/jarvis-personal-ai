@@ -9,7 +9,17 @@ def test_worker_health_endpoint():
     client = TestClient(server.app)
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json()["ok"] is True
+    body = response.json()
+    assert body["ok"] is True
+    assert body["heartbeat"] == {
+        "enabled": False,
+        "running": False,
+        "healthy": None,
+        "last_success_at": None,
+        "last_error_at": None,
+    }
+    assert "token" not in str(body).lower()
+    assert "public_url" not in str(body).lower()
 
 
 def test_worker_job_endpoint_requires_compute_token(monkeypatch):
