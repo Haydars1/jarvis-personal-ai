@@ -47,6 +47,8 @@ async def run_heartbeat_loop(
     retry_initial_seconds: int = 5,
     retry_max_seconds: int = 60,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    on_success: Callable[[], None] | None = None,
+    on_failure: Callable[[Exception], None] | None = None,
 ) -> None:
     interval = max(15, min(120, int(interval_seconds)))
     ttl = max(90, min(300, int(ttl_seconds or interval * 3)))
@@ -63,10 +65,16 @@ async def run_heartbeat_loop(
                 client=client,
                 ttl_seconds=ttl,
             )
-        except Exception:
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if on_failure is not None:
+                on_failure(exc)
             await sleep(retry_delay)
             retry_delay = min(retry_max, retry_delay * 2)
             continue
+        if on_success is not None:
+            on_success()
         retry_delay = retry_initial
         await sleep(interval)
 
