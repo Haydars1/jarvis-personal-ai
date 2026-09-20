@@ -24,7 +24,10 @@ test('composition root owns Higgsfield, integrations, provider state, smart rout
   assert.match(entry, /createChatOutput/);
   assert.match(entry, /createCapabilityRuntime/);
   assert.match(entry, /createEcuRuntime/);
-  assert.match(entry, /const ecuRuntimeCore = createEcuRuntime\(capabilityCore\)/);
+  assert.match(entry, /const ecuComputeDispatch = createComputeDispatch\(\)/);
+  assert.match(entry, /const ecuRuntimeCore = createEcuRuntime\(capabilityCore, \{/);
+  assert.match(entry, /computeDispatch: ecuComputeDispatch/);
+  assert.match(entry, /computeStatus: env => ecuComputeDispatch\.getRoutingStatus\(env\)/);
   assert.match(entry, /const ecuCore = createEcuAuthGuard\(ecuRuntimeCore, \{ isOwnerAuthenticated \}\)/);
   assert.match(entry, /createChatOrchestrator/);
   assert.match(entry, /createMediaRescue/);
