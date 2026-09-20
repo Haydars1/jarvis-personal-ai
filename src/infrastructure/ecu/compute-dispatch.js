@@ -7,9 +7,7 @@ async function chooseEndpoint(env = {}, now = Date.now, { allowLocal = true } = 
         ORDER BY last_seen_at DESC LIMIT 1`).first();
       const current = Number(now());
       if (row?.endpoint && Number(row.expires_at || 0) > current) return { url: String(row.endpoint), workerKind: 'local' };
-    } catch {
-      // Older schemas or transient D1 failures fall through to static/cloud routing.
-    }
+    } catch {}
   }
   if (allowLocal) {
     const localUrl = String(env.ECU_LOCAL_WORKER_URL || '').trim();
@@ -51,28 +49,21 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, lo
         if(target.containerBinding){
           const stub=target.containerBinding.getByName('jarvis-ecu-compute');
           response=await stub.fetch(new Request('http://ecu-container/jobs',{method:'POST',headers,body,signal:controller.signal}));
-        } else {
-          response=await fetchImpl(target.url,{method:'POST',headers,body,signal:controller.signal});
-        }
+        } else response=await fetchImpl(target.url,{method:'POST',headers,body,signal:controller.signal});
         if(!response.ok) return {accepted:false,state:'QUEUED',workerKind:target.workerKind,reason:`DISPATCH_HTTP_${response.status}`};
         let remote={}; try{remote=await response.json();}catch{}
         return {accepted:remote.accepted!==false,state:'DISPATCHED',workerKind:target.workerKind,remote};
-      } catch {
-        return {accepted:false,state:'QUEUED',workerKind:target.workerKind,reason:'DISPATCH_FAILED'};
-      } finally { clearTimeout(timer); }
+      } catch { return {accepted:false,state:'QUEUED',workerKind:target.workerKind,reason:'DISPATCH_FAILED'}; }
+      finally { clearTimeout(timer); }
     }
 
     const first=await attempt(endpoint);
-    if(first.accepted || endpoint.workerKind!=='local') return first;
+    if(first.accepted || endpoint.workerKind!=='local') {
+      if (localCoolingDown) return {...first,routeReason:'LOCAL_COOLDOWN',localCooldownRemainingMs:Math.max(0,localCooldownUntil-current)};
+      return first;
+    }
 
-    // A fresh heartbeat does not prove the laptop tunnel can accept work. Keep a
-    // short per-isolate circuit-breaker cooldown after a failed local dispatch so
-    // following jobs avoid paying the same timeout repeatedly. A successful local
-    // dispatch never opens the breaker, and local eligibility is retried after it.
     localCooldownUntil = Number(now()) + Math.max(0, Number(localCooldownMs) || 0);
-
-    // The idempotency key makes a second dispatch safe, so fail over without
-    // waiting for the heartbeat TTL to expire. Local is explicitly excluded.
     const fallback=await chooseEndpoint(env,now,{allowLocal:false});
     if(!fallback) return first;
     const second=await attempt(fallback);
