@@ -27,7 +27,7 @@ async function chooseEndpoint(env = {}, now = Date.now, { allowLocal = true } = 
   if (allowLocal) {
     const localUrl = String(env.ECU_LOCAL_WORKER_URL || '').trim();
     const localOnline = String(env.ECU_LOCAL_WORKER_ONLINE || '').trim() === '1';
-    if (localUrl && localOnline) return { url: localUrl, workerKind: 'local' };
+    if (localUrl && localOnline && isSafeRegisteredWorkerEndpoint(localUrl)) return { url: localUrl, workerKind: 'local' };
   }
   if (env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function') return { containerBinding: env.ECU_COMPUTE_CONTAINER, workerKind: 'cloud-container' };
   const cloudUrl = String(env.ECU_CLOUD_WORKER_URL || '').trim();
