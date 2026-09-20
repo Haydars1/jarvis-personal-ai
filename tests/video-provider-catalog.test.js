@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { VIDEO_PROVIDER_CATALOG, videoProviderOrder } from '../src/application/capabilities/video-provider-catalog.js';
+import { VIDEO_PROVIDER_CATALOG, videoProviderOrder, availableVideoProviders } from '../src/application/capabilities/video-provider-catalog.js';
 
 test('animation pool includes requested generation providers', () => {
   for (const id of ['higgsfield','kling','runway','hailuo','veo']) assert.ok(VIDEO_PROVIDER_CATALOG[id]);
@@ -10,7 +10,6 @@ test('providers support portrait Shorts routing', () => {
   const ordered = videoProviderOrder({ format: 'shorts', animation: true });
   for (const id of ['higgsfield','kling','runway','hailuo','veo']) assert.ok(ordered.includes(id));
 });
-
 
 test('catalog distinguishes executable transports from configured-only providers', () => {
   assert.equal(VIDEO_PROVIDER_CATALOG.kling.transport, 'fal');
@@ -25,11 +24,7 @@ test('current provider models use verified stable identifiers', () => {
   assert.equal(VIDEO_PROVIDER_CATALOG.kling.defaultModel, 'fal-ai/kling-video/v1/standard/text-to-video');
 });
 
-
 test('availability only selects providers with matching configured transports', () => {
-  const configured = new Set(['fal', 'runway']);
-  const available = videoProviderOrder({ format: 'shorts', animation: true }).filter(id => configured.has(VIDEO_PROVIDER_CATALOG[id].transport));
-  assert.deepEqual(available, ['kling', 'runway']);
-  assert.ok(!available.includes('veo'));
-  assert.ok(!available.includes('hailuo'));
+  assert.deepEqual(availableVideoProviders({ configuredTransports: ['fal', 'runway'], format: 'shorts', animation: true }), ['kling', 'runway']);
+  assert.deepEqual(availableVideoProviders({ configuredTransports: [], format: 'shorts', animation: true }), []);
 });
