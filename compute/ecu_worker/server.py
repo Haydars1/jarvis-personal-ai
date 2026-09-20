@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager, suppress
+from datetime import datetime, timezone
 
 import httpx
 from typing import Any
@@ -16,24 +17,62 @@ from .pair_service import process_pair_job
 from .training_service import process_training_job
 
 
+_heartbeat_state: dict[str, object] = {
+    "enabled": False,
+    "running": False,
+    "healthy": None,
+    "last_success_at": None,
+    "last_error_at": None,
+}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _local_heartbeat_enabled() -> bool:
     return os.getenv("ECU_LOCAL_HEARTBEAT_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _heartbeat_success() -> None:
+    _heartbeat_state["healthy"] = True
+    _heartbeat_state["last_success_at"] = _utc_now()
+
+
+def _heartbeat_failure(_: Exception) -> None:
+    _heartbeat_state["healthy"] = False
+    _heartbeat_state["last_error_at"] = _utc_now()
 
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI):
     heartbeat_task: asyncio.Task[None] | None = None
     heartbeat_client: httpx.AsyncClient | None = None
-    if _local_heartbeat_enabled():
+    enabled = _local_heartbeat_enabled()
+    _heartbeat_state.update(
+        enabled=enabled,
+        running=False,
+        healthy=None,
+        last_success_at=None,
+        last_error_at=None,
+    )
+    if enabled:
         config = heartbeat_config_from_env()
         heartbeat_client = httpx.AsyncClient(timeout=httpx.Timeout(20.0, connect=10.0))
         heartbeat_task = asyncio.create_task(
-            run_heartbeat_loop(client=heartbeat_client, **config),
+            run_heartbeat_loop(
+                client=heartbeat_client,
+                on_success=_heartbeat_success,
+                on_failure=_heartbeat_failure,
+                **config,
+            ),
             name="ecu-local-heartbeat",
         )
+        _heartbeat_state["running"] = True
     try:
         yield
     finally:
+        _heartbeat_state["running"] = False
         if heartbeat_task is not None:
             heartbeat_task.cancel()
             with suppress(asyncio.CancelledError):
@@ -73,7 +112,12 @@ async def _run_training(job: TrainingJobInput, token: str) -> None:
 
 @app.get("/health")
 async def health() -> dict[str, object]:
-    return {"ok": True, "service": "jarvis-ecu-worker", "paid_api_required": False}
+    return {
+        "ok": True,
+        "service": "jarvis-ecu-worker",
+        "paid_api_required": False,
+        "heartbeat": dict(_heartbeat_state),
+    }
 
 
 @app.post("/jobs", status_code=202)
