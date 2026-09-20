@@ -20,3 +20,10 @@ test('keeps short follow-up commands attached to recent video context', async ()
   assert.match(source, /Önceki konuşma bağlamı/);
   assert.match(source, /Eksik yaratıcı ayrıntıları kullanıcıdan tekrar istemeden/);
 });
+
+test('video execution uses the configured provider pool instead of hard-wiring Higgsfield', async () => {
+  const source = await readFile(new URL('../src/application/chat/smart-router.js', import.meta.url), 'utf8');
+  assert.match(source, /availableVideoProviders/);
+  assert.match(source, /video-pool\/run/);
+  assert.doesNotMatch(source, /async function tryVideo[\s\S]*?higgsfield\/generate/);
+});
