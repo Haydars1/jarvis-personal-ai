@@ -44,19 +44,30 @@ async def run_heartbeat_loop(
     client: object,
     interval_seconds: int = 45,
     ttl_seconds: int | None = None,
+    retry_initial_seconds: int = 5,
+    retry_max_seconds: int = 60,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
 ) -> None:
     interval = max(15, min(120, int(interval_seconds)))
     ttl = max(90, min(300, int(ttl_seconds or interval * 3)))
+    retry_initial = max(1, min(30, int(retry_initial_seconds)))
+    retry_max = max(retry_initial, min(120, int(retry_max_seconds)))
+    retry_delay = retry_initial
     while True:
-        await send_local_heartbeat(
-            jarvis_base_url=jarvis_base_url,
-            worker_public_url=worker_public_url,
-            compute_token=compute_token,
-            worker_id=worker_id,
-            client=client,
-            ttl_seconds=ttl,
-        )
+        try:
+            await send_local_heartbeat(
+                jarvis_base_url=jarvis_base_url,
+                worker_public_url=worker_public_url,
+                compute_token=compute_token,
+                worker_id=worker_id,
+                client=client,
+                ttl_seconds=ttl,
+            )
+        except Exception:
+            await sleep(retry_delay)
+            retry_delay = min(retry_max, retry_delay * 2)
+            continue
+        retry_delay = retry_initial
         await sleep(interval)
 
 
