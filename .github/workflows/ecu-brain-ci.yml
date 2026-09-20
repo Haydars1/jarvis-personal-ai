@@ -18,6 +18,7 @@ on:
       - '.github/workflows/deploy-cloudflare.yml'
       - 'schema-ecu.sql'
       - 'wrangler.jsonc'
+      - 'package.json'
   pull_request:
     paths:
       - 'src/application/ecu/**'
@@ -27,6 +28,9 @@ on:
       - 'tests/architecture.test.js'
       - 'migrations/**'
       - 'src/app-entry.js'
+      - 'package.json'
+      - 'wrangler.jsonc'
+      - '.github/workflows/ecu-brain-ci.yml'
 
 permissions:
   contents: read
@@ -86,7 +90,7 @@ jobs:
           assert {'artifact_uri','immutable'} <= fresh_files
           PY
       - name: Validate Cloudflare dry-run bundle
-        run: npx wrangler deploy --dry-run --outdir=/tmp/jarvis-ecu-dryrun
+        run: npm run check:cloudflare
       - name: Install ECU compute worker
         run: python -m pip install -e './compute[dev]'
       - name: Run ECU compute tests
