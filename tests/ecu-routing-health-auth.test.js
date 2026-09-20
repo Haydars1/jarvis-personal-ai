@@ -42,3 +42,19 @@ test('routing health advertises local compute only when auth and a live route ar
   assert.equal(JSON.stringify(status).includes('configured-secret'), false);
   assert.equal(JSON.stringify(status).includes('local-worker.example'), false);
 });
+
+test('routing health is safe to expose through JARVIS status without endpoint or credential leakage', async () => {
+  const dispatch = createComputeDispatch({ now: () => 60_000 });
+  const status = await dispatch.getRoutingStatus({
+    DB: localDb('https://private-laptop-tunnel.example/jobs'),
+    ECU_COMPUTE_TOKEN: 'super-secret-compute-token',
+    ECU_CLOUD_WORKER_URL: 'https://private-cloud-worker.example/jobs',
+  });
+  const serialized = JSON.stringify(status);
+
+  assert.equal(Object.hasOwn(status, 'localEndpoint'), false);
+  assert.equal(Object.hasOwn(status, 'cloudEndpoint'), false);
+  assert.equal(serialized.includes('super-secret-compute-token'), false);
+  assert.equal(serialized.includes('private-laptop-tunnel.example'), false);
+  assert.equal(serialized.includes('private-cloud-worker.example'), false);
+});
