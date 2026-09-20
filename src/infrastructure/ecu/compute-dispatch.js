@@ -31,7 +31,7 @@ async function chooseEndpoint(env = {}, now = Date.now, { allowLocal = true } = 
   }
   if (env.ECU_COMPUTE_CONTAINER && typeof env.ECU_COMPUTE_CONTAINER.getByName === 'function') return { containerBinding: env.ECU_COMPUTE_CONTAINER, workerKind: 'cloud-container' };
   const cloudUrl = String(env.ECU_CLOUD_WORKER_URL || '').trim();
-  if (cloudUrl) return { url: cloudUrl, workerKind: 'cloud' };
+  if (cloudUrl && isSafeRegisteredWorkerEndpoint(cloudUrl)) return { url: cloudUrl, workerKind: 'cloud' };
   return null;
 }
 
