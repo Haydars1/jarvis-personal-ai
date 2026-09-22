@@ -210,11 +210,22 @@ async function imageGenerate(env, text) {
   if (!image) throw new Error('IMAGE_GENERATION_EMPTY');
   return { provider: 'Cloudflare Workers AI · FLUX.1 schnell', dataURI: `data:image/jpeg;base64,${image}` };
 }
+async function availableVideoProviders(core, req, env, ctx) {
+  const response = await settleWithin(core.fetch(new Request(new URL('/api/video-pool', req.url), {
+    method: 'GET', headers: req.headers
+  }), env, ctx), 5000, null);
+  if (!response?.ok) return [];
+  const payload = await response.json();
+  return payload.providers || payload.available || [];
+}
 async function tryVideo(core, req, env, ctx, text) {
-  const response = await settleWithin(core.fetch(new Request(new URL('/api/higgsfield/generate', req.url), {
-    method: 'POST', headers: req.headers, body: JSON.stringify({ capability: 'text-to-video', input: { prompt: text } })
-  }), env, ctx), 8000, null);
-  if (!response?.ok) throw new Error(`HIGGSFIELD_${response?.status || 'TIMEOUT'}`);
+  const providers = await availableVideoProviders(core, req, env, ctx);
+  const response = await settleWithin(core.fetch(new Request(new URL('/api/video-pool/run', req.url), {
+    method: 'POST',
+    headers: req.headers,
+    body: JSON.stringify({ capability: 'text-to-video', prompt: text, input: { prompt: text }, providers })
+  }), env, ctx), 12000, null);
+  if (!response?.ok) throw new Error(`VIDEO_POOL_${response?.status || 'TIMEOUT'}`);
   return response.json();
 }
 async function synthetic(core, req, env, ctx, reply, provider, media = []) {
@@ -268,7 +279,8 @@ export function createSmartRouter(core) {
           const videoPrompt = recent ? `Önceki konuşma bağlamı:\n${recent}\n\nKullanıcının devam komutu: ${text}\nEksik yaratıcı ayrıntıları kullanıcıdan tekrar istemeden çocuklara uygun biçimde tamamla.` : text;
           try {
             const video = await tryVideo(core, req, env, ctx, videoPrompt), requestId = video.request_id || video.id || video.requestId || null;
-            return synthetic(core, req, env, ctx, requestId ? `Videoyu Higgsfield'a gönderdim. İş ID: ${requestId}` : 'Video üretimini Higgsfield üzerinden başlattım.', 'Higgsfield', [{ type: 'video-job', data: video }]);
+            const provider = video.provider || video.selected_provider || video.selectedProvider || 'Video Provider Pool';
+            return synthetic(core, req, env, ctx, requestId ? `Video üretimini başlattım. İş ID: ${requestId}` : 'Video üretimini uygun sağlayıcı üzerinden başlattım.', provider, [{ type: 'video-job', data: video }]);
           } catch (videoError) {
             // Do not let a generic text model falsely claim JARVIS cannot make video.
             // Route through the agent/core so configured media/publishing tools can be planned or used.
