@@ -47,3 +47,12 @@ test('provider scoring rewards healthy low-latency capability matches', () => {
   const slow = scoreProvider({ provider: 'gemini', capabilities: '["chat"]', samples: 10, successes: 5, avg_latency_ms: 7000, priority: 10 }, 'research');
   assert.ok(fast > slow);
 });
+
+
+test('google chat search never falls back to raw snippet dumps', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/application/search/google.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /if \(!env\.AI\) return compact/);
+  assert.doesNotMatch(source, /return text \|\| compact/);
+  assert.match(source, /Ham sonuçları sohbet cevabı olarak göstermeyeceğim/);
+});
