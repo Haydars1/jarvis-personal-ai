@@ -89,7 +89,7 @@ async function fullHistory(env, limit = 160) {
 }
 async function answerFromGoogle(env, query, results) {
   const compact = results.slice(0, 6).map((row, index) => `[${index + 1}] ${row.title}\n${row.snippet}\n${row.contextUrl || row.url}`).join('\n\n');
-  if (!env.AI) return compact;
+  if (!env.AI) return 'Arama sonuçlarını aldım ancak şu anda güvenilir bir özet üretemiyorum. Ham sonuçları sohbet cevabı olarak göstermeyeceğim.';
   const run = env.AI.run('@cf/zai-org/glm-4.7-flash', {
     prompt: `Kullanıcı sorusu: ${query}\n\nGoogle arama sonuçları:\n${compact}\n\nYalnız bu sonuçlara dayanarak Türkçe, kısa ve net cevap ver. Kaynakları [1], [2] diye belirt.`,
     max_tokens: 700,
@@ -97,7 +97,7 @@ async function answerFromGoogle(env, query, results) {
   });
   const result = await settleWithin(run, 1800, null);
   const text = String(result?.response || result?.result?.response || result?.text || '').trim();
-  return text || compact;
+  return text || 'Arama sonuçlarını aldım ancak şu anda güvenilir bir özet üretemiyorum. Ham sonuçları sohbet cevabı olarak göstermeyeceğim.';
 }
 async function chatGoogle(core, req, env, ctx, text) {
   const results = await searchGoogle(env, text, { num: 8 });
