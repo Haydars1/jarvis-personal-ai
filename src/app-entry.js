@@ -14,6 +14,7 @@ import { createGoogleSearch } from './application/search/google.js';
 import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
+import { prepareChatAttachments } from './application/chat/attachments.js';
 
 const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
 const integrationCore = createIntegrationHub(higgsfieldCore);
@@ -52,7 +53,10 @@ async function routeRequest(req, env, ctx) {
     const response = await handlePush(req, env, ctx);
     if (response) return response;
   }
-  if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleChat(req, env, ctx);
+  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
+    const prepared = await prepareChatAttachments(req, env);
+    return handleChat(prepared.request, env, ctx);
+  }
   return capabilityCore.fetch(req, env, ctx);
 }
 
