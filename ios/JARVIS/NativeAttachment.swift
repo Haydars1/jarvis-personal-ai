@@ -18,7 +18,17 @@ struct NativeAttachment: Identifiable {
     static func from(url: URL, maxBytes: Int = 10 * 1024 * 1024) throws -> NativeAttachment {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
-        let data = try Data(contentsOf: url)
+
+        var data: Data?
+        var coordinationError: NSError?
+        let coordinator = NSFileCoordinator()
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { readableURL in
+            data = try? Data(contentsOf: readableURL, options: [.mappedIfSafe])
+        }
+        if let coordinationError { throw coordinationError }
+        guard let data else {
+            throw NSError(domain: "JARVIS", code: 422, userInfo: [NSLocalizedDescriptionKey: "Dosya iCloud/Files üzerinden okunamadı. Dosyayı cihazına indirip tekrar seç."])
+        }
         guard data.count <= maxBytes else {
             throw NSError(domain: "JARVIS", code: 413, userInfo: [NSLocalizedDescriptionKey: "Dosya çok büyük. Maksimum 10 MB."])
         }
