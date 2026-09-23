@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jarvis-ecu-worker"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.10,<3", "fastapi>=0.116,<1", "httpx>=0.28,<1", "uvicorn>=0.35,<1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

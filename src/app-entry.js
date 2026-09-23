@@ -1,4 +1,5 @@
-import legacyBase from './worker.js';
+export { EcuComputeContainer } from './infrastructure/ecu/cloud-container.js';
+import legacyBase, { isAuthed as isOwnerAuthenticated } from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
@@ -15,62 +16,39 @@ import { createSocialGrowth } from './application/social/growth.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 import { prepareChatAttachments } from './application/chat/attachments.js';
+import { createEcuRuntime } from './application/ecu/runtime.js';
+import { createEcuAuthGuard } from './application/ecu/auth-guard.js';
+import { createEcuChatTool } from './application/ecu/tool.js';
+import { createComputeDispatch } from './infrastructure/ecu/compute-dispatch.js';
 
-const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
-const integrationCore = createIntegrationHub(higgsfieldCore);
-const providerCore = createProviderState(integrationCore);
-const routerCore = createSmartRouter(providerCore);
-const searchCore = createGoogleSearch(routerCore);
-const enhancementCore = createChatEnhancements(searchCore);
-const osCore = createJarvisOS(enhancementCore);
-const socialCore = createSocialGrowth(osCore);
-const videoCore = createVideoFailover(socialCore);
-const outputCore = createChatOutput(videoCore);
-const capabilityCore = createCapabilityRuntime(outputCore);
-const handleMediaRescue = createMediaRescue(capabilityCore);
-const mediaCore = {
-  fetch(req, env, ctx) {
-    const url = new URL(req.url);
-    if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleMediaRescue(req, env, ctx);
-    return capabilityCore.fetch(req, env, ctx);
-  },
-  scheduled(event, env, ctx) {
-    return capabilityCore.scheduled?.(event, env, ctx);
-  }
-};
+const higgsfieldCore=createHiggsfieldIntegration(legacyBase);
+const integrationCore=createIntegrationHub(higgsfieldCore);
+const providerCore=createProviderState(integrationCore);
+const routerCore=createSmartRouter(providerCore);
+const searchCore=createGoogleSearch(routerCore);
+const enhancementCore=createChatEnhancements(searchCore);
+const osCore=createJarvisOS(enhancementCore);
+const socialCore=createSocialGrowth(osCore);
+const videoCore=createVideoFailover(socialCore);
+const outputCore=createChatOutput(videoCore);
+const capabilityCore=createCapabilityRuntime(outputCore);
+const ecuComputeDispatch=createComputeDispatch();
+const ecuRuntimeCore=createEcuRuntime(capabilityCore,{computeDispatch:ecuComputeDispatch,computeStatus:env=>ecuComputeDispatch.getRoutingStatus(env)});
+const ecuCore=createEcuAuthGuard(ecuRuntimeCore,{isOwnerAuthenticated});
+const handleMediaRescue=createMediaRescue(ecuCore);
+const mediaCore={fetch(req,env,ctx){const url=new URL(req.url);if(url.pathname==='/api/chat/send'&&req.method==='POST')return handleMediaRescue(req,env,ctx);return ecuCore.fetch(req,env,ctx)},scheduled(event,env,ctx){return ecuCore.scheduled?.(event,env,ctx)}};
+const ecuChatCore=createEcuChatTool(mediaCore);
+const handleChat=createEmergencyChatFallback(createChatOrchestrator(ecuChatCore));
+const handlePush=createPushApi(ecuCore);
 
-const handleChat = createEmergencyChatFallback(createChatOrchestrator(mediaCore));
-const handlePush = createPushApi(capabilityCore);
-
-function shouldFlushPush(req, response) {
-  const url = new URL(req.url);
-  return response?.ok && (url.pathname.startsWith('/api/') || req.method === 'POST');
+function shouldFlushPush(req,response){const url=new URL(req.url);return response?.ok&&(url.pathname.startsWith('/api/')||req.method==='POST')}
+async function routeRequest(req,env,ctx){
+  const url=new URL(req.url);
+  if(url.pathname.startsWith('/api/mobile/push/')){const response=await handlePush(req,env,ctx);if(response)return response}
+  if(url.pathname==='/api/chat/send'&&req.method==='POST'){const prepared=await prepareChatAttachments(req,env);return handleChat(prepared.request,env,ctx)}
+  return ecuCore.fetch(req,env,ctx)
 }
-
-async function routeRequest(req, env, ctx) {
-  const url = new URL(req.url);
-  if (url.pathname.startsWith('/api/mobile/push/')) {
-    const response = await handlePush(req, env, ctx);
-    if (response) return response;
-  }
-  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
-    const prepared = await prepareChatAttachments(req, env);
-    return handleChat(prepared.request, env, ctx);
-  }
-  return capabilityCore.fetch(req, env, ctx);
-}
-
-export default {
-  async fetch(req, env, ctx) {
-    const response = await routeRequest(req, env, ctx);
-    if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
-    return response;
-  },
-  async scheduled(event, env, ctx) {
-    await capabilityCore.scheduled?.(event, env, ctx);
-    ctx.waitUntil((async () => {
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      await flushPush(env);
-    })().catch(() => {}));
-  }
+export default{
+  async fetch(req,env,ctx){const response=await routeRequest(req,env,ctx);if(shouldFlushPush(req,response))ctx.waitUntil(flushPush(env).catch(()=>{}));return response},
+  async scheduled(event,env,ctx){await ecuCore.scheduled?.(event,env,ctx);ctx.waitUntil((async()=>{await new Promise(resolve=>setTimeout(resolve,2500));await flushPush(env)})().catch(()=>{}))}
 };

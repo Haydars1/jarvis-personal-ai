@@ -1,0 +1,59 @@
+name: ECU Brain Integration CI
+on:
+  push:
+    branches: [feature/learning-engine]
+    paths:
+      - 'src/application/ecu/**'
+      - 'src/infrastructure/ecu/**'
+      - 'compute/**'
+      - 'tests/ecu-*.test.js'
+      - 'migrations/**'
+      - 'src/app-entry.js'
+      - 'src/worker.js'
+      - 'schema.sql'
+      - 'wrangler.jsonc'
+      - 'package.json'
+      - '.github/workflows/ecu-brain-ci.yml'
+  pull_request:
+    paths:
+      - 'src/application/ecu/**'
+      - 'src/infrastructure/ecu/**'
+      - 'compute/**'
+      - 'tests/ecu-*.test.js'
+      - 'migrations/**'
+      - 'src/app-entry.js'
+      - 'src/worker.js'
+      - 'schema.sql'
+      - 'wrangler.jsonc'
+      - 'package.json'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm install --no-audit --no-fund
+      - run: npm run check
+      - name: Validate ECU migrations
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db=sqlite3.connect(':memory:')
+          for path in [Path('migrations/0010_ecu_brain_core.sql'),Path('migrations/0011_ecu_brain_learning_release.sql')]:
+              db.executescript(path.read_text())
+          required={'ecu_files','ecu_jobs','ecu_analysis_results','ecu_map_candidates','ecu_training_examples','ecu_change_evidence','ecu_rulepack_versions','ecu_mod_artifacts','ecu_model_versions','ecu_workers'}
+          tables={row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+          assert required <= tables, sorted(required-tables)
+          PY
+      - run: python -m pip install -e './compute[dev]'
+      - run: pytest -q compute/tests
+      - name: Cloudflare dry run without container rollout
+        run: npx wrangler deploy --dry-run --containers-rollout=none --outdir .wrangler-dry
