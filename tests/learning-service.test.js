@@ -42,3 +42,26 @@ test('new personal facts persist memory and metadata in one D1 batch', async () 
   assert.equal(id, 'memory-1');
   assert.equal(statements.length, 3);
 });
+
+test('duplicate personal fact refreshes metadata without creating a new memory', async () => {
+  let factoryCalled = false;
+  const calls = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...args) {
+          calls.push({ sql, args });
+          return {
+            first: async () => sql.startsWith('SELECT') ? { memory_id:'memory-existing' } : null,
+            run: async () => ({ success:true })
+          };
+        }
+      };
+    }
+  };
+  const id = await savePersonalFact({ DB:db }, 'Türkçe cevapları tercih ediyorum', () => { factoryCalled = true; return 'memory-new'; });
+  assert.equal(id, 'memory-existing');
+  assert.equal(factoryCalled, false);
+  assert.equal(calls.filter(row => /INSERT INTO memories/.test(row.sql)).length, 0);
+  assert.equal(calls.filter(row => /UPDATE personal_memory_meta/.test(row.sql)).length, 1);
+});
