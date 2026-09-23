@@ -14,7 +14,7 @@ class AnalysisJobInput(BaseModel):
     job_id: str
     artifact_sha256: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
     artifact_uri: str
-    operation: str = 'analyze'
+    operation: Literal['analyze', 'stage1_proposal'] = 'analyze'
     model_version: str = 'baseline'
     rulepack_version: str = 'baseline'
     paid_api_allowed: bool = False
