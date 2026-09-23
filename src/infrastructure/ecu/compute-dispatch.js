@@ -105,7 +105,7 @@ export function createComputeDispatch({ fetchImpl = fetch, timeoutMs = 15000, lo
         if(target.containerBinding){
           const stub=target.containerBinding.getByName('jarvis-ecu-compute');
           response=await stub.fetch(new Request('http://ecu-container/jobs',{method:'POST',headers,body,signal:controller.signal}));
-        } else response=await fetchImpl(target.url,{method:'POST',headers,body,signal:controller.signal});
+        } else response=await fetchImpl(target.url,{method:'POST',headers,body,signal:controller.signal,redirect:'error'});
         if(!response.ok) return {accepted:false,state:'QUEUED',workerKind:target.workerKind,reason:`DISPATCH_HTTP_${response.status}`};
         let remote={}; try{remote=await response.json();}catch{}
         return {accepted:remote.accepted!==false,state:'DISPATCHED',workerKind:target.workerKind,remote};
