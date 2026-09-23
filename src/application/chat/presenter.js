@@ -58,8 +58,15 @@ async function replaceLatestAssistant(env, text, provider) {
   } catch {}
 }
 
+function stripAttachmentContext(text='') {
+  return String(text||'')
+    .replace(/\n*\[JARVIS_ATTACHMENT_CONTEXT\][\s\S]*?\[\/JARVIS_ATTACHMENT_CONTEXT\]\s*/gi,'')
+    .trim();
+}
+
 function cleanHistory(rows = []) {
   return (Array.isArray(rows) ? rows : []).map(message => {
+    if (message?.role === 'user') return { ...message, content: stripAttachmentContext(message.content || '') };
     if (message?.role !== 'assistant') return message;
     const clean = stripThink(message.content || '');
     if (clean) return { ...message, content: clean };
