@@ -5,14 +5,19 @@ import { createComputeDispatch } from '../src/infrastructure/ecu/compute-dispatc
 const unsafe = [
   'https://localhost/jobs',
   'https://127.0.0.1/jobs',
+  'https://0.0.0.0/jobs',
   'https://10.0.0.5/jobs',
+  'https://100.64.0.1/jobs',
+  'https://100.127.255.254/jobs',
   'https://192.168.1.5/jobs',
   'https://172.16.0.5/jobs',
   'https://169.254.169.254/jobs',
+  'https://224.0.0.1/jobs',
+  'https://255.255.255.255/jobs',
   'https://worker.local/jobs',
 ];
 
-test('configured local worker URL cannot route to private or link-local hosts', async () => {
+test('configured local worker URL cannot route to private, link-local, shared, multicast, or reserved hosts', async () => {
   for (const url of unsafe) {
     let called = false;
     const dispatch = createComputeDispatch({ fetchImpl: async () => { called = true; return new Response('{}', { status: 202 }); } });
