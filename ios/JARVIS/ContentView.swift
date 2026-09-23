@@ -52,26 +52,26 @@ struct ContentView: View {
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
         }
-        .fileImporter(
-            isPresented: $showFiles,
-            allowedContentTypes: [UTType(filenameExtension: "bin") ?? .data, .data, .item],
-            allowsMultipleSelection: false
-        ) { result in
-            switch result {
-            case .success(let urls):
-                guard let url = urls.first else {
-                    state.statusText = "Dosya seçilmedi"
-                    return
+        .sheet(isPresented: $showFiles) {
+            UniversalDocumentPicker(allowsMultipleSelection: true) { urls in
+                showFiles = false
+                var added = 0
+                for url in urls.prefix(4) {
+                    do {
+                        let attachment = try NativeAttachment.from(url: url)
+                        state.addAttachment(attachment)
+                        added += 1
+                    } catch {
+                        state.statusText = "Dosya açılamadı: \(error.localizedDescription)"
+                    }
                 }
-                do {
-                    let attachment = try NativeAttachment.from(url: url)
-                    state.addAttachment(attachment)
-                    state.statusText = "Dosya eklendi: \(attachment.name)"
-                } catch {
-                    state.statusText = "Dosya açılamadı: \(error.localizedDescription)"
+                if added > 0 {
+                    state.statusText = added == 1 ? "Dosya eklendi" : "\(added) dosya eklendi"
                 }
-            case .failure(let error): state.statusText = error.localizedDescription
+            } onCancel: {
+                showFiles = false
             }
+            .ignoresSafeArea()
         }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
