@@ -6,10 +6,17 @@ export function eligiblePersonalFact(text = '') {
   return value.length >= 8 && value.length <= 300 && !isSensitiveMemory(value);
 }
 
+function safeSourceUrl(value = '') {
+  try {
+    const url = new URL(String(value || '').trim());
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '';
+  } catch { return ''; }
+}
+
 export function sourceBackedKnowledge(domain, results = [], now = Date.now()) {
   return (Array.isArray(results) ? results : []).slice(0, 6).flatMap(row => {
     const text = String(row?.snippet || '').trim();
-    const sourceUrl = String(row?.url || '').trim();
+    const sourceUrl = safeSourceUrl(row?.url);
     if (!text || !sourceUrl) return [];
     try { return [buildKnowledgeRecord({ domain, text, sourceUrl, sourceTitle: row.title || '', confidence: 0.72, now })]; }
     catch { return []; }
