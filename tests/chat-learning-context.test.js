@@ -8,9 +8,22 @@ test('chat orchestrator composes bounded learning context before provider execut
   assert.match(source, /learningContext/);
   assert.match(source, /src\/application\/learning|\.\.\/learning\/service\.js/);
   assert.match(source, /learningContext\(env\s*,\s*text/);
+  assert.match(source, /learnedContext\(learnedRows\)/);
 });
 
 test('post-response learning remains asynchronous and non-blocking', () => {
   assert.match(source, /ctx\.waitUntil/);
-  assert.match(source, /learn(SearchResults|ProviderOutcome)/);
+  assert.match(source, /learnSearchResults/);
+  assert.match(source, /learnProviderOutcome/);
+  assert.match(source, /Promise\.allSettled\(jobs\)/);
+});
+
+test('research-backed knowledge is scheduled on successful orchestrated responses', () => {
+  assert.match(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:'JARVIS',started\}\)/);
+});
+
+test('terminal response failures are recorded without blocking the reply', () => {
+  assert.match(source, /all_response_paths_failed/);
+  assert.match(source, /clean_synthesis_failed/);
+  assert.match(source, /ok:false/);
 });
