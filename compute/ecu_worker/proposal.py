@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 
 
 @dataclass(frozen=True)
@@ -40,9 +41,20 @@ def propose_stage1(
 
     for candidate in maps:
         label = str(candidate.get("semantic_label") or "UNKNOWN")
-        confidence = float(candidate.get("semantic_confidence") or candidate.get("confidence") or 0.0)
+        try:
+            confidence = float(candidate.get("semantic_confidence") or candidate.get("confidence") or 0.0)
+        except (TypeError, ValueError):
+            confidence = 0.0
         rule = rules.get(label)
-        if label == "UNKNOWN" or confidence < min_confidence or rule is None:
+        rule_delta = float(rule.max_delta_percent) if rule is not None else 0.0
+        if (
+            label == "UNKNOWN"
+            or not math.isfinite(confidence)
+            or confidence < min_confidence
+            or rule is None
+            or not math.isfinite(rule_delta)
+            or rule_delta <= 0
+        ):
             unknown_maps += 1
             continue
         items.append(
@@ -51,7 +63,7 @@ def propose_stage1(
                 offset=int(candidate.get("offset") or 0),
                 rows=None if candidate.get("rows") is None else int(candidate.get("rows")),
                 cols=None if candidate.get("cols") is None else int(candidate.get("cols")),
-                max_delta_percent=max(0.0, float(rule.max_delta_percent)),
+                max_delta_percent=rule_delta,
                 confidence=confidence,
             )
         )
@@ -93,7 +105,7 @@ def stage1_proposal_from_config(
             delta=float((payload or {}).get("max_delta_percent"))
         except (TypeError,ValueError):
             continue
-        if delta <= 0:
+        if not math.isfinite(delta) or delta <= 0:
             continue
         rules[str(label)] = CalibrationRule(label=str(label), max_delta_percent=delta)
 
