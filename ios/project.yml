@@ -23,6 +23,9 @@ targets:
             NSExtensionActivationRule:
               NSExtensionActivationSupportsText: true
               NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsFileWithMaxCount: 4
+              NSExtensionActivationSupportsImageWithMaxCount: 4
+              NSExtensionActivationSupportsMovieWithMaxCount: 4
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis.share
