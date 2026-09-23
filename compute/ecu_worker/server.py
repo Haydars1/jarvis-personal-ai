@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import os
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timezone
@@ -90,9 +91,9 @@ def _expected_token() -> str:
 
 def _authorized(authorization: str | None) -> bool:
     expected = _expected_token()
-    if not expected:
+    if not expected or authorization is None:
         return False
-    return authorization == f"Bearer {expected}"
+    return hmac.compare_digest(authorization, f"Bearer {expected}")
 
 
 async def _run_job(job: AnalysisJobInput, token: str) -> None:
