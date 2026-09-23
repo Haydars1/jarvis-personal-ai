@@ -67,3 +67,28 @@ def test_verified_rulepack_builds_bounded_stage1_proposal_without_modifying_byte
     assert result.blocked is False
     assert [x.max_delta_percent for x in result.items]==[8.0,5.0]
     assert result.requires_checksum is True
+
+
+def test_stage1_proposal_rejects_non_finite_or_malformed_confidence():
+    maps=[
+        {"offset":100,"semantic_label":"torque_limiter","semantic_confidence":float("nan")},
+        {"offset":200,"semantic_label":"torque_limiter","semantic_confidence":float("inf")},
+        {"offset":300,"semantic_label":"torque_limiter","semantic_confidence":"not-a-number"},
+    ]
+    rules={"torque_limiter": CalibrationRule(label="torque_limiter", max_delta_percent=8.0)}
+    proposal=propose_stage1(maps,rules,min_confidence=.9)
+    assert proposal.items == []
+    assert proposal.unknown_maps == 3
+
+
+def test_verified_rulepack_rejects_non_finite_delta():
+    from ecu_worker.proposal import stage1_proposal_from_config
+    maps=[{"offset":100,"semantic_label":"torque_limiter","semantic_confidence":.99}]
+    result=stage1_proposal_from_config(maps,{
+        "rulepack_verified":True,
+        "required_labels":["torque_limiter"],
+        "rulepack":{"torque_limiter":{"max_delta_percent":"nan"}},
+    })
+    assert result.items == []
+    assert result.blocked is True
+    assert "MISSING_REQUIRED_MAP:torque_limiter" in result.reasons
