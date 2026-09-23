@@ -44,3 +44,17 @@ test('routing status treats an unsafe registered local endpoint as unavailable',
   assert.equal(status.computeAvailable, false);
   assert.equal(status.preferredWorkerKind, null);
 });
+
+test('routing rejects unspecified and carrier-grade NAT IPv4 endpoints', async () => {
+  for (const endpoint of ['https://0.0.0.0/jobs', 'https://100.64.0.1/jobs', 'https://100.127.255.254/jobs']) {
+    const dispatch = createComputeDispatch();
+    const status = await dispatch.getRoutingStatus({
+      DB: dbWithLocal(endpoint),
+      ECU_COMPUTE_TOKEN: 'configured',
+    });
+
+    assert.equal(status.local.state, 'unavailable', endpoint);
+    assert.equal(status.computeAvailable, false, endpoint);
+    assert.equal(status.preferredWorkerKind, null, endpoint);
+  }
+});
