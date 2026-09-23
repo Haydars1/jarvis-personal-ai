@@ -9,13 +9,15 @@ permissions:
   contents: write
   actions: read
 
+# Scheduled runs only operate on the development branch and are serialized below.
+
 concurrency:
   group: jarvis-codex-development-agent
   cancel-in-progress: false
 
 jobs:
   develop:
-    if: github.ref == 'refs/heads/feature/learning-engine'
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/feature/learning-engine'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
