@@ -23,3 +23,10 @@ test('ECU Brain can import binary files and call the ECU analysis endpoint', () 
   assert.match(ecuApi, /\/api\/ecu\/analyze-file/);
   assert.match(ecuApi, /stage1_proposal/);
 });
+
+
+test('login button remains tappable and delegates empty-password feedback to AppState', () => {
+  assert.match(contentView, /Button \{\s*loginPasswordFocused = false\s*Task \{ await state\.login\(\) \}/s);
+  assert.match(contentView, /contentShape\(Rectangle\(\)\)/);
+  assert.doesNotMatch(contentView, /\.disabled\(!loginCanSubmit\)/);
+});
