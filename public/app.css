@@ -9,3 +9,9 @@
 .googleSetup{margin-top:12px;padding-top:4px}.googleSetup label{display:block;color:var(--muted);font-size:12px;margin:8px 0 5px}.btnlink{display:inline-block;margin:8px 0;padding:10px 12px;border:1px solid #31dfff66;border-radius:12px;color:#b8f5ff;text-decoration:none;background:#0b1a2e}
 
 .chatMsg p{margin:0 0 10px}.chatMsg p:last-of-type{margin-bottom:0}.chatMsg h2,.chatMsg h3,.chatMsg h4{margin:14px 0 7px;line-height:1.25}.chatMsg h2:first-child,.chatMsg h3:first-child,.chatMsg h4:first-child{margin-top:0}.chatMsg ul,.chatMsg ol{margin:8px 0 10px;padding-left:22px}.chatMsg li{margin:6px 0;line-height:1.5}.chatMsg blockquote{margin:10px 0;padding:8px 10px;border-left:3px solid var(--cyan);background:#071326;border-radius:8px}.chatMsg code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#06101e;border:1px solid #203653;border-radius:6px;padding:1px 5px;font-size:.92em}.chatMsg strong{color:#fff}
+
+.chatAttachmentStrip{display:flex;gap:7px;overflow-x:auto;padding:0 12px;background:#061020}
+.chatAttachmentStrip:empty{display:none}
+.chatAttachmentChip{flex:0 0 auto;background:#0d1a31;color:var(--text);border:1px solid #294466;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:600}
+.chatComposer{grid-template-columns:auto 1fr auto auto}
+@media(max-width:600px){.chatComposer{grid-template-columns:auto 1fr auto}.chatComposer #chatSend{grid-column:1/-1}}
