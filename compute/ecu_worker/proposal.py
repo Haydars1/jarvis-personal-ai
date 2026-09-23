@@ -8,7 +8,7 @@ import math
 class CalibrationRule:
     label: str
     max_delta_percent: float
-    target_delta_percent: float
+    target_delta_percent: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -18,10 +18,10 @@ class ProposalItem:
     rows: int | None
     cols: int | None
     max_delta_percent: float
-    target_delta_percent: float
     confidence: float
-    data_type: str
-    endian: str
+    target_delta_percent: float = 0.0
+    data_type: str = "u16"
+    endian: str = "big"
 
 
 @dataclass(frozen=True)
@@ -114,9 +114,12 @@ def stage1_proposal_from_config(
             agreement=float((payload or {}).get("directionAgreement") or 0)
         except (TypeError,ValueError):
             continue
-        if not math.isfinite(envelope) or envelope <= 0 or not math.isfinite(target) or target == 0 or agreement < 0.8:
+        if not math.isfinite(envelope) or envelope <= 0:
             continue
-        target=max(-envelope,min(envelope,target))
+        if not math.isfinite(target) or target == 0 or agreement < 0.8:
+            target=0.0
+        else:
+            target=max(-envelope,min(envelope,target))
         rules[str(label)] = CalibrationRule(label=str(label), max_delta_percent=envelope, target_delta_percent=target)
 
     required_labels={str(x) for x in (config.get("required_labels") or []) if str(x)}
