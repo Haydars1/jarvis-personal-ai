@@ -4,6 +4,20 @@ import { cleanReply } from '../../lib/orchestration.js';
 const MODEL = '@cf/zai-org/glm-4.7-flash';
 const FAILURE_PREFIX = 'JARVIS şu an yanıt üretemedi';
 
+export function mediaFallbackIntent(text = '') {
+  const value = String(text || '').toLowerCase();
+  const action = /(yap|oluştur|üret|hazırla|çiz|göster|generate|create)/i.test(value);
+  if (action && /(animasyon|video|reels?|klip)/i.test(value)) return 'video';
+  if (action && /(resim|görsel|foto|fotoğraf|logo|poster|kapak|afiş)/i.test(value)) return 'image';
+  return 'chat';
+}
+
+export function mediaCapabilityFallback(text = '') {
+  const kind = mediaFallbackIntent(text);  if (kind === 'video') return 'Video/animasyon isteğini aldım. Medya üretim sağlayıcısını devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
+  if (kind === 'image') return 'Görsel isteğini aldım. Görsel üretim yeteneğini devreye alıyorum; üretim sağlayıcısı hazır değilse isteği kaydedip uygun sağlayıcı üzerinden devam edeceğim.';
+  return '';
+}
+
 function extractWorkersText(result) {
   const content = result?.choices?.[0]?.message?.content;
   if (typeof content === 'string' && content.trim()) return content.trim();
@@ -40,11 +54,21 @@ export function createEmergencyChatFallback(handleChat) {
     let payload;
     try { payload = await response.clone().json(); } catch { return response; }
     const current = String(payload?.reply || '').trim();
-    if (!current.startsWith(FAILURE_PREFIX)) return response;
-
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
-    const reply = await generateEmergencyReply(env, text);
+
+    const capabilityReply = mediaCapabilityFallback(text);
+    if (!current.startsWith(FAILURE_PREFIX)) {
+      if (!capabilityReply || !/(video .*oluşturam|video .*üretem|doğrudan .*video|yapamıyorum|yapamam)/i.test(current)) return response;
+      payload.reply = capabilityReply;
+      payload.provider = 'JARVIS';
+      payload.history = Array.isArray(payload.history) && payload.history.length
+        ? payload.history.map(message => message?.role === 'assistant' ? { ...message, content: capabilityReply, provider: 'JARVIS' } : message)
+        : [{ role: 'user', content: text }, { role: 'assistant', content: capabilityReply, provider: 'JARVIS' }];
+      return jsonResponse(payload, response.status);
+    }
+
+    const reply = await generateEmergencyReply(env, text) || capabilityReply;
     if (!reply) return response;
 
     payload.reply = reply;

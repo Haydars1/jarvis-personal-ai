@@ -27,7 +27,18 @@ function intent(text = '') {
 }
 function parseCapabilities(row) { try { return JSON.parse(row.capabilities || '[]'); } catch { return []; } }
 function limitation(text = '') {
-  return /(yeteneğim yok|yapamıyorum|yapamam|doğrudan .* yapamam|görsel .* yok|cannot (generate|create|draw)|i can.?t (generate|create|draw)|bu özelliğe sahip değilim)/i.test(String(text));
+  return /(yeteneğim yok|yapamıyorum|yapamam|doğrudan .* yapamam|görsel .* yok|cannot (generate|create|draw)|i can.?t (generate|create|draw)|bu özelliğe sahip değilim|internete? (?:doğrudan )?erişimim yok|platformlara? .*yükleyemem|video .*oluşturamam|video .*üretemem)/i.test(String(text));
+}
+export function videoAutomationIntent(text = '') {
+  const value = String(text || '').toLowerCase();
+  const video = /(video|shorts?|reels?|klip|youtube)/i.test(value);
+  const action = /(yap|üret|oluştur|hazırla|düzenle|edit|generate|create)/i.test(value);
+  const publish = /(at|yükle|paylaş|yayınla|düzenli|otomatik|her gün|haftada|youtube|tiktok|instagram)/i.test(value);
+  return video && action && publish;
+}
+
+export function classifyIntent(text = '') {
+  return videoAutomationIntent(text) ? 'video' : intent(text);
 }
 
 async function history(env, limit = 24) {
@@ -46,6 +57,15 @@ async function state(core, req, env, ctx) {
   const response = await core.fetch(new Request(new URL('/api/state', req.url), { headers: req.headers }), env, ctx);
   try { return await response.json(); } catch { return {}; }
 }
+function mediaContextIntent(text = '', hist = []) {
+  const current = classifyIntent(text);
+  if (current !== 'chat') return current;
+  const followUp = /(yaşında|gerisini sen|kendin ayarla|önceki|aynı video|onun videosu|devam et|hazırla|yap işte|tamamla)/i.test(String(text));
+  if (!followUp) return current;
+  const recent = (hist || []).slice(-12).map(item => String(item.content || '')).join('\n');
+  return /(video|animasyon|shorts?|reels?|klip|youtube)/i.test(recent) ? 'video' : current;
+}
+
 function messagesFor(hist, text) {
   const system = { role: 'system', content: 'Sen JARVIS kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür.' };
   const recent = (hist || []).slice(-14).map(item => ({ role: item.role === 'assistant' ? 'assistant' : 'user', content: item.content }));
@@ -190,11 +210,22 @@ async function imageGenerate(env, text) {
   if (!image) throw new Error('IMAGE_GENERATION_EMPTY');
   return { provider: 'Cloudflare Workers AI · FLUX.1 schnell', dataURI: `data:image/jpeg;base64,${image}` };
 }
+async function availableVideoProviders(core, req, env, ctx) {
+  const response = await settleWithin(core.fetch(new Request(new URL('/api/video-pool', req.url), {
+    method: 'GET', headers: req.headers
+  }), env, ctx), 5000, null);
+  if (!response?.ok) return [];
+  const payload = await response.json();
+  return payload.providers || payload.available || [];
+}
 async function tryVideo(core, req, env, ctx, text) {
-  const response = await settleWithin(core.fetch(new Request(new URL('/api/higgsfield/generate', req.url), {
-    method: 'POST', headers: req.headers, body: JSON.stringify({ capability: 'text-to-video', input: { prompt: text } })
-  }), env, ctx), 8000, null);
-  if (!response?.ok) throw new Error(`HIGGSFIELD_${response?.status || 'TIMEOUT'}`);
+  const providers = await availableVideoProviders(core, req, env, ctx);
+  const response = await settleWithin(core.fetch(new Request(new URL('/api/video-pool/run', req.url), {
+    method: 'POST',
+    headers: req.headers,
+    body: JSON.stringify({ capability: 'text-to-video', prompt: text, input: { prompt: text }, providers })
+  }), env, ctx), 12000, null);
+  if (!response?.ok) throw new Error(`VIDEO_POOL_${response?.status || 'TIMEOUT'}`);
   return response.json();
 }
 async function synthetic(core, req, env, ctx, reply, provider, media = []) {
@@ -229,7 +260,12 @@ export function createSmartRouter(core) {
       if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
       const body = await readJson(req.clone()), text = String(body.text || '').trim();
       if (!text) return core.fetch(req, env, ctx);
-      const capability = intent(text);
+      let capability = classifyIntent(text);
+      let priorHistory = [];
+      if (capability === 'chat') {
+        priorHistory = await history(env, 24);
+        capability = mediaContextIntent(text, priorHistory);
+      }
       if (capability === 'research') return core.fetch(req, env, ctx);
 
       await saveMessage(env, 'user', text);
@@ -239,10 +275,18 @@ export function createSmartRouter(core) {
           return synthetic(core, req, env, ctx, 'Görseli doğrudan oluşturdum.', image.provider, [{ type: 'image', src: image.dataURI, alt: text }]);
         }
         if (capability === 'video') {
+          const recent = priorHistory.length ? priorHistory.slice(-10).map(item => `${item.role}: ${item.content}`).join('\n') : '';
+          const videoPrompt = recent ? `Önceki konuşma bağlamı:\n${recent}\n\nKullanıcının devam komutu: ${text}\nEksik yaratıcı ayrıntıları kullanıcıdan tekrar istemeden çocuklara uygun biçimde tamamla.` : text;
           try {
-            const video = await tryVideo(core, req, env, ctx, text), requestId = video.request_id || video.id || video.requestId || null;
-            return synthetic(core, req, env, ctx, requestId ? `Videoyu Higgsfield'a gönderdim. İş ID: ${requestId}` : 'Video üretimini Higgsfield üzerinden başlattım.', 'Higgsfield', [{ type: 'video-job', data: video }]);
-          } catch {}
+            const video = await tryVideo(core, req, env, ctx, videoPrompt), requestId = video.request_id || video.id || video.requestId || null;
+            const provider = video.provider || video.selected_provider || video.selectedProvider || 'Video Provider Pool';
+            return synthetic(core, req, env, ctx, requestId ? `Video üretimini başlattım. İş ID: ${requestId}` : 'Video üretimini uygun sağlayıcı üzerinden başlattım.', provider, [{ type: 'video-job', data: video }]);
+          } catch (videoError) {
+            // Do not let a generic text model falsely claim JARVIS cannot make video.
+            // Route through the agent/core so configured media/publishing tools can be planned or used.
+            try { await execute(env, "DELETE FROM chat_messages WHERE id=(SELECT id FROM chat_messages WHERE role='user' AND content=? ORDER BY created_at DESC LIMIT 1)", text); } catch {}
+            return core.fetch(req, env, ctx);
+          }
         }
         const hist = await history(env, 20);
         const answer = await fastText(env, capability, messagesFor(hist.slice(0, -1), text));
