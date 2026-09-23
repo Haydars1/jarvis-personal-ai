@@ -37,7 +37,7 @@ struct ContentView: View {
         }
         .fileImporter(
             isPresented: $showFiles,
-            allowedContentTypes: [.image, .pdf, .text, .data, .movie, .audio],
+            allowedContentTypes: [.item],
             allowsMultipleSelection: true
         ) { result in
             switch result {
@@ -191,7 +191,7 @@ struct ContentView: View {
                 Menu {
                     Button { showCamera = true } label: { Label("Kamera", systemImage: "camera") }
                     PhotosPicker(selection: $photoItem, matching: .images) { Label("Fotoğraflar", systemImage: "photo.on.rectangle") }
-                    Button { showFiles = true } label: { Label("Dosya / PDF", systemImage: "doc") }
+                    Button { showFiles = true } label: { Label("Dosya / BIN / PDF", systemImage: "doc") }
                 } label: {
                     Image(systemName: "plus").font(.system(size: 19, weight: .semibold)).frame(width: 36, height: 36)
                 }
