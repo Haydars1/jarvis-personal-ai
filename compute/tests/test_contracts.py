@@ -31,6 +31,24 @@ def test_analysis_job_input_rejects_unknown_operations():
         )
 
 
+def test_job_contracts_reject_empty_identifiers():
+    with pytest.raises(ValidationError):
+        AnalysisJobInput(job_id='', artifact_sha256='a' * 64, artifact_uri='r2://bucket/originals/x')
+    with pytest.raises(ValidationError):
+        AnalysisJobOutput(job_id='', run_fingerprint='b' * 64)
+    with pytest.raises(ValidationError):
+        TrainingJobInput(job_id='j2', dataset_version='', dataset_digest='c' * 64)
+    with pytest.raises(ValidationError):
+        PairJobInput(
+            job_id='j3',
+            ori_artifact_sha256='a' * 64,
+            mod_artifact_sha256='b' * 64,
+            ori_artifact_uri='r2://bucket/originals/a',
+            mod_artifact_uri='r2://bucket/mods/b',
+            operation_label='',
+        )
+
+
 def test_hash_contracts_reject_non_hex_digests():
     with pytest.raises(ValidationError):
         AnalysisJobInput(job_id='j1', artifact_sha256='z' * 64, artifact_uri='r2://bucket/originals/x')
