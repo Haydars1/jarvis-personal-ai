@@ -21,6 +21,16 @@ def test_analysis_job_input_defaults_to_safe_analysis():
     assert job.paid_api_allowed is False
 
 
+def test_analysis_job_input_rejects_unknown_operations():
+    with pytest.raises(ValidationError):
+        AnalysisJobInput(
+            job_id='j1',
+            artifact_sha256='a' * 64,
+            artifact_uri='r2://bucket/originals/x',
+            operation='arbitrary_operation',
+        )
+
+
 def test_hash_contracts_reject_non_hex_digests():
     with pytest.raises(ValidationError):
         AnalysisJobInput(job_id='j1', artifact_sha256='z' * 64, artifact_uri='r2://bucket/originals/x')
