@@ -35,6 +35,18 @@ def test_worker_job_endpoint_requires_compute_token(monkeypatch):
     assert response.status_code == 401
 
 
+def test_compute_authorization_fails_closed_and_matches_exact_bearer(monkeypatch):
+    monkeypatch.delenv("ECU_COMPUTE_TOKEN", raising=False)
+    assert server._authorized(None) is False
+    assert server._authorized("Bearer anything") is False
+
+    monkeypatch.setenv("ECU_COMPUTE_TOKEN", "secret")
+    assert server._authorized(None) is False
+    assert server._authorized("secret") is False
+    assert server._authorized("Bearer secret-extra") is False
+    assert server._authorized("Bearer secret") is True
+
+
 def test_local_heartbeat_is_opt_in(monkeypatch):
     monkeypatch.delenv("ECU_LOCAL_HEARTBEAT_ENABLED", raising=False)
     assert server._local_heartbeat_enabled() is False
