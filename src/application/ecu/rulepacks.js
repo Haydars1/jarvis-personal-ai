@@ -90,10 +90,11 @@ export function createEcuRulepackLearning({
         const label=String(row.semanticLabel||'UNKNOWN');
         if(label==='UNKNOWN')continue;
         const envelope=Number(row.deltaStats?.p95AbsPercent??row.deltaStats?.p95_abs_percent??0);
-        const signed=Number(row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent??NaN);
-        if(!Number.isFinite(envelope)||envelope<=0||!Number.isFinite(signed)||signed===0)continue;
+        const rawSigned=row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent;
+        const signed=rawSigned==null?null:Number(rawSigned);
+        if(!Number.isFinite(envelope)||envelope<=0)continue;
         if(!grouped.has(label))grouped.set(label,new Map());
-        grouped.get(label).set(String(row.pairId||''),{envelope,signed});
+        grouped.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
       }
       const rules={};
       let evidenceCount=0;
@@ -101,18 +102,20 @@ export function createEcuRulepackLearning({
         const values=[...byPair.entries()].filter(([pair])=>pair).map(([,value])=>value);
         if(values.length<minPairsPerLabel)continue;
         const envelopes=values.map(value=>value.envelope);
-        const signedValues=values.map(value=>value.signed);
+        const signedValues=values.map(value=>value.signed).filter(value=>Number.isFinite(value)&&value!==0);
         const positive=signedValues.filter(value=>value>0).length;
         const negative=signedValues.filter(value=>value<0).length;
-        if(Math.max(positive,negative)/signedValues.length<0.8)continue;
+        const directionAgreement=signedValues.length?Math.max(positive,negative)/signedValues.length:0;
         evidenceCount+=values.length;
         rules[label]={
           evidencePairs:values.length,
           observedEnvelopePercent:median(envelopes),
           minObservedPercent:Math.min(...envelopes),
           maxObservedPercent:Math.max(...envelopes),
-          targetDeltaPercent:median(signedValues),
-          directionAgreement:Math.max(positive,negative)/signedValues.length,
+          ...(signedValues.length===values.length&&directionAgreement>=0.8?{
+            targetDeltaPercent:median(signedValues),
+            directionAgreement,
+          }:{}),
         };
       }
       if(!Object.keys(rules).length){

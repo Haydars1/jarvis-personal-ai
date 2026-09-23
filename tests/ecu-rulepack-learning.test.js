@@ -52,3 +52,21 @@ test('status never presents evidence candidate as verified production rules',asy
   assert.equal(status.latest.verified,false);
   assert.equal(status.production,null);
 });
+
+
+test('adds a signed target only when repeated verified pairs agree on direction',async()=>{
+  const rows=Array.from({length:5},(_,i)=>({
+    pairId:'signed-'+i,
+    operationLabel:'stage1',
+    semanticLabel:'torque_limiter',
+    humanVerified:true,
+    deltaStats:{p95AbsPercent:8+i*.1,medianSignedPercent:7+i*.1}
+  }));
+  const repo=repository(rows);
+  const service=createEcuRulepackLearning({repository:repo,minPairsPerLabel:5});
+  const result=await service.refresh({});
+  const rule=result.candidate.rules.torque_limiter;
+  assert.equal(result.created,true);
+  assert.ok(rule.targetDeltaPercent>0);
+  assert.equal(rule.directionAgreement,1);
+});
