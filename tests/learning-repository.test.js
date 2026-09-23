@@ -11,6 +11,13 @@ test('knowledge record requires provenance', () => {
   assert.ok(row.expires_at > row.verified_at);
 });
 
+test('knowledge record rejects unsafe provenance protocols', () => {
+  for (const sourceUrl of ['javascript:alert(1)', 'data:text/html,bad', 'file:///etc/passwd', 'not-a-url']) {
+    assert.throws(() => buildKnowledgeRecord({ text: 'unsafe', sourceUrl }), /provenance/i);
+  }
+  assert.doesNotThrow(() => buildKnowledgeRecord({ text: 'safe', sourceUrl: 'https://example.com/source' }));
+});
+
 test('learning event contains bounded diagnostic metadata', () => {
   const row = buildLearningEvent({ kind: 'provider_outcome', domain: 'software', provider: 'gemini', outcome: 'timeout', latencyMs: 3500, errorClass: 'timeout', now: 2000 });
   assert.equal(row.kind, 'provider_outcome');
