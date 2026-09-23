@@ -122,13 +122,13 @@ export async function prepareChatAttachments(req,env) {
         `Bu ham byte farkıdır; hangi ECU haritalarının değiştiğini söylemek için ECU Brain/map analizi ayrıca gerekir.`
       ].filter(Boolean).join('\n');
     }
-  } else if(files.length===1 && compareIntent) {
+  } else if(files.length===1 && (compareIntent || /incele|kontrol et|analiz|ne olmuş|neler olmuş|sonucu ver/i.test(String(body.text||'')))) {
     lines.push('Not: Yalnızca tek dosya eklendi. Dosyanın kendisi alındı ve hash/boyut bilgisi doğrulandı; hangi byteların değiştiğini söylemek için referans/ORI/eski sürüm de gerekir.');
     directReply=[
       `Dosyayı gerçekten aldım: ${files[0].name}`,
       `• Boyut: ${files[0].bytes.length} bayt`,
       `• SHA-256: ${files[0].sha256}`,
-      `Bu tek dosyadan “hangi byte değişmiş” kesin olarak çıkarılamaz; karşılaştırmak için aracın ORI/eski dosyasını da yükle. ORI + bu dosyayı birlikte gönderdiğinde byte farklarını doğrudan çıkaracağım.`
+      `Bu tek dosyada hangi değişikliklerin yapıldığını kesin söylemek için karşılaştırma referansı gerekiyor. Aracın ORI/eski .bin dosyasını da birlikte yükle; iki dosyayı byte-byte karşılaştırıp değişen byte sayısını, oranını ve adres aralıklarını çıkaracağım.`
     ].join('\n');
   }
   lines.push('[/JARVIS_ATTACHMENT_CONTEXT]');
