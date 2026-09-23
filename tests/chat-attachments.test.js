@@ -35,3 +35,9 @@ test('binary compare requests produce deterministic clean replies instead of dep
   assert.match(source, /İki dosyayı gerçekten aldım ve byte-byte karşılaştırdım/);
   assert.match(source, /Bu tek dosyadan “hangi byte değişmiş” kesin olarak çıkarılamaz/);
 });
+
+
+test('generic single-file inspection requests return a deterministic clean reply', () => {
+  assert.match(source, /incele\|kontrol et\|analiz\|ne olmuş\|neler olmuş\|sonucu ver/);
+  assert.match(source, /Bu tek dosyada hangi değişikliklerin yapıldığını kesin söylemek için karşılaştırma referansı gerekiyor/);
+});
