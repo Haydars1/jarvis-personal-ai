@@ -9,6 +9,8 @@ struct ContentView: View {
     @State private var showCamera = false
     @State private var showFiles = false
     @State private var showSettings = false
+    @State private var showSidebar = false
+    @State private var showEcu = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -20,11 +22,23 @@ struct ContentView: View {
     private var border: Color { Color(uiColor: .separator).opacity(0.28) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            chat
+        ZStack(alignment: .leading) {
+            VStack(spacing: 0) {
+                header
+                chat
+            }
+            .background(bg.ignoresSafeArea())
+
+            if showSidebar {
+                Color.black.opacity(0.34)
+                    .ignoresSafeArea()
+                    .onTapGesture { withAnimation(.easeOut(duration: 0.18)) { showSidebar = false } }
+
+                sidebar
+                    .transition(.move(edge: .leading))
+                    .zIndex(2)
+            }
         }
-        .background(bg.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         .dynamicTypeSize(.small ... .xxLarge)
         .task { await state.bootstrap() }
@@ -32,12 +46,15 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(state).presentationDetents([.large])
         }
+        .sheet(isPresented: $showEcu) {
+            EcuBrainView().presentationDetents([.large])
+        }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
         }
         .fileImporter(
             isPresented: $showFiles,
-            allowedContentTypes: [.item],
+            allowedContentTypes: [UTType(filenameExtension: "bin") ?? .data, .data, .item],
             allowsMultipleSelection: true
         ) { result in
             switch result {
@@ -66,8 +83,8 @@ struct ContentView: View {
 
     private var header: some View {
         HStack {
-            Button { showSettings = true } label: {
-                Image(systemName: "gearshape").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
+            Button { withAnimation(.easeOut(duration: 0.18)) { showSidebar = true } } label: {
+                Image(systemName: "line.3.horizontal").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
             }
             .buttonStyle(.plain)
             Spacer()
@@ -88,6 +105,83 @@ struct ContentView: View {
         .padding(.vertical, 7)
         .background(bg)
         .overlay(alignment: .bottom) { Rectangle().fill(border).frame(height: 0.5) }
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("JARVIS").font(.title2.bold())
+                Spacer()
+                Button { withAnimation(.easeOut(duration: 0.18)) { showSidebar = false } } label: {
+                    Image(systemName: "xmark").frame(width: 36, height: 36)
+                }.buttonStyle(.plain)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        showSidebar = false
+                    } label: {
+                        Label("Sohbet", systemImage: "bubble.left.and.bubble.right")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+                    .background(surface, in: RoundedRectangle(cornerRadius: 14))
+
+                    Button {
+                        showSidebar = false
+                        showEcu = true
+                    } label: {
+                        Label("ECU Brain", systemImage: "waveform.path.ecg.rectangle")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+
+                    Divider().padding(.vertical, 6)
+
+                    Text("ECU")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        showSidebar = false
+                        showEcu = true
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Yeni ECU dosyası")
+                            Text("ORI / BIN yükle, analiz et, Stage 1 önizle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 8)
+
+                    Divider().padding(.vertical, 6)
+
+                    Button {
+                        showSidebar = false
+                        showSettings = true
+                    } label: {
+                        Label("Ayarlar", systemImage: "gearshape")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 8)
+                }
+                .padding(.horizontal, 14)
+            }
+        }
+        .frame(width: min(UIScreen.main.bounds.width * 0.84, 360))
+        .frame(maxHeight: .infinity)
+        .background(bg)
+        .overlay(alignment: .trailing) { Rectangle().fill(border).frame(width: 0.5) }
     }
 
     private var chat: some View {
