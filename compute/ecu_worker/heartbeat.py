@@ -1,6 +1,22 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlsplit
+
+
+def _validated_https_url(value: str, *, require_jobs_path: bool, error: str) -> str:
+    candidate=value.strip().rstrip("/") if not require_jobs_path else value.strip()
+    try:
+        parsed=urlsplit(candidate)
+    except ValueError as exc:
+        raise ValueError(error) from exc
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError(error)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError(error)
+    if require_jobs_path and not parsed.path.endswith("/jobs"):
+        raise ValueError(error)
+    return candidate
 
 
 async def send_local_heartbeat(
@@ -12,12 +28,16 @@ async def send_local_heartbeat(
     client: Any,
     ttl_seconds: int = 90,
 ) -> dict:
-    base=jarvis_base_url.rstrip("/")
-    endpoint=worker_public_url.strip()
-    if not base.startswith("https://"):
-        raise ValueError("JARVIS_HTTPS_REQUIRED")
-    if not endpoint.startswith("https://") or not endpoint.endswith("/jobs"):
-        raise ValueError("WORKER_PUBLIC_HTTPS_JOBS_URL_REQUIRED")
+    base=_validated_https_url(
+        jarvis_base_url,
+        require_jobs_path=False,
+        error="JARVIS_HTTPS_REQUIRED",
+    )
+    endpoint=_validated_https_url(
+        worker_public_url,
+        require_jobs_path=True,
+        error="WORKER_PUBLIC_HTTPS_JOBS_URL_REQUIRED",
+    )
     if not compute_token:
         raise ValueError("ECU_COMPUTE_TOKEN_REQUIRED")
     if not worker_id:
