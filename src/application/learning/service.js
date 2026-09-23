@@ -56,7 +56,9 @@ export async function savePersonalFact(env, fact, memoryIdFactory) {
     return existing.memory_id;
   }
   const memoryId = memoryIdFactory();
-  await env.DB.prepare('INSERT INTO memories(id,text,tags,created_at) VALUES(?,?,?,?)').bind(memoryId, String(fact).trim(), JSON.stringify(['auto','learning-engine']), now).run();
-  await env.DB.prepare('INSERT INTO personal_memory_meta(memory_id,normalized_text,domain,confidence,seen_count,last_seen_at,updated_at) VALUES(?,?,?,?,1,?,?)').bind(memoryId, normalized, classifyLearningDomain(fact), 0.75, now, now).run();
+  const memoryInsert = env.DB.prepare('INSERT INTO memories(id,text,tags,created_at) VALUES(?,?,?,?)').bind(memoryId, String(fact).trim(), JSON.stringify(['auto','learning-engine']), now);
+  const metadataInsert = env.DB.prepare('INSERT INTO personal_memory_meta(memory_id,normalized_text,domain,confidence,seen_count,last_seen_at,updated_at) VALUES(?,?,?,?,1,?,?)').bind(memoryId, normalized, classifyLearningDomain(fact), 0.75, now, now);
+  if (typeof env.DB.batch !== 'function') throw new Error('LEARNING_DB_BATCH_REQUIRED');
+  await env.DB.batch([memoryInsert, metadataInsert]);
   return memoryId;
 }
