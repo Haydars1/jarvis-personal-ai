@@ -1,3 +1,5 @@
+import math
+
 import pytest
 from pydantic import ValidationError
 
@@ -40,6 +42,12 @@ def test_output_has_explicit_unknown_support_state():
     assert output.status == 'NEEDS_REVIEW'
     assert output.ecu_family == 'UNKNOWN'
     assert output.supported is False
+
+
+@pytest.mark.parametrize('confidence', [-0.01, 1.01, math.nan, math.inf, -math.inf])
+def test_output_rejects_invalid_or_non_finite_confidence(confidence):
+    with pytest.raises(ValidationError):
+        AnalysisJobOutput(job_id='j1', run_fingerprint='b' * 64, confidence=confidence)
 
 
 def test_run_fingerprint_changes_when_operation_changes():
