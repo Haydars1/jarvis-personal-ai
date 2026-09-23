@@ -15,7 +15,7 @@ struct NativeAttachment: Identifiable {
         return "doc"
     }
 
-    static func from(url: URL, maxBytes: Int = 10 * 1024 * 1024) throws -> NativeAttachment {
+    static func from(url: URL, maxBytes: Int = 50 * 1024 * 1024) throws -> NativeAttachment {
         let access = url.startAccessingSecurityScopedResource()
         defer { if access { url.stopAccessingSecurityScopedResource() } }
 
@@ -30,7 +30,7 @@ struct NativeAttachment: Identifiable {
             throw NSError(domain: "JARVIS", code: 422, userInfo: [NSLocalizedDescriptionKey: "Dosya iCloud/Files üzerinden okunamadı. Dosyayı cihazına indirip tekrar seç."])
         }
         guard data.count <= maxBytes else {
-            throw NSError(domain: "JARVIS", code: 413, userInfo: [NSLocalizedDescriptionKey: "Dosya çok büyük. Maksimum 10 MB."])
+            throw NSError(domain: "JARVIS", code: 413, userInfo: [NSLocalizedDescriptionKey: "Dosya çok büyük. Maksimum 50 MB."])
         }
         let type = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         return NativeAttachment(name: url.lastPathComponent, mimeType: type, data: data)
