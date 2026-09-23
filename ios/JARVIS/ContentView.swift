@@ -55,13 +55,20 @@ struct ContentView: View {
         .fileImporter(
             isPresented: $showFiles,
             allowedContentTypes: [UTType(filenameExtension: "bin") ?? .data, .data, .item],
-            allowsMultipleSelection: true
+            allowsMultipleSelection: false
         ) { result in
             switch result {
             case .success(let urls):
-                for url in urls.prefix(4) {
-                    do { state.addAttachment(try NativeAttachment.from(url: url)) }
-                    catch { state.statusText = error.localizedDescription }
+                guard let url = urls.first else {
+                    state.statusText = "Dosya seçilmedi"
+                    return
+                }
+                do {
+                    let attachment = try NativeAttachment.from(url: url)
+                    state.addAttachment(attachment)
+                    state.statusText = "Dosya eklendi: \(attachment.name)"
+                } catch {
+                    state.statusText = "Dosya açılamadı: \(error.localizedDescription)"
                 }
             case .failure(let error): state.statusText = error.localizedDescription
             }
@@ -379,18 +386,24 @@ struct ContentView: View {
                         .frame(height: 52)
                         .background(surface, in: RoundedRectangle(cornerRadius: 14))
 
-                    Button(action: submitLogin) {
+                    Button {
+                        loginPasswordFocused = false
+                        Task { await state.login() }
+                    } label: {
                         HStack {
                             Spacer()
                             if state.isLoggingIn { ProgressView().tint(.white) }
                             Text(state.isLoggingIn ? "Giriş yapılıyor..." : "Giriş Yap").fontWeight(.semibold)
                             Spacer()
-                        }.frame(height: 52)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .background(loginCanSubmit ? accent : Color(uiColor: .systemGray3), in: RoundedRectangle(cornerRadius: 14))
+                    .background(state.isLoggingIn ? Color(uiColor: .systemGray3) : accent, in: RoundedRectangle(cornerRadius: 14))
                     .foregroundStyle(.white)
-                    .disabled(!loginCanSubmit)
+                    .disabled(state.isLoggingIn)
 
                     if state.biometricLoginAvailable {
                         Button { Task { await state.loginWithBiometrics() } } label: {
