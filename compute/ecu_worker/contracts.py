@@ -29,7 +29,7 @@ class AnalysisJobOutput(BaseModel):
     hw_candidates: list[dict[str, Any]] = Field(default_factory=list)
     sw_candidates: list[dict[str, Any]] = Field(default_factory=list)
     supported: bool = False
-    confidence: float = 0.0
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, allow_inf_nan=False)
     evidence: list[dict[str, Any]] = Field(default_factory=list)
     map_candidates: list[dict[str, Any]] = Field(default_factory=list)
     proposal: dict[str, Any] | None = None
