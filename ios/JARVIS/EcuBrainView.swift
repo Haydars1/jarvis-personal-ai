@@ -11,6 +11,7 @@ struct EcuBrainView: View {
     @State private var rulepacks: EcuRulepackStatus?
     @State private var message = ""
     @State private var loading = false
+    @State private var modURL: URL?
     private let api = EcuBrainAPI()
 
     var body: some View {
@@ -54,12 +55,40 @@ struct EcuBrainView: View {
                             let mapCount = job.result?.map_candidates?.count ?? 0
                             Text("\(family) • %\(confidence) • \(mapCount) map")
                                 .font(.caption).foregroundStyle(.secondary)
+                            if let proposal = job.result?.proposal {
+                                let changedMaps = proposal.mutation?.changed_maps ?? 0
+                                let changedCells = proposal.mutation?.changed_cells ?? 0
+                                if changedMaps > 0 {
+                                    Text("Mutation: \(changedMaps) map • \(changedCells) hücre")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Text("Checksum: \(proposal.checksum_support ?? "bekliyor")")
+                                    .font(.caption).foregroundStyle(.secondary)
+                                if let reasons = proposal.reasons, !reasons.isEmpty {
+                                    Text(reasons.joined(separator: " • "))
+                                        .font(.caption2).foregroundStyle(.orange)
+                                }
+                            }
                             if let fileId = job.fileId {
-                                Button("Stage1 Önizleme") {
+                                Button("Stage1 Çalıştır") {
                                     Task { await stage1Preview(fileId) }
                                 }
                                 .buttonStyle(.bordered)
                             }
+                            if job.state == "READY" {
+                                Button("MOD Dosyasını Hazırla") {
+                                    Task { await prepareMod(job.id) }
+                                }
+                                .buttonStyle(.borderedProminent)
+                            }
+                        }
+                    }
+                }
+
+                if let modURL {
+                    Section("Hazır MOD") {
+                        ShareLink(item: modURL) {
+                            Label("MOD Dosyasını Kaydet / Paylaş", systemImage: "square.and.arrow.up")
                         }
                     }
                 }
@@ -173,6 +202,16 @@ struct EcuBrainView: View {
             let job = try await api.stage1Preview(fileId: fileId)
             message = "Stage1 önizleme işi: \(job.state)"
             await refresh()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func prepareMod(_ jobId: String) async {
+        do {
+            modURL = try await api.downloadMod(jobId: jobId)
+            message = "Doğrulanmış MOD hazır. Kaydet/Paylaş bölümünden alabilirsin."
         } catch {
             message = error.localizedDescription
         }

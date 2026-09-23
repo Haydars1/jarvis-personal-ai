@@ -30,3 +30,12 @@ test('login button remains tappable and delegates empty-password feedback to App
   assert.match(contentView, /contentShape\(Rectangle\(\)\)/);
   assert.doesNotMatch(contentView, /\.disabled\(!loginCanSubmit\)/);
 });
+
+
+test('ECU native UI exposes Stage1 mutation status and validated MOD download', () => {
+  assert.match(ecuView, /Stage1 Çalıştır/);
+  assert.match(ecuView, /MOD Dosyasını Hazırla/);
+  assert.match(ecuView, /MOD Dosyasını Kaydet \/ Paylaş/);
+  assert.match(ecuApi, /\/api\/ecu\/jobs\/.*\/mod/);
+  assert.match(ecuApi, /downloadMod\(jobId:/);
+});

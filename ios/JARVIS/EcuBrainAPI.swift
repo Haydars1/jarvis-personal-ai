@@ -36,10 +36,23 @@ struct EcuModelSummary: Decodable, Identifiable {
     let datasetVersion: String?
 }
 
+struct EcuMutationSummary: Decodable {
+    let changed_maps: Int?
+    let changed_cells: Int?
+}
+
+struct EcuJobProposal: Decodable {
+    let release_ready: Bool?
+    let checksum_support: String?
+    let reasons: [String]?
+    let mutation: EcuMutationSummary?
+}
+
 struct EcuJobResult: Decodable {
     let ecu_family: String?
     let confidence: Double?
     let map_candidates: [EcuMapCandidate]?
+    let proposal: EcuJobProposal?
 }
 
 struct EcuMapCandidate: Decodable {}
@@ -134,6 +147,21 @@ final class EcuBrainAPI {
         let payload = try await request("/api/ecu/jobs", method: "POST", body: body, headers: ["Content-Type":"application/json"])
         struct ResponseBody: Decodable { let job: EcuJob }
         return try decoder.decode(ResponseBody.self, from: payload).job
+    }
+
+    func downloadMod(jobId: String) async throws -> URL {
+        let encoded = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
+        var req = URLRequest(url: URL(string: "/api/ecu/jobs/\(encoded)/mod", relativeTo: baseURL)!)
+        req.httpMethod = "GET"
+        let (data,response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        guard (200..<300).contains(http.statusCode) else {
+            let text = String(data: data, encoding: .utf8) ?? "HTTP \(http.statusCode)"
+            throw NSError(domain: "ECU", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey:text])
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("JARVIS-\(jobId)-MOD.bin")
+        try data.write(to: url, options: .atomic)
+        return url
     }
 
     func rollback(version: String) async throws {
