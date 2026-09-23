@@ -13,22 +13,31 @@ function safeSourceUrl(value = '') {
   } catch { return ''; }
 }
 
+function normalizeKnowledgeText(value = '') {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
 export function sourceBackedKnowledge(domain, results = [], now = Date.now()) {
-  return (Array.isArray(results) ? results : []).slice(0, 6).flatMap(row => {
-    const text = String(row?.snippet || '').trim();
+  const seen = new Set();
+  return (Array.isArray(results) ? results : []).slice(0, 8).flatMap(row => {
+    const text = normalizeKnowledgeText(row?.snippet);
     const sourceUrl = safeSourceUrl(row?.url);
-    if (!text || !sourceUrl) return [];
+    if (!text || text.length < 24 || !sourceUrl) return [];
+    const fingerprint = normalizeMemoryText(text);
+    if (seen.has(fingerprint)) return [];
+    seen.add(fingerprint);
     try { return [buildKnowledgeRecord({ domain, text, sourceUrl, sourceTitle: row.title || '', confidence: 0.72, now })]; }
     catch { return []; }
-  });
+  }).slice(0, 6);
 }
 
 export async function learnSearchResults(env, query, results = []) {
-  if (!env?.DB) return;
-  const domain = classifyLearningDomain(query);
-  for (const row of sourceBackedKnowledge(domain, results)) {
-    try { await saveKnowledge(env.DB, { domain: row.domain, text: row.text, sourceUrl: row.source_url, sourceTitle: row.source_title, confidence: row.confidence, observedAt: row.observed_at, verifiedAt: row.verified_at, expiresAt: row.expires_at }); } catch {}
-  }
+  if (!env?.DB) return { saved:0, domain:classifyLearningDomain(query) };
+  const domain = classifyLearningDomain(query), rows = sourceBackedKnowledge(domain, results), jobs = rows.map(row => saveKnowledge(env.DB, { domain: row.domain, text: row.text, sourceUrl: row.source_url, sourceTitle: row.source_title, confidence: row.confidence, observedAt: row.observed_at, verifiedAt: row.verified_at, expiresAt: row.expires_at }));
+  const settled = await Promise.allSettled(jobs);
+  const saved = settled.filter(row => row.status === 'fulfilled').length;
+  await recordLearningEvent(env.DB, { kind:'research_synthesis', domain, outcome:saved ? 'success' : rows.length ? 'failure' : 'empty', meta:{ query:String(query || '').slice(0,240), candidates:rows.length, saved } }).catch(() => {});
+  return { saved, domain, candidates:rows.length };
 }
 
 export async function learnProviderOutcome(env, { text = '', provider = 'JARVIS', latencyMs = 0, ok = true, error = '' } = {}) {
