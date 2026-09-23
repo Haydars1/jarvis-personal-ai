@@ -104,16 +104,36 @@ export async function prepareChatAttachments(req,env) {
     lines.push(`Dosya ${i+1}: ${file.name} | tür=${file.type} | boyut=${file.bytes.length} bayt | sha256=${file.sha256}`);
     if(file.preview) lines.push(`İçerik önizlemesi:\n${file.preview}\n[/İçerik önizlemesi]`);
   }
+  const compareIntent=/değiş|fark|compare|karşılaştır/i.test(String(body.text||''));
+  let directReply='';
   if(files.length===2){
     const d=binaryDiff(files[0],files[1]);
     lines.push(`İki dosya byte karşılaştırması: aynı_boyut=${d.sameSize}; değişen_byte=${d.changedBytes}; değişim_oranı=%${d.changedPercent}; değişim_aralığı_sayısı=${d.rangeCount}`);
     if(d.ranges.length) lines.push('İlk değişim aralıkları: '+d.ranges.map(([a,b])=>`0x${a.toString(16)}-0x${b.toString(16)}`).join(', '));
-  } else if(files.length===1 && /değiş|fark|compare|karşılaştır/i.test(String(body.text||''))) {
+    if(compareIntent){
+      directReply=[
+        `İki dosyayı gerçekten aldım ve byte-byte karşılaştırdım.`,
+        `• ${files[0].name}: ${files[0].bytes.length} bayt`,
+        `• ${files[1].name}: ${files[1].bytes.length} bayt`,
+        `• Değişen byte: ${d.changedBytes}`,
+        `• Değişim oranı: %${d.changedPercent}`,
+        `• Değişim bölgesi: ${d.rangeCount}`,
+        d.ranges.length?`• İlk değişim aralıkları: ${d.ranges.slice(0,12).map(([a,b])=>`0x${a.toString(16)}–0x${b.toString(16)}`).join(', ')}`:'',
+        `Bu ham byte farkıdır; hangi ECU haritalarının değiştiğini söylemek için ECU Brain/map analizi ayrıca gerekir.`
+      ].filter(Boolean).join('\n');
+    }
+  } else if(files.length===1 && compareIntent) {
     lines.push('Not: Yalnızca tek dosya eklendi. Dosyanın kendisi alındı ve hash/boyut bilgisi doğrulandı; hangi byteların değiştiğini söylemek için referans/ORI/eski sürüm de gerekir.');
+    directReply=[
+      `Dosyayı gerçekten aldım: ${files[0].name}`,
+      `• Boyut: ${files[0].bytes.length} bayt`,
+      `• SHA-256: ${files[0].sha256}`,
+      `Bu tek dosyadan “hangi byte değişmiş” kesin olarak çıkarılamaz; karşılaştırmak için aracın ORI/eski dosyasını da yükle. ORI + bu dosyayı birlikte gönderdiğinde byte farklarını doğrudan çıkaracağım.`
+    ].join('\n');
   }
   lines.push('[/JARVIS_ATTACHMENT_CONTEXT]');
   const attachmentContext=lines.join('\n');
   const text=String(body.text||'').trim();
-  const next={...body,text:`${text}\n\n${attachmentContext}`.trim(),attachmentMeta:files.map(f=>({name:f.name,type:f.type,size:f.bytes.length,sha256:f.sha256,storageKey:f.storageKey||null}))};
-  return {request:jsonCloneRequest(req,next),summary:{count:files.length,files:next.attachmentMeta}};
+  const next={...body,text,attachmentContext,attachmentDirectReply:directReply||null,attachmentMeta:files.map(f=>({name:f.name,type:f.type,size:f.bytes.length,sha256:f.sha256,storageKey:f.storageKey||null}))};
+  return {request:jsonCloneRequest(req,next),summary:{count:files.length,files:next.attachmentMeta,directReply:Boolean(directReply)}};
 }
