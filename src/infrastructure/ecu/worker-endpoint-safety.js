@@ -18,6 +18,16 @@ function mappedIpv4Octets(ipv6) {
   return [high >> 8, high & 0xff, low >> 8, low & 0xff];
 }
 
+function isUnsafeIpv6Literal(ipv6) {
+  if (!ipv6.includes(':')) return false;
+  return ipv6 === '::' || ipv6 === '::1'
+    || /^(fc|fd)[0-9a-f]{2}:/i.test(ipv6)
+    || /^fe[89ab][0-9a-f]:/i.test(ipv6)
+    || /^ff[0-9a-f]{2}:/i.test(ipv6)
+    || /^2001:db8:/i.test(ipv6)
+    || /^fe[c-f][0-9a-f]:/i.test(ipv6);
+}
+
 export function isSafeRegisteredWorkerEndpoint(value) {
   try {
     const url = new URL(String(value || ''));
@@ -28,7 +38,7 @@ export function isSafeRegisteredWorkerEndpoint(value) {
     const literalIpv4 = literalIpv4Octets(host);
     if (literalIpv4 && isPrivateOrLocalIpv4(literalIpv4)) return false;
     const ipv6 = host.replace(/^\[|\]$/g, '');
-    if (/^(fc|fd)[0-9a-f]{2}:/i.test(ipv6) || /^fe[89ab][0-9a-f]:/i.test(ipv6)) return false;
+    if (isUnsafeIpv6Literal(ipv6)) return false;
     const mappedIpv4 = mappedIpv4Octets(ipv6);
     if (mappedIpv4 && isPrivateOrLocalIpv4(mappedIpv4)) return false;
     return true;
