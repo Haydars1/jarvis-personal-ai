@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { eligiblePersonalFact, sourceBackedKnowledge } from '../src/application/learning/service.js';
+import { eligiblePersonalFact, sourceBackedKnowledge, savePersonalFact } from '../src/application/learning/service.js';
 
 test('personal learning rejects sensitive facts and accepts durable preference', () => {
   assert.equal(eligiblePersonalFact('API keyim abc123'), false);
@@ -17,4 +17,28 @@ test('knowledge promotion only accepts rows with trustworthy http provenance', (
   ], 1000);
   assert.equal(rows.length, 1);
   assert.equal(rows[0].source_url, 'https://example.com/docs');
+});
+
+test('new personal facts persist memory and metadata in one D1 batch', async () => {
+  const statements = [];
+  const db = {
+    prepare(sql) {
+      return {
+        bind(...args) {
+          const statement = { sql, args, first: async () => null, run: async () => ({ success:true }) };
+          statements.push(statement);
+          return statement;
+        }
+      };
+    },
+    async batch(batchStatements) {
+      assert.equal(batchStatements.length, 2);
+      assert.match(batchStatements[0].sql, /INSERT INTO memories/);
+      assert.match(batchStatements[1].sql, /INSERT INTO personal_memory_meta/);
+      return batchStatements.map(() => ({ success:true }));
+    }
+  };
+  const id = await savePersonalFact({ DB:db }, 'Türkçe cevapları tercih ediyorum', () => 'memory-1');
+  assert.equal(id, 'memory-1');
+  assert.equal(statements.length, 3);
 });
