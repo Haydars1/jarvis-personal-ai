@@ -18,8 +18,11 @@ test('post-response learning remains asynchronous and non-blocking', () => {
   assert.match(source, /Promise\.allSettled\(jobs\)/);
 });
 
-test('research-backed knowledge is scheduled on successful orchestrated responses', () => {
-  assert.match(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:'JARVIS',started\}\)/);
+test('research-backed knowledge is scheduled with the provider that actually answered', () => {
+  assert.match(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:expert\.provider,started\}\)/);
+  assert.match(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:ai\.provider,started\}\)/);
+  assert.match(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:p\.provider,started\}\)/);
+  assert.doesNotMatch(source, /scheduleLearning\(ctx,env,\{text,webRows,provider:'JARVIS',started\}\)/);
 });
 
 test('terminal response failures are recorded without blocking the reply', () => {
