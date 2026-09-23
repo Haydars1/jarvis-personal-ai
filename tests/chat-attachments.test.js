@@ -33,7 +33,7 @@ test('single-file compare request explicitly reports that an ORI or previous ver
 test('binary compare requests produce deterministic clean replies instead of depending on an AI provider', () => {
   assert.match(source, /attachmentDirectReply/);
   assert.match(source, /İki dosyayı gerçekten aldım ve byte-byte karşılaştırdım/);
-  assert.match(source, /Bu tek dosyadan “hangi byte değişmiş” kesin olarak çıkarılamaz/);
+  assert.match(source, /Bu tek dosyada hangi değişikliklerin yapıldığını kesin söylemek için karşılaştırma referansı gerekiyor/);
 });
 
 
