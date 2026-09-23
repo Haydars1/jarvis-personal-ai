@@ -101,18 +101,18 @@ struct EcuBrainView: View {
             }
             .task { await refresh() }
             .refreshable { await refresh() }
-            .fileImporter(
-                isPresented: $showImporter,
-                allowedContentTypes: [UTType(filenameExtension: "bin") ?? .data, .data, .item],
-                allowsMultipleSelection: false
-            ) { result in
-                switch result {
-                case .success(let urls):
-                    guard let url = urls.first else { return }
+            .sheet(isPresented: $showImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showImporter = false
+                    guard let url = urls.first else {
+                        message = "Dosya seçilmedi"
+                        return
+                    }
                     Task { await analyze(url) }
-                case .failure(let error):
-                    message = error.localizedDescription
+                } onCancel: {
+                    showImporter = false
                 }
+                .ignoresSafeArea()
             }
         }
     }
