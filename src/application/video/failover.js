@@ -194,6 +194,17 @@ async function pollProvider(env, credential, meta) {
   if (String(credential.provider).toLowerCase() === 'replicate') return replicatePoll(env, credential, meta);
   throw new Error('VIDEO_PROVIDER_UNSUPPORTED');
 }
+async function pollWithMetrics(env, credential, meta) {
+  const started = now();
+  try {
+    const result = await pollProvider(env, credential, meta);
+    await metric(env, `video:${credential.provider}:poll`, now() - started, !result.failed, result.failed ? 'generation_failed' : '');
+    return result;
+  } catch (error) {
+    await metric(env, `video:${credential.provider}:poll`, now() - started, false, error.message);
+    throw error;
+  }
+}
 async function updateMeta(env, item, patch) {
   let meta = {}; try { meta = JSON.parse(item.meta || '{}'); } catch {}
   meta = { ...meta, ...patch };
@@ -222,7 +233,7 @@ async function pollExternal(env, item) {
   const credential = await queryOne(env, 'SELECT * FROM credentials WHERE id=?', meta.video_credential_id);
   if (!credential) { await execute(env, "UPDATE social_content_queue SET status='planned',scheduled_at=?,updated_at=? WHERE id=?", now(), now(), item.id); return; }
   try {
-    const result = await pollProvider(env, credential, meta);
+    const result = await pollWithMetrics(env, credential, meta);
     if (result.url) { await execute(env, "UPDATE social_content_queue SET media_url=?,status='ready',updated_at=? WHERE id=?", result.url, now(), item.id); return; }
     if (result.failed) { await setCooldown(env, credential, 'generation_failed', null); await execute(env, "UPDATE social_content_queue SET status='planned',scheduled_at=?,updated_at=? WHERE id=?", now(), now(), item.id); }
   } catch (error) {
