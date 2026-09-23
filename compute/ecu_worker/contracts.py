@@ -11,18 +11,18 @@ SHA256_PATTERN = r'^[0-9a-fA-F]{64}$'
 
 
 class AnalysisJobInput(BaseModel):
-    job_id: str
+    job_id: str = Field(min_length=1)
     artifact_sha256: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
-    artifact_uri: str
+    artifact_uri: str = Field(min_length=1)
     operation: Literal['analyze', 'stage1_proposal'] = 'analyze'
-    model_version: str = 'baseline'
-    rulepack_version: str = 'baseline'
+    model_version: str = Field(default='baseline', min_length=1)
+    rulepack_version: str = Field(default='baseline', min_length=1)
     paid_api_allowed: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
 
 
 class AnalysisJobOutput(BaseModel):
-    job_id: str
+    job_id: str = Field(min_length=1)
     run_fingerprint: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
     status: Literal['NEEDS_REVIEW', 'READY', 'FAILED'] = 'NEEDS_REVIEW'
     ecu_family: str = 'UNKNOWN'
@@ -60,22 +60,22 @@ def build_run_fingerprint(
 
 
 class TrainingJobInput(BaseModel):
-    job_id: str
+    job_id: str = Field(min_length=1)
     operation: Literal['train'] = 'train'
-    dataset_version: str
+    dataset_version: str = Field(min_length=1)
     dataset_digest: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
-    production_model_version: str = 'baseline'
+    production_model_version: str = Field(default='baseline', min_length=1)
     paid_api_allowed: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
 
 
 class PairJobInput(BaseModel):
-    job_id: str
+    job_id: str = Field(min_length=1)
     operation: Literal['diff_pair'] = 'diff_pair'
     ori_artifact_sha256: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
     mod_artifact_sha256: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
-    ori_artifact_uri: str
-    mod_artifact_uri: str
-    operation_label: str
+    ori_artifact_uri: str = Field(min_length=1)
+    mod_artifact_uri: str = Field(min_length=1)
+    operation_label: str = Field(min_length=1)
     paid_api_allowed: bool = False
     config: dict[str, Any] = Field(default_factory=dict)
