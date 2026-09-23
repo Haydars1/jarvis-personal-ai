@@ -42,6 +42,7 @@ final class AppState: ObservableObject {
                 try await loadHistory()
                 await NotificationManager.shared.syncPendingToken()
                 await consumePendingIntentIfNeeded()
+                consumePendingSharedContentIfNeeded()
             } else if biometricLoginAvailable {
                 await loginWithBiometrics()
             }
@@ -94,6 +95,7 @@ final class AppState: ObservableObject {
         try await loadHistory()
         await NotificationManager.shared.syncPendingToken()
         await consumePendingIntentIfNeeded()
+        consumePendingSharedContentIfNeeded()
         statusText = "Hazır"
     }
 
@@ -171,13 +173,40 @@ final class AppState: ObservableObject {
         return raw
     }
 
+
+    private func consumePendingSharedContentIfNeeded() {
+        let suite = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
+        if let sharedText = suite?.string(forKey: "pendingShareText"), !sharedText.isEmpty {
+            if input.isEmpty { input = "Bunu incele ve gerekli olanı yap: \(sharedText)" }
+            suite?.removeObject(forKey: "pendingShareText")
+        }
+
+        guard let names = suite?.stringArray(forKey: "pendingShareFiles"), !names.isEmpty,
+              let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.haydojarvis.jarvis") else { return }
+        let inbox = container.appendingPathComponent("SharedInbox", isDirectory: true)
+        var added = 0
+        for name in names.prefix(4) {
+            let url = inbox.appendingPathComponent(name)
+            do {
+                let attachment = try NativeAttachment.from(url: url)
+                addAttachment(attachment)
+                added += 1
+                try? FileManager.default.removeItem(at: url)
+            } catch {
+                statusText = "Paylaşılan dosya açılamadı: \(error.localizedDescription)"
+            }
+        }
+        suite?.removeObject(forKey: "pendingShareFiles")
+        if added > 0 { statusText = added == 1 ? "Paylaşılan dosya eklendi" : "\(added) paylaşılan dosya eklendi" }
+    }
+
     func toggleVoice() { if isListening { voice.stopListening() } else { voice.startListening() } }
     private func consumePendingIntentIfNeeded() async { let defaults=UserDefaults(suiteName:"group.com.haydojarvis.jarvis"); guard let text=defaults?.string(forKey:"pendingIntentText"),!text.isEmpty else{return}; defaults?.removeObject(forKey:"pendingIntentText"); input=text; await send() }
     func handle(url: URL) {
         guard url.scheme == "jarvis" else { return }
         if url.host == "voice" { voice.startListening(); return }
         if url.host == "settings" { statusText = "Ayarları sol üst dişliden aç"; return }
-        if url.host == "share" { if let shared=UserDefaults(suiteName:"group.com.haydojarvis.jarvis")?.string(forKey:"pendingShareText"),!shared.isEmpty { input="Bunu incele ve bana gerekli olanı yap: \(shared)"; UserDefaults(suiteName:"group.com.haydojarvis.jarvis")?.removeObject(forKey:"pendingShareText") }; return }
+        if url.host == "share" { consumePendingSharedContentIfNeeded(); return }
         if url.host == "ask", let c=URLComponents(url:url,resolvingAgainstBaseURL:false), let q=c.queryItems?.first(where:{$0.name=="q"})?.value { input=q; Task { await send() } }
     }
 }
