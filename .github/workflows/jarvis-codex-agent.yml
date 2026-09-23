@@ -35,7 +35,17 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Baseline validation
+        id: baseline
+        continue-on-error: true
         run: npm run check
+
+      - name: Record baseline state
+        shell: bash
+        run: |
+          echo "Baseline validation outcome: ${{ steps.baseline.outcome }}"
+          if [ "${{ steps.baseline.outcome }}" != "success" ]; then
+            echo "Baseline is already failing; Codex must diagnose and repair it instead of the workflow stopping before the agent runs."
+          fi
 
       - name: Run Codex development agent
         uses: openai/codex-action@v1
