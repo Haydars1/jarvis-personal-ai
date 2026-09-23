@@ -5,11 +5,20 @@ function id(prefix, seed) {
   return `${prefix}-${value}`;
 }
 
+function safeProvenanceUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export function buildKnowledgeRecord(input = {}) {
   const text = String(input.text || '').trim();
   const sourceUrl = String(input.sourceUrl || '').trim();
   if (!text) throw new Error('knowledge text required');
-  if (!sourceUrl) throw new Error('knowledge provenance required');
+  if (!sourceUrl || !safeProvenanceUrl(sourceUrl)) throw new Error('knowledge provenance requires a safe http(s) URL');
   const domain = String(input.domain || 'general');
   const now = Number(input.now ?? Date.now());
   const confidence = Math.max(0, Math.min(1, Number(input.confidence ?? 0.7)));
