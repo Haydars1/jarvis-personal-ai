@@ -16,6 +16,7 @@ function isSafeRegisteredWorkerEndpoint(value) {
   try {
     const url = new URL(String(value || ''));
     if (url.protocol !== 'https:' || !url.pathname.endsWith('/jobs')) return false;
+    if (url.username || url.password || url.search || url.hash) return false;
     const host = url.hostname.toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]' || host.endsWith('.local')) return false;
     if (/^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return false;
