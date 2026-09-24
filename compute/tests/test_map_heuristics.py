@@ -69,3 +69,20 @@ def test_surface_only_candidate_is_never_semantically_promoted():
     result=classify_map_heuristic(data,item,"EDC17C46")
     assert result.label=="UNKNOWN"
     assert result.confidence==0.0
+
+
+def test_axis_vector_rpm_curve_can_suggest_torque_limiter():
+    x=[0,500,1000,1500,2000,2500,3000,3500]
+    curve=[300,320,340,360,380,400,420,440]
+    xoff=0
+    off=len(x)*2
+    data=_u16be(x)+_u16be(curve)
+    item=MapCandidate(
+        offset=off,rows=1,cols=len(x),endian="big",
+        min_value=min(curve),max_value=max(curve),
+        unique_ratio=1.0,smoothness=.9,score=.9,
+        x_axis_offset=xoff,y_axis_offset=None,axis_score=.9,source="axis-vector",
+    )
+    result=classify_map_heuristic(data,item,"EDC17C46")
+    assert result.label=="torque_limiter"
+    assert result.confidence>=.90
