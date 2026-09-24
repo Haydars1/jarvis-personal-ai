@@ -180,11 +180,22 @@ def scan_map_axes(
 
 def _axis_can_extend(data: bytes, axis: MapAxis, *, min_step: int = 1, max_step: int = 10_000) -> bool:
     end=axis.offset+axis.length*2
-    if end+2>len(data) or not axis.values:
+    if end+2>len(data) or len(axis.values)<2:
         return False
     next_value=int.from_bytes(data[end:end+2],axis.endian)
-    step=next_value-axis.values[-1]
-    return min_step<=step<=max_step
+    next_step=next_value-axis.values[-1]
+    if next_step<min_step or next_step>max_step:
+        return False
+    steps=[b-a for a,b in zip(axis.values,axis.values[1:]) if b>a]
+    if not steps:
+        return False
+    ordered=sorted(steps)
+    med=float(ordered[len(ordered)//2])
+    # A genuine axis continuation should resemble the existing step pattern.
+    # This rejects a short prefix (20,20,20 -> next 20) but accepts the full
+    # axis when the next table cell jumps sharply (20 -> 900).
+    tolerance=max(float(min_step),med*3.0)
+    return abs(float(next_step)-med)<=tolerance
 
 
 def extract_structural_map_candidates(
