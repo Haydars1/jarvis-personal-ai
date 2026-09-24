@@ -14,7 +14,7 @@ class AnalysisJobInput(BaseModel):
     job_id: str = Field(min_length=1)
     artifact_sha256: str = Field(min_length=64, max_length=64, pattern=SHA256_PATTERN)
     artifact_uri: str = Field(min_length=1)
-    operation: Literal['analyze', 'stage1_proposal', 'dtc_off_proposal', 'egr_off_proposal', 'dpf_off_proposal', 'adblue_off_proposal', 'vmax_off_proposal', 'startstop_off_proposal'] = 'analyze'
+    operation: Literal['analyze', 'stage1_proposal', 'dtc_off_proposal', 'egr_off_proposal', 'dpf_off_proposal', 'adblue_off_proposal', 'vmax_off_proposal', 'startstop_off_proposal', 'multi_service_proposal'] = 'analyze'
     model_version: str = Field(default='baseline', min_length=1)
     rulepack_version: str = Field(default='baseline', min_length=1)
     paid_api_allowed: bool = False
