@@ -58,7 +58,7 @@ def test_exact_patch_mutation_rejects_overlap():
 
 
 def test_exact_patch_relocates_with_unique_context_anchor():
-    ori=b"AAAA"+bytes.fromhex("10200102aabbcc")+"BBBB"
+    ori=b"AAAA"+bytes.fromhex("10200102aabbcc")+b"BBBB"
     patches=[{
         "offset":5,
         "beforeHex":"0102",
