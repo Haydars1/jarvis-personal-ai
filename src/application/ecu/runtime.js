@@ -408,7 +408,7 @@ async function defaultStoreValidatedMod(env, jobId, { bytes, checksumAlgorithm }
 
   let result={};
   try{result=job.result_json?JSON.parse(job.result_json):{}}catch{}
-  const validation=result.validation||result.release_validation||null;
+  const validation=result.validation||result.release_validation||result.proposal?.validation||null;
   if(!validation?.ready)throw new Error('ECU_MOD_VALIDATION_NOT_READY');
   const checksumStatus=String(validation?.checksum?.status||validation?.checksum_status||'');
   const recordedAlgorithm=String(validation?.checksum?.algorithm||validation?.checksum_algorithm||'');
