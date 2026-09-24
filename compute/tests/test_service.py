@@ -1,7 +1,7 @@
 import asyncio
 
 from ecu_worker.contracts import AnalysisJobInput
-from ecu_worker.service import process_dispatched_job
+from ecu_worker.service import process_dispatched_job, validate_composite_integrity
 
 
 class FakeResponse:
@@ -199,3 +199,48 @@ def test_service_job_fetches_matching_rulepack_after_fingerprint():
     assert result.ecu_family=="EDC17C46"
     assert result.proposal is not None
     assert result.proposal["operation_label"]=="egr_off"
+
+
+def test_composite_global_validation_accepts_only_union_of_touched_offsets():
+    from ecu_worker.validation import ChecksumResult
+
+    ori=bytes([0,1,2,3,4,5])
+    mod=bytes([0,9,2,8,4,5])
+    validation=validate_composite_integrity(
+        ori,
+        mod,
+        touched_offsets={1,3},
+        checksum=ChecksumResult(status="VERIFIED",algorithm="fixture",verified=True),
+    )
+    assert validation.ready is True
+    assert validation.changed_offsets==[1,3]
+
+
+def test_composite_global_validation_rejects_untracked_final_edit():
+    from ecu_worker.validation import ChecksumResult
+
+    ori=bytes([0,1,2,3,4,5])
+    mod=bytes([0,9,7,3,4,5])
+    validation=validate_composite_integrity(
+        ori,
+        mod,
+        touched_offsets={1},
+        checksum=ChecksumResult(status="VERIFIED",algorithm="fixture",verified=True),
+    )
+    assert validation.ready is False
+    assert "UNKNOWN_EDIT" in validation.errors
+
+
+def test_composite_global_validation_requires_final_checksum():
+    from ecu_worker.validation import ChecksumResult
+
+    ori=bytes([0,1,2,3])
+    mod=bytes([0,9,2,3])
+    validation=validate_composite_integrity(
+        ori,
+        mod,
+        touched_offsets={1},
+        checksum=ChecksumResult(status="FAILED",algorithm="fixture",verified=False),
+    )
+    assert validation.ready is False
+    assert "CHECKSUM_NOT_VERIFIED" in validation.errors
