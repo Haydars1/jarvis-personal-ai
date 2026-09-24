@@ -112,3 +112,54 @@ test('exact patch rulepack requires repeated verified pairs',async()=>{
   const result=await service.refresh({});
   assert.equal(result.created,false);
 });
+
+
+test('auto-promotes exact scoped patch rulepack after verified consensus',async()=>{
+  const rows=Array.from({length:3},(_,i)=>({
+    pairId:'p'+i,operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW-ABC',sw:'SW-123',
+    semanticLabel:'__PATCH__',mapOffset:64,humanVerified:true,
+    deltaStats:{patchBeforeHex:'0102',patchAfterHex:'aabb',length:2}
+  }));
+  const saved=[];
+  const promoted=[];
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){saved.push(candidate);return candidate;},
+    async promoteCandidate(_env,candidate,reason){
+      promoted.push({candidate,reason});
+      return {...candidate,state:'PRODUCTION',verified:true,promotionReason:reason};
+    },
+    async latest(){return saved.at(-1)||null;},
+    async production(){return promoted.at(-1)?.candidate||null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*'});
+  const result=await service.refresh({});
+  assert.equal(result.created,true);
+  assert.equal(result.candidates[0].state,'PRODUCTION');
+  assert.equal(result.candidates[0].verified,true);
+  assert.equal(result.candidates[0].promotionReason,'VERIFIED_EXACT_PATCH_CONSENSUS');
+  assert.equal(promoted.length,1);
+});
+
+
+test('does not auto-promote patch evidence without exact ECU HW SW scope',async()=>{
+  const rows=Array.from({length:3},(_,i)=>({
+    pairId:'p'+i,operationLabel:'dpf_off',ecuFamily:'EDC17C46',hw:'',sw:'',
+    semanticLabel:'__PATCH__',mapOffset:32,humanVerified:true,
+    deltaStats:{patchBeforeHex:'01',patchAfterHex:'00',length:1}
+  }));
+  let promoted=0;
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){return candidate;},
+    async promoteCandidate(){promoted++;},
+    async latest(){return null;},
+    async production(){return null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*'});
+  const result=await service.refresh({});
+  assert.equal(result.created,true);
+  assert.equal(result.candidates[0].verified,false);
+  assert.equal(result.candidates[0].promotionReason,'SCOPE_NOT_EXACT');
+  assert.equal(promoted,0);
+});
