@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS ecu_github_repositories (
   stars INTEGER NOT NULL DEFAULT 0,
   capabilities_json TEXT NOT NULL DEFAULT '[]',
   default_branch TEXT NOT NULL DEFAULT '',
+  commit_sha TEXT NOT NULL DEFAULT '',
   first_seen_at INTEGER NOT NULL,
   last_seen_at INTEGER NOT NULL
 );
