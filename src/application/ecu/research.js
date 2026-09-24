@@ -1,3 +1,4 @@
+import { discoverGitHubEcuSources } from './github-intelligence.js';
 import { decryptCredential, fetchWithTimeout, queryOne } from '../../lib/runtime.js';
 
 const RESEARCH_INTERVAL_MS = 3 * 60 * 60 * 1000;
@@ -244,6 +245,7 @@ export function createEcuResearch({
   topics = DEFAULT_ECU_RESEARCH_TOPICS,
   search = defaultSearch,
   fetchSource = defaultFetchSource,
+  githubDiscover = discoverGitHubEcuSources,
   maxEnrichedSourcesPerTopic = 2,
 } = {}) {
   const corroborate = async env => {
@@ -331,6 +333,34 @@ export function createEcuResearch({
               errors+=1;
             }
           }
+        }
+      }
+
+      if(typeof githubDiscover==='function'){
+        try{
+          const githubRows=await githubDiscover(env);
+          for(const raw of Array.isArray(githubRows)?githubRows:[]){
+            const source=normalizeResult(raw,'github-ecu-source-code');
+            if(!source||seenUrls.has(source.url))continue;
+            if(raw?.sourceKind)source.sourceKind=String(raw.sourceKind);
+            if(Number.isFinite(Number(raw?.trustScore)))source.trustScore=Number(raw.trustScore);
+            seenUrls.add(source.url);
+            await repository.storeSource(env,source);
+            sourcesFound+=1;
+            if(source.snippet){
+              for(const text of sourceClaimChunks(source.snippet,4)){
+                await repository.storeClaim(env,{
+                  sourceUrl:source.url,
+                  topic:'github-ecu-source-code',
+                  text,
+                  verificationState:'UNVERIFIED',
+                });
+                claimsFound+=1;
+              }
+            }
+          }
+        }catch{
+          errors+=1;
         }
       }
 
