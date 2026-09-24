@@ -66,16 +66,16 @@ def _fuel_type(ecu_family: str) -> str | None:
 
 
 def classify_map_heuristic(data: bytes, candidate: MapCandidate, ecu_family: str) -> HeuristicSemantic:
-    if candidate.source!="axis-table" or candidate.x_axis_offset is None or candidate.y_axis_offset is None:
+    if candidate.source not in {"axis-table","axis-vector"} or candidate.x_axis_offset is None:
         return HeuristicSemantic("UNKNOWN",0.0)
 
     x=_read_u16(data,candidate.x_axis_offset,candidate.cols,candidate.endian)
-    y=_read_u16(data,candidate.y_axis_offset,candidate.rows,candidate.endian)
-    if not x or not y:
+    y=_read_u16(data,candidate.y_axis_offset,candidate.rows,candidate.endian) if candidate.y_axis_offset is not None else []
+    if not x:
         return HeuristicSemantic("UNKNOWN",0.0)
 
     x_profile,x_score=_profile(x)
-    y_profile,y_score=_profile(y)
+    y_profile,y_score=_profile(y) if y else ("other",0.0)
     count=candidate.rows*candidate.cols
     cells=_read_u16(data,candidate.offset,count,candidate.endian)
     if not cells:
@@ -88,6 +88,16 @@ def classify_map_heuristic(data: bytes, candidate: MapCandidate, ecu_family: str
     axis_pair={x_profile,y_profile}
     quality=min(1.0,0.55*candidate.axis_score+0.45*candidate.smoothness)
     fuel=_fuel_type(ecu_family)
+
+    if candidate.source=="axis-vector":
+        if x_profile=="rpm" and 120<=cell_max<=1800 and quality>=0.58:
+            confidence=min(0.92,0.88+0.03*quality+0.01*x_score)
+            return HeuristicSemantic(
+                "torque_limiter",
+                round(confidence,3),
+                ("axis-vector rpm curve",f"cell-range:{cell_min}-{cell_max}"),
+            )
+        return HeuristicSemantic("UNKNOWN",0.0)
 
     # Driver-wish maps are commonly RPM x pedal/load and produce a bounded
     # requested torque/quantity surface. Keep this deliberately conservative.
