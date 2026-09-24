@@ -28,6 +28,33 @@ struct EcuRulepackStatus: Decodable {
     let production: EcuRulepackSummary?
 }
 
+struct EcuResearchCounts: Decodable {
+    let sources: Int?
+    let claims: Int?
+    let corroborated_claims: Int?
+    let verified_claims: Int?
+    let github_sources: Int?
+    let github_high_trust_sources: Int?
+}
+
+struct EcuResearchStatus: Decodable {
+    let status: String?
+    let mode: String?
+    let cadenceHours: Double?
+    let paidApiRequired: Bool?
+    let counts: EcuResearchCounts?
+}
+
+struct EcuResearchRun: Decodable {
+    let skipped: Bool?
+    let sourcesFound: Int?
+    let claimsFound: Int?
+    let errors: Int?
+    let corroborated: Int?
+    let verified: Int?
+    let reason: String?
+}
+
 struct EcuModelSummary: Decodable, Identifiable {
     var id: String { version }
     let version: String
@@ -138,6 +165,16 @@ final class EcuBrainAPI {
     func rulepackStatus() async throws -> EcuRulepackStatus {
         let data = try await request("/api/ecu/rulepacks/status")
         return try decoder.decode(EcuRulepackStatus.self, from: data)
+    }
+
+    func researchStatus() async throws -> EcuResearchStatus {
+        let data = try await request("/api/ecu/research/status")
+        return try decoder.decode(EcuResearchStatus.self, from: data)
+    }
+
+    func runResearch() async throws -> EcuResearchRun {
+        let data = try await request("/api/ecu/research/run", method: "POST")
+        return try decoder.decode(EcuResearchRun.self, from: data)
     }
 
     func models() async throws -> [EcuModelSummary] {
