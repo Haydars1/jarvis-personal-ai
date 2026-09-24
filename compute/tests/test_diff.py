@@ -102,3 +102,24 @@ def test_delta_measurement_ignores_unverified_or_unknown_maps():
         "offset":0,"rows":1,"cols":2,"data_type":"u16","endian":"big",
         "semantic_label":"boost_target","human_verified":False,
     }])==[]
+
+
+def test_patch_chunks_capture_exact_before_after_bytes():
+    from ecu_worker.diff import extract_patch_chunks
+    ori=bytes([0,1,2,3,4,5,6,7])
+    mod=bytes([0,9,8,3,4,5,1,7])
+    report=diff_bytes(ori,mod)
+    chunks=extract_patch_chunks(ori,mod,report,max_chunk_bytes=8,max_total_bytes=32)
+    assert chunks == [
+        {"offset":1,"length":2,"before_hex":"0102","after_hex":"0908"},
+        {"offset":6,"length":1,"before_hex":"06","after_hex":"01"},
+    ]
+
+
+def test_patch_chunks_are_bounded():
+    from ecu_worker.diff import extract_patch_chunks
+    ori=bytes([0])*200
+    mod=bytes([1])*200
+    chunks=extract_patch_chunks(ori,mod,max_chunk_bytes=32,max_total_bytes=80)
+    assert sum(item["length"] for item in chunks)==80
+    assert all(item["length"]<=32 for item in chunks)
