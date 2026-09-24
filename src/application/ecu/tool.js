@@ -186,6 +186,18 @@ export function createEcuChatTool(core){
       }
       if(!text||!isEcuText(text))return core.fetch(req,env,ctx);
 
+      if(wantsServiceAvailability(text)){
+        const jobs=await readJson(core,'/api/ecu/jobs?limit=1',req,env,ctx);
+        const job=jobs?.jobs?.[0];
+        if(!job?.fileId)return json(chatPayload(text,'Önce bir ECU/BIN dosyası yükleyip analiz etmem gerekiyor.'));
+        const availability=await readJson(core,`/api/ecu/services?fileId=${encodeURIComponent(job.fileId)}`,req,env,ctx);
+        const services=Array.isArray(availability?.services)?availability.services:[];
+        if(!services.length)return json(chatPayload(text,'Bu dosya için işlem uygunluğu henüz çıkarılamadı.'));
+        const lines=services.map(item=>`${item.title}: ${serviceStateLabel(item.state)}`);
+        const family=availability?.identity?.ecuFamily||job.result?.ecu_family||'UNKNOWN';
+        return json(chatPayload(text,`ECU: ${family}. Bu dosya için durum: ${lines.join(' • ')}.`));
+      }
+
       if(wantsLatestAnalysis(text)){
         const jobs=await readJson(core,'/api/ecu/jobs?limit=1',req,env,ctx);
         const job=jobs?.jobs?.[0];
