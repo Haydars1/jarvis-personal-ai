@@ -43,6 +43,30 @@ async function fileIdentity(env,fileId){
   };
 }
 
+async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw='',sw=''}) {
+  const row=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
+    FROM ecu_rulepack_versions
+    WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
+      AND (ecu_family='' OR ecu_family=?)
+      AND (hw='' OR hw=?)
+      AND (sw='' OR sw=?)
+    ORDER BY
+      CASE WHEN sw<>'' THEN 3 WHEN hw<>'' THEN 2 WHEN ecu_family<>'' THEN 1 ELSE 0 END DESC,
+      promoted_at DESC,created_at DESC
+    LIMIT 1`)
+    .bind(String(operationLabel||''),String(ecuFamily||''),String(hw||''),String(sw||'')).first();
+  if(!row?.version)return null;
+  let rules={};
+  try{rules=JSON.parse(row.rules_json||'{}')}catch{}
+  return {
+    version:row.version,
+    rules,
+    ecuFamily:row.ecu_family||'',
+    hw:row.hw||'',
+    sw:row.sw||'',
+  };
+}
+
 async function sha256Text(value) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
   return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -152,17 +176,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   const operationLabel=ECU_OPERATION_LABELS[operation]||null;
   const identity=await fileIdentity(env,fileId);
   if (operationLabel) {
-    const rulepack=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
-      FROM ecu_rulepack_versions
-      WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
-        AND (ecu_family='' OR ecu_family=?)
-        AND (hw='' OR hw=?)
-        AND (sw='' OR sw=?)
-      ORDER BY
-        CASE WHEN sw<>'' THEN 3 WHEN hw<>'' THEN 2 WHEN ecu_family<>'' THEN 1 ELSE 0 END DESC,
-        promoted_at DESC,created_at DESC
-      LIMIT 1`)
-      .bind(operationLabel,identity.ecuFamily,identity.hw,identity.sw).first();
+    const rulepack=await defaultRulepackForIdentity(env,{operationLabel,...identity});
     if (rulepack?.version) {
       let rules={};
       try { rules=JSON.parse(rulepack.rules_json||'{}'); } catch {}
@@ -944,6 +958,7 @@ export function createEcuRuntime(core, overrides = {}) {
     storeValidatedMod: defaultStoreValidatedMod,
     getValidatedMod: defaultGetValidatedMod,
     readOriginal: defaultReadOriginal,
+    rulepackForIdentity: defaultRulepackForIdentity,
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
     applyWorkerResult: defaultApplyWorkerResult,
@@ -970,6 +985,17 @@ export function createEcuRuntime(core, overrides = {}) {
           if(['ECU_WORKER_ID_REQUIRED','ECU_WORKER_KIND_INVALID','ECU_WORKER_ENDPOINT_INVALID'].includes(error?.message))return json({error:error.message},400);
           throw error;
         }
+      }
+
+      if (url.pathname === '/api/ecu/internal/rulepack' && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const operationLabel=String(url.searchParams.get('operationLabel')||'').trim();
+        const ecuFamily=String(url.searchParams.get('ecuFamily')||'').trim();
+        const hw=String(url.searchParams.get('hw')||'').trim();
+        const sw=String(url.searchParams.get('sw')||'').trim();
+        if(!operationLabel)return json({error:'ECU_OPERATION_LABEL_REQUIRED'},400);
+        const rulepack=await deps.rulepackForIdentity(env,{operationLabel,ecuFamily,hw,sw});
+        return rulepack?json({rulepack}):json({error:'ECU_RULEPACK_NOT_FOUND'},404);
       }
 
       if (url.pathname.startsWith('/api/ecu/internal/models/') && req.method === 'GET') {
