@@ -111,8 +111,14 @@ def test_patch_chunks_capture_exact_before_after_bytes():
     report=diff_bytes(ori,mod)
     chunks=extract_patch_chunks(ori,mod,report,max_chunk_bytes=8,max_total_bytes=32)
     assert chunks == [
-        {"offset":1,"length":2,"before_hex":"0102","after_hex":"0908"},
-        {"offset":6,"length":1,"before_hex":"06","after_hex":"01"},
+        {
+            "offset":1,"length":2,"before_hex":"0102","after_hex":"0908",
+            "context_before_hex":"00","context_after_hex":"0304050607",
+        },
+        {
+            "offset":6,"length":1,"before_hex":"06","after_hex":"01",
+            "context_before_hex":"000102030405","context_after_hex":"07",
+        },
     ]
 
 
