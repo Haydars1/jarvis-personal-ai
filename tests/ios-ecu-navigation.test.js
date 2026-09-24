@@ -34,6 +34,7 @@ test('ECU native UI exposes Stage1 mutation status and validated MOD download', 
   assert.match(ecuView, /title: "Stage 1"/);
   assert.match(ecuView, /Seçili İşlemleri Çalıştır/);
   assert.match(ecuView, /api\.runOperation\(fileId: fileId, operation: option\.operation\)/);
+  assert.match(ecuView, /api\.runComposite\(/);
   assert.match(ecuView, /MOD Dosyasını Hazırla/);
   assert.match(ecuView, /MOD Dosyasını Kaydet \/ Paylaş/);
   assert.match(ecuApi, /\/api\/ecu\/jobs\/.*\/mod/);
@@ -74,4 +75,13 @@ test('ECU research UI shows GitHub coverage and manual trigger', () => {
   assert.match(ecuView, /api\.runResearch\(\)/);
   assert.match(ecuApi, /\/api\/ecu\/research\/run/);
   assert.match(ecuApi, /func researchStatus\(\)/);
+});
+
+
+test('multi-selection creates one composite MOD job', () => {
+  assert.match(ecuApi, /func runComposite\(fileId: String, operations: \[String\]\)/);
+  assert.match(ecuApi, /\/api\/ecu\/jobs\/composite/);
+  assert.match(ecuView, /selected\.count == 1/);
+  assert.match(ecuView, /operations: selected\.map\(\\\.operation\)/);
+  assert.match(ecuView, /Tek MOD işi oluşturuldu/);
 });
