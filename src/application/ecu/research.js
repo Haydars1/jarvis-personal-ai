@@ -62,6 +62,18 @@ function claimTokens(text) {
     .filter(token=>token.length>=3));
 }
 
+function sourceIndependenceKey(value=''){
+  try{
+    const url=new URL(String(value||''));
+    const host=url.hostname.toLowerCase();
+    if(host==='github.com'){
+      const parts=url.pathname.split('/').filter(Boolean);
+      return parts.length>=2?`github.com/${parts[0]}/${parts[1]}`:'github.com';
+    }
+    return host;
+  }catch{return String(value||'');}
+}
+
 function claimSimilarity(a,b) {
   const left=claimTokens(a),right=claimTokens(b);
   if(!left.size||!right.size)return 0;
@@ -259,7 +271,7 @@ export function createEcuResearch({
       const a=claims[i];
       for(let j=i+1;j<claims.length;j+=1){
         const b=claims[j];
-        if(String(a.sourceUrl||'')===String(b.sourceUrl||''))continue;
+        if(sourceIndependenceKey(a.sourceUrl)===sourceIndependenceKey(b.sourceUrl))continue;
         if(String(a.topic||'')!==String(b.topic||''))continue;
         if(claimSimilarity(a.text,b.text)<0.72)continue;
         const pairTrust=Math.min(Number(a.trustScore||0.5),Number(b.trustScore||0.5));
