@@ -1,0 +1,96 @@
+name: JARVIS Codex Development Agent
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+
+permissions:
+  contents: write
+  actions: read
+
+# Scheduled runs only operate on the development branch and are serialized below.
+
+concurrency:
+  group: jarvis-codex-development-agent
+  cancel-in-progress: false
+
+jobs:
+  develop:
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/feature/learning-engine'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v5
+        with:
+          ref: feature/learning-engine
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Baseline validation
+        id: baseline
+        continue-on-error: true
+        run: npm run check
+
+      - name: Record baseline state
+        shell: bash
+        run: |
+          echo "Baseline validation outcome: ${{ steps.baseline.outcome }}"
+          if [ "${{ steps.baseline.outcome }}" != "success" ]; then
+            echo "Baseline is already failing; Codex must diagnose and repair it instead of the workflow stopping before the agent runs."
+          fi
+
+      - name: Run Codex development agent
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          prompt: |
+            Work only in this checked-out repository on branch feature/learning-engine.
+            Continue the current JARVIS development autonomously for this run.
+            Inspect the implementation and tests before editing. Prioritize:
+            1. conversation and task continuity,
+            2. persistent learning-context integration,
+            3. real video-provider execution/failover,
+            4. reliability, observability, regression coverage, performance, UX, maintainability.
+
+            Do not stop after one tiny edit when more safe independent work can be completed.
+            Use tests-first where practical. For every change, keep it small and reversible,
+            preserve existing behavior, and run relevant tests. Never modify GitHub secrets,
+            credentials, workflow security boundaries, production deployment configuration,
+            main branch, or external accounts. Never deploy production. Do not disable or
+            weaken tests/security gates. Do not push or commit; leave verified workspace
+            changes for the workflow to validate and commit.
+
+            Before finishing, run npm run check. If it fails because of your changes, fix it
+            and rerun. Finish only with a concise summary of concrete verified changes.
+
+      - name: Validate agent changes
+        run: npm run check
+
+      - name: Cloudflare build dry run
+        run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+
+      - name: Commit verified changes to development branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .wrangler-dry
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No verified source changes to commit."
+            exit 0
+          fi
+          git config user.name "jarvis-codex-agent"
+          git config user.email "jarvis-codex-agent@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(agent): autonomous verified JARVIS improvements"
+          git push origin HEAD:feature/learning-engine
