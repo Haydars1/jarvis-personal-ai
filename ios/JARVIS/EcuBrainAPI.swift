@@ -79,6 +79,17 @@ struct EcuUploadResponse: Decodable {
     let job: EcuJob
 }
 
+struct EcuTrainingPair: Decodable, Identifiable {
+    let id: String
+    let state: String
+    let operationLabel: String?
+    let runFingerprint: String?
+}
+
+struct EcuTrainingPairResponse: Decodable {
+    let pair: EcuTrainingPair
+}
+
 final class EcuBrainAPI {
     private let baseURL = URL(string: "https://jarvis-personal-ai.haydojarvis.workers.dev")!
     private let session: URLSession
@@ -134,6 +145,16 @@ final class EcuBrainAPI {
         return try decoder.decode(EcuModelsResponse.self, from: data).models
     }
 
+    func uploadFile(data: Data, filename: String, mimeType: String = "application/octet-stream") async throws -> EcuUploadFile {
+        let encoded = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filename
+        let payload = try await request("/api/ecu/files", method: "POST", body: data, headers: [
+            "Content-Type": mimeType,
+            "X-ECU-Filename": encoded,
+        ])
+        struct ResponseBody: Decodable { let file: EcuUploadFile }
+        return try decoder.decode(ResponseBody.self, from: payload).file
+    }
+
     func analyze(data: Data, filename: String, mimeType: String = "application/octet-stream") async throws -> EcuUploadResponse {
         let encoded = filename.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? filename
         let payload = try await request("/api/ecu/analyze-file", method: "POST", body: data, headers: [
@@ -141,6 +162,16 @@ final class EcuBrainAPI {
             "X-ECU-Filename": encoded,
         ])
         return try decoder.decode(EcuUploadResponse.self, from: payload)
+    }
+
+    func createTrainingPair(oriFileId: String, modFileId: String, operationLabel: String) async throws -> EcuTrainingPair {
+        let body = try JSONSerialization.data(withJSONObject: [
+            "oriFileId": oriFileId,
+            "modFileId": modFileId,
+            "operationLabel": operationLabel,
+        ])
+        let payload = try await request("/api/ecu/training/pairs", method: "POST", body: body, headers: ["Content-Type":"application/json"])
+        return try decoder.decode(EcuTrainingPairResponse.self, from: payload).pair
     }
 
     func runOperation(fileId: String, operation: String) async throws -> EcuJob {
