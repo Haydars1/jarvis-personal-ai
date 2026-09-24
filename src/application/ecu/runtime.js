@@ -24,6 +24,16 @@ const ECU_OPERATION_LABELS=Object.freeze({
   startstop_off_proposal:'startstop_off',
 });
 
+const ECU_SERVICE_CATALOG=Object.freeze([
+  {id:'stage1',title:'Stage 1',operation:'stage1_proposal'},
+  {id:'dtc_off',title:'DTC OFF',operation:'dtc_off_proposal'},
+  {id:'egr_off',title:'EGR OFF',operation:'egr_off_proposal'},
+  {id:'dpf_off',title:'DPF OFF',operation:'dpf_off_proposal'},
+  {id:'adblue_off',title:'AdBlue / SCR OFF',operation:'adblue_off_proposal'},
+  {id:'vmax_off',title:'VMAX OFF',operation:'vmax_off_proposal'},
+  {id:'startstop_off',title:'Start/Stop OFF',operation:'startstop_off_proposal'},
+]);
+
 function firstCandidate(raw){
   try{
     const values=JSON.parse(raw||'[]');
@@ -147,6 +157,40 @@ async function defaultRulepackCandidatesForIdentity(env,{operationLabel,ecuFamil
 async function defaultRulepackForIdentity(env,input) {
   const candidates=await defaultRulepackCandidatesForIdentity(env,{...input,limit:20});
   return candidates[0]||null;
+}
+
+async function defaultServiceAvailability(env,fileId){
+  const identity=await fileIdentity(env,fileId);
+  const family=String(identity.ecuFamily||'').toUpperCase();
+  const builtinChecksum=/^(?:EDC17|MED17|MEDC17)/.test(family);
+  const checksumProfile=identity.ecuFamily
+    ? await defaultChecksumProfileForIdentity(env,identity)
+    : null;
+  const services=[];
+  for(const service of ECU_SERVICE_CATALOG){
+    const rulepack=identity.ecuFamily
+      ? await defaultRulepackForIdentity(env,{operationLabel:service.id,...identity})
+      : null;
+    const checksumKnown=builtinChecksum||Boolean(checksumProfile?.id);
+    const rulepackKnown=Boolean(rulepack?.version);
+    let state='NEEDS_ANALYSIS';
+    if(identity.ecuFamily){
+      if(!rulepackKnown)state='LEARNING';
+      else if(!checksumKnown)state='CHECKSUM_REQUIRED';
+      else if(rulepack?.portable)state='CONTEXT_VERIFY';
+      else state='AVAILABLE';
+    }
+    services.push({
+      ...service,
+      state,
+      available:state==='AVAILABLE'||state==='CONTEXT_VERIFY',
+      rulepackVersion:rulepack?.version||null,
+      matchTier:rulepack?.matchTier||null,
+      checksumKnown,
+      checksumSource:builtinChecksum?'builtin':checksumProfile?.id?'learned-profile':null,
+    });
+  }
+  return {identity,services};
 }
 
 async function defaultChecksumProfileForIdentity(env,{ecuFamily='',hw='',sw=''}) {
@@ -1362,6 +1406,7 @@ export function createEcuRuntime(core, overrides = {}) {
     rulepackForIdentity: defaultRulepackForIdentity,
     rulepackCandidatesForIdentity: defaultRulepackCandidatesForIdentity,
     checksumProfileForIdentity: defaultChecksumProfileForIdentity,
+    serviceAvailability: defaultServiceAvailability,
     refreshChecksumProfiles: env => refreshChecksumProfiles(env),
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
@@ -1741,6 +1786,12 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/rulepacks/status' && req.method === 'GET') {
         return json(await deps.rulepackStatus(env));
+      }
+
+      if (url.pathname === '/api/ecu/services' && req.method === 'GET') {
+        const fileId=String(url.searchParams.get('fileId')||'').trim();
+        if(!fileId)return json({error:'fileId is required'},400);
+        return json(await deps.serviceAvailability(env,fileId));
       }
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
