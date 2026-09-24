@@ -1036,7 +1036,9 @@ export function createEcuRuntime(core, overrides = {}) {
         if(!pairId)return json({error:'ECU_PAIR_ID_REQUIRED'},400);
         const body=await readJson(req);
         try{
-          return json({pair:await deps.applyPairResult(env,pairId,body)});
+          const pair=await deps.applyPairResult(env,pairId,body);
+          try{ await rulepacks.refresh(env); }catch{}
+          return json({pair});
         }catch(error){
           if(error?.message==='ECU_PAIR_NOT_FOUND')return json({error:'ECU_PAIR_NOT_FOUND'},404);
           if(error?.message==='INVALID_PAIR_RESULT_STATUS'||error?.message==='ECU_PAIR_DIFF_REQUIRED')return json({error:error.message},400);
