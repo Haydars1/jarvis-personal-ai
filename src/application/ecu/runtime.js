@@ -1176,6 +1176,63 @@ export function shouldRetryNeedsReview(result={}){
   });
 }
 
+async function defaultResearchKnowledgeGaps(env,targeted,timestamp=Date.now(),{minIntervalMs=6*60*60*1000}={}){
+  const rows=(await env.DB.prepare(`SELECT id,operation,result_json
+    FROM ecu_jobs
+    WHERE state='NEEDS_REVIEW'
+    ORDER BY updated_at DESC
+    LIMIT 20`).all()).results||[];
+
+  let scanned=0;
+  let researched=0;
+  let skippedRecent=0;
+  for(const row of rows){
+    let result={};
+    try{result=JSON.parse(row.result_json||'{}')}catch{}
+    if(!shouldRetryNeedsReview(result))continue;
+    scanned+=1;
+
+    const family=String(result.ecu_family||'');
+    const hw=firstBodyCandidate(result.hw_candidates);
+    const sw=firstBodyCandidate(result.sw_candidates);
+    const operations=ECU_OPERATION_LABELS[row.operation]
+      ? [row.operation]
+      : (row.operation==='multi_service_proposal'?blockedCompositeOperations(result):[]);
+
+    for(const operation of operations){
+      const operationLabel=ECU_OPERATION_LABELS[operation];
+      if(!operationLabel)continue;
+      const gapId=await sha256Text(JSON.stringify({family,hw,sw,operationLabel}));
+      const existing=await env.DB.prepare('SELECT last_researched_at,attempts FROM ecu_research_gaps WHERE id=? LIMIT 1').bind(gapId).first();
+      if(existing&&timestamp-Number(existing.last_researched_at||0)<minIntervalMs){
+        skippedRecent+=1;
+        continue;
+      }
+      let outcome={sourcesFound:0,claimsFound:0};
+      try{
+        outcome=await targeted(env,{ecuFamily:family,operationLabel,hw,sw})||outcome;
+      }catch{}
+      const attempts=Number(existing?.attempts||0)+1;
+      await env.DB.prepare(`INSERT INTO ecu_research_gaps(
+        id,ecu_family,hw,sw,operation_label,last_researched_at,attempts,last_sources_found,last_claims_found,created_at,updated_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        last_researched_at=excluded.last_researched_at,
+        attempts=excluded.attempts,
+        last_sources_found=excluded.last_sources_found,
+        last_claims_found=excluded.last_claims_found,
+        updated_at=excluded.updated_at`)
+        .bind(
+          gapId,family,hw,sw,operationLabel,timestamp,attempts,
+          Number(outcome?.sourcesFound||0),Number(outcome?.claimsFound||0),
+          timestamp,timestamp
+        ).run();
+      researched+=1;
+    }
+  }
+  return {scanned,researched,skippedRecent};
+}
+
 async function defaultRetryReviewJobs(env,dispatch){
   const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
   if(!callbackBaseUrl)return {attempted:0,retried:0,reason:'NO_CALLBACK_URL'};
@@ -1400,6 +1457,7 @@ export function createEcuRuntime(core, overrides = {}) {
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
     researchTargeted: (env,input) => research.targeted(env,input),
+    researchKnowledgeGaps: (env,timestamp) => defaultResearchKnowledgeGaps(env,(targetEnv,input)=>research.targeted(targetEnv,input),timestamp),
     listGitHubRepositories: defaultListGitHubRepositories,
     rulepackStatus: env => rulepacks.status(env),
     trainingStatus: env => training.status(env),
@@ -1862,6 +1920,11 @@ export function createEcuRuntime(core, overrides = {}) {
         await research.run(env, timestamp);
       } catch {
         // Background learning must never break the main JARVIS scheduler.
+      }
+      try {
+        await deps.researchKnowledgeGaps(env,timestamp);
+      } catch {
+        // Targeted gap research is recoverable and rate-limited per ECU/operation.
       }
       try {
         await rulepacks.refresh(env);
