@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview, blockedCompositeOperations, researchKnowledgeGaps } from '../src/application/ecu/runtime.js';
+import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview, blockedCompositeOperations, researchKnowledgeGaps, resolveResearchGapsForReadyResult } from '../src/application/ecu/runtime.js';
 
 function request(path, init = {}) {
   return new Request(`https://jarvis.test${path}`, init);
@@ -926,4 +926,61 @@ test('knowledge gap research is rate limited per ECU operation',async()=>{
   const third=await researchKnowledgeGaps({DB:db},targeted,1_020_001,{minIntervalMs:10_000});
   assert.equal(third.researched,1);
   assert.equal(calls.length,2);
+});
+
+
+test('READY result resolves matching single-service knowledge gap',async()=>{
+  const updates=[];
+  const db={
+    prepare(sql){
+      return {
+        args:[],
+        bind(...args){this.args=args;return this;},
+        async run(){
+          if(sql.startsWith('UPDATE ecu_research_gaps'))updates.push(this.args);
+          return {meta:{changes:1}};
+        },
+      };
+    },
+  };
+  const resolved=await resolveResearchGapsForReadyResult({DB:db},'egr_off_proposal',{
+    ecu_family:'EDC17C46',
+    hw_candidates:[{value:'HW1'}],
+    sw_candidates:[{value:'SW1'}],
+  },123456);
+  assert.equal(resolved,1);
+  assert.equal(updates.length,1);
+  assert.equal(updates[0][0],123456);
+  assert.equal(updates[0][1],123456);
+  assert.match(updates[0][2],/^[a-f0-9]{64}$/);
+});
+
+
+test('READY composite resolves each completed service knowledge gap once',async()=>{
+  const updates=[];
+  const db={
+    prepare(sql){
+      return {
+        args:[],
+        bind(...args){this.args=args;return this;},
+        async run(){
+          if(sql.startsWith('UPDATE ecu_research_gaps'))updates.push(this.args);
+          return {meta:{changes:1}};
+        },
+      };
+    },
+  };
+  const resolved=await resolveResearchGapsForReadyResult({DB:db},'multi_service_proposal',{
+    ecu_family:'EDC17C46',
+    hw_candidates:[{value:'HW1'}],
+    sw_candidates:[{value:'SW1'}],
+    proposal:{services:[
+      {operation:'egr_off_proposal'},
+      {operation:'dpf_off_proposal'},
+      {operation:'egr_off_proposal'},
+    ]},
+  },555);
+  assert.equal(resolved,2);
+  assert.equal(updates.length,2);
+  assert.notEqual(updates[0][2],updates[1][2]);
 });
