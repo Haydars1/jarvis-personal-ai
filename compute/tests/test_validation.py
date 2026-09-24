@@ -100,3 +100,11 @@ def test_profile_checksum_adapter_supports_crc32():
     expected=zlib.crc32(prefix+b"\x00\x00\x00\x00") & 0xffffffff
     assert int.from_bytes(applied.data[4:8],"big")==expected
     assert applied.result.verified is True
+
+
+def test_default_registry_selects_medc17_adapter_by_prefix():
+    from ecu_worker.validation import ChecksumRegistry, Medc17ChecksumAdapter
+    registry=ChecksumRegistry()
+    assert isinstance(registry.adapter_for("EDC17C46"),Medc17ChecksumAdapter)
+    assert isinstance(registry.adapter_for("MED17.5.5"),Medc17ChecksumAdapter)
+    assert registry.adapter_for("UNKNOWN").name=="unsupported"
