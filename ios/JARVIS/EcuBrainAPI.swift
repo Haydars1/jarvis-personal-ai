@@ -13,6 +13,7 @@ struct EcuTrainingStatus: Decodable {
     let verifiedExamples: Int
     let minVerifiedExamples: Int
     let verifiedChangeEvidence: Int?
+    let automaticHypotheses: Int?
     let productionModel: EcuModelSummary?
 }
 
