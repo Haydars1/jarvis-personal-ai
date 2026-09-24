@@ -124,6 +124,22 @@ function wantsSystemStatus(text){
   return /durum|status|öğren|eğitim|araştır|compute|worker|model/.test(t);
 }
 
+function wantsServiceAvailability(text){
+  const t=String(text||'').toLowerCase();
+  return /hangi.*(işlem|seçenek|tuning|mod)|ne.*(yapabilir|uygulanabilir)|hazır.*(işlem|seçenek)|işlemler.*hazır/.test(t);
+}
+
+function serviceStateLabel(state=''){
+  const labels={
+    AVAILABLE:'Hazır',
+    CONTEXT_VERIFY:'Dosyada doğrulanacak',
+    CHECKSUM_REQUIRED:'Checksum öğreniliyor',
+    LEARNING:'Öğreniliyor',
+    NEEDS_ANALYSIS:'Analiz bekliyor',
+  };
+  return labels[state]||String(state||'Bilinmiyor');
+}
+
 export function createEcuChatTool(core){
   if(!core?.fetch)throw new Error('ECU_CHAT_CORE_REQUIRED');
   return {
