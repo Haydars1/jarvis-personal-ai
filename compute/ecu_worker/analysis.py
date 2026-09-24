@@ -11,10 +11,13 @@ from .validation import ChecksumRegistry, ProfileChecksumAdapter
 
 
 def checksum_adapter_from_config(job: AnalysisJobInput, ecu_family: str):
+    registry_adapter=ChecksumRegistry().adapter_for(ecu_family)
+    if registry_adapter.name!="unsupported":
+        return registry_adapter
     profile=job.config.get("checksum_profile")
     if isinstance(profile,dict) and profile.get("algorithm"):
         return ProfileChecksumAdapter(profile)
-    return ChecksumRegistry().adapter_for(ecu_family)
+    return registry_adapter
 
 
 def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[AnalysisJobOutput, bytes | None, str | None]:
