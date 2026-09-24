@@ -4,6 +4,7 @@ from typing import Any
 
 from .analysis import analyze_binary_with_artifact
 from .contracts import AnalysisJobInput, AnalysisJobOutput
+from .fingerprint import fingerprint_binary
 
 
 async def process_dispatched_job(
@@ -40,8 +41,49 @@ async def process_dispatched_job(
         artifact_url = f"{base_url}/api/ecu/internal/artifacts/{job.artifact_sha256}"
         artifact_response = await client.get(artifact_url, headers=headers)
         artifact_response.raise_for_status()
+        artifact_bytes=bytes(artifact_response.content)
 
-        result, mod_bytes, checksum_algorithm = analyze_binary_with_artifact(effective_job, bytes(artifact_response.content))
+        operation_label_map={
+            "stage1_proposal":"stage1",
+            "dtc_off_proposal":"dtc_off",
+            "egr_off_proposal":"egr_off",
+            "dpf_off_proposal":"dpf_off",
+            "adblue_off_proposal":"adblue_off",
+            "vmax_off_proposal":"vmax_off",
+            "startstop_off_proposal":"startstop_off",
+        }
+        operation_label=operation_label_map.get(job.operation)
+        if operation_label and not bool(effective_job.config.get("rulepack_verified")):
+            fp=fingerprint_binary(artifact_bytes)
+            hw=fp.hw_candidates[0] if fp.hw_candidates else ""
+            sw=fp.sw_candidates[0] if fp.sw_candidates else ""
+            params={
+                "operationLabel":operation_label,
+                "ecuFamily":fp.ecu_family,
+                "hw":hw,
+                "sw":sw,
+            }
+            from urllib.parse import urlencode
+            rulepack_url=f"{base_url}/api/ecu/internal/rulepack?{urlencode(params)}"
+            rulepack_response=await client.get(rulepack_url,headers=headers)
+            if rulepack_response.status_code==200:
+                payload=rulepack_response.json().get("rulepack") or {}
+                effective_job=effective_job.model_copy(update={
+                    "rulepack_version":str(payload.get("version") or effective_job.rulepack_version),
+                    "config":{
+                        **effective_job.config,
+                        "rulepack_verified":True,
+                        "rulepack":payload.get("rules") or {},
+                        "operation_label":operation_label,
+                        "ecu_family":fp.ecu_family,
+                        "hw":hw,
+                        "sw":sw,
+                    },
+                })
+            elif rulepack_response.status_code not in {404}:
+                rulepack_response.raise_for_status()
+
+        result, mod_bytes, checksum_algorithm = analyze_binary_with_artifact(effective_job, artifact_bytes)
         callback_response = await client.post(
             callback_url,
             headers={**headers, "content-type": "application/json"},
