@@ -207,14 +207,15 @@ const defaultRepository = {
     if(!repository)return;
     const now=Date.now();
     await env.DB.prepare(`INSERT INTO ecu_github_repositories(
-      repository,license,reuse_policy,stars,capabilities_json,default_branch,first_seen_at,last_seen_at
-    ) VALUES(?,?,?,?,?,?,?,?)
+      repository,license,reuse_policy,stars,capabilities_json,default_branch,commit_sha,first_seen_at,last_seen_at
+    ) VALUES(?,?,?,?,?,?,?,?,?)
     ON CONFLICT(repository) DO UPDATE SET
       license=excluded.license,
       reuse_policy=excluded.reuse_policy,
       stars=MAX(ecu_github_repositories.stars,excluded.stars),
       capabilities_json=excluded.capabilities_json,
       default_branch=excluded.default_branch,
+      commit_sha=excluded.commit_sha,
       last_seen_at=excluded.last_seen_at`)
       .bind(
         repository,
@@ -223,6 +224,7 @@ const defaultRepository = {
         Number(meta.stars||0),
         JSON.stringify(Array.isArray(meta.capabilities)?meta.capabilities:[]),
         String(meta.defaultBranch||''),
+        String(meta.commitSha||''),
         now,
         now,
       ).run();
