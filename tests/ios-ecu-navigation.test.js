@@ -33,7 +33,7 @@ test('login button remains tappable and delegates empty-password feedback to App
 test('ECU native UI exposes Stage1 mutation status and validated MOD download', () => {
   assert.match(ecuView, /title: "Stage 1"/);
   assert.match(ecuView, /Seçili İşlemleri Çalıştır/);
-  assert.match(ecuView, /api\.stage1Preview\(fileId: fileId\)/);
+  assert.match(ecuView, /api\.runOperation\(fileId: fileId, operation: option\.operation\)/);
   assert.match(ecuView, /MOD Dosyasını Hazırla/);
   assert.match(ecuView, /MOD Dosyasını Kaydet \/ Paylaş/);
   assert.match(ecuApi, /\/api\/ecu\/jobs\/.*\/mod/);
@@ -48,4 +48,20 @@ test('ECU service selector exposes site-style operation choices', () => {
   assert.match(ecuView, /VMAX OFF/);
   assert.match(ecuView, /Start\/Stop OFF/);
   assert.match(ecuView, /Seçili İşlemleri Çalıştır/);
+});
+
+
+test('selected service options map to backend operation identifiers', () => {
+  for (const operation of [
+    'stage1_proposal',
+    'dtc_off_proposal',
+    'egr_off_proposal',
+    'dpf_off_proposal',
+    'adblue_off_proposal',
+    'vmax_off_proposal',
+    'startstop_off_proposal',
+  ]) {
+    assert.match(ecuView, new RegExp(operation));
+  }
+  assert.match(ecuApi, /func runOperation\(fileId: String, operation: String\)/);
 });
