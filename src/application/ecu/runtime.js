@@ -603,6 +603,8 @@ async function defaultApplyPairResult(env,pairId,body={}){
         const length=Math.max(0,Number(patch.length||0));
         const beforeHex=String(patch.before_hex||patch.beforeHex||'').toLowerCase();
         const afterHex=String(patch.after_hex||patch.afterHex||'').toLowerCase();
+        const contextBeforeHex=String(patch.context_before_hex||patch.contextBeforeHex||'').toLowerCase();
+        const contextAfterHex=String(patch.context_after_hex||patch.contextAfterHex||'').toLowerCase();
         if(!length||beforeHex.length!==length*2||afterHex.length!==length*2||beforeHex===afterHex)continue;
         if(!/^[a-f0-9]+$/.test(beforeHex)||!/^[a-f0-9]+$/.test(afterHex))continue;
         const id=`${pairId}:patch:${index}:${offset}`;
@@ -627,7 +629,7 @@ async function defaultApplyPairResult(env,pairId,body={}){
             offset,
             length,
             1,
-            JSON.stringify({patchBeforeHex:beforeHex,patchAfterHex:afterHex,length}),
+            JSON.stringify({patchBeforeHex:beforeHex,patchAfterHex:afterHex,contextBeforeHex,contextAfterHex,length}),
             1,
             timestamp,
           ).run();
