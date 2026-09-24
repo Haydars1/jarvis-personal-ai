@@ -115,7 +115,7 @@ test('exact patch rulepack requires repeated verified pairs',async()=>{
 
 
 test('auto-promotes exact scoped patch rulepack after verified consensus',async()=>{
-  const rows=Array.from({length:3},(_,i)=>({
+  const rows=Array.from({length:5},(_,i)=>({
     pairId:'p'+i,operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW-ABC',sw:'SW-123',
     semanticLabel:'__PATCH__',mapOffset:64,humanVerified:true,
     deltaStats:{patchBeforeHex:'0102',patchAfterHex:'aabb',length:2}
@@ -143,7 +143,7 @@ test('auto-promotes exact scoped patch rulepack after verified consensus',async(
 
 
 test('does not auto-promote patch evidence without exact ECU HW SW scope',async()=>{
-  const rows=Array.from({length:3},(_,i)=>({
+  const rows=Array.from({length:5},(_,i)=>({
     pairId:'p'+i,operationLabel:'dpf_off',ecuFamily:'EDC17C46',hw:'',sw:'',
     semanticLabel:'__PATCH__',mapOffset:32,humanVerified:true,
     deltaStats:{patchBeforeHex:'01',patchAfterHex:'00',length:1}
