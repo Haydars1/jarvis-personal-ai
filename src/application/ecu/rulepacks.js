@@ -104,7 +104,6 @@ export function createEcuRulepackLearning({
         const envelope=Number(row.deltaStats?.p95AbsPercent??row.deltaStats?.p95_abs_percent??0);
         const rawSigned=row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent;
         const signed=rawSigned==null?null:Number(rawSigned);
-        if(!Number.isFinite(envelope)||envelope<=0)continue;
         const scope={
           operationLabel:String(row.operationLabel||''),
           ecuFamily:String(row.ecuFamily||''),
