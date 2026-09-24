@@ -16,6 +16,19 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Validate runtime syntax
         run: npm run check
+      - name: Preflight Cloudflare resources
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler r2 bucket list > /tmp/r2-buckets.txt
+          cat /tmp/r2-buckets.txt
+          grep -q "jarvis-ecu-artifacts" /tmp/r2-buckets.txt || {
+            echo "::error::Required R2 bucket jarvis-ecu-artifacts is missing. Create it before production deploy."
+            exit 1
+          }
+
       - name: Apply additive D1 schema
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
