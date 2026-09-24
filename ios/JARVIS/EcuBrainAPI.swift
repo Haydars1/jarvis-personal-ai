@@ -58,6 +58,22 @@ struct EcuResearchRun: Decodable {
     let reason: String?
 }
 
+struct EcuResearchGap: Decodable, Identifiable {
+    let id: String
+    let ecuFamily: String
+    let hw: String
+    let sw: String
+    let operationLabel: String
+    let lastResearchedAt: Int
+    let attempts: Int
+    let lastSourcesFound: Int
+    let lastClaimsFound: Int
+}
+
+struct EcuResearchGapsResponse: Decodable {
+    let gaps: [EcuResearchGap]
+}
+
 struct EcuGitHubRepository: Decodable, Identifiable {
     var id: String { repository }
     let repository: String
@@ -216,6 +232,11 @@ final class EcuBrainAPI {
     func runResearch() async throws -> EcuResearchRun {
         let data = try await request("/api/ecu/research/run", method: "POST")
         return try decoder.decode(EcuResearchRun.self, from: data)
+    }
+
+    func researchGaps(limit: Int = 20) async throws -> [EcuResearchGap] {
+        let data = try await request("/api/ecu/research/gaps?limit=\(max(1,min(100,limit)))")
+        return try decoder.decode(EcuResearchGapsResponse.self, from: data).gaps
     }
 
     func githubRepositories(limit: Int = 20) async throws -> [EcuGitHubRepository] {
