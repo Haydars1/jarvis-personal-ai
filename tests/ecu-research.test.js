@@ -106,3 +106,25 @@ test('does not corroborate claims from the same source URL alone', async () => {
   assert.equal(result.corroborated,0);
   assert.equal(patches.length,0);
 });
+
+
+test('research enriches search results with bounded fetched source text', async () => {
+  const repository=memoryRepository();
+  const research=createEcuResearch({
+    repository,
+    topics:['MED17 checksum'],
+    search:async()=>[
+      {title:'Technical page',url:'https://docs.example/checksum',snippet:'Short checksum summary',source:'Google'},
+    ],
+    fetchSource:async()=>({
+      text:'MED17 checksum blocks use a structured calibration integrity process. '.repeat(40),
+      contentType:'text/html',
+    }),
+    maxEnrichedSourcesPerTopic:1,
+  });
+  const result=await research.run({},10_800_000);
+  assert.equal(result.skipped,false);
+  assert.ok(repository.claims.length>1);
+  assert.ok(repository.claims.some(item=>item.text.length>500));
+  assert.ok(repository.claims.every(item=>item.verificationState==='UNVERIFIED'));
+});
