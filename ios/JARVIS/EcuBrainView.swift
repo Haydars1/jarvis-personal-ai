@@ -27,6 +27,7 @@ struct EcuBrainView: View {
     @State private var models: [EcuModelSummary] = []
     @State private var rulepacks: EcuRulepackStatus?
     @State private var research: EcuResearchStatus?
+    @State private var githubRepositories: [EcuGitHubRepository] = []
     @State private var trainingPairs: [EcuTrainingPair] = []
     @State private var message = ""
     @State private var loading = false
@@ -69,6 +70,28 @@ struct EcuBrainView: View {
                     Text("GitHub kaynak kodu, README/dokümantasyon ve teknik kaynaklar taranır. Lisans ve kaynak güveni ayrı tutulur; aynı repository kendi kendini doğrulayan bağımsız kaynak sayılmaz.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("GitHub ECU Kaynakları") {
+                    if githubRepositories.isEmpty {
+                        Text("Henüz repository kaydı yok")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(githubRepositories.prefix(8)) { repo in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(repo.repository)
+                                .font(.subheadline.weight(.semibold))
+                            Text("\(repo.license ?? "unknown") • \(repo.reusePolicy ?? "REVIEW_REQUIRED")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let capabilities = repo.capabilities, !capabilities.isEmpty {
+                                Text(capabilities.joined(separator: " • "))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
+                    }
                 }
 
                 Section("ORI/MOD ile Öğret") {
