@@ -49,3 +49,29 @@ test('attaches verified map delta statistics to semantic change evidence',()=>{
   assert.equal(rows[0].deltaStats.changedCells,3);
   assert.equal(rows[0].deltaStats.maxAbsPercent,5.1);
 });
+
+
+test('preserves signed median delta for Stage1 rule learning',()=>{
+  const rows=extractVerifiedChangeEvidence({
+    map_delta_evidence:[{
+      semantic_label:'torque_limiter',
+      map_offset:4096,
+      changed_cells:8,
+      measured_cells:8,
+      mean_abs_percent:7.5,
+      max_abs_percent:9,
+      p95_abs_percent:8.5,
+      median_signed_percent:7.8,
+      human_verified:true,
+    }],
+    linked_ranges:[{
+      start:4096,end:4112,deltas:8,
+      map_hits:[{
+        offset:4096,semantic_label:'torque_limiter',
+        semantic_confidence:.98,human_verified:true,overlap_bytes:16,
+      }]
+    }]
+  });
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].deltaStats.medianSignedPercent,7.8);
+});
