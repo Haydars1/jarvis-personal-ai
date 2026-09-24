@@ -96,3 +96,22 @@ def test_large_binary_multiendian_skips_expensive_surface_scan(monkeypatch):
     data=bytes(300_000)
     maps.extract_map_candidates_multiendian(data,surface_scan_limit_bytes=262_144)
     assert called['surface']==0
+
+
+def test_structural_scanner_finds_axis_vector():
+    from ecu_worker.maps import extract_structural_map_candidates
+    x=[0,500,1000,1500,2000,2500,3000,3500]
+    curve=[300,320,340,360,380,400,420,440]
+    data=b'\xff'*16+_u16be(x)+_u16be(curve)+b'\x00'*16
+    candidates=extract_structural_map_candidates(
+        data,
+        endians=('big',),
+        min_axis_score=0.35,
+        min_table_score=0.35,
+    )
+    vectors=[item for item in candidates if item.source=='axis-vector' and item.x_axis_offset==16]
+    assert vectors
+    best=max(vectors,key=lambda item:item.score)
+    assert best.rows==1
+    assert best.cols==len(x)
+    assert best.offset==16+len(x)*2
