@@ -236,7 +236,9 @@ def extract_structural_map_candidates(
                 span=max(values)-min(values)
                 smooth=max(0.0,1.0-min(1.0,(avg_step/max(float(span),1.0))*5.0))
                 unique_ratio=len(set(values))/len(values)
-                combined=0.70*x.score+0.20*smooth+0.10*min(1.0,unique_ratio)
+                # A vector has one structural axis instead of two, so keep
+                # its confidence below an otherwise comparable 2D axis-table.
+                combined=(0.70*x.score+0.20*smooth+0.10*min(1.0,unique_ratio))*0.88
                 if combined>=min_table_score:
                     candidates.append(MapCandidate(
                         offset=offset,
