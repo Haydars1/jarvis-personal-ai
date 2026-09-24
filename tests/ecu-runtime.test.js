@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview } from '../src/application/ecu/runtime.js';
+import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview, blockedCompositeOperations } from '../src/application/ecu/runtime.js';
 
 function request(path, init = {}) {
   return new Request(`https://jarvis.test${path}`, init);
@@ -784,4 +784,56 @@ test('composite knowledge blockers are retryable while byte ambiguity is not',()
   assert.equal(shouldRetryNeedsReview({
     proposal:{reasons:['egr_off_proposal:PATCH_CONTEXT_AMBIGUOUS:128']}
   }),false);
+});
+
+
+test('extracts blocked composite service operations from prefixed reasons',()=>{
+  const operations=blockedCompositeOperations({
+    proposal:{
+      reasons:[
+        'egr_off_proposal:RULEPACK_UNVERIFIED',
+        'dpf_off_proposal:PATCH_RULEPACK_MISSING',
+        'egr_off_proposal:CHECKSUM_PROFILE_UNVERIFIED',
+        'UNKNOWN:OTHER',
+      ]
+    }
+  });
+  assert.deepEqual(operations,['egr_off_proposal','dpf_off_proposal']);
+});
+
+
+test('blocked composite worker result launches focused research for each service',async()=>{
+  const targeted=[];
+  const waits=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async applyWorkerResult(){
+      return {id:'job-multi',operation:'multi_service_proposal',state:'NEEDS_REVIEW'};
+    },
+    async researchTargeted(_env,input){
+      targeted.push(input);
+      return {sourcesFound:1,claimsFound:2};
+    },
+  });
+  const response=await runtime.fetch(request('/api/ecu/internal/jobs/job-multi/result',{
+    method:'POST',
+    headers:{authorization:'Bearer secret','content-type':'application/json'},
+    body:JSON.stringify({
+      status:'NEEDS_REVIEW',
+      ecu_family:'EDC17C46',
+      hw_candidates:[{value:'HW1'}],
+      sw_candidates:[{value:'SW2'}],
+      proposal:{reasons:[
+        'egr_off_proposal:RULEPACK_UNVERIFIED',
+        'dpf_off_proposal:PATCH_RULEPACK_MISSING',
+      ]},
+    }),
+  }),{ECU_COMPUTE_TOKEN:'secret'},{
+    waitUntil(promise){waits.push(promise);}
+  });
+  assert.equal(response.status,200);
+  await Promise.all(waits);
+  assert.deepEqual(targeted,[
+    {ecuFamily:'EDC17C46',operationLabel:'egr_off',hw:'HW1',sw:'SW2'},
+    {ecuFamily:'EDC17C46',operationLabel:'dpf_off',hw:'HW1',sw:'SW2'},
+  ]);
 });
