@@ -219,6 +219,43 @@ def extract_structural_map_candidates(
 
         for x in axes:
             x_end=x.offset+x.length*2
+
+            # 1D/vector calibration: X axis immediately followed by a vector
+            # of the same length. This is common for limiters and curves.
+            for data_gap in range(0,max_data_gap+1,2):
+                offset=x_end+data_gap
+                count=x.length
+                end=offset+count*2
+                if end>len(data):
+                    continue
+                values=_decode_u16(data,offset,count,endian)
+                if len(set(values))<max(2,count//4) or max(values)-min(values)<20:
+                    continue
+                steps=[abs(b-a) for a,b in zip(values,values[1:])]
+                avg_step=(sum(steps)/len(steps)) if steps else 0.0
+                span=max(values)-min(values)
+                smooth=max(0.0,1.0-min(1.0,(avg_step/max(float(span),1.0))*5.0))
+                unique_ratio=len(set(values))/len(values)
+                combined=0.70*x.score+0.20*smooth+0.10*min(1.0,unique_ratio)
+                if combined>=min_table_score:
+                    candidates.append(MapCandidate(
+                        offset=offset,
+                        rows=1,
+                        cols=x.length,
+                        endian=endian,
+                        min_value=min(values),
+                        max_value=max(values),
+                        unique_ratio=unique_ratio,
+                        smoothness=smooth,
+                        score=round(min(1.0,combined),6),
+                        x_axis_offset=x.offset,
+                        y_axis_offset=None,
+                        axis_score=x.score,
+                        source="axis-vector",
+                    ))
+                    break
+
+            x_end=x.offset+x.length*2
             y_options: list[MapAxis]=[]
             for gap in range(0,max_axis_gap+1,2):
                 y_options.extend(by_offset.get(x_end+gap,[]))
