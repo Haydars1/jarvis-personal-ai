@@ -478,3 +478,54 @@ test('lists learned GitHub ECU repositories and capabilities',async()=>{
   assert.equal(body.repositories[0].repository,'v-arapidis/openremap-core');
   assert.ok(body.repositories[0].capabilities.includes('PATCH_RECIPE'));
 });
+
+
+test('triggers targeted research when an ECU service rulepack is missing',async()=>{
+  const targeted=[];
+  const pending=[];
+  const env={DB:{prepare(sql){
+    return {
+      args:[],
+      bind(...args){this.args=args;return this;},
+      async first(){
+        if(sql.includes('FROM ecu_analysis_results')){
+          return {
+            ecu_family:'EDC17C46',
+            hw_candidates:JSON.stringify([{value:'HW1'}]),
+            sw_candidates:JSON.stringify([{value:'SW1'}]),
+          };
+        }
+        return null;
+      },
+    };
+  }}};
+  const runtime=createEcuRuntime(coreFallback(),{
+    async createJob(_env,input){
+      return {
+        id:'job-targeted',
+        fileId:input.fileId,
+        operation:input.operation,
+        state:'QUEUED',
+        rulepackVersion:'baseline',
+      };
+    },
+    async researchTargeted(_env,input){
+      targeted.push(input);
+      return {sourcesFound:1};
+    },
+  });
+  const ctx={waitUntil(promise){pending.push(promise);}};
+  const response=await runtime.fetch(request('/api/ecu/jobs',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({fileId:'file-1',operation:'egr_off_proposal'}),
+  }),env,ctx);
+  assert.equal(response.status,202);
+  await Promise.all(pending);
+  assert.deepEqual(targeted,[{
+    operationLabel:'egr_off',
+    ecuFamily:'EDC17C46',
+    hw:'HW1',
+    sw:'SW1',
+  }]);
+});
