@@ -107,3 +107,25 @@ def test_pair_worker_links_diff_ranges_to_existing_map_context():
     linked=result["diff"]["linked_ranges"]
     assert linked[0]["map_hits"][0]["semantic_label"]=="torque_limiter"
     assert linked[0]["map_hits"][0]["overlap_bytes"]==2
+
+
+def test_pair_worker_fingerprints_ori_for_rulepack_scope():
+    marker=b"BOSCH EDC17C46 HW:ABCDEF12 SW:12345678"
+    ori=marker+bytes([0])*64
+    mod=bytearray(ori)
+    mod[-1]=1
+    client=FakeClient(ori,bytes(mod))
+    job=PairJobInput(
+        job_id="pair-fingerprint",
+        ori_artifact_sha256="a"*64,
+        mod_artifact_sha256="b"*64,
+        ori_artifact_uri="r2://ecu-artifacts/originals/"+"a"*64,
+        mod_artifact_uri="r2://ecu-artifacts/originals/"+"b"*64,
+        operation_label="egr_off",
+        config={"callback_base_url":"https://jarvis.example"},
+    )
+    result=asyncio.run(process_pair_job(job,"secret",client=client))
+    assert result["ecu_family"]=="EDC17C46"
+    assert result["hw_candidates"][0]["value"]=="ABCDEF12"
+    assert result["sw_candidates"][0]["value"]=="12345678"
+    assert result["diff"]["patch_chunks"]
