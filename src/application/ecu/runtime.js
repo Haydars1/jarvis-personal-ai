@@ -1401,6 +1401,11 @@ export function createEcuRuntime(core, overrides = {}) {
         return json(await deps.researchStatus(env));
       }
 
+      if (url.pathname === '/api/ecu/research/run' && req.method === 'POST') {
+        const result=await research.run(env,Date.now());
+        return json(result,result?.skipped?200:202);
+      }
+
       if (url.pathname === '/api/ecu/training/pairs' && req.method === 'GET') {
         return json({pairs:await deps.listPairs(env,url.searchParams.get('limit'))});
       }
