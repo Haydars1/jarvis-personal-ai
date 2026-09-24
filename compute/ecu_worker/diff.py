@@ -206,11 +206,15 @@ def extract_patch_chunks(
             if size <= 0:
                 break
             end = start + size
+            context_start=max(0,start-16)
+            context_end=min(len(ori),end+16)
             out.append({
                 "offset": start,
                 "length": size,
                 "before_hex": ori[start:end].hex(),
                 "after_hex": mod[start:end].hex(),
+                "context_before_hex": ori[context_start:start].hex(),
+                "context_after_hex": ori[end:context_end].hex(),
             })
             total += size
             start = end
