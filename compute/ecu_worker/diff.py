@@ -116,7 +116,7 @@ def link_ranges_to_maps(report: DiffReport, maps: list[dict]) -> list[dict]:
     return linked
 
 
-def measure_verified_map_deltas(ori: bytes, mod: bytes, maps: list[dict]) -> list[dict]:
+def measure_verified_map_deltas(ori: bytes, mod: bytes, maps: list[dict], *, require_verified: bool = True) -> list[dict]:
     if len(ori) != len(mod):
         raise ValueError("ECU_BINARY_SIZE_MISMATCH")
     out: list[dict] = []
@@ -125,7 +125,7 @@ def measure_verified_map_deltas(ori: bytes, mod: bytes, maps: list[dict]) -> lis
         verified=bool(candidate.get("human_verified") or candidate.get("humanVerified") or False)
         data_type=str(candidate.get("data_type") or candidate.get("dataType") or "").lower()
         endian=str(candidate.get("endian") or "big").lower()
-        if not verified or label=="UNKNOWN" or data_type not in {"u16","s16"} or endian not in {"big","little"}:
+        if (require_verified and not verified) or label=="UNKNOWN" or data_type not in {"u16","s16"} or endian not in {"big","little"}:
             continue
         try:
             offset=int(candidate.get("offset") or 0)
@@ -178,7 +178,7 @@ def measure_verified_map_deltas(ori: bytes, mod: bytes, maps: list[dict]) -> lis
             "p95_abs_percent":p95_abs,
             "median_signed_percent":median_signed,
             "semantic_confidence":float(candidate.get("semantic_confidence") or candidate.get("confidence") or 0.0),
-            "human_verified":True,
+            "human_verified":verified,
         })
     out.sort(key=lambda item:(item["semantic_label"],item["map_offset"]))
     return out
