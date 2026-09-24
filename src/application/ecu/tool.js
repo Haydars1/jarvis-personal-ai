@@ -80,6 +80,17 @@ async function startOperation(core,req,env,ctx,fileId,operation){
   return (await jobRes.json())?.job||null;
 }
 
+async function startComposite(core,req,env,ctx,fileId,operations){
+  const jobHeaders=new Headers(req.headers);jobHeaders.set('content-type','application/json');
+  const jobRes=await core.fetch(new Request(new URL('/api/ecu/jobs/composite',req.url),{
+    method:'POST',
+    headers:jobHeaders,
+    body:JSON.stringify({fileId,operations}),
+  }),env,ctx);
+  if(!jobRes.ok)return null;
+  return (await jobRes.json())?.job||null;
+}
+
 async function readJson(core,url,req,env,ctx){
   const r=await core.fetch(new Request(new URL(url,req.url),{method:'GET',headers:req.headers}),env,ctx);
   if(!r.ok)return null;
@@ -142,15 +153,19 @@ export function createEcuChatTool(core){
         const requested=requestedOperations(text);
         const file=await uploadBinary(core,req,env,ctx,attachment);
         if(!file?.id)return json(chatPayload(text,'ECU Brain dosyayı depolama alanına alamadı.'));
-        const started=[];
-        for(const service of requested){
-          const job=await startOperation(core,req,env,ctx,file.id,service.operation);
-          started.push({service,job});
+
+        if(requested.length>1){
+          const job=await startComposite(core,req,env,ctx,file.id,requested.map(item=>item.operation));
+          if(!job)return json(chatPayload(text,'Seçilen ECU işlemleri tek MOD işi olarak başlatılamadı.'));
+          const labels=requested.map(item=>item.label).join(' + ');
+          const reply=`ORI dosyası ECU Brain'e alındı. Tek MOD işi oluşturuldu: ${labels}. Durum: ${job.state||'QUEUED'} (${job.id||'job'}). Tüm işlemler sırayla aynı dosyaya uygulanıp checksum doğrulaması geçerse tek READY MOD üretilecek.`;
+          return json(chatPayload(text,reply));
         }
-        const failed=started.filter(item=>!item.job);
-        const lines=started.filter(item=>item.job).map(item=>`${item.service.label}: ${item.job.state||'QUEUED'} (${item.job.id||'job'})`);
-        if(failed.length)lines.push('Başlatılamayan: '+failed.map(item=>item.service.label).join(', '));
-        const reply=`ORI dosyası ECU Brain'e alındı. ${lines.join(' • ')}. Her işlem ECU/HW/SW eşleşen doğrulanmış rulepack ve checksum geçerse READY MOD üretir.`;
+
+        const service=requested[0];
+        const job=await startOperation(core,req,env,ctx,file.id,service.operation);
+        if(!job)return json(chatPayload(text,`${service.label} işi başlatılamadı.`));
+        const reply=`ORI dosyası ECU Brain'e alındı. ${service.label}: ${job.state||'QUEUED'} (${job.id||'job'}). ECU/HW/SW eşleşen doğrulanmış rulepack ve checksum geçerse READY MOD üretir.`;
         return json(chatPayload(text,reply));
       }
       if(!text||!isEcuText(text))return core.fetch(req,env,ctx);
