@@ -160,13 +160,24 @@ def test_worker_fetches_promoted_semantic_model_before_analysis():
 class RulepackAwareClient(FakeClient):
     async def get(self, url, headers=None):
         self.calls.append(("GET", url, headers))
-        if "/api/ecu/internal/rulepack?" in url:
+        if "/api/ecu/internal/rulepack-candidates?" in url:
             return FakeResponse(200, json_data={
-                "rulepack":{
+                "candidates":[{
                     "version":"rules-verified-1",
-                    "rules":{"__patches":[{"offset":0,"beforeHex":"42","afterHex":"43","evidencePairs":5}]}
-                }
+                    "matchTier":"EXACT_SW",
+                    "portable":False,
+                    "rules":{"__patches":[{
+                        "offset":0,
+                        "beforeHex":"42",
+                        "afterHex":"43",
+                        "contextBeforeHex":"",
+                        "contextAfterHex":"4f534348",
+                        "evidencePairs":5,
+                    }]}
+                }]
             })
+        if "/api/ecu/internal/checksum-profile?" in url:
+            return FakeResponse(404, json_data={})
         return FakeResponse(200, self.artifact)
 
 
@@ -184,7 +195,7 @@ def test_service_job_fetches_matching_rulepack_after_fingerprint():
     result=asyncio.run(process_dispatched_job(job,"secret",client=client))
 
     urls=[call[1] for call in client.calls if call[0]=="GET"]
-    assert any("/api/ecu/internal/rulepack?" in url for url in urls)
+    assert any("/api/ecu/internal/rulepack-candidates?" in url for url in urls)
     assert result.ecu_family=="EDC17C46"
     assert result.proposal is not None
     assert result.proposal["operation_label"]=="egr_off"
