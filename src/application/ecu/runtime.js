@@ -72,6 +72,35 @@ async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw=''
   };
 }
 
+async function defaultChecksumProfileForIdentity(env,{ecuFamily='',hw='',sw=''}) {
+  const row=await env.DB.prepare(`SELECT id,ecu_family,hw,sw,algorithm,data_start,data_end,checksum_offset,checksum_size,endian,zero_field,verified_pairs
+    FROM ecu_checksum_profiles
+    WHERE state='PRODUCTION' AND verified=1
+      AND (ecu_family='' OR ecu_family=?)
+      AND (hw='' OR hw=?)
+      AND (sw='' OR sw=?)
+    ORDER BY
+      CASE WHEN sw<>'' THEN 3 WHEN hw<>'' THEN 2 WHEN ecu_family<>'' THEN 1 ELSE 0 END DESC,
+      verified_pairs DESC,promoted_at DESC,created_at DESC
+    LIMIT 1`)
+    .bind(String(ecuFamily||''),String(hw||''),String(sw||'')).first();
+  if(!row?.id)return null;
+  return {
+    id:row.id,
+    ecuFamily:row.ecu_family||'',
+    hw:row.hw||'',
+    sw:row.sw||'',
+    algorithm:row.algorithm,
+    data_start:Number(row.data_start),
+    data_end:Number(row.data_end),
+    checksum_offset:Number(row.checksum_offset),
+    checksum_size:Number(row.checksum_size),
+    endian:row.endian||'big',
+    zero_field:Boolean(row.zero_field),
+    verifiedPairs:Number(row.verified_pairs||0),
+  };
+}
+
 async function sha256Text(value) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
   return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -970,6 +999,7 @@ export function createEcuRuntime(core, overrides = {}) {
     getValidatedMod: defaultGetValidatedMod,
     readOriginal: defaultReadOriginal,
     rulepackForIdentity: defaultRulepackForIdentity,
+    checksumProfileForIdentity: defaultChecksumProfileForIdentity,
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
     applyWorkerResult: defaultApplyWorkerResult,
@@ -1007,6 +1037,15 @@ export function createEcuRuntime(core, overrides = {}) {
         if(!operationLabel)return json({error:'ECU_OPERATION_LABEL_REQUIRED'},400);
         const rulepack=await deps.rulepackForIdentity(env,{operationLabel,ecuFamily,hw,sw});
         return rulepack?json({rulepack}):json({error:'ECU_RULEPACK_NOT_FOUND'},404);
+      }
+
+      if (url.pathname === '/api/ecu/internal/checksum-profile' && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const ecuFamily=String(url.searchParams.get('ecuFamily')||'').trim();
+        const hw=String(url.searchParams.get('hw')||'').trim();
+        const sw=String(url.searchParams.get('sw')||'').trim();
+        const profile=await deps.checksumProfileForIdentity(env,{ecuFamily,hw,sw});
+        return profile?json({profile}):json({error:'ECU_CHECKSUM_PROFILE_NOT_FOUND'},404);
       }
 
       if (url.pathname.startsWith('/api/ecu/internal/models/') && req.method === 'GET') {
