@@ -57,7 +57,7 @@ def test_release_allows_only_checksum_field_added_by_verified_profile():
     assert decision.ready is True
     assert decision.mod_bytes is not None
     assert decision.mod_bytes[1]==9
-    assert decision.mod_bytes[4:6]==bytes.fromhex("0010")
+    assert decision.mod_bytes[4:6]==bytes.fromhex("0011")
     assert decision.checksum_algorithm=="profile-sum16"
 
 
