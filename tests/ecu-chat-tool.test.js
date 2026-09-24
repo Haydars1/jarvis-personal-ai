@@ -54,8 +54,8 @@ test('returns latest ECU job when asked for analysis status',async()=>{
 });
 
 
-test('routes multiple ECU service requests from chat attachment into separate jobs',async()=>{
-  const operations=[];
+test('routes multiple ECU service requests from chat attachment into one composite job',async()=>{
+  const calls=[];
   const req=new Request('https://jarvis.test/api/chat/send',{
     method:'POST',
     headers:{'content-type':'application/json'},
@@ -69,10 +69,10 @@ test('routes multiple ECU service requests from chat attachment into separate jo
     if(url.pathname==='/api/ecu/files'){
       return Response.json({file:{id:'file-1'}},{status:201});
     }
-    if(url.pathname==='/api/ecu/jobs'){
+    if(url.pathname==='/api/ecu/jobs/composite'){
       const body=await request.json();
-      operations.push(body.operation);
-      return Response.json({job:{id:'job-'+operations.length,state:'QUEUED',operation:body.operation}},{status:202});
+      calls.push(body);
+      return Response.json({job:{id:'job-composite',state:'QUEUED',operation:'multi_service_proposal'}},{status:202});
     }
     return new Response('delegate',{status:299});
   }};
@@ -80,11 +80,14 @@ test('routes multiple ECU service requests from chat attachment into separate jo
   const response=await tool.fetch(req,{},{});
   assert.equal(response.status,200);
   const body=await response.json();
-  assert.deepEqual(operations,['egr_off_proposal','dpf_off_proposal']);
-  assert.match(body.reply,/EGR OFF: QUEUED/);
-  assert.match(body.reply,/DPF OFF: QUEUED/);
+  assert.deepEqual(calls,[{
+    fileId:'file-1',
+    operations:['egr_off_proposal','dpf_off_proposal'],
+  }]);
+  assert.match(body.reply,/Tek MOD işi oluşturuldu/);
+  assert.match(body.reply,/EGR OFF \+ DPF OFF/);
+  assert.match(body.reply,/job-composite/);
 });
-
 
 test('teaches ORI MOD pair directly from two chat attachments',async()=>{
   const calls=[];
