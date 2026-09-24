@@ -35,6 +35,8 @@ struct EcuResearchCounts: Decodable {
     let verified_claims: Int?
     let github_sources: Int?
     let github_high_trust_sources: Int?
+    let github_repositories: Int?
+    let github_reusable_repositories: Int?
 }
 
 struct EcuResearchStatus: Decodable {
