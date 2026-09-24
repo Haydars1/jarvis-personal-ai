@@ -901,8 +901,9 @@ test('knowledge gap research is rate limited per ECU operation',async()=>{
         async run(){
           if(sql.startsWith('INSERT INTO ecu_research_gaps')){
             gapRow={
-              last_researched_at:this.args[5],
-              attempts:this.args[6],
+              state:this.args[5],
+              last_researched_at:this.args[7],
+              attempts:this.args[8],
             };
           }
           return {success:true};
