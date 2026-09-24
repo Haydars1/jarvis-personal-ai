@@ -5,16 +5,16 @@ struct EcuServiceOption: Identifiable, Hashable {
     let id: String
     let title: String
     let subtitle: String
-    let executable: Bool
+    let operation: String
 
     static let all: [EcuServiceOption] = [
-        .init(id: "stage1", title: "Stage 1", subtitle: "Doğrulanmış map + checksum ile performans dosyası", executable: true),
-        .init(id: "dtc_off", title: "DTC OFF", subtitle: "DTC kapsam/uyumluluk analizi", executable: false),
-        .init(id: "egr_off", title: "EGR OFF", subtitle: "EGR sistem/uyumluluk analizi", executable: false),
-        .init(id: "dpf_off", title: "DPF OFF", subtitle: "DPF sistem/uyumluluk analizi", executable: false),
-        .init(id: "adblue_off", title: "AdBlue / SCR OFF", subtitle: "SCR/AdBlue sistem analizi", executable: false),
-        .init(id: "vmax_off", title: "VMAX OFF", subtitle: "Hız limiti harita tespiti", executable: false),
-        .init(id: "startstop_off", title: "Start/Stop OFF", subtitle: "Start/Stop kodlama uyumluluk analizi", executable: false),
+        .init(id: "stage1", title: "Stage 1", subtitle: "Doğrulanmış map/rulepack ile performans MOD", operation: "stage1_proposal"),
+        .init(id: "dtc_off", title: "DTC OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "dtc_off_proposal"),
+        .init(id: "egr_off", title: "EGR OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "egr_off_proposal"),
+        .init(id: "dpf_off", title: "DPF OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "dpf_off_proposal"),
+        .init(id: "adblue_off", title: "AdBlue / SCR OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "adblue_off_proposal"),
+        .init(id: "vmax_off", title: "VMAX OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "vmax_off_proposal"),
+        .init(id: "startstop_off", title: "Start/Stop OFF", subtitle: "Doğrulanmış ECU/HW/SW patch rulepack", operation: "startstop_off_proposal"),
     ]
 }
 
@@ -65,17 +65,15 @@ struct EcuBrainView: View {
                                     Text(option.subtitle).font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                if !option.executable {
-                                    Text("Analiz")
-                                        .font(.caption2.weight(.semibold))
-                                        .padding(.horizontal, 7).padding(.vertical, 4)
-                                        .background(.secondary.opacity(0.12), in: Capsule())
-                                }
+                                Text("MOD")
+                                    .font(.caption2.weight(.semibold))
+                                    .padding(.horizontal, 7).padding(.vertical, 4)
+                                    .background(.secondary.opacity(0.12), in: Capsule())
                             }
                         }
                         .buttonStyle(.plain)
                     }
-                    Text("Stage 1 doğrulanmış map/rulepack/checksum ile MOD üretebilir. Diğer seçenekler şu an tespit/uyumluluk analizi olarak gösterilir; doğrudan emisyon veya arıza kodu devre dışı bırakma dosyası üretmez.")
+                    Text("Seçilen işlemler ECU ailesi + HW/SW eşleşen doğrulanmış rulepack ile çalışır. Eşleşme veya checksum doğrulaması yoksa sistem READY MOD üretmez.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -249,19 +247,14 @@ struct EcuBrainView: View {
     @MainActor
     private func runSelected(_ fileId: String) async {
         var notes: [String] = []
-        if selectedServices.contains("stage1") {
+        let selected = EcuServiceOption.all.filter { selectedServices.contains($0.id) }
+        for option in selected {
             do {
-                let job = try await api.stage1Preview(fileId: fileId)
-                notes.append("Stage 1: \(job.state)")
+                let job = try await api.runOperation(fileId: fileId, operation: option.operation)
+                notes.append("\(option.title): \(job.state)")
             } catch {
-                notes.append("Stage 1: \(error.localizedDescription)")
+                notes.append("\(option.title): \(error.localizedDescription)")
             }
-        }
-        let analysisOnly = EcuServiceOption.all
-            .filter { selectedServices.contains($0.id) && !$0.executable }
-            .map(\.title)
-        if !analysisOnly.isEmpty {
-            notes.append("Analiz seçildi: " + analysisOnly.joined(separator: ", "))
         }
         message = notes.isEmpty ? "İşlem seçilmedi" : notes.joined(separator: " • ")
         await refresh()
