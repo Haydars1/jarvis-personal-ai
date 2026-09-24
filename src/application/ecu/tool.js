@@ -10,13 +10,13 @@ async function readText(req){
   return String(body?.text||'').trim();
 }
 const SERVICE_DEFINITIONS=Object.freeze([
-  {label:'Stage 1',operation:'stage1_proposal',match:/\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap|performans.*yap/i},
-  {label:'DTC OFF',operation:'dtc_off_proposal',match:/\bdtc\s*(off|sil|kapat)|arıza\s*kod.*(kapat|sil)/i},
-  {label:'EGR OFF',operation:'egr_off_proposal',match:/\begr\s*(off|kapat|iptal)/i},
-  {label:'DPF OFF',operation:'dpf_off_proposal',match:/\bdpf\s*(off|kapat|iptal)/i},
-  {label:'AdBlue / SCR OFF',operation:'adblue_off_proposal',match:/\b(adblue|scr)\s*(off|kapat|iptal)/i},
-  {label:'VMAX OFF',operation:'vmax_off_proposal',match:/\bvmax\s*(off|kapat|iptal)|hız\s*limit.*(kapat|iptal)/i},
-  {label:'Start/Stop OFF',operation:'startstop_off_proposal',match:/start\s*[/&-]?\s*stop\s*(off|kapat|iptal)/i},
+  {id:'stage1',label:'Stage 1',operation:'stage1_proposal',match:/\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap|performans.*yap/i},
+  {id:'dtc_off',label:'DTC OFF',operation:'dtc_off_proposal',match:/\bdtc\s*(off|sil|kapat)|arıza\s*kod.*(kapat|sil)/i},
+  {id:'egr_off',label:'EGR OFF',operation:'egr_off_proposal',match:/\begr\s*(off|kapat|iptal)/i},
+  {id:'dpf_off',label:'DPF OFF',operation:'dpf_off_proposal',match:/\bdpf\s*(off|kapat|iptal)/i},
+  {id:'adblue_off',label:'AdBlue / SCR OFF',operation:'adblue_off_proposal',match:/\b(adblue|scr)\s*(off|kapat|iptal)/i},
+  {id:'vmax_off',label:'VMAX OFF',operation:'vmax_off_proposal',match:/\bvmax\s*(off|kapat|iptal)|hız\s*limit.*(kapat|iptal)/i},
+  {id:'startstop_off',label:'Start/Stop OFF',operation:'startstop_off_proposal',match:/start\s*[/&-]?\s*stop\s*(off|kapat|iptal)/i},
 ]);
 
 function requestedOperations(text=''){
@@ -29,8 +29,22 @@ function requestedOperations(text=''){
 function tuningIntent(text=''){
   return requestedOperations(text).length>0;
 }
+function binaryAttachments(body={}){
+  return (Array.isArray(body.attachments)?body.attachments:[]).filter(file=>/\.bin$/i.test(String(file?.name||''))||/octet-stream|macbinary/i.test(String(file?.type||'')));
+}
 function binaryAttachment(body={}){
-  return (Array.isArray(body.attachments)?body.attachments:[]).find(file=>/\.bin$/i.test(String(file?.name||''))||/octet-stream|macbinary/i.test(String(file?.type||'')));
+  return binaryAttachments(body)[0];
+}
+function teachingIntent(text=''){
+  return /öğret|öğren|eğit|train|training|ori\s*[-+/ ]\s*mod|ori.*mod.*(karşılaştır|compare|referans)|referans.*(ori|mod)/i.test(String(text||''));
+}
+function orderTrainingPair(files=[]){
+  const list=[...files].slice(0,2);
+  if(list.length<2)return null;
+  const oriIndex=list.findIndex(file=>/(^|[^a-z])(ori|original|stock)([^a-z]|$)/i.test(String(file?.name||'')));
+  const modIndex=list.findIndex(file=>/(^|[^a-z])(mod|tuned|stage|modified)([^a-z]|$)/i.test(String(file?.name||'')));
+  if(oriIndex>=0&&modIndex>=0&&oriIndex!==modIndex)return {ori:list[oriIndex],mod:list[modIndex]};
+  return {ori:list[0],mod:list[1]};
 }
 function b64Bytes(value=''){
   const raw=atob(String(value||''));const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes;
@@ -44,6 +58,17 @@ async function uploadBinary(core,req,env,ctx,attachment){
   if(!upload.ok)return null;
   const uploaded=await upload.json();
   return uploaded?.file||null;
+}
+
+async function createTrainingPair(core,req,env,ctx,oriFileId,modFileId,operationLabel){
+  const headers=new Headers(req.headers);headers.set('content-type','application/json');
+  const response=await core.fetch(new Request(new URL('/api/ecu/training/pairs',req.url),{
+    method:'POST',
+    headers,
+    body:JSON.stringify({oriFileId,modFileId,operationLabel}),
+  }),env,ctx);
+  if(!response.ok)return null;
+  return (await response.json())?.pair||null;
 }
 
 async function startOperation(core,req,env,ctx,fileId,operation){
@@ -96,7 +121,23 @@ export function createEcuChatTool(core){
       if(url.pathname!=='/api/chat/send'||req.method!=='POST')return core.fetch(req,env,ctx);
       const body=await readBody(req);
       const text=String(body?.text||'').trim();
-      const attachment=binaryAttachment(body);
+      const attachments=binaryAttachments(body);
+      const attachment=attachments[0];
+
+      if(teachingIntent(text)&&attachments.length>=2){
+        const requested=requestedOperations(text);
+        const service=requested[0]||SERVICE_DEFINITIONS[0];
+        const pairFiles=orderTrainingPair(attachments);
+        const ori=await uploadBinary(core,req,env,ctx,pairFiles.ori);
+        const mod=await uploadBinary(core,req,env,ctx,pairFiles.mod);
+        if(!ori?.id||!mod?.id)return json(chatPayload(text,'ORI/MOD dosyalarından biri ECU Brain depolamasına alınamadı.'));
+        const pair=await createTrainingPair(core,req,env,ctx,ori.id,mod.id,service.id);
+        if(!pair)return json(chatPayload(text,'ORI/MOD öğrenme çifti oluşturulamadı.'));
+        const cached=pair.cached?' Daha önce aynı çift işlendi; tekrar kanıt sayılmadı.':'';
+        const reply=`ORI + MOD öğrenme çifti alındı. İşlem: ${service.label}. Durum: ${pair.state||'QUEUED'} (${pair.id||'pair'}).${cached} ECU/HW/SW parmak izi, byte değişimleri, checksum kanıtı ve doğrulanmış değişim örüntüleri öğrenme havuzuna işlenecek.`;
+        return json(chatPayload(text,reply));
+      }
+
       if(tuningIntent(text)&&attachment){
         const requested=requestedOperations(text);
         const file=await uploadBinary(core,req,env,ctx,attachment);
