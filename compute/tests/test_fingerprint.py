@@ -47,3 +47,29 @@ def test_recognizes_common_ecu_family_markers():
         assert result.ecu_family == family
         assert result.supported is True
         assert result.confidence >= 0.9
+
+
+def test_scored_fingerprint_supports_more_ecu_families():
+    from ecu_worker.fingerprint import fingerprint_binary
+
+    cases = [
+        (b"BOSCH MEDC17.9.8 HW:12345678 SW:87654321", "MEDC17.9.8"),
+        (b"BOSCH EDC15P HW:12345678 SW:87654321", "EDC15P"),
+        (b"BOSCH ME7.5 HW:12345678 SW:87654321", "ME7.5"),
+        (b"SIEMENS SIMOS18.1 HW:12345678 SW:87654321", "SIMOS18.1"),
+        (b"MARELLI MJD6JF HW:12345678 SW:87654321", "MJD6JF"),
+        (b"DENSO SH7058 HW:12345678 SW:87654321", "SH7058"),
+    ]
+    for payload, family in cases:
+        result = fingerprint_binary(payload)
+        assert result.ecu_family == family
+        assert result.supported is True
+        assert result.confidence >= 0.9
+
+
+def test_fingerprint_records_missing_expected_vendor_as_evidence():
+    from ecu_worker.fingerprint import fingerprint_binary
+    result=fingerprint_binary(b"EDC17C46 HW:12345678 SW:87654321")
+    assert result.ecu_family=="EDC17C46"
+    assert result.supported is True
+    assert any("vendor marker missing" in item for item in result.evidence)
