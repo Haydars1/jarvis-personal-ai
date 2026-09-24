@@ -1,6 +1,23 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+struct EcuServiceOption: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let executable: Bool
+
+    static let all: [EcuServiceOption] = [
+        .init(id: "stage1", title: "Stage 1", subtitle: "Doğrulanmış map + checksum ile performans dosyası", executable: true),
+        .init(id: "dtc_off", title: "DTC OFF", subtitle: "DTC kapsam/uyumluluk analizi", executable: false),
+        .init(id: "egr_off", title: "EGR OFF", subtitle: "EGR sistem/uyumluluk analizi", executable: false),
+        .init(id: "dpf_off", title: "DPF OFF", subtitle: "DPF sistem/uyumluluk analizi", executable: false),
+        .init(id: "adblue_off", title: "AdBlue / SCR OFF", subtitle: "SCR/AdBlue sistem analizi", executable: false),
+        .init(id: "vmax_off", title: "VMAX OFF", subtitle: "Hız limiti harita tespiti", executable: false),
+        .init(id: "startstop_off", title: "Start/Stop OFF", subtitle: "Start/Stop kodlama uyumluluk analizi", executable: false),
+    ]
+}
+
 struct EcuBrainView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showImporter = false
@@ -12,6 +29,7 @@ struct EcuBrainView: View {
     @State private var message = ""
     @State private var loading = false
     @State private var modURL: URL?
+    @State private var selectedServices: Set<String> = ["stage1"]
     private let api = EcuBrainAPI()
 
     var body: some View {
@@ -28,6 +46,38 @@ struct EcuBrainView: View {
                     LabeledContent("Doğrulanmış örnek", value: training.map { "\($0.verifiedExamples)/\($0.minVerifiedExamples)" } ?? "—")
                     LabeledContent("Aktif model", value: training?.productionModel?.version ?? "baseline")
                     LabeledContent("Rulepack", value: rulepackLabel)
+                }
+
+                Section("İşlemler") {
+                    ForEach(EcuServiceOption.all) { option in
+                        Button {
+                            if selectedServices.contains(option.id) {
+                                selectedServices.remove(option.id)
+                            } else {
+                                selectedServices.insert(option.id)
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: selectedServices.contains(option.id) ? "checkmark.square.fill" : "square")
+                                    .font(.title3)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.title).fontWeight(.semibold)
+                                    Text(option.subtitle).font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                if !option.executable {
+                                    Text("Analiz")
+                                        .font(.caption2.weight(.semibold))
+                                        .padding(.horizontal, 7).padding(.vertical, 4)
+                                        .background(.secondary.opacity(0.12), in: Capsule())
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Text("Stage 1 doğrulanmış map/rulepack/checksum ile MOD üretebilir. Diğer seçenekler şu an tespit/uyumluluk analizi olarak gösterilir; doğrudan emisyon veya arıza kodu devre dışı bırakma dosyası üretmez.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section {
@@ -70,8 +120,8 @@ struct EcuBrainView: View {
                                 }
                             }
                             if let fileId = job.fileId {
-                                Button("Stage1 Çalıştır") {
-                                    Task { await stage1Preview(fileId) }
+                                Button("Seçili İşlemleri Çalıştır") {
+                                    Task { await runSelected(fileId) }
                                 }
                                 .buttonStyle(.bordered)
                             }
@@ -194,6 +244,27 @@ struct EcuBrainView: View {
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func runSelected(_ fileId: String) async {
+        var notes: [String] = []
+        if selectedServices.contains("stage1") {
+            do {
+                let job = try await api.stage1Preview(fileId: fileId)
+                notes.append("Stage 1: \(job.state)")
+            } catch {
+                notes.append("Stage 1: \(error.localizedDescription)")
+            }
+        }
+        let analysisOnly = EcuServiceOption.all
+            .filter { selectedServices.contains($0.id) && !$0.executable }
+            .map(\.title)
+        if !analysisOnly.isEmpty {
+            notes.append("Analiz seçildi: " + analysisOnly.joined(separator: ", "))
+        }
+        message = notes.isEmpty ? "İşlem seçilmedi" : notes.joined(separator: " • ")
+        await refresh()
     }
 
     @MainActor

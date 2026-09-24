@@ -39,3 +39,14 @@ test('ECU native UI exposes Stage1 mutation status and validated MOD download', 
   assert.match(ecuApi, /\/api\/ecu\/jobs\/.*\/mod/);
   assert.match(ecuApi, /downloadMod\(jobId:/);
 });
+
+
+test('ECU service selector exposes site-style operation choices', () => {
+  assert.match(ecuView, /DTC OFF/);
+  assert.match(ecuView, /EGR OFF/);
+  assert.match(ecuView, /DPF OFF/);
+  assert.match(ecuView, /AdBlue \/ SCR OFF/);
+  assert.match(ecuView, /VMAX OFF/);
+  assert.match(ecuView, /Start\/Stop OFF/);
+  assert.match(ecuView, /Seçili İşlemleri Çalıştır/);
+});
