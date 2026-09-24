@@ -4,7 +4,7 @@ from dataclasses import asdict
 from typing import Any
 
 from .contracts import PairJobInput
-from .diff import diff_bytes, extract_patch_chunks, link_ranges_to_maps, measure_verified_map_deltas
+from .diff import diff_bytes, discover_simple_checksum_profiles, extract_patch_chunks, link_ranges_to_maps, measure_verified_map_deltas
 from .fingerprint import fingerprint_binary
 
 
@@ -58,6 +58,7 @@ async def process_pair_job(
         linked_ranges=link_ranges_to_maps(report,normalized_maps)
         map_delta_evidence=measure_verified_map_deltas(ori_bytes,mod_bytes,normalized_maps)
         patch_chunks=extract_patch_chunks(ori_bytes,mod_bytes,report)
+        checksum_candidates=discover_simple_checksum_profiles(ori_bytes,mod_bytes,report)
         payload={
             "status":"COMPLETE",
             "operation_label":job.operation_label,
@@ -73,6 +74,7 @@ async def process_pair_job(
                 "linked_ranges":linked_ranges,
                 "map_delta_evidence":map_delta_evidence,
                 "patch_chunks":patch_chunks,
+                "checksum_candidates":checksum_candidates,
                 "digest":report.digest,
             },
             "paid_api_used":False,
