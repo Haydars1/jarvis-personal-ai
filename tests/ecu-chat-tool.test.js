@@ -84,3 +84,77 @@ test('routes multiple ECU service requests from chat attachment into separate jo
   assert.match(body.reply,/EGR OFF: QUEUED/);
   assert.match(body.reply,/DPF OFF: QUEUED/);
 });
+
+
+test('teaches ORI MOD pair directly from two chat attachments',async()=>{
+  const calls=[];
+  const req=new Request('https://jarvis.test/api/chat/send',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      text:'Bu ORI ve MOD dosyasından EGR off öğren',
+      attachments:[
+        {name:'car_ORI.bin',type:'application/octet-stream',base64:'AAECAwQ='},
+        {name:'car_MOD.bin',type:'application/octet-stream',base64:'AAEJAwQ='},
+      ]
+    })
+  });
+  let uploadIndex=0;
+  const core={async fetch(request){
+    const url=new URL(request.url);
+    if(url.pathname==='/api/ecu/files'){
+      uploadIndex+=1;
+      calls.push(['upload',request.headers.get('x-ecu-filename')]);
+      return Response.json({file:{id:'file-'+uploadIndex}},{status:201});
+    }
+    if(url.pathname==='/api/ecu/training/pairs'){
+      const body=await request.json();
+      calls.push(['pair',body]);
+      return Response.json({pair:{id:'pair-1',state:'DISPATCHED',operationLabel:body.operationLabel}},{status:202});
+    }
+    return new Response('delegate',{status:299});
+  }};
+  const tool=createEcuChatTool(core);
+  const response=await tool.fetch(req,{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  const pairCall=calls.find(item=>item[0]==='pair');
+  assert.deepEqual(pairCall[1],{
+    oriFileId:'file-1',
+    modFileId:'file-2',
+    operationLabel:'egr_off',
+  });
+  assert.match(body.reply,/ORI \+ MOD öğrenme çifti alındı/);
+  assert.match(body.reply,/EGR OFF/);
+});
+
+
+test('does not amplify evidence when backend reports cached ORI MOD pair',async()=>{
+  const req=new Request('https://jarvis.test/api/chat/send',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      text:'Stage 1 için bu ORI MOD çiftini öğret',
+      attachments:[
+        {name:'stock.bin',type:'application/octet-stream',base64:'AAECAwQ='},
+        {name:'stage1.bin',type:'application/octet-stream',base64:'AAEJAwQ='},
+      ]
+    })
+  });
+  let uploads=0;
+  const core={async fetch(request){
+    const url=new URL(request.url);
+    if(url.pathname==='/api/ecu/files'){
+      uploads+=1;
+      return Response.json({file:{id:'file-'+uploads}},{status:201});
+    }
+    if(url.pathname==='/api/ecu/training/pairs'){
+      return Response.json({pair:{id:'pair-old',state:'COMPLETE',cached:true}},{status:202});
+    }
+    return new Response('delegate',{status:299});
+  }};
+  const tool=createEcuChatTool(core);
+  const response=await tool.fetch(req,{},{});
+  const body=await response.json();
+  assert.match(body.reply,/tekrar kanıt sayılmadı/);
+});
