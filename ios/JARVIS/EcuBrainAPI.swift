@@ -248,6 +248,16 @@ final class EcuBrainAPI {
         return try decoder.decode(ResponseBody.self, from: payload).job
     }
 
+    func runComposite(fileId: String, operations: [String]) async throws -> EcuJob {
+        let body = try JSONSerialization.data(withJSONObject: [
+            "fileId": fileId,
+            "operations": operations,
+        ])
+        let payload = try await request("/api/ecu/jobs/composite", method: "POST", body: body, headers: ["Content-Type":"application/json"])
+        struct ResponseBody: Decodable { let job: EcuJob }
+        return try decoder.decode(ResponseBody.self, from: payload).job
+    }
+
     func stage1Preview(fileId: String) async throws -> EcuJob {
         try await runOperation(fileId: fileId, operation: "stage1_proposal")
     }
