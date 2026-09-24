@@ -153,3 +153,55 @@ def test_checksum_discovery_rejects_unverified_changed_field():
     ori=bytes([1,2,3,4,0x12,0x34])
     mod=bytes([9,2,3,4,0x56,0x78])
     assert discover_simple_checksum_profiles(ori,mod)==[]
+
+
+def test_discovers_aligned_block_checksum_profile():
+    from ecu_worker.diff import discover_simple_checksum_profiles
+
+    size=8192
+    checksum_offset=8190
+    ori=bytearray(size)
+    mod=bytearray(size)
+    for index in range(4096,checksum_offset):
+        value=(index*7) & 0xFF
+        ori[index]=value
+        mod[index]=value
+    mod[5000]=(mod[5000]+17) & 0xFF
+
+    ori_sum=sum(ori[4096:checksum_offset]) & 0xFFFF
+    mod_sum=sum(mod[4096:checksum_offset]) & 0xFFFF
+    ori[checksum_offset:checksum_offset+2]=ori_sum.to_bytes(2,"big")
+    mod[checksum_offset:checksum_offset+2]=mod_sum.to_bytes(2,"big")
+
+    candidates=discover_simple_checksum_profiles(bytes(ori),bytes(mod))
+    assert {
+        "algorithm":"sum16",
+        "data_start":4096,
+        "data_end":8192,
+        "checksum_offset":checksum_offset,
+        "checksum_size":2,
+        "endian":"big",
+        "zero_field":True,
+    } in candidates
+
+
+def test_aligned_block_checksum_requires_both_ori_and_mod_to_validate():
+    from ecu_worker.diff import discover_simple_checksum_profiles
+
+    size=8192
+    checksum_offset=8190
+    ori=bytearray(size)
+    mod=bytearray(size)
+    ori[4096:checksum_offset]=bytes([1])*(checksum_offset-4096)
+    mod[4096:checksum_offset]=bytes([1])*(checksum_offset-4096)
+    mod[5000]=2
+    ori_sum=sum(ori[4096:checksum_offset]) & 0xFFFF
+    ori[checksum_offset:checksum_offset+2]=ori_sum.to_bytes(2,"big")
+    mod[checksum_offset:checksum_offset+2]=(0xBEEF).to_bytes(2,"big")
+
+    candidates=discover_simple_checksum_profiles(bytes(ori),bytes(mod))
+    assert not any(
+        item["data_start"]==4096 and item["data_end"]==8192
+        and item["checksum_offset"]==checksum_offset
+        for item in candidates
+    )
