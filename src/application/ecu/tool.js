@@ -49,6 +49,13 @@ function orderTrainingPair(files=[]){
 function b64Bytes(value=''){
   const raw=atob(String(value||''));const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes;
 }
+async function analyzeBinary(core,req,env,ctx,attachment){
+  const bytes=b64Bytes(attachment.base64||'');
+  const headers=new Headers(req.headers); headers.set('content-type',attachment.type||'application/octet-stream'); headers.set('x-ecu-filename',encodeURIComponent(String(attachment.name||'original.bin')));
+  const response=await core.fetch(new Request(new URL('/api/ecu/analyze-file',req.url),{method:'POST',headers,body:bytes}),env,ctx);
+  if(!response.ok)return null; try{return await response.json();}catch{return null;}
+}
+
 async function uploadBinary(core,req,env,ctx,attachment){
   const bytes=b64Bytes(attachment.base64||'');
   const headers=new Headers(req.headers);
@@ -150,6 +157,15 @@ export function createEcuChatTool(core){
       const text=String(body?.text||'').trim();
       const attachments=binaryAttachments(body);
       const attachment=attachments[0];
+      const ecuChannel=String(body?.channel||'').toLowerCase()==='ecu';
+
+      if(ecuChannel&&attachment&&!teachingIntent(text)&&!tuningIntent(text)){
+        const analyzed=await analyzeBinary(core,req,env,ctx,attachment); const job=analyzed?.job; const file=analyzed?.file;
+        if(!job||!file?.id)return json(chatPayload(text,'ECU Brain BIN dosyasını aldı ancak analiz işi başlatılamadı.'));
+        const family=job.result?.ecu_family||'tespit ediliyor',confidence=Math.round(Number(job.result?.confidence||0)*100),maps=Array.isArray(job.result?.map_candidates)?job.result.map_candidates.length:0;
+        const details=[`BIN dosyası ECU Brain'e alındı ve analiz başlatıldı.`,`Durum: ${job.state||'QUEUED'} (${job.id||'job'}).`,`ECU ailesi: ${family}.`,confidence?`Güven: %${confidence}.`:'',maps?`${maps} map adayı bulundu.`:'',`Dosya kimliği: ${file.id}.`,`Analiz ilerledikçe bu ECU sohbetinden sonucu ve hazır işlemleri sorabilirsin.`].filter(Boolean).join(' ');
+        return json(chatPayload(text,details));
+      }
 
       if(teachingIntent(text)&&attachments.length>=2){
         const requested=requestedOperations(text);
@@ -184,7 +200,7 @@ export function createEcuChatTool(core){
         const reply=`ORI dosyası ECU Brain'e alındı. ${service.label}: ${job.state||'QUEUED'} (${job.id||'job'}). ECU/HW/SW eşleşen doğrulanmış rulepack ve checksum geçerse READY MOD üretir.`;
         return json(chatPayload(text,reply));
       }
-      if(!text||!isEcuText(text))return core.fetch(req,env,ctx);
+      if(!text||(!ecuChannel&&!isEcuText(text)))return core.fetch(req,env,ctx);
 
       if(wantsServiceAvailability(text)){
         const jobs=await readJson(core,'/api/ecu/jobs?limit=1',req,env,ctx);

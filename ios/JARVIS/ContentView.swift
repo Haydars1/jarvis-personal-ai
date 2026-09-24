@@ -47,7 +47,7 @@ struct ContentView: View {
             SettingsView().environmentObject(state).presentationDetents([.large])
         }
         .sheet(isPresented: $showEcu) {
-            EcuBrainView().presentationDetents([.large])
+            EcuChatView().presentationDetents([.large])
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()

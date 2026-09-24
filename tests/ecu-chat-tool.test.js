@@ -217,3 +217,6 @@ test('service availability prompt asks for ECU file when no analysis exists',asy
   const body=await response.json();
   assert.match(body.reply,/Önce bir ECU\/BIN dosyası/);
 });
+
+
+test('ECU chat channel analyzes generic BIN directly',async()=>{const req=new Request('https://jarvis.test/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'Bu dosyayı incele ve sonucu ver',channel:'ecu',attachments:[{name:'car.bin',type:'application/octet-stream',base64:'AAECAwQ='}]})});const calls=[];const core={async fetch(r){const u=new URL(r.url);calls.push(u.pathname);if(u.pathname==='/api/ecu/analyze-file')return Response.json({file:{id:'file-ecu'},job:{id:'job-ecu',state:'QUEUED',result:{}}},{status:202});return new Response('delegate',{status:299})}};const response=await createEcuChatTool(core).fetch(req,{},{});const body=await response.json();assert.deepEqual(calls,['/api/ecu/analyze-file']);assert.match(body.reply,/analiz başlatıldı/i);assert.match(body.reply,/job-ecu/);assert.equal(body.provider,'JARVIS ECU Brain');});

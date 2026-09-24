@@ -15,7 +15,7 @@ test('native sidebar exposes ECU Brain like a first-class JARVIS area', () => {
   assert.match(contentView, /showSidebar/);
   assert.match(contentView, /Label\("ECU Brain"/);
   assert.match(contentView, /Yeni ECU dosyası/);
-  assert.match(contentView, /EcuBrainView\(\)/);
+  assert.match(contentView, /EcuChatView\\(\\)/);
 });
 
 test('ECU Brain uses the same universal picker and calls the ECU analysis endpoint', () => {
@@ -85,3 +85,6 @@ test('multi-selection creates one composite MOD job', () => {
   assert.match(ecuView, /operations: selected\.map\(\\\.operation\)/);
   assert.match(ecuView, /Tek MOD işi oluşturuldu/);
 });
+
+
+test('ECU sidebar opens dedicated ECU chat channel',()=>{const s=fs.readFileSync(new URL('../ios/JARVIS/EcuChatView.swift',import.meta.url),'utf8');const a=fs.readFileSync(new URL('../ios/JARVIS/JarvisAPI.swift',import.meta.url),'utf8');assert.match(contentView,/EcuChatView\(\)/);assert.match(s,/ECU Brain Sohbeti/);assert.match(s,/channel:"ecu"/);assert.match(a,/payload\["channel"\] = channel/);});

@@ -53,8 +53,9 @@ final class JarvisAPI {
         return try decoder.decode([ChatMessage].self, from: data)
     }
 
-    func send(text: String, attachments: [NativeAttachment] = []) async throws -> ChatResponse {
+    func send(text: String, attachments: [NativeAttachment] = [], channel: String? = nil) async throws -> ChatResponse {
         var payload: [String: Any] = ["text": text]
+        if let channel, !channel.isEmpty { payload["channel"] = channel }
         if !attachments.isEmpty {
             payload["attachments"] = attachments.map {
                 ["name": $0.name, "type": $0.mimeType, "base64": $0.data.base64EncodedString()]
