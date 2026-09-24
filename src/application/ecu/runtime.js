@@ -177,6 +177,19 @@ async function defaultCreatePair(env,{oriFileId,modFileId,operationLabel,callbac
     mod:mod.sha256,
     operationLabel,
   }));
+  const existing=await env.DB.prepare('SELECT id,operation_label,state,run_fingerprint,worker_kind,created_at,updated_at FROM ecu_training_pairs WHERE run_fingerprint=? LIMIT 1').bind(runFingerprint).first();
+  if(existing){
+    return {
+      id:existing.id,
+      state:existing.state,
+      operationLabel:existing.operation_label,
+      runFingerprint:existing.run_fingerprint,
+      workerKind:existing.worker_kind||null,
+      cached:true,
+      createdAt:existing.created_at,
+      updatedAt:existing.updated_at,
+    };
+  }
   const identity=await fileIdentity(env,oriFileId);
   await env.DB.prepare(`INSERT INTO ecu_training_pairs(
     id,ori_file_id,mod_file_id,operation_label,ecu_family,hw,sw,state,run_fingerprint,created_at,updated_at
