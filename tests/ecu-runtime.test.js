@@ -719,3 +719,56 @@ test('non-knowledge ECU review blocker does not launch targeted research',async(
   await Promise.all(waits);
   assert.equal(targeted,0);
 });
+
+
+test('creates one composite ECU job for multiple selected operations',async()=>{
+  const created=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async createJob(_env,input){
+      created.push(input);
+      return {
+        id:'job-composite',
+        fileId:input.fileId,
+        operation:input.operation,
+        state:'QUEUED',
+      };
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/jobs/composite',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      fileId:'file-1',
+      operations:['egr_off_proposal','dpf_off_proposal','egr_off_proposal'],
+    }),
+  }),{},{});
+  assert.equal(response.status,202);
+  assert.deepEqual(created,[{
+    fileId:'file-1',
+    operation:'multi_service_proposal',
+    callbackBaseUrl:'https://jarvis.test',
+    config:{service_operations:['egr_off_proposal','dpf_off_proposal']},
+  }]);
+  const body=await response.json();
+  assert.equal(body.job.id,'job-composite');
+});
+
+
+test('composite ECU endpoint rejects missing or unknown operations',async()=>{
+  const runtime=createEcuRuntime(coreFallback(),{
+    async createJob(){throw new Error('should not run');}
+  });
+  let response=await runtime.fetch(request('/api/ecu/jobs/composite',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({fileId:'file-1',operations:['unknown']}),
+  }),{},{});
+  assert.equal(response.status,400);
+
+  response=await runtime.fetch(request('/api/ecu/jobs/composite',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({operations:['egr_off_proposal']}),
+  }),{},{});
+  assert.equal(response.status,400);
+});
