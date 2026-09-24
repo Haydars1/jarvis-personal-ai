@@ -998,7 +998,7 @@ async function defaultApplyWorkerState(env, jobId, body = {}) {
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
 }
 
-async function resolveResearchGapsForReadyResult(env,jobOperation,body={},timestamp=Date.now()){
+export async function resolveResearchGapsForReadyResult(env,jobOperation,body={},timestamp=Date.now()){
   const family=String(body.ecu_family||'');
   const hw=firstBodyCandidate(body.hw_candidates);
   const sw=firstBodyCandidate(body.sw_candidates);
