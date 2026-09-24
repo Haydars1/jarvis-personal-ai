@@ -128,3 +128,39 @@ test('research enriches search results with bounded fetched source text', async 
   assert.ok(repository.claims.some(item=>item.text.length>500));
   assert.ok(repository.claims.every(item=>item.verificationState==='UNVERIFIED'));
 });
+
+
+test('scheduled research ingests GitHub implementation sources with code provenance', async () => {
+  const repository=memoryRepository();
+  const research=createEcuResearch({
+    repository,
+    topics:[],
+    search:async()=>[],
+    githubDiscover:async()=>[
+      {
+        title:'openremap-core: README.md',
+        url:'https://github.com/v-arapidis/openremap-core/blob/main/README.md',
+        snippet:'Repository: v-arapidis/openremap-core | License: mit | Reuse policy: ADAPT_WITH_ATTRIBUTION\n\nIdentify health cook tune map discovery checksum recipe workflow.',
+        source:'GitHub',
+        sourceKind:'code',
+        trustScore:0.9,
+      },
+      {
+        title:'ZedSuite: README.md',
+        url:'https://github.com/LeZed97/ZedSuite/blob/master/README.md',
+        snippet:'Repository: LeZed97/ZedSuite | License: gpl-3.0 | Reuse policy: ARCHITECTURE_ONLY\n\nEDC15 EDC16 map detection DTC checksum architecture.',
+        source:'GitHub',
+        sourceKind:'code',
+        trustScore:0.82,
+      },
+    ],
+  });
+  const result=await research.run({},21_600_000);
+  assert.equal(result.skipped,false);
+  assert.equal(repository.sources.length,2);
+  assert.ok(repository.sources.every(item=>item.sourceKind==='code'));
+  assert.ok(repository.sources.some(item=>item.trustScore===0.9));
+  assert.ok(repository.claims.some(item=>item.topic==='github-ecu-source-code'));
+  assert.ok(repository.claims.some(item=>/ADAPT_WITH_ATTRIBUTION/.test(item.text)));
+  assert.ok(repository.claims.some(item=>/ARCHITECTURE_ONLY/.test(item.text)));
+});
