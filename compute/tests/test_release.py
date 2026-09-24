@@ -34,3 +34,28 @@ def test_release_returns_mod_only_after_validation_and_verified_checksum():
     assert decision.errors==[]
     assert decision.mod_bytes==candidate
     assert decision.checksum_algorithm=="fixture-verified"
+
+
+def test_release_allows_only_checksum_field_added_by_verified_profile():
+    from ecu_worker.validation import ProfileChecksumAdapter
+    ori=bytes.fromhex("010203040000")
+    candidate=bytes.fromhex("010903040000")
+    adapter=ProfileChecksumAdapter({
+        "algorithm":"sum16",
+        "data_start":0,
+        "data_end":6,
+        "checksum_offset":4,
+        "checksum_size":2,
+        "endian":"big",
+        "zero_field":True,
+    })
+    decision=build_release_decision(
+        ori,candidate,
+        allowed_ranges=[(1,2)],
+        checksum_adapter=adapter,
+    )
+    assert decision.ready is True
+    assert decision.mod_bytes is not None
+    assert decision.mod_bytes[1]==9
+    assert decision.mod_bytes[4:6]==bytes.fromhex("0010")
+    assert decision.checksum_algorithm=="profile-sum16"
