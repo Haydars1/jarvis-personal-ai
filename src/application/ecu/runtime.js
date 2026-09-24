@@ -1095,6 +1095,19 @@ async function defaultVerifyMap(env, mapId, { semanticLabel }) {
   };
 }
 
+export function blockedCompositeOperations(result={}){
+  const reasons=[
+    ...(Array.isArray(result?.proposal?.reasons)?result.proposal.reasons:[]),
+    ...(Array.isArray(result?.proposal?.validation?.errors)?result.proposal.validation.errors:[]),
+  ].map(value=>String(value||''));
+  const operations=[];
+  for(const reason of reasons){
+    const prefix=reason.split(':')[0];
+    if(ECU_OPERATION_LABELS[prefix]&&!operations.includes(prefix))operations.push(prefix);
+  }
+  return operations;
+}
+
 export function shouldRetryNeedsReview(result={}){
   const proposal=result?.proposal||{};
   const reasons=[
@@ -1545,19 +1558,25 @@ export function createEcuRuntime(core, overrides = {}) {
           const operationLabel=ECU_OPERATION_LABELS[job?.operation]||null;
           if(
             job?.state==='NEEDS_REVIEW' &&
-            operationLabel &&
             shouldRetryNeedsReview(body) &&
             ctx?.waitUntil &&
             typeof deps.researchTargeted==='function'
           ){
             const hw=firstBodyCandidate(body.hw_candidates);
             const sw=firstBodyCandidate(body.sw_candidates);
-            ctx.waitUntil(deps.researchTargeted(env,{
-              ecuFamily:String(body.ecu_family||''),
-              operationLabel,
-              hw,
-              sw,
-            }).catch(()=>{}));
+            const operations=operationLabel
+              ? [job.operation]
+              : (job?.operation==='multi_service_proposal'?blockedCompositeOperations(body):[]);
+            for(const operation of operations){
+              const label=ECU_OPERATION_LABELS[operation];
+              if(!label)continue;
+              ctx.waitUntil(deps.researchTargeted(env,{
+                ecuFamily:String(body.ecu_family||''),
+                operationLabel:label,
+                hw,
+                sw,
+              }).catch(()=>{}));
+            }
           }
           return json({job});
         } catch (error) {
