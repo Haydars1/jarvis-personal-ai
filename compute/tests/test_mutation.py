@@ -55,3 +55,36 @@ def test_exact_patch_mutation_rejects_overlap():
         assert str(exc)=="PATCH_RULES_OVERLAP"
     else:
         raise AssertionError("overlapping patches accepted")
+
+
+def test_exact_patch_relocates_with_unique_context_anchor():
+    ori=b"AAAA"+bytes.fromhex("10200102aabbcc")+"BBBB"
+    patches=[{
+        "offset":5,
+        "beforeHex":"0102",
+        "afterHex":"0908",
+        "contextBeforeHex":"1020",
+        "contextAfterHex":"aabbcc",
+    }]
+    result=apply_exact_patches(ori,patches,relocation_window=32)
+    actual=6
+    assert result.data[actual:actual+2]==bytes.fromhex("0908")
+    assert result.allowed_ranges==[(actual,actual+2)]
+
+
+def test_exact_patch_rejects_ambiguous_context_anchor():
+    anchor=bytes.fromhex("10200102aabb")
+    ori=b"AA"+anchor+b"XX"+anchor+b"ZZ"
+    patches=[{
+        "offset":0,
+        "beforeHex":"0102",
+        "afterHex":"0908",
+        "contextBeforeHex":"1020",
+        "contextAfterHex":"aabb",
+    }]
+    try:
+        apply_exact_patches(ori,patches,relocation_window=64)
+    except ValueError as exc:
+        assert str(exc)=="PATCH_CONTEXT_AMBIGUOUS:0"
+    else:
+        raise AssertionError("ambiguous contextual patch accepted")
