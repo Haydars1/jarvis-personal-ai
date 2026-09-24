@@ -575,7 +575,10 @@ test('default ECU job dispatch carries parsed production rulepack rules',async()
           if(sql.includes('FROM ecu_jobs WHERE run_fingerprint='))return null;
           return null;
         },
-        async all(){return {results:[]};},
+        async all(){
+          if(sql.includes('FROM ecu_rulepack_versions'))return {results:[rows.rulepack]};
+          return {results:[]};
+        },
         async run(){
           if(sql.startsWith('INSERT INTO ecu_jobs')){
             const [id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at]=this.args;
