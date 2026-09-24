@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEcuRuntime, isPortablePatchRulepack } from '../src/application/ecu/runtime.js';
+import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview } from '../src/application/ecu/runtime.js';
 
 function request(path, init = {}) {
   return new Request(`https://jarvis.test${path}`, init);
@@ -602,4 +602,51 @@ test('default ECU job dispatch carries parsed production rulepack rules',async()
   assert.deepEqual(dispatches[0].config.rulepack,rules);
   assert.equal(dispatches[0].config.rulepack_verified,true);
   assert.equal(dispatches[0].rulepackVersion,'rules-1');
+});
+
+
+test('retries review jobs only for newly satisfiable knowledge blockers',()=>{
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['RULEPACK_UNVERIFIED']}
+  }),true);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{validation:{errors:['PATCH_RULEPACK_MISSING']}}
+  }),true);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['CHECKSUM_PROFILE_UNVERIFIED']}
+  }),true);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['PATCH_PRECONDITION_MISMATCH:128']}
+  }),false);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['PATCH_CONTEXT_AMBIGUOUS:128']}
+  }),false);
+});
+
+
+test('scheduled ECU runtime runs review retry after learning refresh',async()=>{
+  const calls=[];
+  const rulepacks={
+    async refresh(){calls.push('rulepacks');return {created:false};},
+    async status(){return {production:null};},
+  };
+  const research={
+    async run(){calls.push('research');return {skipped:true};},
+    async status(){return {status:'IDLE'};},
+    async targeted(){return {skipped:true};},
+  };
+  const training={
+    async maybeRun(){calls.push('training');return {scheduled:false};},
+    async status(){return {status:'IDLE'};},
+  };
+  const runtime=createEcuRuntime(coreFallback(),{
+    research,
+    rulepacks,
+    training,
+    async dispatchQueuedJobs(){calls.push('dispatch');return {attempted:0,dispatched:0};},
+    async retryReviewJobs(){calls.push('retry');return {attempted:0,retried:0};},
+    async refreshChecksumProfiles(){calls.push('checksum');return {created:0};},
+  });
+  await runtime.scheduled({scheduledTime:123},{},{});
+  assert.deepEqual(calls,['dispatch','research','rulepacks','retry','checksum','training']);
 });
