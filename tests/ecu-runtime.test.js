@@ -409,3 +409,29 @@ test('serves scoped production rulepacks only to authorized compute workers', as
   const body=await response.json();
   assert.equal(body.rulepack.version,'rules-1');
 });
+
+
+test('serves checksum profiles only to authorized compute workers', async () => {
+  const calls=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async checksumProfileForIdentity(_env,input){
+      calls.push(input);
+      return {
+        id:'cs-1',ecuFamily:input.ecuFamily,hw:input.hw,sw:input.sw,
+        algorithm:'sum16',data_start:0,data_end:1024,checksum_offset:1022,
+        checksum_size:2,endian:'big',zero_field:true,verifiedPairs:7
+      };
+    }
+  });
+  let response=await runtime.fetch(request('/api/ecu/internal/checksum-profile?ecuFamily=EDC17C46&hw=HW1&sw=SW1'),{ECU_COMPUTE_TOKEN:'secret'},{});
+  assert.equal(response.status,401);
+
+  response=await runtime.fetch(request('/api/ecu/internal/checksum-profile?ecuFamily=EDC17C46&hw=HW1&sw=SW1',{
+    headers:{authorization:'Bearer secret'}
+  }),{ECU_COMPUTE_TOKEN:'secret'},{});
+  assert.equal(response.status,200);
+  assert.deepEqual(calls,[{ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1'}]);
+  const body=await response.json();
+  assert.equal(body.profile.algorithm,'sum16');
+  assert.equal(body.profile.verifiedPairs,7);
+});
