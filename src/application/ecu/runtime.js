@@ -62,7 +62,7 @@ async function fileIdentity(env,fileId){
 
 async function defaultListGitHubRepositories(env,limit=20){
   const safe=Math.max(1,Math.min(100,Number(limit||20)));
-  const rows=(await env.DB.prepare(`SELECT repository,license,reuse_policy,stars,capabilities_json,default_branch,last_seen_at
+  const rows=(await env.DB.prepare(`SELECT repository,license,reuse_policy,stars,capabilities_json,default_branch,commit_sha,last_seen_at
     FROM ecu_github_repositories
     ORDER BY CASE reuse_policy WHEN 'ADAPT_WITH_ATTRIBUTION' THEN 0 WHEN 'ARCHITECTURE_ONLY' THEN 1 ELSE 2 END,
       stars DESC,last_seen_at DESC
@@ -74,6 +74,7 @@ async function defaultListGitHubRepositories(env,limit=20){
     stars:Number(row.stars||0),
     capabilities:(()=>{try{return JSON.parse(row.capabilities_json||'[]')}catch{return []}})(),
     defaultBranch:row.default_branch||'',
+    commitSha:row.commit_sha||'',
     lastSeenAt:Number(row.last_seen_at||0),
   }));
 }
