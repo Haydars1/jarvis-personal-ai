@@ -273,7 +273,9 @@ const defaultRepository = {
       (SELECT COUNT(*) FROM ecu_knowledge_claims WHERE verification_state='CORROBORATED') AS corroborated_claims,
       (SELECT COUNT(*) FROM ecu_knowledge_claims WHERE verification_state='VERIFIED') AS verified_claims,
       (SELECT COUNT(*) FROM ecu_knowledge_sources WHERE provider='GitHub') AS github_sources,
-      (SELECT COUNT(*) FROM ecu_knowledge_sources WHERE provider='GitHub' AND trust_score>=0.8) AS github_high_trust_sources`).first();
+      (SELECT COUNT(*) FROM ecu_knowledge_sources WHERE provider='GitHub' AND trust_score>=0.8) AS github_high_trust_sources,
+      (SELECT COUNT(*) FROM ecu_github_repositories) AS github_repositories,
+      (SELECT COUNT(*) FROM ecu_github_repositories WHERE reuse_policy='ADAPT_WITH_ATTRIBUTION') AS github_reusable_repositories`).first();
     return { latest: latest || null, counts: counts || { sources: 0, claims: 0, corroborated_claims: 0, verified_claims: 0 } };
   },
 };
