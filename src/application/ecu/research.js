@@ -1,4 +1,3 @@
-import { discoverGitHubEcuSources } from './github-intelligence.js';
 import { decryptCredential, fetchWithTimeout, queryOne } from '../../lib/runtime.js';
 
 const RESEARCH_INTERVAL_MS = 3 * 60 * 60 * 1000;
@@ -245,7 +244,7 @@ export function createEcuResearch({
   topics = DEFAULT_ECU_RESEARCH_TOPICS,
   search = defaultSearch,
   fetchSource = defaultFetchSource,
-  githubDiscover = discoverGitHubEcuSources,
+  githubDiscover = null,
   maxEnrichedSourcesPerTopic = 2,
 } = {}) {
   const corroborate = async env => {
