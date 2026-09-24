@@ -17,9 +17,14 @@ test('GitHub ECU intelligence extracts implementation capability tags', () => {
     'stock.bin tuned.bin cook recipe with context_before and context_after',
     'checksum CRC32 correction',
     'DTC diagnostic trouble code manager',
+    'EGR exhaust gas recirculation patch',
+    'DPF diesel particulate filter switch',
+    'SCR AdBlue NOx catalyst logic',
+    'VMAX speed limiter calibration',
+    'start stop coding switch',
   ].join('\n');
   const tags=capabilityTags(text,'openremap/core/services/recipes/patcher.py');
-  for(const tag of ['IDENTIFY','MAP_DETECTION','A2L_DAMOS','CHECKSUM','ORI_MOD_DIFF','PATCH_RECIPE','DTC','STAGE1']){
+  for(const tag of ['IDENTIFY','MAP_DETECTION','A2L_DAMOS','CHECKSUM','ORI_MOD_DIFF','PATCH_RECIPE','DTC','EGR','DPF','SCR_ADBLUE','VMAX','START_STOP','STAGE1']){
     assert.ok(tags.includes(tag),tag);
   }
 });
