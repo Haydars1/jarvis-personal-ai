@@ -30,6 +30,11 @@ function firstCandidate(raw){
   }catch{return '';}
 }
 
+function firstBodyCandidate(values){
+  const first=Array.isArray(values)?values[0]:null;
+  return typeof first==='string'?first:String(first?.value||'');
+}
+
 async function fileIdentity(env,fileId){
   const row=await env.DB.prepare(`SELECT a.ecu_family,a.hw_candidates,a.sw_candidates
     FROM ecu_analysis_results a
@@ -432,13 +437,19 @@ async function defaultApplyPairResult(env,pairId,body={}){
   const diff=body.diff&&typeof body.diff==='object'?body.diff:null;
   if(status==='COMPLETE'&&!diff?.digest)throw new Error('ECU_PAIR_DIFF_REQUIRED');
   const timestamp=now();
+  const scopedFamily=String(pair.ecu_family||body.ecu_family||'');
+  const scopedHw=String(pair.hw||firstBodyCandidate(body.hw_candidates)||'');
+  const scopedSw=String(pair.sw||firstBodyCandidate(body.sw_candidates)||'');
   await env.DB.prepare(`UPDATE ecu_training_pairs
-    SET state=?,diff_digest=?,diff_json=?,error=?,updated_at=? WHERE id=?`)
+    SET state=?,diff_digest=?,diff_json=?,error=?,ecu_family=?,hw=?,sw=?,updated_at=? WHERE id=?`)
     .bind(
       status,
       diff?.digest||null,
       diff?JSON.stringify(diff):null,
       body.error||null,
+      scopedFamily,
+      scopedHw,
+      scopedSw,
       timestamp,
       pairId,
     ).run();
@@ -460,9 +471,9 @@ async function defaultApplyPairResult(env,pairId,body={}){
           id,
           pairId,
           pair.operation_label||body.operation_label||'',
-          pair.ecu_family||'',
-          pair.hw||'',
-          pair.sw||'',
+          scopedFamily,
+          scopedHw,
+          scopedSw,
           row.semanticLabel,
           row.rangeStart,
           row.rangeEnd,
@@ -498,9 +509,9 @@ async function defaultApplyPairResult(env,pairId,body={}){
             id,
             pairId,
             pair.operation_label||body.operation_label||'',
-            pair.ecu_family||'',
-            pair.hw||'',
-            pair.sw||'',
+            scopedFamily,
+            scopedHw,
+            scopedSw,
             '__PATCH__',
             offset,
             offset+length,
