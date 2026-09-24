@@ -214,3 +214,92 @@ test('does not auto-promote stage1 or unscoped patch candidates',async()=>{
   await service.refresh({});
   assert.equal(promoted.length,0);
 });
+
+
+test('promotes portable contextual patch rulepack across SW revisions',async()=>{
+  const rows=[];
+  for(const sw of ['SW1','SW2','SW3']){
+    for(let i=0;i<5;i++){
+      rows.push({
+        pairId:sw+'-'+i,
+        operationLabel:'egr_off',
+        ecuFamily:'EDC17C46',
+        hw:'HW1',
+        sw,
+        semanticLabel:'__PATCH__',
+        mapOffset:100+(sw==='SW1'?0:sw==='SW2'?12:24),
+        humanVerified:true,
+        deltaStats:{
+          patchBeforeHex:'0102',
+          patchAfterHex:'aabb',
+          contextBeforeHex:'0011223344556677',
+          contextAfterHex:'8899aabbccddeeff',
+          length:2,
+        },
+      });
+    }
+  }
+  const saved=[];
+  const promoted=[];
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){saved.push(candidate);return candidate;},
+    async promoteCandidate(_env,candidate,reason){
+      const item={...candidate,state:'PRODUCTION',verified:true,promotionReason:reason};
+      promoted.push(item);
+      return item;
+    },
+    async latest(){return saved.at(-1)||null;},
+    async production(){return promoted.at(-1)||null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*',minPairsPerLabel:5});
+  const result=await service.refresh({});
+  const portable=result.candidates.find(item=>item.operationLabel==='egr_off'&&item.ecuFamily==='EDC17C46'&&item.hw==='HW1'&&item.sw==='');
+  assert.ok(portable);
+  assert.equal(portable.state,'PRODUCTION');
+  assert.equal(portable.verified,true);
+  assert.equal(portable.promotionReason,'VERIFIED_PORTABLE_CONTEXT_CONSENSUS');
+  assert.equal(portable.rules.__patches[0].evidenceSoftwareVersions,3);
+  assert.equal(portable.rules.__patches[0].evidencePairs,15);
+});
+
+
+test('does not promote portable patch without three independent SW revisions',async()=>{
+  const rows=[];
+  for(const sw of ['SW1','SW2']){
+    for(let i=0;i<5;i++){
+      rows.push({
+        pairId:sw+'-'+i,
+        operationLabel:'dpf_off',
+        ecuFamily:'EDC17C46',
+        hw:'HW1',
+        sw,
+        semanticLabel:'__PATCH__',
+        mapOffset:200,
+        humanVerified:true,
+        deltaStats:{
+          patchBeforeHex:'0102',
+          patchAfterHex:'0000',
+          contextBeforeHex:'0011223344556677',
+          contextAfterHex:'8899aabbccddeeff',
+          length:2,
+        },
+      });
+    }
+  }
+  const promoted=[];
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){return candidate;},
+    async promoteCandidate(_env,candidate,reason){
+      const item={...candidate,state:'PRODUCTION',verified:true,promotionReason:reason};
+      promoted.push(item);
+      return item;
+    },
+    async latest(){return null;},
+    async production(){return null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*',minPairsPerLabel:5});
+  const result=await service.refresh({});
+  assert.ok(!result.candidates.some(item=>item.sw===''&&item.operationLabel==='dpf_off'));
+});
