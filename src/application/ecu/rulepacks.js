@@ -119,6 +119,18 @@ const defaultRepository={
       promotedAt:row.promoted_at||null,
     };
   },
+  async promoteCandidate(env,candidate){
+    const timestamp=Date.now();
+    await env.DB.prepare(`UPDATE ecu_rulepack_versions
+      SET state='ROLLBACK'
+      WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
+        AND ecu_family=? AND hw=? AND sw=? AND version<>?`)
+      .bind(candidate.operationLabel,candidate.ecuFamily||'',candidate.hw||'',candidate.sw||'',candidate.version).run();
+    await env.DB.prepare(`UPDATE ecu_rulepack_versions
+      SET state='PRODUCTION',verified=1,promoted_at=?
+      WHERE version=?`).bind(timestamp,candidate.version).run();
+    return {...candidate,state:'PRODUCTION',verified:true,promotedAt:timestamp};
+  },
   async production(env){
     const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
       FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 ORDER BY promoted_at DESC,created_at DESC LIMIT 1`).first();
@@ -206,7 +218,7 @@ export function createEcuRulepackLearning({
           };
         }
         const exactPatches=[...(patches||new Map()).values()]
-          .filter(patch=>patch.pairs.size>=3)
+          .filter(patch=>patch.pairs.size>=minPairsPerLabel)
           .sort((a,b)=>a.offset-b.offset)
           .map(patch=>({
             offset:patch.offset,
@@ -241,7 +253,20 @@ export function createEcuRulepackLearning({
         }
       }
       if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
-      return {created:true,candidate:candidates[0],candidates};
+      const promoted=[];
+      if(typeof repository.promoteCandidate==='function'){
+        for(const candidate of candidates){
+          const keys=Object.keys(candidate.rules||{});
+          const patches=Array.isArray(candidate.rules?.__patches)?candidate.rules.__patches:[];
+          const exactOnly=keys.length===1&&keys[0]==='__patches'&&patches.length>0;
+          const fullyRepeated=patches.every(patch=>Number(patch.evidencePairs||0)>=minPairsPerLabel);
+          const scopeSpecific=Boolean(candidate.operationLabel&&candidate.operationLabel!=='stage1'&&candidate.ecuFamily&&candidate.sw);
+          if(exactOnly&&fullyRepeated&&scopeSpecific){
+            promoted.push(await repository.promoteCandidate(env,candidate));
+          }
+        }
+      }
+      return {created:true,candidate:candidates[0],candidates,autoPromoted:promoted};
     },
     async status(env){
       const [latest,production]=await Promise.all([
