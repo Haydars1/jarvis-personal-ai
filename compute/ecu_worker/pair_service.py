@@ -5,6 +5,7 @@ from typing import Any
 
 from .contracts import PairJobInput
 from .diff import diff_bytes, extract_patch_chunks, link_ranges_to_maps, measure_verified_map_deltas
+from .fingerprint import fingerprint_binary
 
 
 async def process_pair_job(
@@ -53,12 +54,17 @@ async def process_pair_job(
         ]
         ori_bytes=bytes(ori_response.content)
         mod_bytes=bytes(mod_response.content)
+        fp=fingerprint_binary(ori_bytes)
         linked_ranges=link_ranges_to_maps(report,normalized_maps)
         map_delta_evidence=measure_verified_map_deltas(ori_bytes,mod_bytes,normalized_maps)
         patch_chunks=extract_patch_chunks(ori_bytes,mod_bytes,report)
         payload={
             "status":"COMPLETE",
             "operation_label":job.operation_label,
+            "ecu_family":fp.ecu_family,
+            "hw_candidates":[{"value":value} for value in fp.hw_candidates],
+            "sw_candidates":[{"value":value} for value in fp.sw_candidates],
+            "fingerprint_confidence":fp.confidence,
             "diff":{
                 "original_size":report.original_size,
                 "modified_size":report.modified_size,
