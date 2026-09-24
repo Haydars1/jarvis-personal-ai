@@ -47,11 +47,19 @@ jobs:
           import sqlite3
           from pathlib import Path
           db=sqlite3.connect(':memory:')
-          for path in [Path('migrations/0010_ecu_brain_core.sql'),Path('migrations/0011_ecu_brain_learning_release.sql')]:
+          paths=sorted(Path('migrations').glob('001[0-9]_ecu_*.sql'))
+          assert paths, 'ECU migrations not found'
+          for path in paths:
               db.executescript(path.read_text())
           required={'ecu_files','ecu_jobs','ecu_analysis_results','ecu_map_candidates','ecu_training_examples','ecu_change_evidence','ecu_rulepack_versions','ecu_mod_artifacts','ecu_model_versions','ecu_workers'}
           tables={row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
           assert required <= tables, sorted(required-tables)
+          def columns(table):
+              return {row[1] for row in db.execute(f"PRAGMA table_info({table})")}
+          assert {'source_kind','trust_score'} <= columns('ecu_knowledge_sources')
+          assert {'ecu_family','hw','sw'} <= columns('ecu_training_pairs')
+          assert {'ecu_family','hw','sw'} <= columns('ecu_change_evidence')
+          assert {'ecu_family','hw','sw'} <= columns('ecu_rulepack_versions')
           PY
       - run: python -m pip install -e './compute[dev]'
       - run: pytest -q compute/tests
