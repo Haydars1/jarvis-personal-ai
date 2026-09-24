@@ -14,6 +14,8 @@ function autoPromotionDecision(candidate,minPairsPerLabel=5){
   if(!fullScope)return {promote:false,reason:'SCOPE_NOT_EXACT'};
 
   if(candidate.operationLabel==='stage1'){
+    const patches=Array.isArray(candidate?.rules?.__patches)?candidate.rules.__patches:[];
+    if(patches.length)return {promote:false,reason:'STAGE1_PATCH_MANUAL_REVIEW'};
     const entries=Object.entries(candidate.rules||{}).filter(([label])=>label!=='__patches');
     if(!entries.length)return {promote:false,reason:'NO_STAGE1_RULES'};
     const stable=entries.every(([,rule])=>
@@ -25,8 +27,9 @@ function autoPromotionDecision(candidate,minPairsPerLabel=5){
     return stable?{promote:true,reason:'VERIFIED_STAGE1_CONSENSUS'}:{promote:false,reason:'STAGE1_CONSENSUS_WEAK'};
   }
 
+  const keys=Object.keys(candidate?.rules||{});
   const patches=Array.isArray(candidate?.rules?.__patches)?candidate.rules.__patches:[];
-  if(!patches.length)return {promote:false,reason:'NO_EXACT_PATCHES'};
+  if(keys.length!==1||keys[0]!=='__patches'||!patches.length)return {promote:false,reason:'SERVICE_RULEPACK_NOT_EXACT_ONLY'};
   const sorted=[...patches].sort((a,b)=>Number(a.offset)-Number(b.offset));
   let previousEnd=-1;
   for(const patch of sorted){
