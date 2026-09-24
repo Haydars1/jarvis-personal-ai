@@ -88,6 +88,72 @@ function sourceTrust(kind='web') {
   return ({official:0.95,research:0.9,code:0.8,pdf:0.75,web:0.6,video:0.5,forum:0.4})[kind] ?? 0.5;
 }
 
+function isPublicResearchUrl(value=''){
+  try{
+    const url=new URL(String(value));
+    if(!['http:','https:'].includes(url.protocol))return false;
+    const host=url.hostname.toLowerCase();
+    if(host==='localhost'||host==='127.0.0.1'||host==='::1'||host.endsWith('.local'))return false;
+    if(/^10\.|^192\.168\.|^169\.254\.|^127\./.test(host))return false;
+    const match=host.match(/^172\.(\d+)\./);
+    if(match&&Number(match[1])>=16&&Number(match[1])<=31)return false;
+    return true;
+  }catch{return false;}
+}
+
+function htmlToText(value=''){
+  return String(value)
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ')
+    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi,' ')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/&nbsp;/gi,' ')
+    .replace(/&amp;/gi,'&')
+    .replace(/&lt;/gi,'<')
+    .replace(/&gt;/gi,'>')
+    .replace(/&#39;/g,"'")
+    .replace(/&quot;/gi,'"')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function sourceClaimChunks(text='',maxChunks=4){
+  const clean=String(text||'').replace(/\s+/g,' ').trim().slice(0,24000);
+  if(clean.length<80)return [];
+  const chunks=[];
+  for(let start=0;start<clean.length&&chunks.length<maxChunks;start+=1400){
+    const piece=clean.slice(start,start+1600).trim();
+    if(piece.length>=80)chunks.push(piece);
+  }
+  return chunks;
+}
+
+async function defaultFetchSource(_env,source){
+  if(!isPublicResearchUrl(source?.url))return {text:'',contentType:'',skipped:'URL_NOT_PUBLIC'};
+  try{
+    const response=await fetchWithTimeout(source.url,{
+      headers:{
+        accept:'text/html,text/plain,text/markdown,application/json;q=0.8,*/*;q=0.2',
+        'user-agent':'JARVIS-ECU-Research/1.0',
+      },
+      redirect:'follow',
+    },7000);
+    if(!response.ok)return {text:'',contentType:'',skipped:`HTTP_${response.status}`};
+    const contentType=String(response.headers.get('content-type')||'').toLowerCase();
+    if(/application\/pdf|video\/|audio\/|application\/octet-stream/.test(contentType)){
+      return {text:'',contentType,skipped:'BINARY_SOURCE'};
+    }
+    if(!/text\/|application\/(json|xml|xhtml)/.test(contentType)){
+      return {text:'',contentType,skipped:'UNSUPPORTED_CONTENT_TYPE'};
+    }
+    const raw=(await response.text()).slice(0,120000);
+    const text=/html|xhtml/.test(contentType)?htmlToText(raw):raw.replace(/\s+/g,' ').trim();
+    return {text:text.slice(0,24000),contentType,skipped:null};
+  }catch{
+    return {text:'',contentType:'',skipped:'FETCH_FAILED'};
+  }
+}
+
 function normalizeResult(row, topic) {
   const url = String(row?.url || '').trim();
   if (!url) return null;
@@ -177,6 +243,8 @@ export function createEcuResearch({
   repository = defaultRepository,
   topics = DEFAULT_ECU_RESEARCH_TOPICS,
   search = defaultSearch,
+  fetchSource = defaultFetchSource,
+  maxEnrichedSourcesPerTopic = 2,
 } = {}) {
   const corroborate = async env => {
     if(typeof repository.listClaims!=='function'||typeof repository.markClaimState!=='function'){
@@ -219,6 +287,7 @@ export function createEcuResearch({
 
       for (const topic of topics) {
         let results = [];
+        let enrichedForTopic=0;
         try {
           results = await search(env, topic);
         } catch {
@@ -240,6 +309,27 @@ export function createEcuResearch({
               verificationState: 'UNVERIFIED',
             });
             claimsFound += 1;
+          }
+
+          if(enrichedForTopic<maxEnrichedSourcesPerTopic&&typeof fetchSource==='function'){
+            try{
+              const fetched=await fetchSource(env,source);
+              const chunks=sourceClaimChunks(fetched?.text||'');
+              if(chunks.length){
+                enrichedForTopic+=1;
+                for(const text of chunks){
+                  await repository.storeClaim(env,{
+                    sourceUrl:source.url,
+                    topic,
+                    text,
+                    verificationState:'UNVERIFIED',
+                  });
+                  claimsFound+=1;
+                }
+              }
+            }catch{
+              errors+=1;
+            }
           }
         }
       }
