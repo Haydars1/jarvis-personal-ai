@@ -13,11 +13,15 @@ async function sha256Text(value){
 
 const defaultRepository={
   async listVerifiedEvidence(env){
-    const rows=(await env.DB.prepare(`SELECT pair_id,operation_label,semantic_label,confidence,delta_stats_json,human_verified
-      FROM ecu_change_evidence WHERE human_verified=1 ORDER BY semantic_label,pair_id,created_at ASC`).all()).results||[];
+    const rows=(await env.DB.prepare(`SELECT pair_id,operation_label,ecu_family,hw,sw,semantic_label,confidence,delta_stats_json,human_verified
+      FROM ecu_change_evidence WHERE human_verified=1
+      ORDER BY operation_label,ecu_family,hw,sw,semantic_label,pair_id,created_at ASC`).all()).results||[];
     return rows.map(row=>({
       pairId:row.pair_id,
       operationLabel:row.operation_label,
+      ecuFamily:row.ecu_family||'',
+      hw:row.hw||'',
+      sw:row.sw||'',
       semanticLabel:row.semantic_label,
       confidence:Number(row.confidence||0),
       humanVerified:Boolean(row.human_verified),
@@ -26,12 +30,15 @@ const defaultRepository={
   },
   async saveCandidate(env,candidate){
     await env.DB.prepare(`INSERT INTO ecu_rulepack_versions(
-      version,operation_label,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
-    ) VALUES(?,?,?,?,?,?,?,?,?)
+      version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(digest) DO UPDATE SET evidence_count=excluded.evidence_count,rules_json=excluded.rules_json`)
       .bind(
         candidate.version,
         candidate.operationLabel,
+        candidate.ecuFamily||'',
+        candidate.hw||'',
+        candidate.sw||'',
         candidate.state,
         candidate.verified?1:0,
         JSON.stringify(candidate.rules),
@@ -43,12 +50,15 @@ const defaultRepository={
     return candidate;
   },
   async latest(env){
-    const row=await env.DB.prepare(`SELECT version,operation_label,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
+    const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
       FROM ecu_rulepack_versions ORDER BY created_at DESC LIMIT 1`).first();
     if(!row)return null;
     return {
       version:row.version,
       operationLabel:row.operation_label,
+      ecuFamily:row.ecu_family||'',
+      hw:row.hw||'',
+      sw:row.sw||'',
       state:row.state,
       verified:Boolean(row.verified),
       rules:(()=>{try{return JSON.parse(row.rules_json||'{}')}catch{return {}}})(),
@@ -59,7 +69,7 @@ const defaultRepository={
     };
   },
   async production(env){
-    const row=await env.DB.prepare(`SELECT version,operation_label,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
+    const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
       FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 ORDER BY promoted_at DESC,created_at DESC LIMIT 1`).first();
     if(!row)return null;
     return {
@@ -84,57 +94,72 @@ export function createEcuRulepackLearning({
   return {
     async refresh(env){
       const rows=await repository.listVerifiedEvidence(env);
-      const grouped=new Map();
+      const scopes=new Map();
       for(const row of rows){
-        if(!row.humanVerified||row.operationLabel!==operationLabel)continue;
+        if(!row.humanVerified)continue;
+        if(operationLabel!=='*'&&row.operationLabel!==operationLabel)continue;
         const label=String(row.semanticLabel||'UNKNOWN');
         if(label==='UNKNOWN')continue;
         const envelope=Number(row.deltaStats?.p95AbsPercent??row.deltaStats?.p95_abs_percent??0);
         const rawSigned=row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent;
         const signed=rawSigned==null?null:Number(rawSigned);
         if(!Number.isFinite(envelope)||envelope<=0)continue;
-        if(!grouped.has(label))grouped.set(label,new Map());
-        grouped.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
-      }
-      const rules={};
-      let evidenceCount=0;
-      for(const [label,byPair] of [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
-        const values=[...byPair.entries()].filter(([pair])=>pair).map(([,value])=>value);
-        if(values.length<minPairsPerLabel)continue;
-        const envelopes=values.map(value=>value.envelope);
-        const signedValues=values.map(value=>value.signed).filter(value=>Number.isFinite(value)&&value!==0);
-        const positive=signedValues.filter(value=>value>0).length;
-        const negative=signedValues.filter(value=>value<0).length;
-        const directionAgreement=signedValues.length?Math.max(positive,negative)/signedValues.length:0;
-        evidenceCount+=values.length;
-        rules[label]={
-          evidencePairs:values.length,
-          observedEnvelopePercent:median(envelopes),
-          minObservedPercent:Math.min(...envelopes),
-          maxObservedPercent:Math.max(...envelopes),
-          ...(signedValues.length===values.length&&directionAgreement>=0.8?{
-            targetDeltaPercent:median(signedValues),
-            directionAgreement,
-          }:{}),
+        const scope={
+          operationLabel:String(row.operationLabel||''),
+          ecuFamily:String(row.ecuFamily||''),
+          hw:String(row.hw||''),
+          sw:String(row.sw||''),
         };
+        if(!scope.operationLabel)continue;
+        const scopeKey=[scope.operationLabel,scope.ecuFamily,scope.hw,scope.sw].join('|');
+        if(!scopes.has(scopeKey))scopes.set(scopeKey,{scope,labels:new Map()});
+        const labels=scopes.get(scopeKey).labels;
+        if(!labels.has(label))labels.set(label,new Map());
+        labels.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
       }
-      if(!Object.keys(rules).length){
-        return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
+
+      const candidates=[];
+      for(const {scope,labels} of scopes.values()){
+        const rules={};
+        let evidenceCount=0;
+        for(const [label,byPair] of [...labels.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+          const values=[...byPair.entries()].filter(([pair])=>pair).map(([,value])=>value);
+          if(values.length<minPairsPerLabel)continue;
+          const envelopes=values.map(value=>value.envelope);
+          const signedValues=values.map(value=>value.signed).filter(value=>Number.isFinite(value)&&value!==0);
+          const positive=signedValues.filter(value=>value>0).length;
+          const negative=signedValues.filter(value=>value<0).length;
+          const directionAgreement=signedValues.length?Math.max(positive,negative)/signedValues.length:0;
+          evidenceCount+=values.length;
+          rules[label]={
+            evidencePairs:values.length,
+            observedEnvelopePercent:median(envelopes),
+            minObservedPercent:Math.min(...envelopes),
+            maxObservedPercent:Math.max(...envelopes),
+            ...(signedValues.length===values.length&&directionAgreement>=0.8?{
+              targetDeltaPercent:median(signedValues),
+              directionAgreement,
+            }:{}),
+          };
+        }
+        if(!Object.keys(rules).length)continue;
+        const canonical=JSON.stringify({...scope,rules});
+        const digest=await sha256Text(canonical);
+        const candidate={
+          version:`rules-${digest.slice(0,16)}`,
+          ...scope,
+          state:'EVIDENCE_CANDIDATE',
+          verified:false,
+          rules,
+          evidenceCount,
+          digest,
+          createdAt:Date.now(),
+        };
+        await repository.saveCandidate(env,candidate);
+        candidates.push(candidate);
       }
-      const canonical=JSON.stringify({operationLabel,rules});
-      const digest=await sha256Text(canonical);
-      const candidate={
-        version:`rules-${digest.slice(0,16)}`,
-        operationLabel,
-        state:'EVIDENCE_CANDIDATE',
-        verified:false,
-        rules,
-        evidenceCount,
-        digest,
-        createdAt:Date.now(),
-      };
-      await repository.saveCandidate(env,candidate);
-      return {created:true,candidate};
+      if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
+      return {created:true,candidate:candidates[0],candidates};
     },
     async status(env){
       const [latest,production]=await Promise.all([
