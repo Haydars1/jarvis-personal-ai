@@ -1,6 +1,7 @@
 import { createEcuJobRecord } from './models.js';
 import { assertEcuJobTransition } from './state-machine.js';
 import { createEcuResearch } from './research.js';
+import { discoverGitHubEcuSources } from './github-intelligence.js';
 import { createEcuTraining } from './training.js';
 import { buildEcuDatasetSnapshot } from './dataset.js';
 import { decideEcuModelPromotion, ecuBenchmarkScore } from './promotion.js';
@@ -1042,7 +1043,7 @@ async function defaultUploadStatus(env) {
 }
 
 export function createEcuRuntime(core, overrides = {}) {
-  const research = overrides.research || createEcuResearch();
+  const research = overrides.research || createEcuResearch({githubDiscover:discoverGitHubEcuSources});
   const rulepacks = overrides.rulepacks || createEcuRulepackLearning({operationLabel:'*'});
   const computeDispatch = overrides.computeDispatch || createComputeDispatch();
   const training = overrides.training || createEcuTraining({
