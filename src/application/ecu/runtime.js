@@ -1201,6 +1201,30 @@ export function shouldRetryNeedsReview(result={}){
   });
 }
 
+async function recordResearchGapOutcome(env,{family='',hw='',sw='',operationLabel,outcome={},timestamp=Date.now()}){
+  if(!env?.DB?.prepare||!operationLabel)return null;
+  const gapId=await sha256Text(JSON.stringify({family,hw,sw,operationLabel}));
+  const existing=await env.DB.prepare('SELECT attempts FROM ecu_research_gaps WHERE id=? LIMIT 1').bind(gapId).first();
+  const attempts=Number(existing?.attempts||0)+1;
+  await env.DB.prepare(`INSERT INTO ecu_research_gaps(
+    id,ecu_family,hw,sw,operation_label,state,resolved_at,last_researched_at,attempts,last_sources_found,last_claims_found,created_at,updated_at
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(id) DO UPDATE SET
+    state='OPEN',
+    resolved_at=NULL,
+    last_researched_at=excluded.last_researched_at,
+    attempts=excluded.attempts,
+    last_sources_found=excluded.last_sources_found,
+    last_claims_found=excluded.last_claims_found,
+    updated_at=excluded.updated_at`)
+    .bind(
+      gapId,family,hw,sw,operationLabel,'OPEN',null,timestamp,attempts,
+      Number(outcome?.sourcesFound||0),Number(outcome?.claimsFound||0),
+      timestamp,timestamp
+    ).run();
+  return gapId;
+}
+
 async function defaultListResearchGaps(env,limit=20){
   const safe=Math.max(1,Math.min(100,Number(limit)||20));
   const rows=(await env.DB.prepare(`SELECT
@@ -1251,7 +1275,7 @@ export async function researchKnowledgeGaps(env,targeted,timestamp=Date.now(),{m
       const operationLabel=ECU_OPERATION_LABELS[operation];
       if(!operationLabel)continue;
       const gapId=await sha256Text(JSON.stringify({family,hw,sw,operationLabel}));
-      const existing=await env.DB.prepare('SELECT last_researched_at,attempts FROM ecu_research_gaps WHERE id=? LIMIT 1').bind(gapId).first();
+      const existing=await env.DB.prepare('SELECT last_researched_at,attempts,state FROM ecu_research_gaps WHERE id=? LIMIT 1').bind(gapId).first();
       if(existing&&timestamp-Number(existing.last_researched_at||0)<minIntervalMs){
         skippedRecent+=1;
         continue;
@@ -1260,21 +1284,7 @@ export async function researchKnowledgeGaps(env,targeted,timestamp=Date.now(),{m
       try{
         outcome=await targeted(env,{ecuFamily:family,operationLabel,hw,sw})||outcome;
       }catch{}
-      const attempts=Number(existing?.attempts||0)+1;
-      await env.DB.prepare(`INSERT INTO ecu_research_gaps(
-        id,ecu_family,hw,sw,operation_label,last_researched_at,attempts,last_sources_found,last_claims_found,created_at,updated_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
-      ON CONFLICT(id) DO UPDATE SET
-        last_researched_at=excluded.last_researched_at,
-        attempts=excluded.attempts,
-        last_sources_found=excluded.last_sources_found,
-        last_claims_found=excluded.last_claims_found,
-        updated_at=excluded.updated_at`)
-        .bind(
-          gapId,family,hw,sw,operationLabel,'OPEN',null,timestamp,attempts,
-          Number(outcome?.sourcesFound||0),Number(outcome?.claimsFound||0),
-          timestamp,timestamp
-        ).run();
+      await recordResearchGapOutcome(env,{family,hw,sw,operationLabel,outcome,timestamp});
       researched+=1;
     }
   }
@@ -1732,12 +1742,18 @@ export function createEcuRuntime(core, overrides = {}) {
             for(const operation of operations){
               const label=ECU_OPERATION_LABELS[operation];
               if(!label)continue;
-              ctx.waitUntil(deps.researchTargeted(env,{
-                ecuFamily:String(body.ecu_family||''),
-                operationLabel:label,
-                hw,
-                sw,
-              }).catch(()=>{}));
+              const family=String(body.ecu_family||'');
+              ctx.waitUntil((async()=>{
+                const outcome=await deps.researchTargeted(env,{
+                  ecuFamily:family,
+                  operationLabel:label,
+                  hw,
+                  sw,
+                });
+                await recordResearchGapOutcome(env,{
+                  family,hw,sw,operationLabel:label,outcome,timestamp:Date.now(),
+                });
+              })().catch(()=>{}));
             }
           }
           return json({job});
