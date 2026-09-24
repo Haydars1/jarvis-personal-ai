@@ -33,6 +33,8 @@ struct EcuBrainView: View {
     @State private var loading = false
     @State private var modURL: URL?
     @State private var selectedServices: Set<String> = ["stage1"]
+    @State private var currentFileId: String?
+    @State private var serviceAvailability: [String:EcuServiceAvailability] = [:]
     @State private var showTrainingOriImporter = false
     @State private var showTrainingModImporter = false
     @State private var trainingOriURL: URL?
@@ -186,10 +188,17 @@ struct EcuBrainView: View {
                                     Text(option.subtitle).font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Text("MOD")
-                                    .font(.caption2.weight(.semibold))
-                                    .padding(.horizontal, 7).padding(.vertical, 4)
-                                    .background(.secondary.opacity(0.12), in: Capsule())
+                                VStack(alignment: .trailing, spacing: 3) {
+                                    Text("MOD")
+                                        .font(.caption2.weight(.semibold))
+                                        .padding(.horizontal, 7).padding(.vertical, 4)
+                                        .background(.secondary.opacity(0.12), in: Capsule())
+                                    if let availability = serviceAvailability[option.id] {
+                                        Text(serviceStateText(availability.state))
+                                            .font(.caption2.weight(.semibold))
+                                            .foregroundStyle(availability.available ? .green : .secondary)
+                                    }
+                                }
                             }
                         }
                         .buttonStyle(.plain)
@@ -365,6 +374,10 @@ struct EcuBrainView: View {
             rulepacks = try await r
             research = try await rs
             trainingPairs = try await p
+            if let currentFileId {
+                let availability = try await api.serviceAvailability(fileId: currentFileId)
+                serviceAvailability = Dictionary(uniqueKeysWithValues: availability.map { ($0.id, $0) })
+            }
         } catch {
             message = error.localizedDescription
         }
@@ -439,6 +452,17 @@ struct EcuBrainView: View {
             await refresh()
         } catch {
             message = error.localizedDescription
+        }
+    }
+
+    private func serviceStateText(_ state: String) -> String {
+        switch state {
+        case "AVAILABLE": return "Hazır"
+        case "CONTEXT_VERIFY": return "Dosyada doğrulanacak"
+        case "CHECKSUM_REQUIRED": return "Checksum öğreniliyor"
+        case "LEARNING": return "Öğreniliyor"
+        case "NEEDS_ANALYSIS": return "Analiz bekliyor"
+        default: return state
         }
     }
 
