@@ -21,17 +21,18 @@ def build_release_decision(
     allowed_ranges: list[tuple[int,int]],
     checksum_adapter: ChecksumAdapter,
 ) -> ReleaseDecision:
-    checksum=checksum_adapter.verify(candidate_mod)
+    applied=checksum_adapter.apply(candidate_mod)
+    effective_ranges=list(allowed_ranges)+list(applied.ranges)
     validation=validate_mod_candidate(
         ori,
-        candidate_mod,
-        allowed_ranges=allowed_ranges,
-        checksum=checksum,
+        applied.data,
+        allowed_ranges=effective_ranges,
+        checksum=applied.result,
     )
     return ReleaseDecision(
         ready=validation.ready,
         errors=list(validation.errors),
-        mod_bytes=candidate_mod if validation.ready else None,
+        mod_bytes=applied.data if validation.ready else None,
         changed_offsets=list(validation.changed_offsets),
-        checksum_algorithm=checksum.algorithm,
+        checksum_algorithm=applied.result.algorithm,
     )
