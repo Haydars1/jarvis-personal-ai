@@ -448,18 +448,27 @@ struct EcuBrainView: View {
 
     @MainActor
     private func runSelected(_ fileId: String) async {
-        var notes: [String] = []
         let selected = EcuServiceOption.all.filter { selectedServices.contains($0.id) }
-        for option in selected {
-            do {
-                let job = try await api.runOperation(fileId: fileId, operation: option.operation)
-                notes.append("\(option.title): \(job.state)")
-            } catch {
-                notes.append("\(option.title): \(error.localizedDescription)")
-            }
+        guard !selected.isEmpty else {
+            message = "İşlem seçilmedi"
+            return
         }
-        message = notes.isEmpty ? "İşlem seçilmedi" : notes.joined(separator: " • ")
-        await refresh()
+        do {
+            if selected.count == 1, let option = selected.first {
+                let job = try await api.runOperation(fileId: fileId, operation: option.operation)
+                message = "\(option.title): \(job.state)"
+            } else {
+                let job = try await api.runComposite(
+                    fileId: fileId,
+                    operations: selected.map(\.operation)
+                )
+                let titles = selected.map(\.title).joined(separator: " + ")
+                message = "Tek MOD işi oluşturuldu • \(titles) • \(job.state)"
+            }
+            await refresh()
+        } catch {
+            message = error.localizedDescription
+        }
     }
 
     @MainActor
