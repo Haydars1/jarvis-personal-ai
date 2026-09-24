@@ -134,15 +134,19 @@ const defaultRepository = {
   },
 
   async listClaims(env) {
-    return (await env.DB.prepare(`SELECT id,source_url,topic,text,verification_state
-      FROM ecu_knowledge_claims
-      WHERE verification_state='UNVERIFIED'
-      ORDER BY created_at DESC LIMIT 500`).all()).results?.map(row=>({
+    return (await env.DB.prepare(`SELECT c.id,c.source_url,c.topic,c.text,c.verification_state,
+      COALESCE(s.trust_score,0.5) AS trust_score,COALESCE(s.source_kind,'web') AS source_kind
+      FROM ecu_knowledge_claims c
+      LEFT JOIN ecu_knowledge_sources s ON s.url=c.source_url
+      WHERE c.verification_state='UNVERIFIED'
+      ORDER BY c.created_at DESC LIMIT 1000`).all()).results?.map(row=>({
         id:row.id,
         sourceUrl:row.source_url,
         topic:row.topic,
         text:row.text,
         verificationState:row.verification_state,
+        trustScore:Number(row.trust_score||0.5),
+        sourceKind:row.source_kind||'web',
       })) || [];
   },
 
@@ -179,7 +183,7 @@ export function createEcuResearch({
       return {corroborated:0,scanned:0};
     }
     const claims=await repository.listClaims(env);
-    const supported=new Set();
+    const supported=new Map();
     for(let i=0;i<claims.length;i+=1){
       const a=claims[i];
       for(let j=i+1;j<claims.length;j+=1){
@@ -187,12 +191,18 @@ export function createEcuResearch({
         if(String(a.sourceUrl||'')===String(b.sourceUrl||''))continue;
         if(String(a.topic||'')!==String(b.topic||''))continue;
         if(claimSimilarity(a.text,b.text)<0.72)continue;
-        supported.add(a.id);
-        supported.add(b.id);
+        const pairTrust=Math.min(Number(a.trustScore||0.5),Number(b.trustScore||0.5));
+        supported.set(a.id,Math.max(supported.get(a.id)||0,pairTrust));
+        supported.set(b.id,Math.max(supported.get(b.id)||0,pairTrust));
       }
     }
-    for(const id of supported)await repository.markClaimState(env,id,'CORROBORATED');
-    return {corroborated:supported.size,scanned:claims.length};
+    let verified=0;
+    for(const [id,trust] of supported){
+      const state=trust>=0.8?'VERIFIED':'CORROBORATED';
+      await repository.markClaimState(env,id,state);
+      if(state==='VERIFIED')verified+=1;
+    }
+    return {corroborated:supported.size,verified,scanned:claims.length};
   };
 
   return {
