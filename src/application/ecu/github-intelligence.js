@@ -65,7 +65,7 @@ export function capabilityTags(text='',path=''){
   const tags=[];
   const rules=[
     ['IDENTIFY',/identify|fingerprint|extractor|ecu family|match_key/],
-    ['MAP_DETECTION',/map detection|map finder|map_hunter|scan_maps|axis|map classifier/],
+    ['MAP_DETECTION',/map detection|map finder|map_hunter|scan[_ ]maps|axis|map classifier/],
     ['A2L_DAMOS',/a2l|asap2|damos|compu_method|record_layout/],
     ['XDF_OLS',/\.xdf|tunerpro|winols|\.ols|mappack/],
     ['CHECKSUM',/checksum|crc32|add32|add16|cvn/],
