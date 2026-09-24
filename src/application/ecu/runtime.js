@@ -340,10 +340,17 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   const productionModel=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
   const modelVersion = productionModel?.version || 'baseline';
   let rulepackVersion = 'baseline';
+  let checksumProfileVersion = 'baseline';
   let rulepackConfig = {};
   const operationLabel=ECU_OPERATION_LABELS[operation]||null;
   const inputConfig=(config&&typeof config==='object'&&!Array.isArray(config))?config:{};
   const identity=await fileIdentity(env,fileId);
+  if(identity.ecuFamily){
+    try{
+      const profile=await defaultChecksumProfileForIdentity(env,identity);
+      checksumProfileVersion=profile?.id||'baseline';
+    }catch{}
+  }
   if (operationLabel) {
     const rulepack=await defaultRulepackForIdentity(env,{operationLabel,...identity});
     if (rulepack?.version) {
@@ -388,6 +395,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
     operation,
     modelVersion,
     rulepackVersion,
+    checksumProfileVersion,
     config:fingerprintConfig,
   }));
   const existing = await env.DB.prepare('SELECT * FROM ecu_jobs WHERE run_fingerprint=? LIMIT 1').bind(runFingerprint).first();
@@ -420,6 +428,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
     runFingerprint,
     modelVersion,
     rulepackVersion,
+    checksumProfileVersion,
     workerKind: dispatched?.workerKind || null,
     dispatchReason: dispatched?.reason || null,
   };
