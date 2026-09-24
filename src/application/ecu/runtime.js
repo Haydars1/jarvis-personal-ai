@@ -1176,6 +1176,28 @@ export function shouldRetryNeedsReview(result={}){
   });
 }
 
+async function defaultListResearchGaps(env,limit=20){
+  const safe=Math.max(1,Math.min(100,Number(limit)||20));
+  const rows=(await env.DB.prepare(`SELECT
+      id,ecu_family,hw,sw,operation_label,last_researched_at,attempts,last_sources_found,last_claims_found,created_at,updated_at
+    FROM ecu_research_gaps
+    ORDER BY updated_at DESC,last_researched_at DESC
+    LIMIT ?`).bind(safe).all()).results||[];
+  return rows.map(row=>({
+    id:row.id,
+    ecuFamily:row.ecu_family||'',
+    hw:row.hw||'',
+    sw:row.sw||'',
+    operationLabel:row.operation_label||'',
+    lastResearchedAt:Number(row.last_researched_at||0),
+    attempts:Number(row.attempts||0),
+    lastSourcesFound:Number(row.last_sources_found||0),
+    lastClaimsFound:Number(row.last_claims_found||0),
+    createdAt:Number(row.created_at||0),
+    updatedAt:Number(row.updated_at||0),
+  }));
+}
+
 export async function researchKnowledgeGaps(env,targeted,timestamp=Date.now(),{minIntervalMs=6*60*60*1000}={}){
   const rows=(await env.DB.prepare(`SELECT id,operation,result_json
     FROM ecu_jobs
@@ -1456,6 +1478,7 @@ export function createEcuRuntime(core, overrides = {}) {
     mapContextForArtifact: defaultMapContextForArtifact,
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
+    listResearchGaps: defaultListResearchGaps,
     researchTargeted: (env,input) => research.targeted(env,input),
     researchKnowledgeGaps: (env,timestamp) => researchKnowledgeGaps(env,(targetEnv,input)=>research.targeted(targetEnv,input),timestamp),
     listGitHubRepositories: defaultListGitHubRepositories,
@@ -1860,6 +1883,10 @@ export function createEcuRuntime(core, overrides = {}) {
         const fileId=String(url.searchParams.get('fileId')||'').trim();
         if(!fileId)return json({error:'fileId is required'},400);
         return json(await deps.serviceAvailability(env,fileId));
+      }
+
+      if (url.pathname === '/api/ecu/research/gaps' && req.method === 'GET') {
+        return json({gaps:await deps.listResearchGaps(env,url.searchParams.get('limit'))});
       }
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
