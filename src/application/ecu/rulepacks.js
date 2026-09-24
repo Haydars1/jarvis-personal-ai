@@ -13,7 +13,7 @@ async function sha256Text(value){
 
 const defaultRepository={
   async listVerifiedEvidence(env){
-    const rows=(await env.DB.prepare(`SELECT pair_id,operation_label,ecu_family,hw,sw,semantic_label,confidence,delta_stats_json,human_verified
+    const rows=(await env.DB.prepare(`SELECT pair_id,operation_label,ecu_family,hw,sw,semantic_label,map_offset,confidence,delta_stats_json,human_verified
       FROM ecu_change_evidence WHERE human_verified=1
       ORDER BY operation_label,ecu_family,hw,sw,semantic_label,pair_id,created_at ASC`).all()).results||[];
     return rows.map(row=>({
@@ -23,6 +23,7 @@ const defaultRepository={
       hw:row.hw||'',
       sw:row.sw||'',
       semanticLabel:row.semantic_label,
+      mapOffset:Number(row.map_offset||0),
       confidence:Number(row.confidence||0),
       humanVerified:Boolean(row.human_verified),
       deltaStats:(()=>{try{return JSON.parse(row.delta_stats_json||'{}')}catch{return {}}})(),
@@ -112,14 +113,27 @@ export function createEcuRulepackLearning({
         };
         if(!scope.operationLabel)continue;
         const scopeKey=[scope.operationLabel,scope.ecuFamily,scope.hw,scope.sw].join('|');
-        if(!scopes.has(scopeKey))scopes.set(scopeKey,{scope,labels:new Map()});
-        const labels=scopes.get(scopeKey).labels;
+        if(!scopes.has(scopeKey))scopes.set(scopeKey,{scope,labels:new Map(),patches:new Map()});
+        const bucket=scopes.get(scopeKey);
+        if(label==='__PATCH__'){
+          const beforeHex=String(row.deltaStats?.patchBeforeHex||row.deltaStats?.patch_before_hex||'').toLowerCase();
+          const afterHex=String(row.deltaStats?.patchAfterHex||row.deltaStats?.patch_after_hex||'').toLowerCase();
+          const length=Number(row.deltaStats?.length||0);
+          if(length>0&&beforeHex.length===length*2&&afterHex.length===length*2&&beforeHex!==afterHex){
+            const patchKey=[row.mapOffset,beforeHex,afterHex].join(':');
+            if(!bucket.patches.has(patchKey))bucket.patches.set(patchKey,{offset:row.mapOffset,beforeHex,afterHex,length,pairs:new Set()});
+            bucket.patches.get(patchKey).pairs.add(String(row.pairId||''));
+          }
+          continue;
+        }
+        if(!Number.isFinite(envelope)||envelope<=0)continue;
+        const labels=bucket.labels;
         if(!labels.has(label))labels.set(label,new Map());
         labels.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
       }
 
       const candidates=[];
-      for(const {scope,labels} of scopes.values()){
+      for(const {scope,labels,patches} of scopes.values()){
         const rules={};
         let evidenceCount=0;
         for(const [label,byPair] of [...labels.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
@@ -141,6 +155,20 @@ export function createEcuRulepackLearning({
               directionAgreement,
             }:{}),
           };
+        }
+        const exactPatches=[...(patches||new Map()).values()]
+          .filter(patch=>patch.pairs.size>=3)
+          .sort((a,b)=>a.offset-b.offset)
+          .map(patch=>({
+            offset:patch.offset,
+            length:patch.length,
+            beforeHex:patch.beforeHex,
+            afterHex:patch.afterHex,
+            evidencePairs:patch.pairs.size,
+          }));
+        if(exactPatches.length){
+          rules.__patches=exactPatches;
+          evidenceCount+=exactPatches.reduce((sum,patch)=>sum+patch.evidencePairs,0);
         }
         if(!Object.keys(rules).length)continue;
         const canonical=JSON.stringify({...scope,rules});
