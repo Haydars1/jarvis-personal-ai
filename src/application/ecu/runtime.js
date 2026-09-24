@@ -338,8 +338,8 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   const existing = await env.DB.prepare('SELECT * FROM ecu_jobs WHERE run_fingerprint=? LIMIT 1').bind(runFingerprint).first();
   if (existing) return { ...mapJob(existing), cached: true };
   const record = createEcuJobRecord({ id: uid(), artifactHash: fileId, operation, createdAt: now() });
-  await env.DB.prepare('INSERT INTO ecu_jobs(id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)')
-    .bind(record.id, fileId, operation, record.state, runFingerprint, modelVersion, rulepackVersion, record.createdAt, record.updatedAt).run();
+  await env.DB.prepare('INSERT INTO ecu_jobs(id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,config_json,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)')
+    .bind(record.id, fileId, operation, record.state, runFingerprint, modelVersion, rulepackVersion, JSON.stringify(inputConfig), record.createdAt, record.updatedAt).run();
 
   const dispatched = await dispatch({
     id: record.id,
@@ -1101,7 +1101,7 @@ export function shouldRetryNeedsReview(result={}){
 async function defaultRetryReviewJobs(env,dispatch){
   const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
   if(!callbackBaseUrl)return {attempted:0,retried:0,reason:'NO_CALLBACK_URL'};
-  const rows=(await env.DB.prepare(`SELECT id,file_id,operation,result_json,updated_at
+  const rows=(await env.DB.prepare(`SELECT id,file_id,operation,config_json,result_json,updated_at
     FROM ecu_jobs
     WHERE state='NEEDS_REVIEW'
       AND operation IN ('stage1_proposal','dtc_off_proposal','egr_off_proposal','dpf_off_proposal','adblue_off_proposal','vmax_off_proposal','startstop_off_proposal')
@@ -1114,10 +1114,13 @@ async function defaultRetryReviewJobs(env,dispatch){
     try{result=JSON.parse(row.result_json||'{}')}catch{}
     if(!shouldRetryNeedsReview(result))continue;
     attempted+=1;
+    let config={};
+    try{config=JSON.parse(row.config_json||'{}')}catch{}
     const job=await defaultCreateJob(env,{
       fileId:row.file_id,
       operation:row.operation,
       callbackBaseUrl,
+      config,
     },dispatch);
     if(job?.id&&job.id!==row.id&&!job.cached)retried+=1;
   }
@@ -1128,7 +1131,7 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
   const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
   if(!callbackBaseUrl)return {attempted:0,dispatched:0,reason:'NO_CALLBACK_URL'};
   const rows=(await env.DB.prepare(`SELECT
-      j.id,j.operation,j.run_fingerprint,j.model_version,j.rulepack_version,j.file_id,
+      j.id,j.operation,j.run_fingerprint,j.model_version,j.rulepack_version,j.file_id,j.config_json,
       f.sha256,f.artifact_uri
     FROM ecu_jobs j
     JOIN ecu_files f ON f.id=j.file_id
@@ -1145,7 +1148,10 @@ async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
       operation:row.operation||'analyze',
       modelVersion:row.model_version||'baseline',
       rulepackVersion:row.rulepack_version||'baseline',
-      config:{callback_base_url:callbackBaseUrl},
+      config:{
+        callback_base_url:callbackBaseUrl,
+        ...(()=>{try{return JSON.parse(row.config_json||'{}')}catch{return {}}})(),
+      },
     },env);
     if(result?.accepted){
       dispatched+=1;
