@@ -535,6 +535,89 @@ async function refreshChecksumProfiles(env,{minPairs=5}={}){
   return {promoted};
 }
 
+async function promoteMachineMapHypotheses(env,{operationLabel,ecuFamily,hw,sw,timestamp}){
+  if(String(operationLabel||'')!=='stage1'||!ecuFamily||!hw||!sw)return {promotedGroups:0,promotedRows:0};
+
+  const rows=(await env.DB.prepare(`SELECT id,pair_id,semantic_label,map_offset,confidence,delta_stats_json
+    FROM ecu_change_hypotheses
+    WHERE operation_label='stage1' AND ecu_family=? AND hw=? AND sw=? AND verification_state='UNVERIFIED'
+      AND confidence>=0.94
+    ORDER BY semantic_label,map_offset,pair_id,created_at ASC`)
+    .bind(ecuFamily,hw,sw).all()).results||[];
+
+  const allowedLabels=new Set(['driver_wish','torque_limiter','boost_target','rail_pressure']);
+  const groups=new Map();
+  for(const row of rows){
+    const label=String(row.semantic_label||'');
+    if(!allowedLabels.has(label))continue;
+    let stats={};
+    try{stats=JSON.parse(row.delta_stats_json||'{}')}catch{}
+    const signed=Number(stats.medianSignedPercent??stats.median_signed_percent??0);
+    const p95=Number(stats.p95AbsPercent??stats.p95_abs_percent??0);
+    if(!Number.isFinite(signed)||signed===0||!Number.isFinite(p95)||p95<=0||p95>25)continue;
+    const key=[label,Number(row.map_offset||0)].join(':');
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push({
+      id:String(row.id),
+      pairId:String(row.pair_id),
+      label,
+      mapOffset:Number(row.map_offset||0),
+      confidence:Number(row.confidence||0),
+      stats:{...stats,medianSignedPercent:signed,p95AbsPercent:p95},
+      signed,
+    });
+  }
+
+  let promotedGroups=0;
+  let promotedRows=0;
+  for(const entries of groups.values()){
+    const uniquePairs=new Map();
+    for(const entry of entries)if(entry.pairId&&!uniquePairs.has(entry.pairId))uniquePairs.set(entry.pairId,entry);
+    const values=[...uniquePairs.values()];
+    if(values.length<8)continue;
+    const positives=values.filter(item=>item.signed>0).length;
+    const negatives=values.filter(item=>item.signed<0).length;
+    const agreement=Math.max(positives,negatives)/values.length;
+    const averageConfidence=values.reduce((sum,item)=>sum+item.confidence,0)/values.length;
+    if(agreement<0.90||averageConfidence<0.94)continue;
+
+    for(const entry of values){
+      const evidenceId=`${entry.pairId}:machine:${entry.label}:${entry.mapOffset}`;
+      await env.DB.prepare(`INSERT INTO ecu_change_evidence(
+        id,pair_id,operation_label,ecu_family,hw,sw,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,verification_method,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        confidence=MAX(ecu_change_evidence.confidence,excluded.confidence),
+        delta_stats_json=excluded.delta_stats_json,
+        human_verified=1,
+        verification_method='machine_consensus'`)
+        .bind(
+          evidenceId,
+          entry.pairId,
+          'stage1',
+          ecuFamily,
+          hw,
+          sw,
+          entry.label,
+          entry.mapOffset,
+          entry.mapOffset,
+          entry.mapOffset,
+          0,
+          entry.confidence,
+          JSON.stringify(entry.stats),
+          1,
+          'machine_consensus',
+          timestamp,
+        ).run();
+      promotedRows+=1;
+      await env.DB.prepare("UPDATE ecu_change_hypotheses SET verification_state='CONSENSUS_VERIFIED',updated_at=? WHERE id=?")
+        .bind(timestamp,entry.id).run();
+    }
+    promotedGroups+=1;
+  }
+  return {promotedGroups,promotedRows};
+}
+
 async function defaultApplyPairResult(env,pairId,body={}){
   const status=String(body.status||'FAILED');
   if(!new Set(['COMPLETE','FAILED']).has(status))throw new Error('INVALID_PAIR_RESULT_STATUS');
@@ -693,7 +776,17 @@ async function defaultApplyPairResult(env,pairId,body={}){
       }
     }
   }
-  return {id:pairId,state:status,diffDigest:diff?.digest||null,verifiedEvidenceCount};
+  let machineConsensus={promotedGroups:0,promotedRows:0};
+  if(status==='COMPLETE'){
+    machineConsensus=await promoteMachineMapHypotheses(env,{
+      operationLabel:pair.operation_label||body.operation_label||'',
+      ecuFamily:scopedFamily,
+      hw:scopedHw,
+      sw:scopedSw,
+      timestamp,
+    });
+  }
+  return {id:pairId,state:status,diffDigest:diff?.digest||null,verifiedEvidenceCount,machineConsensus};
 }
 
 async function defaultApplyTrainingResult(env, trainingId, body = {}) {
