@@ -454,3 +454,27 @@ test('manual research endpoint triggers GitHub and web research cycle',async()=>
   assert.equal(body.claimsFound,30);
   assert.equal(calls.length,1);
 });
+
+
+test('lists learned GitHub ECU repositories and capabilities',async()=>{
+  const runtime=createEcuRuntime(coreFallback(),{
+    async listGitHubRepositories(_env,limit){
+      assert.equal(limit,'8');
+      return [{
+        repository:'v-arapidis/openremap-core',
+        license:'mit',
+        reusePolicy:'ADAPT_WITH_ATTRIBUTION',
+        stars:123,
+        capabilities:['IDENTIFY','PATCH_RECIPE','CHECKSUM'],
+        defaultBranch:'main',
+        lastSeenAt:1234,
+      }];
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/research/github?limit=8'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.repositories.length,1);
+  assert.equal(body.repositories[0].repository,'v-arapidis/openremap-core');
+  assert.ok(body.repositories[0].capabilities.includes('PATCH_RECIPE'));
+});
