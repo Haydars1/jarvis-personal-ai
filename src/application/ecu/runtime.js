@@ -49,6 +49,24 @@ async function fileIdentity(env,fileId){
   };
 }
 
+async function defaultListGitHubRepositories(env,limit=20){
+  const safe=Math.max(1,Math.min(100,Number(limit||20)));
+  const rows=(await env.DB.prepare(`SELECT repository,license,reuse_policy,stars,capabilities_json,default_branch,last_seen_at
+    FROM ecu_github_repositories
+    ORDER BY CASE reuse_policy WHEN 'ADAPT_WITH_ATTRIBUTION' THEN 0 WHEN 'ARCHITECTURE_ONLY' THEN 1 ELSE 2 END,
+      stars DESC,last_seen_at DESC
+    LIMIT ?`).bind(safe).all()).results||[];
+  return rows.map(row=>({
+    repository:row.repository,
+    license:row.license,
+    reusePolicy:row.reuse_policy,
+    stars:Number(row.stars||0),
+    capabilities:(()=>{try{return JSON.parse(row.capabilities_json||'[]')}catch{return []}})(),
+    defaultBranch:row.default_branch||'',
+    lastSeenAt:Number(row.last_seen_at||0),
+  }));
+}
+
 async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw='',sw=''}) {
   const row=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
     FROM ecu_rulepack_versions
@@ -1068,6 +1086,7 @@ export function createEcuRuntime(core, overrides = {}) {
     mapContextForArtifact: defaultMapContextForArtifact,
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
+    listGitHubRepositories: defaultListGitHubRepositories,
     rulepackStatus: env => rulepacks.status(env),
     trainingStatus: env => training.status(env),
     uploadStatus: defaultUploadStatus,
@@ -1399,6 +1418,10 @@ export function createEcuRuntime(core, overrides = {}) {
 
       if (url.pathname === '/api/ecu/research/status' && req.method === 'GET') {
         return json(await deps.researchStatus(env));
+      }
+
+      if (url.pathname === '/api/ecu/research/github' && req.method === 'GET') {
+        return json({repositories:await deps.listGitHubRepositories(env,url.searchParams.get('limit'))});
       }
 
       if (url.pathname === '/api/ecu/research/run' && req.method === 'POST') {
