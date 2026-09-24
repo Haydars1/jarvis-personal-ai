@@ -30,3 +30,20 @@ def test_fingerprint_keeps_unknown_binary_unknown():
     assert result.ecu_family == 'UNKNOWN'
     assert result.confidence == 0.0
     assert result.supported is False
+
+
+def test_recognizes_common_ecu_family_markers():
+    from ecu_worker.fingerprint import fingerprint_binary
+
+    cases = [
+        (b"xxxx BOSCH EDC16U34 HW:123456 SW:654321 xxxx", "EDC16U34"),
+        (b"xxxx BOSCH MED17.5.5 HW:123456 SW:654321 xxxx", "MED17.5.5"),
+        (b"xxxx BOSCH MD1CS004 HW:123456 SW:654321 xxxx", "MD1CS004"),
+        (b"xxxx CONTINENTAL SID807 HW:123456 SW:654321 xxxx", "SID807"),
+        (b"xxxx DELPHI DCM3.7 HW:123456 SW:654321 xxxx", "DCM3.7"),
+    ]
+    for payload, family in cases:
+        result = fingerprint_binary(payload)
+        assert result.ecu_family == family
+        assert result.supported is True
+        assert result.confidence >= 0.9
