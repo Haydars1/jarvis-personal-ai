@@ -74,12 +74,12 @@ test('adds a signed target only when repeated verified pairs agree on direction'
 
 test('learns exact patch rulepacks per ECU scope and never mixes SW variants',async()=>{
   const rows=[
-    ...Array.from({length:3},(_,i)=>({
+    ...Array.from({length:5},(_,i)=>({
       pairId:'a'+i,operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1',
       semanticLabel:'__PATCH__',mapOffset:100,humanVerified:true,
       deltaStats:{patchBeforeHex:'0102',patchAfterHex:'aabb',length:2}
     })),
-    ...Array.from({length:3},(_,i)=>({
+    ...Array.from({length:5},(_,i)=>({
       pairId:'b'+i,operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW2',
       semanticLabel:'__PATCH__',mapOffset:120,humanVerified:true,
       deltaStats:{patchBeforeHex:'0304',patchAfterHex:'ccdd',length:2}
@@ -94,10 +94,10 @@ test('learns exact patch rulepacks per ECU scope and never mixes SW variants',as
   const sw2=result.candidates.find(item=>item.sw==='SW2');
   assert.equal(sw1.ecuFamily,'EDC17C46');
   assert.deepEqual(sw1.rules.__patches,[{
-    offset:100,length:2,beforeHex:'0102',afterHex:'aabb',evidencePairs:3
+    offset:100,length:2,beforeHex:'0102',afterHex:'aabb',evidencePairs:5
   }]);
   assert.deepEqual(sw2.rules.__patches,[{
-    offset:120,length:2,beforeHex:'0304',afterHex:'ccdd',evidencePairs:3
+    offset:120,length:2,beforeHex:'0304',afterHex:'ccdd',evidencePairs:5
   }]);
 });
 
@@ -162,4 +162,55 @@ test('does not auto-promote patch evidence without exact ECU HW SW scope',async(
   assert.equal(result.candidates[0].verified,false);
   assert.equal(result.candidates[0].promotionReason,'SCOPE_NOT_EXACT');
   assert.equal(promoted,0);
+});
+
+
+test('auto-promotes only repeated exact non-stage1 SW-scoped rulepacks',async()=>{
+  const rows=Array.from({length:5},(_,i)=>({
+    pairId:'p'+i,operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1',
+    semanticLabel:'__PATCH__',mapOffset:100,humanVerified:true,
+    deltaStats:{patchBeforeHex:'0102',patchAfterHex:'aabb',length:2}
+  }));
+  const saved=[];
+  const promoted=[];
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){saved.push(candidate);return candidate;},
+    async promoteCandidate(_env,candidate){promoted.push(candidate);return {...candidate,state:'PRODUCTION',verified:true};},
+    async latest(){return saved.at(-1)||null;},
+    async production(){return promoted.at(-1)||null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*',minPairsPerLabel:5});
+  const result=await service.refresh({});
+  assert.equal(result.created,true);
+  assert.equal(result.autoPromoted.length,1);
+  assert.equal(result.autoPromoted[0].operationLabel,'egr_off');
+  assert.equal(result.autoPromoted[0].sw,'SW1');
+});
+
+
+test('does not auto-promote stage1 or unscoped patch candidates',async()=>{
+  const rows=[
+    ...Array.from({length:5},(_,i)=>({
+      pairId:'s'+i,operationLabel:'stage1',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1',
+      semanticLabel:'__PATCH__',mapOffset:10,humanVerified:true,
+      deltaStats:{patchBeforeHex:'01',patchAfterHex:'02',length:1}
+    })),
+    ...Array.from({length:5},(_,i)=>({
+      pairId:'u'+i,operationLabel:'dtc_off',ecuFamily:'EDC17C46',hw:'HW1',sw:'',
+      semanticLabel:'__PATCH__',mapOffset:12,humanVerified:true,
+      deltaStats:{patchBeforeHex:'03',patchAfterHex:'04',length:1}
+    })),
+  ];
+  const promoted=[];
+  const repo={
+    async listVerifiedEvidence(){return rows;},
+    async saveCandidate(_env,candidate){return candidate;},
+    async promoteCandidate(_env,candidate){promoted.push(candidate);return candidate;},
+    async latest(){return null;},
+    async production(){return null;},
+  };
+  const service=createEcuRulepackLearning({repository:repo,operationLabel:'*',minPairsPerLabel:5});
+  await service.refresh({});
+  assert.equal(promoted.length,0);
 });
