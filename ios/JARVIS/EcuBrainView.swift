@@ -30,6 +30,11 @@ struct EcuBrainView: View {
     @State private var loading = false
     @State private var modURL: URL?
     @State private var selectedServices: Set<String> = ["stage1"]
+    @State private var showTrainingOriImporter = false
+    @State private var showTrainingModImporter = false
+    @State private var trainingOriURL: URL?
+    @State private var trainingModURL: URL?
+    @State private var trainingServiceID = "stage1"
     private let api = EcuBrainAPI()
 
     var body: some View {
@@ -46,6 +51,52 @@ struct EcuBrainView: View {
                     LabeledContent("Doğrulanmış örnek", value: training.map { "\($0.verifiedExamples)/\($0.minVerifiedExamples)" } ?? "—")
                     LabeledContent("Aktif model", value: training?.productionModel?.version ?? "baseline")
                     LabeledContent("Rulepack", value: rulepackLabel)
+                }
+
+                Section("ORI/MOD ile Öğret") {
+                    Picker("İşlem", selection: $trainingServiceID) {
+                        ForEach(EcuServiceOption.all) { option in
+                            Text(option.title).tag(option.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+
+                    Button {
+                        showTrainingOriImporter = true
+                    } label: {
+                        HStack {
+                            Label("ORI seç", systemImage: "doc.badge.plus")
+                            Spacer()
+                            Text(trainingOriURL?.lastPathComponent ?? "Seçilmedi")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Button {
+                        showTrainingModImporter = true
+                    } label: {
+                        HStack {
+                            Label("MOD seç", systemImage: "doc.badge.gearshape")
+                            Spacer()
+                            Text(trainingModURL?.lastPathComponent ?? "Seçilmedi")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Button {
+                        Task { await teachPair() }
+                    } label: {
+                        Label("ORI + MOD Çiftini Öğret", systemImage: "brain.head.profile")
+                    }
+                    .disabled(trainingOriURL == nil || trainingModURL == nil || loading)
+
+                    Text("Aynı ECU/HW/SW için doğrulanmış ORI→MOD çiftleri biriktikçe JARVIS ilgili işlem rulepack'ini öğrenir ve yeterli tutarlılıkta otomatik production'a çıkarır.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("İşlemler") {
@@ -191,6 +242,24 @@ struct EcuBrainView: View {
                 }
                 .ignoresSafeArea()
             }
+            .sheet(isPresented: $showTrainingOriImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showTrainingOriImporter = false
+                    trainingOriURL = urls.first
+                } onCancel: {
+                    showTrainingOriImporter = false
+                }
+                .ignoresSafeArea()
+            }
+            .sheet(isPresented: $showTrainingModImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showTrainingModImporter = false
+                    trainingModURL = urls.first
+                } onCancel: {
+                    showTrainingModImporter = false
+                }
+                .ignoresSafeArea()
+            }
         }
     }
 
@@ -242,6 +311,48 @@ struct EcuBrainView: View {
         } catch {
             message = error.localizedDescription
         }
+    }
+
+    @MainActor
+    private func teachPair() async {
+        guard let oriURL = trainingOriURL, let modURL = trainingModURL else {
+            message = "ORI ve MOD dosyasını seç."
+            return
+        }
+        loading = true
+        defer { loading = false }
+        let oriAccess = oriURL.startAccessingSecurityScopedResource()
+        let modAccess = modURL.startAccessingSecurityScopedResource()
+        defer {
+            if oriAccess { oriURL.stopAccessingSecurityScopedResource() }
+            if modAccess { modURL.stopAccessingSecurityScopedResource() }
+        }
+        do {
+            let oriData = try Data(contentsOf: oriURL, options: [.mappedIfSafe])
+            let modData = try Data(contentsOf: modURL, options: [.mappedIfSafe])
+            guard oriData.count == modData.count else {
+                message = "ORI/MOD boyutu eşleşmiyor."
+                return
+            }
+            message = "Öğrenme çifti yükleniyor…"
+            let ori = try await api.uploadFile(data: oriData, filename: oriURL.lastPathComponent)
+            let mod = try await api.uploadFile(data: modData, filename: modURL.lastPathComponent)
+            let pair = try await api.createTrainingPair(
+                oriFileId: ori.id,
+                modFileId: mod.id,
+                operationLabel: trainingServiceID
+            )
+            message = "Öğrenme çifti: \(pair.state) • \(trainingServiceTitle)"
+            trainingOriURL = nil
+            trainingModURL = nil
+            await refresh()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private var trainingServiceTitle: String {
+        EcuServiceOption.all.first(where: { $0.id == trainingServiceID })?.title ?? trainingServiceID
     }
 
     @MainActor
