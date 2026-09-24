@@ -16,6 +16,8 @@ export const DEFAULT_GITHUB_ECU_SEEDS=Object.freeze([
   'ConnorHowell/medc17-checksum-tool',
   'LeZed97/ZedSuite',
   'CAATZ/bimmerstein-bin-analyzer',
+  'ctabuyo/romHEX14-community',
+  'v-arapidis/openremap-docs',
 ]);
 
 function headers(env={}){
@@ -35,7 +37,7 @@ async function gh(env,path,timeout=7000){
   return response.json();
 }
 
-function licensePolicy(spdx=''){
+export function licensePolicy(spdx=''){
   const id=String(spdx||'').trim().toLowerCase();
   if(PERMISSIVE.has(id))return {license:id||'unknown',reuse:'ADAPT_WITH_ATTRIBUTION',trust:0.9};
   if(COPYLEFT.has(id))return {license:id,reuse:'ARCHITECTURE_ONLY',trust:0.82};
@@ -58,15 +60,35 @@ function relevantPath(path=''){
   return /readme|checksum|map|patch|diff|tune|recipe|identify|fingerprint|extract|a2l|asap2|xdf|damos|winols|calibr|ecu|dtc|edc|med17|md1|mg1/.test(p);
 }
 
+export function capabilityTags(text='',path=''){
+  const hay=(String(path)+'\n'+String(text)).toLowerCase();
+  const tags=[];
+  const rules=[
+    ['IDENTIFY',/identify|fingerprint|extractor|ecu family|match_key/],
+    ['MAP_DETECTION',/map detection|map finder|map_hunter|scan_maps|axis|map classifier/],
+    ['A2L_DAMOS',/a2l|asap2|damos|compu_method|record_layout/],
+    ['XDF_OLS',/\.xdf|tunerpro|winols|\.ols|mappack/],
+    ['CHECKSUM',/checksum|crc32|add32|add16|cvn/],
+    ['ORI_MOD_DIFF',/ori.{0,10}mod|stock.{0,10}tuned|binary diff|diff_maps|cook/],
+    ['PATCH_RECIPE',/recipe|patcher|context_before|context_after|portable patch/],
+    ['DTC',/dtc|diagnostic trouble|dfc_ctlmsk|fault code/],
+    ['STAGE1',/stage\s*1|torque limiter|driver wish|boost|rail pressure/],
+  ];
+  for(const [tag,pattern] of rules)if(pattern.test(hay))tags.push(tag);
+  return tags;
+}
+
 function sourceRow(repo,path,text,policy){
   const title=`${repo.full_name}: ${path}`;
   const branch=repo.default_branch||'main';
   const url=`https://github.com/${repo.full_name}/blob/${branch}/${path}`;
+  const capabilities=capabilityTags(text,path);
   const header=[
     `Repository: ${repo.full_name}`,
     `License: ${policy.license}`,
     `Reuse policy: ${policy.reuse}`,
     `Stars: ${Number(repo.stargazers_count||0)}`,
+    `Capabilities: ${capabilities.join(',')||'UNCLASSIFIED'}`,
     `File: ${path}`,
   ].join(' | ');
   return {
