@@ -164,6 +164,12 @@ final class EcuBrainAPI {
         return try decoder.decode(EcuUploadResponse.self, from: payload)
     }
 
+    func trainingPairs(limit: Int = 20) async throws -> [EcuTrainingPair] {
+        let payload = try await request("/api/ecu/training/pairs?limit=\(max(1, min(100, limit)))")
+        struct ResponseBody: Decodable { let pairs: [EcuTrainingPair] }
+        return try decoder.decode(ResponseBody.self, from: payload).pairs
+    }
+
     func createTrainingPair(oriFileId: String, modFileId: String, operationLabel: String) async throws -> EcuTrainingPair {
         let body = try JSONSerialization.data(withJSONObject: [
             "oriFileId": oriFileId,
