@@ -324,7 +324,18 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
       };
     }
   }
-  if(operation==='multi_service_proposal')rulepackVersion='composite';
+  if(operation==='multi_service_proposal'){
+    let knowledgeVersion=0;
+    try{
+      const row=await env.DB.prepare(`SELECT MAX(version_ts) AS version_ts FROM (
+        SELECT COALESCE(MAX(promoted_at),0) AS version_ts FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1
+        UNION ALL
+        SELECT COALESCE(MAX(promoted_at),0) AS version_ts FROM ecu_checksum_profiles WHERE state='PRODUCTION' AND verified=1
+      )`).first();
+      knowledgeVersion=Number(row?.version_ts||0);
+    }catch{}
+    rulepackVersion=`composite-${knowledgeVersion}`;
+  }
   const fingerprintConfig=operation==='multi_service_proposal'
     ? {service_operations:Array.isArray(inputConfig.service_operations)?[...inputConfig.service_operations].map(String).sort():[]}
     : {};
@@ -1104,7 +1115,7 @@ async function defaultRetryReviewJobs(env,dispatch){
   const rows=(await env.DB.prepare(`SELECT id,file_id,operation,config_json,result_json,updated_at
     FROM ecu_jobs
     WHERE state='NEEDS_REVIEW'
-      AND operation IN ('stage1_proposal','dtc_off_proposal','egr_off_proposal','dpf_off_proposal','adblue_off_proposal','vmax_off_proposal','startstop_off_proposal')
+      AND operation IN ('stage1_proposal','dtc_off_proposal','egr_off_proposal','dpf_off_proposal','adblue_off_proposal','vmax_off_proposal','startstop_off_proposal','multi_service_proposal')
     ORDER BY updated_at ASC
     LIMIT 10`).all()).results||[];
   let attempted=0;
