@@ -26,6 +26,7 @@ struct EcuBrainView: View {
     @State private var jobs: [EcuJob] = []
     @State private var models: [EcuModelSummary] = []
     @State private var rulepacks: EcuRulepackStatus?
+    @State private var trainingPairs: [EcuTrainingPair] = []
     @State private var message = ""
     @State private var loading = false
     @State private var modURL: URL?
@@ -97,6 +98,27 @@ struct EcuBrainView: View {
                     Text("Aynı ECU/HW/SW için doğrulanmış ORI→MOD çiftleri biriktikçe JARVIS ilgili işlem rulepack'ini öğrenir ve yeterli tutarlılıkta otomatik production'a çıkarır.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Öğrenme Çiftleri") {
+                    if trainingPairs.isEmpty {
+                        Text("Henüz ORI/MOD öğrenme çifti yok")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(trainingPairs.prefix(10)) { pair in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(pair.operationLabel ?? "işlem")
+                                .font(.subheadline.weight(.semibold))
+                            Text(pair.state)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if let fingerprint = pair.runFingerprint, !fingerprint.isEmpty {
+                                Text(String(fingerprint.prefix(12)))
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
                 }
 
                 Section("İşlemler") {
@@ -286,11 +308,13 @@ struct EcuBrainView: View {
             async let j = api.jobs()
             async let m = api.models()
             async let r = api.rulepackStatus()
+            async let p = api.trainingPairs()
             compute = try await c
             training = try await t
             jobs = try await j
             models = try await m
             rulepacks = try await r
+            trainingPairs = try await p
         } catch {
             message = error.localizedDescription
         }
