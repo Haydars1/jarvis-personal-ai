@@ -77,6 +77,34 @@ class ChecksumAdapter:
         return ChecksumResult(status="UNSUPPORTED", algorithm=None, verified=False)
 
     def apply(self, data: bytes) -> ChecksumApplyResult:
+        correct=getattr(self,"correct",None)
+        if callable(correct):
+            try:
+                corrected=bytes(correct(data))
+            except Exception:
+                return ChecksumApplyResult(
+                    data=data,
+                    ranges=[],
+                    result=ChecksumResult(status="FAILED",algorithm=self.name,verified=False),
+                )
+            if len(corrected)!=len(data):
+                return ChecksumApplyResult(
+                    data=data,
+                    ranges=[],
+                    result=ChecksumResult(status="FAILED",algorithm=self.name,verified=False),
+                )
+            changed=[index for index,(left,right) in enumerate(zip(data,corrected)) if left!=right]
+            ranges=[]
+            if changed:
+                start=previous=changed[0]
+                for offset in changed[1:]:
+                    if offset==previous+1:
+                        previous=offset
+                        continue
+                    ranges.append((start,previous+1))
+                    start=previous=offset
+                ranges.append((start,previous+1))
+            return ChecksumApplyResult(data=corrected,ranges=ranges,result=self.verify(corrected))
         return ChecksumApplyResult(data=data, ranges=[], result=self.verify(data))
 
 
