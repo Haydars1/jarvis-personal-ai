@@ -254,6 +254,105 @@ export function createEcuRulepackLearning({
         }
       }
 
+      // Learn a portable HW-scoped service recipe only when the same contextual
+      // patch set is independently verified across multiple SW revisions.
+      const portableGroups=new Map();
+      for(const {scope,patches} of scopes.values()){
+        if(!scope.operationLabel||scope.operationLabel==='stage1'||!scope.ecuFamily||!scope.hw||!scope.sw)continue;
+        const usable=[...patches.values()]
+          .filter(patch=>patch.pairs.size>=minPairsPerLabel)
+          .filter(patch=>(patch.contextBeforeHex.length+patch.contextAfterHex.length)>=16)
+          .map(patch=>({
+            offset:patch.offset,
+            length:patch.length,
+            beforeHex:patch.beforeHex,
+            afterHex:patch.afterHex,
+            contextBeforeHex:patch.contextBeforeHex,
+            contextAfterHex:patch.contextAfterHex,
+            evidencePairs:patch.pairs.size,
+          }));
+        if(!usable.length)continue;
+        // Do not build a portable subset from an incompletely learned exact patch set.
+        const qualifiedCount=[...patches.values()].filter(patch=>patch.pairs.size>=minPairsPerLabel).length;
+        if(usable.length!==qualifiedCount)continue;
+        const portableSignatures=usable.map(patch=>[
+          patch.length,patch.beforeHex,patch.afterHex,patch.contextBeforeHex,patch.contextAfterHex
+        ].join(':')).sort();
+        const signatureKey=portableSignatures.join('|');
+        const groupKey=[scope.operationLabel,scope.ecuFamily,scope.hw,signatureKey].join('|');
+        if(!portableGroups.has(groupKey))portableGroups.set(groupKey,{
+          operationLabel:scope.operationLabel,
+          ecuFamily:scope.ecuFamily,
+          hw:scope.hw,
+          signatureKey,
+          revisions:new Map(),
+        });
+        portableGroups.get(groupKey).revisions.set(scope.sw,usable);
+      }
+
+      for(const group of portableGroups.values()){
+        if(group.revisions.size<3)continue;
+        const bySignature=new Map();
+        for(const [sw,patches] of group.revisions){
+          for(const patch of patches){
+            const signature=[
+              patch.length,patch.beforeHex,patch.afterHex,patch.contextBeforeHex,patch.contextAfterHex
+            ].join(':');
+            if(!bySignature.has(signature))bySignature.set(signature,[]);
+            bySignature.get(signature).push({sw,...patch});
+          }
+        }
+        const portablePatches=[];
+        let evidenceCount=0;
+        let complete=true;
+        for(const entries of bySignature.values()){
+          const sws=new Set(entries.map(item=>item.sw));
+          if(sws.size!==group.revisions.size){ complete=false; break; }
+          const offsets=entries.map(item=>Number(item.offset)).filter(Number.isFinite);
+          const first=entries[0];
+          const pairs=entries.reduce((sum,item)=>sum+Number(item.evidencePairs||0),0);
+          portablePatches.push({
+            offset:Math.round(median(offsets)),
+            length:first.length,
+            beforeHex:first.beforeHex,
+            afterHex:first.afterHex,
+            contextBeforeHex:first.contextBeforeHex,
+            contextAfterHex:first.contextAfterHex,
+            evidencePairs:pairs,
+            evidenceSoftwareVersions:sws.size,
+          });
+          evidenceCount+=pairs;
+        }
+        if(!complete||!portablePatches.length)continue;
+        portablePatches.sort((a,b)=>a.offset-b.offset);
+        const scope={
+          operationLabel:group.operationLabel,
+          ecuFamily:group.ecuFamily,
+          hw:group.hw,
+          sw:'',
+        };
+        const rules={__patches:portablePatches};
+        const digest=await sha256Text(JSON.stringify({...scope,rules}));
+        const candidate={
+          version:`rules-${digest.slice(0,16)}`,
+          ...scope,
+          state:'EVIDENCE_CANDIDATE',
+          verified:false,
+          rules,
+          evidenceCount,
+          digest,
+          createdAt:Date.now(),
+        };
+        await repository.saveCandidate(env,candidate);
+        if(typeof repository.promoteCandidate==='function'){
+          const item=await repository.promoteCandidate(env,candidate,'VERIFIED_PORTABLE_CONTEXT_CONSENSUS');
+          candidates.push(item);
+          promoted.push(item);
+        }else{
+          candidates.push({...candidate,promotionReason:'VERIFIED_PORTABLE_CONTEXT_CONSENSUS'});
+        }
+      }
+
       if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
       return {created:true,candidate:candidates[0],candidates,autoPromoted:promoted};
     },
