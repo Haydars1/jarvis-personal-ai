@@ -229,3 +229,43 @@ test('GitHub repository metadata is persisted alongside code claims', async () =
   assert.equal(repos[0].reuse,'ADAPT_WITH_ATTRIBUTION');
   assert.ok(repos[0].capabilities.includes('PATCH_RECIPE'));
 });
+
+
+test('targeted research builds ECU-specific web and GitHub queries', async () => {
+  const repository=memoryRepository();
+  const webQueries=[];
+  const githubOptions=[];
+  const research=createEcuResearch({
+    repository,
+    topics:[],
+    search:async(_env,query)=>{
+      webQueries.push(query);
+      return [{title:'Technical note',url:'https://example.com/edc17-egr',snippet:'EDC17C46 EGR calibration technical note',source:'Google'}];
+    },
+    githubDiscover:async(_env,options)=>{
+      githubOptions.push(options);
+      return [{
+        title:'repo: patch.py',
+        url:'https://github.com/example/ecu/blob/abc/patch.py',
+        snippet:'EGR patch context checksum',
+        source:'GitHub',
+        sourceKind:'code',
+        trustScore:.9,
+        github:{repository:'example/ecu',license:'mit',reuse:'ADAPT_WITH_ATTRIBUTION',stars:5,capabilities:['EGR'],defaultBranch:'main',commitSha:'abc'},
+      }];
+    },
+  });
+  const result=await research.targeted({},{
+    ecuFamily:'EDC17C46',
+    hw:'HW1',
+    sw:'SW1',
+    operationLabel:'egr_off',
+  });
+  assert.equal(result.ecuFamily,'EDC17C46');
+  assert.equal(result.operationLabel,'egr_off');
+  assert.equal(webQueries.length,2);
+  assert.ok(webQueries.every(query=>query.includes('EDC17C46')));
+  assert.equal(githubOptions.length,1);
+  assert.ok(githubOptions[0].queries.every(query=>query.includes('EGR')));
+  assert.ok(repository.sources.length>=2);
+});
