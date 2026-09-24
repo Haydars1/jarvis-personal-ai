@@ -24,22 +24,21 @@ test('ECU Brain uses the same universal picker and calls the ECU analysis endpoi
   assert.match(ecuApi, /stage1_proposal/);
 });
 
-
 test('login button remains tappable and delegates empty-password feedback to AppState', () => {
   assert.match(contentView, /Button \{\s*loginPasswordFocused = false\s*Task \{ await state\.login\(\) \}/s);
   assert.match(contentView, /contentShape\(Rectangle\(\)\)/);
   assert.doesNotMatch(contentView, /\.disabled\(!loginCanSubmit\)/);
 });
 
-
 test('ECU native UI exposes Stage1 mutation status and validated MOD download', () => {
-  assert.match(ecuView, /Stage1 Çalıştır/);
+  assert.match(ecuView, /title: "Stage 1"/);
+  assert.match(ecuView, /Seçili İşlemleri Çalıştır/);
+  assert.match(ecuView, /api\.stage1Preview\(fileId: fileId\)/);
   assert.match(ecuView, /MOD Dosyasını Hazırla/);
   assert.match(ecuView, /MOD Dosyasını Kaydet \/ Paylaş/);
   assert.match(ecuApi, /\/api\/ecu\/jobs\/.*\/mod/);
   assert.match(ecuApi, /downloadMod\(jobId:/);
 });
-
 
 test('ECU service selector exposes site-style operation choices', () => {
   assert.match(ecuView, /DTC OFF/);
