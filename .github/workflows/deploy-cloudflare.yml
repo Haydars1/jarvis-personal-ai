@@ -2,6 +2,9 @@ name: Deploy JARVIS to Cloudflare
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '.github/workflows/jarvis-autonomous-dev.yml'
+      - '.github/workflows/jarvis-codex-agent.yml'
   workflow_dispatch:
 permissions:
   contents: read
