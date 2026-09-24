@@ -80,7 +80,8 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
                     checksum_algorithm=release.checksum_algorithm
             except ValueError as exc:
                 mutation_error=str(exc)
-        checksum_support=checksum_adapter.verify(mutation.data if mutation else data)
+        checksum_probe=(release.mod_bytes if release and release.mod_bytes is not None else (mutation.data if mutation else data))
+        checksum_support=checksum_adapter.verify(checksum_probe)
         proposal = {
             "blocked": stage1.blocked,
             "reasons": stage1.reasons + ([mutation_error] if mutation_error else []),
