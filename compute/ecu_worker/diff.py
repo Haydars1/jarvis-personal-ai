@@ -277,34 +277,47 @@ def discover_simple_checksum_profiles(
         return sorted(ranges,key=lambda item:(item[1]-item[0],item[0]))
 
     for changed in report.ranges:
-        size=changed.end-changed.start
-        if size not in {2,4}:
+        changed_size=changed.end-changed.start
+        if changed_size<=0 or changed_size>4:
             continue
-        offset=changed.start
-        for algorithm in (["sum16"] if size==2 else ["sum32","crc32"]):
-            for endian in ("big","little"):
-                ori_actual=int.from_bytes(ori[offset:offset+size],endian,signed=False)
-                mod_actual=int.from_bytes(mod[offset:offset+size],endian,signed=False)
-                if ori_actual==mod_actual:
-                    continue
-                for data_start,data_end in ranges_for(offset,size):
-                    profile_key=(algorithm,data_start,data_end,offset,size,endian,True)
-                    if profile_key in seen:
+
+        # A multi-byte checksum can change in only one byte (for example a
+        # sum16 where only the low byte changes). Test bounded 2/4-byte fields
+        # that fully contain the observed changed range; both ORI and MOD still
+        # must validate, so widening here does not turn a guess into evidence.
+        fields: set[tuple[int,int]] = set()
+        for size in (2,4):
+            min_offset=max(0,changed.end-size)
+            max_offset=min(changed.start,len(ori)-size)
+            for offset in range(min_offset,max_offset+1):
+                if offset<=changed.start and offset+size>=changed.end:
+                    fields.add((offset,size))
+
+        for offset,size in sorted(fields):
+            for algorithm in (["sum16"] if size==2 else ["sum32","crc32"]):
+                for endian in ("big","little"):
+                    ori_actual=int.from_bytes(ori[offset:offset+size],endian,signed=False)
+                    mod_actual=int.from_bytes(mod[offset:offset+size],endian,signed=False)
+                    if ori_actual==mod_actual:
                         continue
-                    if value(ori,algorithm,offset,size,endian,data_start,data_end)!=ori_actual:
-                        continue
-                    if value(mod,algorithm,offset,size,endian,data_start,data_end)!=mod_actual:
-                        continue
-                    seen.add(profile_key)
-                    candidates.append({
-                        "algorithm":algorithm,
-                        "data_start":data_start,
-                        "data_end":data_end,
-                        "checksum_offset":offset,
-                        "checksum_size":size,
-                        "endian":endian,
-                        "zero_field":True,
-                    })
-                    if len(candidates)>=max_candidates:
-                        return candidates
+                    for data_start,data_end in ranges_for(offset,size):
+                        profile_key=(algorithm,data_start,data_end,offset,size,endian,True)
+                        if profile_key in seen:
+                            continue
+                        if value(ori,algorithm,offset,size,endian,data_start,data_end)!=ori_actual:
+                            continue
+                        if value(mod,algorithm,offset,size,endian,data_start,data_end)!=mod_actual:
+                            continue
+                        seen.add(profile_key)
+                        candidates.append({
+                            "algorithm":algorithm,
+                            "data_start":data_start,
+                            "data_end":data_end,
+                            "checksum_offset":offset,
+                            "checksum_size":size,
+                            "endian":endian,
+                            "zero_field":True,
+                        })
+                        if len(candidates)>=max_candidates:
+                            return candidates
     return candidates
