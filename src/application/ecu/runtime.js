@@ -290,7 +290,7 @@ async function defaultCreatePair(env,{oriFileId,modFileId,operationLabel,callbac
   return {id,state,operationLabel,runFingerprint,workerKind:result?.workerKind||null,dispatchReason:result?.reason||null};
 }
 
-async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBaseUrl = null }, dispatch) {
+async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBaseUrl = null, config = {} }, dispatch) {
   const file = await env.DB.prepare('SELECT id,sha256,artifact_uri FROM ecu_files WHERE id=? LIMIT 1').bind(fileId).first();
   if (!file) throw new Error('ECU_FILE_NOT_FOUND');
   const productionModel=await env.DB.prepare("SELECT version FROM ecu_model_versions WHERE state='PRODUCTION' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
@@ -298,6 +298,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   let rulepackVersion = 'baseline';
   let rulepackConfig = {};
   const operationLabel=ECU_OPERATION_LABELS[operation]||null;
+  const inputConfig=(config&&typeof config==='object'&&!Array.isArray(config))?config:{};
   const identity=await fileIdentity(env,fileId);
   if (operationLabel) {
     const rulepack=await defaultRulepackForIdentity(env,{operationLabel,...identity});
@@ -323,11 +324,16 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
       };
     }
   }
+  if(operation==='multi_service_proposal')rulepackVersion='composite';
+  const fingerprintConfig=operation==='multi_service_proposal'
+    ? {service_operations:Array.isArray(inputConfig.service_operations)?[...inputConfig.service_operations].map(String).sort():[]}
+    : {};
   const runFingerprint = await sha256Text(JSON.stringify({
     artifactSha256: file.sha256,
     operation,
     modelVersion,
     rulepackVersion,
+    config:fingerprintConfig,
   }));
   const existing = await env.DB.prepare('SELECT * FROM ecu_jobs WHERE run_fingerprint=? LIMIT 1').bind(runFingerprint).first();
   if (existing) return { ...mapJob(existing), cached: true };
@@ -345,6 +351,7 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
     rulepackVersion,
     config: {
       ...(callbackBaseUrl ? { callback_base_url: callbackBaseUrl } : {}),
+      ...inputConfig,
       ...rulepackConfig,
     },
   }, env);
@@ -1585,6 +1592,28 @@ export function createEcuRuntime(core, overrides = {}) {
           return json({ example: await deps.verifyMap(env, mapId, { semanticLabel }) }, 201);
         } catch (error) {
           if (error?.message === 'ECU_MAP_NOT_FOUND') return json({ error: 'ECU_MAP_NOT_FOUND' }, 404);
+          throw error;
+        }
+      }
+
+      if (url.pathname === '/api/ecu/jobs/composite' && req.method === 'POST') {
+        const body=await readJson(req);
+        const fileId=String(body.fileId||'').trim();
+        const allowed=new Set(Object.keys(ECU_OPERATION_LABELS));
+        const operations=[...new Set((Array.isArray(body.operations)?body.operations:[]).map(value=>String(value||'').trim()).filter(value=>allowed.has(value)))];
+        if(!fileId)return json({error:'fileId is required'},400);
+        if(!operations.length)return json({error:'operations are required'},400);
+        if(operations.length>7)return json({error:'too many operations'},400);
+        try{
+          const job=await deps.createJob(env,{
+            fileId,
+            operation:'multi_service_proposal',
+            callbackBaseUrl:url.origin,
+            config:{service_operations:operations},
+          });
+          return json({job},202);
+        }catch(error){
+          if(error?.message==='ECU_FILE_NOT_FOUND')return json({error:'ECU_FILE_NOT_FOUND'},404);
           throw error;
         }
       }
