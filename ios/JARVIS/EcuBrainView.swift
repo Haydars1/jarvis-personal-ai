@@ -52,6 +52,8 @@ struct EcuBrainView: View {
                 Section("Öğrenme") {
                     LabeledContent("Durum", value: training?.status ?? "—")
                     LabeledContent("Doğrulanmış örnek", value: training.map { "\($0.verifiedExamples)/\($0.minVerifiedExamples)" } ?? "—")
+                    LabeledContent("Değişim kanıtı", value: training.map { String($0.verifiedChangeEvidence ?? 0) } ?? "—")
+                    LabeledContent("Otomatik hipotez", value: training.map { String($0.automaticHypotheses ?? 0) } ?? "—")
                     LabeledContent("Aktif model", value: training?.productionModel?.version ?? "baseline")
                     LabeledContent("Rulepack", value: rulepackLabel)
                 }
@@ -59,6 +61,7 @@ struct EcuBrainView: View {
                 Section("Araştırma / GitHub") {
                     LabeledContent("Kaynak", value: research.map { String($0.counts?.sources ?? 0) } ?? "—")
                     LabeledContent("GitHub kod", value: research.map { "\($0.counts?.github_sources ?? 0) / yüksek güven \($0.counts?.github_high_trust_sources ?? 0)" } ?? "—")
+                    LabeledContent("GitHub repo", value: research.map { "\($0.counts?.github_repositories ?? 0) / yeniden kullanılabilir \($0.counts?.github_reusable_repositories ?? 0)" } ?? "—")
                     LabeledContent("Doğrulanmış bilgi", value: research.map { String($0.counts?.verified_claims ?? 0) } ?? "—")
                     LabeledContent("Döngü", value: research.map { "\(Int($0.cadenceHours ?? 0)) saatte bir" } ?? "—")
                     Button {
