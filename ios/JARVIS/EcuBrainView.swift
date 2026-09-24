@@ -26,6 +26,7 @@ struct EcuBrainView: View {
     @State private var jobs: [EcuJob] = []
     @State private var models: [EcuModelSummary] = []
     @State private var rulepacks: EcuRulepackStatus?
+    @State private var research: EcuResearchStatus?
     @State private var trainingPairs: [EcuTrainingPair] = []
     @State private var message = ""
     @State private var loading = false
@@ -52,6 +53,22 @@ struct EcuBrainView: View {
                     LabeledContent("Doğrulanmış örnek", value: training.map { "\($0.verifiedExamples)/\($0.minVerifiedExamples)" } ?? "—")
                     LabeledContent("Aktif model", value: training?.productionModel?.version ?? "baseline")
                     LabeledContent("Rulepack", value: rulepackLabel)
+                }
+
+                Section("Araştırma / GitHub") {
+                    LabeledContent("Kaynak", value: research.map { String($0.counts?.sources ?? 0) } ?? "—")
+                    LabeledContent("GitHub kod", value: research.map { "\($0.counts?.github_sources ?? 0) / yüksek güven \($0.counts?.github_high_trust_sources ?? 0)" } ?? "—")
+                    LabeledContent("Doğrulanmış bilgi", value: research.map { String($0.counts?.verified_claims ?? 0) } ?? "—")
+                    LabeledContent("Döngü", value: research.map { "\(Int($0.cadenceHours ?? 0)) saatte bir" } ?? "—")
+                    Button {
+                        Task { await runResearchNow() }
+                    } label: {
+                        Label("Şimdi İnternet + GitHub Araştır", systemImage: "network")
+                    }
+                    .disabled(loading)
+                    Text("GitHub kaynak kodu, README/dokümantasyon ve teknik kaynaklar taranır. Lisans ve kaynak güveni ayrı tutulur; aynı repository kendi kendini doğrulayan bağımsız kaynak sayılmaz.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("ORI/MOD ile Öğret") {
@@ -308,13 +325,32 @@ struct EcuBrainView: View {
             async let j = api.jobs()
             async let m = api.models()
             async let r = api.rulepackStatus()
+            async let rs = api.researchStatus()
             async let p = api.trainingPairs()
             compute = try await c
             training = try await t
             jobs = try await j
             models = try await m
             rulepacks = try await r
+            research = try await rs
             trainingPairs = try await p
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func runResearchNow() async {
+        loading = true
+        defer { loading = false }
+        do {
+            let result = try await api.runResearch()
+            if result.skipped == true {
+                message = "Araştırma bu zaman diliminde zaten çalıştı: \(result.reason ?? "tekrar yok")"
+            } else {
+                message = "Araştırma tamamlandı • kaynak \(result.sourcesFound ?? 0) • claim \(result.claimsFound ?? 0) • doğrulanan \(result.verified ?? 0)"
+            }
+            await refresh()
         } catch {
             message = error.localizedDescription
         }
