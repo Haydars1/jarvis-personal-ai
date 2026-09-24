@@ -772,3 +772,16 @@ test('composite ECU endpoint rejects missing or unknown operations',async()=>{
   }),{},{});
   assert.equal(response.status,400);
 });
+
+
+test('composite knowledge blockers are retryable while byte ambiguity is not',()=>{
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['egr_off_proposal:RULEPACK_UNVERIFIED']}
+  }),true);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['dpf_off_proposal:PATCH_RULEPACK_MISSING']}
+  }),true);
+  assert.equal(shouldRetryNeedsReview({
+    proposal:{reasons:['egr_off_proposal:PATCH_CONTEXT_AMBIGUOUS:128']}
+  }),false);
+});
