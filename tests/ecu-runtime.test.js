@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEcuRuntime } from '../src/application/ecu/runtime.js';
+import { createEcuRuntime, isPortablePatchRulepack } from '../src/application/ecu/runtime.js';
 
 function request(path, init = {}) {
   return new Request(`https://jarvis.test${path}`, init);
@@ -528,4 +528,78 @@ test('triggers targeted research when an ECU service rulepack is missing',async(
     hw:'HW1',
     sw:'SW1',
   }]);
+});
+
+
+test('portable patch rulepacks require contextual anchors and repeated evidence',()=>{
+  const good={
+    __patches:[{
+      offset:100,length:2,beforeHex:'0102',afterHex:'aabb',
+      contextBeforeHex:'1020',contextAfterHex:'3040',evidencePairs:5,
+    }]
+  };
+  assert.equal(isPortablePatchRulepack('egr_off',good),true);
+  assert.equal(isPortablePatchRulepack('stage1',good),false);
+  assert.equal(isPortablePatchRulepack('egr_off',{
+    __patches:[{offset:100,length:2,beforeHex:'0102',afterHex:'aabb',evidencePairs:5}]
+  }),false);
+  assert.equal(isPortablePatchRulepack('egr_off',{
+    __patches:[{offset:100,length:2,beforeHex:'0102',afterHex:'aabb',contextBeforeHex:'10',evidencePairs:4}]
+  }),false);
+});
+
+
+test('default ECU job dispatch carries parsed production rulepack rules',async()=>{
+  const rules={__patches:[{
+    offset:32,length:1,beforeHex:'01',afterHex:'00',
+    contextBeforeHex:'aabb',contextAfterHex:'ccdd',evidencePairs:5
+  }]};
+  const dispatches=[];
+  const rows={
+    file:{id:'file-1',sha256:'a'.repeat(64),artifact_uri:'r2://ecu-artifacts/originals/'+'a'.repeat(64)},
+    model:{version:'model-1'},
+    identity:{ecu_family:'EDC17C46',hw_candidates:JSON.stringify([{value:'HW1'}]),sw_candidates:JSON.stringify([{value:'SW1'}])},
+    rulepack:{version:'rules-1',rules_json:JSON.stringify(rules),ecu_family:'EDC17C46',hw:'HW1',sw:'SW1'},
+  };
+  const jobs=new Map();
+  const db={
+    prepare(sql){
+      return {
+        args:[],
+        bind(...args){this.args=args;return this;},
+        async first(){
+          if(sql.includes('FROM ecu_files WHERE id=? LIMIT 1'))return rows.file;
+          if(sql.includes("FROM ecu_model_versions WHERE state='PRODUCTION'"))return rows.model;
+          if(sql.includes('FROM ecu_analysis_results a'))return rows.identity;
+          if(sql.includes("FROM ecu_rulepack_versions")&&sql.includes("LIMIT 1"))return rows.rulepack;
+          if(sql.includes('FROM ecu_jobs WHERE run_fingerprint='))return null;
+          return null;
+        },
+        async all(){return {results:[]};},
+        async run(){
+          if(sql.startsWith('INSERT INTO ecu_jobs')){
+            const [id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at]=this.args;
+            jobs.set(id,{id,file_id,operation,state,run_fingerprint,model_version,rulepack_version,created_at,updated_at});
+          }
+          return {success:true};
+        }
+      };
+    }
+  };
+  const runtime=createEcuRuntime(coreFallback(),{
+    computeDispatch:async(job)=>{
+      dispatches.push(job);
+      return {accepted:true,workerKind:'cloud-container'};
+    }
+  });
+  const response=await runtime.fetch(request('/api/ecu/jobs',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({fileId:'file-1',operation:'egr_off_proposal'}),
+  }),{DB:db},{});
+  assert.equal(response.status,202);
+  assert.equal(dispatches.length,1);
+  assert.deepEqual(dispatches[0].config.rulepack,rules);
+  assert.equal(dispatches[0].config.rulepack_verified,true);
+  assert.equal(dispatches[0].rulepackVersion,'rules-1');
 });
