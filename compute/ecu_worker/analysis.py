@@ -3,6 +3,7 @@ from __future__ import annotations
 from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprint
 from .fingerprint import fingerprint_binary
 from .maps import extract_map_candidates, extract_map_candidates_multiendian
+from .map_heuristics import classify_map_heuristic
 from .training.semantic_model import load_semantic_model, predict_semantic
 from .proposal import stage1_proposal_from_config
 from .mutation import apply_exact_patches, apply_stage1_mutation
@@ -43,6 +44,17 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
             "score": float(item.score),
         }
         semantic = predict_semantic(semantic_model, features) if semantic_model is not None else None
+        heuristic = classify_map_heuristic(data,item,fp.ecu_family)
+        semantic_label = semantic.label if semantic is not None else "UNKNOWN"
+        semantic_confidence = semantic.confidence if semantic is not None else 0.0
+        semantic_source = "model" if semantic is not None else "none"
+        semantic_evidence: list[str] = []
+        if heuristic.label != "UNKNOWN" and heuristic.confidence > semantic_confidence:
+            semantic_label = heuristic.label
+            semantic_confidence = heuristic.confidence
+            semantic_source = "heuristic"
+            semantic_evidence = list(heuristic.evidence)
+        needs_review = semantic_label == "UNKNOWN" or semantic_confidence < 0.90
         map_candidates.append({
             "offset": item.offset,
             "rows": item.rows,
@@ -58,9 +70,11 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
             "y_axis_offset": item.y_axis_offset,
             "axis_score": item.axis_score,
             "source": item.source,
-            "semantic_label": semantic.label if semantic is not None else "UNKNOWN",
-            "semantic_confidence": semantic.confidence if semantic is not None else 0.0,
-            "needs_review": semantic.needs_review if semantic is not None else True,
+            "semantic_label": semantic_label,
+            "semantic_confidence": semantic_confidence,
+            "semantic_source": semantic_source,
+            "semantic_evidence": semantic_evidence,
+            "needs_review": needs_review,
         })
     proposal = None
     status = "NEEDS_REVIEW"
