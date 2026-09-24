@@ -992,14 +992,39 @@ async function defaultApplyWorkerState(env, jobId, body = {}) {
   }
   await env.DB.prepare('UPDATE ecu_jobs SET state=?,worker_kind=COALESCE(?,worker_kind),updated_at=? WHERE id=?')
     .bind(state, body.workerKind || null, now(), jobId).run();
+  if(status==='READY'){
+    try{await resolveResearchGapsForReadyResult(env,job.operation,body,timestamp)}catch{}
+  }
   return mapJob(await env.DB.prepare('SELECT * FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first());
+}
+
+async function resolveResearchGapsForReadyResult(env,jobOperation,body={},timestamp=Date.now()){
+  const family=String(body.ecu_family||'');
+  const hw=firstBodyCandidate(body.hw_candidates);
+  const sw=firstBodyCandidate(body.sw_candidates);
+  let operations=[];
+  if(ECU_OPERATION_LABELS[jobOperation])operations=[jobOperation];
+  else if(jobOperation==='multi_service_proposal'){
+    const services=Array.isArray(body?.proposal?.services)?body.proposal.services:[];
+    operations=[...new Set(services.map(item=>String(item?.operation||'')).filter(op=>ECU_OPERATION_LABELS[op]))];
+  }
+  let resolved=0;
+  for(const operation of operations){
+    const operationLabel=ECU_OPERATION_LABELS[operation];
+    const gapId=await sha256Text(JSON.stringify({family,hw,sw,operationLabel}));
+    const result=await env.DB.prepare(`UPDATE ecu_research_gaps
+      SET state='RESOLVED',resolved_at=?,updated_at=?
+      WHERE id=? AND state='OPEN'`).bind(timestamp,timestamp,gapId).run();
+    if(Number(result?.meta?.changes||result?.changes||0)>0)resolved+=1;
+  }
+  return resolved;
 }
 
 async function defaultApplyWorkerResult(env, jobId, body = {}) {
   const allowed = new Set(['NEEDS_REVIEW', 'READY', 'FAILED']);
   const status = allowed.has(String(body.status || '')) ? String(body.status) : 'NEEDS_REVIEW';
   const timestamp = now();
-  const job = await env.DB.prepare('SELECT id,state FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
+  const job = await env.DB.prepare('SELECT id,state,operation FROM ecu_jobs WHERE id=? LIMIT 1').bind(jobId).first();
   if (!job) throw new Error('ECU_JOB_NOT_FOUND');
   assertEcuJobTransition(job.state, status);
 
@@ -1181,6 +1206,7 @@ async function defaultListResearchGaps(env,limit=20){
   const rows=(await env.DB.prepare(`SELECT
       id,ecu_family,hw,sw,operation_label,last_researched_at,attempts,last_sources_found,last_claims_found,created_at,updated_at
     FROM ecu_research_gaps
+    WHERE state='OPEN'
     ORDER BY updated_at DESC,last_researched_at DESC
     LIMIT ?`).bind(safe).all()).results||[];
   return rows.map(row=>({
@@ -1245,7 +1271,7 @@ export async function researchKnowledgeGaps(env,targeted,timestamp=Date.now(),{m
         last_claims_found=excluded.last_claims_found,
         updated_at=excluded.updated_at`)
         .bind(
-          gapId,family,hw,sw,operationLabel,timestamp,attempts,
+          gapId,family,hw,sw,operationLabel,'OPEN',null,timestamp,attempts,
           Number(outcome?.sourcesFound||0),Number(outcome?.claimsFound||0),
           timestamp,timestamp
         ).run();
