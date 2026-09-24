@@ -650,3 +650,69 @@ test('scheduled ECU runtime runs review retry after learning refresh',async()=>{
   await runtime.scheduled({scheduledTime:123},{},{});
   assert.deepEqual(calls,['dispatch','research','rulepacks','retry','checksum','training']);
 });
+
+
+test('blocked ECU worker result launches targeted research with real fingerprint',async()=>{
+  const targeted=[];
+  const waits=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async applyWorkerResult(_env,jobId,body){
+      assert.equal(jobId,'job-1');
+      assert.equal(body.ecu_family,'EDC17C46');
+      return {id:'job-1',operation:'egr_off_proposal',state:'NEEDS_REVIEW'};
+    },
+    async researchTargeted(_env,input){
+      targeted.push(input);
+      return {sourcesFound:2,claimsFound:4};
+    },
+  });
+  const response=await runtime.fetch(request('/api/ecu/internal/jobs/job-1/result',{
+    method:'POST',
+    headers:{authorization:'Bearer secret','content-type':'application/json'},
+    body:JSON.stringify({
+      status:'NEEDS_REVIEW',
+      ecu_family:'EDC17C46',
+      hw_candidates:[{value:'HW1'}],
+      sw_candidates:[{value:'SW2'}],
+      proposal:{reasons:['RULEPACK_UNVERIFIED']},
+    }),
+  }),{ECU_COMPUTE_TOKEN:'secret'},{
+    waitUntil(promise){waits.push(promise);}
+  });
+  assert.equal(response.status,200);
+  await Promise.all(waits);
+  assert.deepEqual(targeted,[{
+    ecuFamily:'EDC17C46',
+    operationLabel:'egr_off',
+    hw:'HW1',
+    sw:'SW2',
+  }]);
+});
+
+
+test('non-knowledge ECU review blocker does not launch targeted research',async()=>{
+  let targeted=0;
+  const waits=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async applyWorkerResult(){
+      return {id:'job-2',operation:'egr_off_proposal',state:'NEEDS_REVIEW'};
+    },
+    async researchTargeted(){targeted+=1;},
+  });
+  const response=await runtime.fetch(request('/api/ecu/internal/jobs/job-2/result',{
+    method:'POST',
+    headers:{authorization:'Bearer secret','content-type':'application/json'},
+    body:JSON.stringify({
+      status:'NEEDS_REVIEW',
+      ecu_family:'EDC17C46',
+      hw_candidates:[{value:'HW1'}],
+      sw_candidates:[{value:'SW2'}],
+      proposal:{reasons:['PATCH_CONTEXT_AMBIGUOUS:128']},
+    }),
+  }),{ECU_COMPUTE_TOKEN:'secret'},{
+    waitUntil(promise){waits.push(promise);}
+  });
+  assert.equal(response.status,200);
+  await Promise.all(waits);
+  assert.equal(targeted,0);
+});
