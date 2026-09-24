@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .analysis import analyze_binary_with_artifact
+from .analysis import analyze_binary_with_artifact, checksum_adapter_from_config
 from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprint
 from .fingerprint import fingerprint_binary
 from .rulepack_select import select_rulepack_for_binary
+from .validation import validate_mod_candidate
 
 OPERATION_LABEL_MAP={
     "stage1_proposal":"stage1",
@@ -115,6 +116,37 @@ async def _inject_checksum_profile(
     return job
 
 
+def _ranges_from_offsets(offsets: set[int]) -> list[tuple[int,int]]:
+    if not offsets:
+        return []
+    ordered=sorted(offsets)
+    ranges=[]
+    start=previous=ordered[0]
+    for offset in ordered[1:]:
+        if offset==previous+1:
+            previous=offset
+            continue
+        ranges.append((start,previous+1))
+        start=previous=offset
+    ranges.append((start,previous+1))
+    return ranges
+
+
+def validate_composite_integrity(
+    original: bytes,
+    final_mod: bytes,
+    *,
+    touched_offsets: set[int],
+    checksum,
+):
+    return validate_mod_candidate(
+        original,
+        final_mod,
+        allowed_ranges=_ranges_from_offsets(touched_offsets),
+        checksum=checksum,
+    )
+
+
 async def _process_composite(
     job: AnalysisJobInput,
     artifact_bytes: bytes,
@@ -136,6 +168,7 @@ async def _process_composite(
     map_candidates=[]
     last_checksum_algorithm=None
     final_result=None
+    touched_offsets:set[int]=set()
 
     for operation in operations:
         child=await _resolve_operation_job(
@@ -199,6 +232,9 @@ async def _process_composite(
                 },
             )
             return output,None,None
+        touched_offsets.update(
+            index for index,(before,after) in enumerate(zip(working,mod_bytes)) if before!=after
+        )
         working=mod_bytes
         last_checksum_algorithm=checksum_algorithm
 
@@ -206,9 +242,69 @@ async def _process_composite(
         raise ValueError("COMPOSITE_OPERATIONS_REQUIRED")
 
     fp=fingerprint_binary(artifact_bytes)
-    final_validation={}
-    if isinstance(final_result.proposal,dict):
-        final_validation=final_result.proposal.get("validation") or {}
+    final_job=await _inject_checksum_profile(
+        job,
+        working,
+        base_url=base_url,
+        headers=headers,
+        client=client,
+    )
+    final_checksum_adapter=checksum_adapter_from_config(final_job,fp.ecu_family)
+    final_checksum=final_checksum_adapter.verify(working)
+    global_validation=validate_composite_integrity(
+        artifact_bytes,
+        working,
+        touched_offsets=touched_offsets,
+        checksum=final_checksum,
+    )
+    if not global_validation.ready:
+        output=AnalysisJobOutput(
+            job_id=job.job_id,
+            run_fingerprint=build_run_fingerprint(
+                job.artifact_sha256,
+                job.model_version,
+                job.rulepack_version,
+                job.config,
+                operation=job.operation,
+            ),
+            status="NEEDS_REVIEW",
+            ecu_family=fp.ecu_family,
+            hw_candidates=[{"value":value} for value in fp.hw_candidates],
+            sw_candidates=[{"value":value} for value in fp.sw_candidates],
+            supported=fp.supported,
+            confidence=fp.confidence,
+            evidence=[{"kind":"fingerprint","text":value} for value in fp.evidence],
+            map_candidates=map_candidates,
+            proposal={
+                "operation":"multi_service_proposal",
+                "release_ready":False,
+                "reasons":["COMPOSITE_GLOBAL_VALIDATION_FAILED",*list(global_validation.errors)],
+                "services":children,
+                "validation":{
+                    "ready":False,
+                    "errors":list(global_validation.errors),
+                    "checksum":{
+                        "status":final_checksum.status,
+                        "algorithm":final_checksum.algorithm,
+                        "verified":final_checksum.verified,
+                    },
+                    "changed_offsets":list(global_validation.changed_offsets),
+                },
+            },
+        )
+        return output,None,None
+
+    final_validation={
+        "ready":True,
+        "errors":[],
+        "checksum":{
+            "status":final_checksum.status,
+            "algorithm":final_checksum.algorithm,
+            "verified":final_checksum.verified,
+        },
+        "changed_offsets":list(global_validation.changed_offsets),
+        "changed_byte_count":len(global_validation.changed_offsets),
+    }
     output=AnalysisJobOutput(
         job_id=job.job_id,
         run_fingerprint=build_run_fingerprint(
@@ -234,7 +330,7 @@ async def _process_composite(
             "validation":final_validation,
         },
     )
-    return output,working,last_checksum_algorithm
+    return output,working,(final_checksum.algorithm or last_checksum_algorithm)
 
 
 async def process_dispatched_job(
