@@ -65,6 +65,7 @@ struct EcuGitHubRepository: Decodable, Identifiable {
     let stars: Int?
     let capabilities: [String]?
     let defaultBranch: String?
+    let commitSha: String?
     let lastSeenAt: Int?
 }
 
