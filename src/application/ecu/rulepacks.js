@@ -255,14 +255,23 @@ export function createEcuRulepackLearning({
       if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
       const promoted=[];
       if(typeof repository.promoteCandidate==='function'){
-        for(const candidate of candidates){
+        for(let index=0;index<candidates.length;index+=1){
+          const candidate=candidates[index];
           const keys=Object.keys(candidate.rules||{});
           const patches=Array.isArray(candidate.rules?.__patches)?candidate.rules.__patches:[];
           const exactOnly=keys.length===1&&keys[0]==='__patches'&&patches.length>0;
           const fullyRepeated=patches.every(patch=>Number(patch.evidencePairs||0)>=minPairsPerLabel);
-          const scopeSpecific=Boolean(candidate.operationLabel&&candidate.operationLabel!=='stage1'&&candidate.ecuFamily&&candidate.sw);
-          if(exactOnly&&fullyRepeated&&scopeSpecific){
-            promoted.push(await repository.promoteCandidate(env,candidate));
+          const exactScope=Boolean(candidate.ecuFamily&&candidate.hw&&candidate.sw);
+          const serviceOperation=Boolean(candidate.operationLabel&&candidate.operationLabel!=='stage1');
+          if(exactOnly&&fullyRepeated&&serviceOperation&&exactScope){
+            const promotedCandidate=await repository.promoteCandidate(env,candidate,'VERIFIED_EXACT_PATCH_CONSENSUS');
+            const normalized={...promotedCandidate,promotionReason:'VERIFIED_EXACT_PATCH_CONSENSUS'};
+            candidates[index]=normalized;
+            promoted.push(normalized);
+          }else if(exactOnly&&fullyRepeated&&!exactScope){
+            candidates[index]={...candidate,promotionReason:'SCOPE_NOT_EXACT'};
+          }else if(exactOnly&&fullyRepeated&&!serviceOperation){
+            candidates[index]={...candidate,promotionReason:'STAGE1_MANUAL_REVIEW'};
           }
         }
       }
