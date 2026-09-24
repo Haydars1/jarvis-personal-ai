@@ -178,6 +178,15 @@ def scan_map_axes(
     return selected
 
 
+def _axis_can_extend(data: bytes, axis: MapAxis, *, min_step: int = 1, max_step: int = 10_000) -> bool:
+    end=axis.offset+axis.length*2
+    if end+2>len(data) or not axis.values:
+        return False
+    next_value=int.from_bytes(data[end:end+2],axis.endian)
+    step=next_value-axis.values[-1]
+    return min_step<=step<=max_step
+
+
 def extract_structural_map_candidates(
     data: bytes,
     *,
@@ -204,6 +213,10 @@ def extract_structural_map_candidates(
                 y_options.extend(by_offset.get(x_end+gap,[]))
             for y in y_options:
                 if y.endian!=endian or y.length<3:
+                    continue
+                # Prefix axes are emitted intentionally, but a prefix that can
+                # still extend into the next u16 word is not a complete axis.
+                if _axis_can_extend(data,y):
                     continue
                 rows=y.length
                 cols=x.length
