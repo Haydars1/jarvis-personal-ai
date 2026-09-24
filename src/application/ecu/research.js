@@ -71,15 +71,35 @@ function claimSimilarity(a,b) {
   return union?intersection/union:0;
 }
 
+function sourceKind(url='', title='') {
+  let host='';
+  try { host=new URL(String(url)).hostname.toLowerCase(); } catch {}
+  const hay=(host+' '+String(title||'')).toLowerCase();
+  if(/bosch|evc\.de|iso\.org|asap2|asam/.test(hay)) return 'official';
+  if(/arxiv|ieee|springer|sciencedirect|researchgate/.test(hay)) return 'research';
+  if(/github\.com|gitlab\.com/.test(hay)) return 'code';
+  if(/youtube\.com|youtu\.be|vimeo\.com/.test(hay)) return 'video';
+  if(/forum|nefarious|ecuconnections|mhhauto/.test(hay)) return 'forum';
+  if(/\.pdf($|\?)/i.test(String(url))) return 'pdf';
+  return 'web';
+}
+
+function sourceTrust(kind='web') {
+  return ({official:0.95,research:0.9,code:0.8,pdf:0.75,web:0.6,video:0.5,forum:0.4})[kind] ?? 0.5;
+}
+
 function normalizeResult(row, topic) {
   const url = String(row?.url || '').trim();
   if (!url) return null;
+  const kind=sourceKind(url,row?.title);
   return {
     title: String(row?.title || '').slice(0, 500),
     url,
     snippet: String(row?.snippet || '').slice(0, 4000),
     provider: String(row?.source || 'Google').slice(0, 100),
     topic,
+    sourceKind: kind,
+    trustScore: sourceTrust(kind),
     verified: false,
   };
 }
@@ -98,10 +118,10 @@ const defaultRepository = {
   async storeSource(env, source) {
     const id = await sha256Text(source.url);
     const now = Date.now();
-    await env.DB.prepare(`INSERT INTO ecu_knowledge_sources(id,url,title,provider,topic,verified,first_seen_at,last_seen_at)
-      VALUES(?,?,?,?,?,?,?,?)
-      ON CONFLICT(url) DO UPDATE SET title=excluded.title,provider=excluded.provider,topic=excluded.topic,last_seen_at=excluded.last_seen_at`)
-      .bind(id, source.url, source.title, source.provider, source.topic, 0, now, now).run();
+    await env.DB.prepare(`INSERT INTO ecu_knowledge_sources(id,url,title,provider,topic,source_kind,trust_score,verified,first_seen_at,last_seen_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(url) DO UPDATE SET title=excluded.title,provider=excluded.provider,topic=excluded.topic,source_kind=excluded.source_kind,trust_score=MAX(ecu_knowledge_sources.trust_score,excluded.trust_score),last_seen_at=excluded.last_seen_at`)
+      .bind(id, source.url, source.title, source.provider, source.topic, source.sourceKind, source.trustScore, 0, now, now).run();
   },
 
   async storeClaim(env, claim) {
