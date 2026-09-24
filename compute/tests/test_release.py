@@ -59,3 +59,26 @@ def test_release_allows_only_checksum_field_added_by_verified_profile():
     assert decision.mod_bytes[1]==9
     assert decision.mod_bytes[4:6]==bytes.fromhex("0010")
     assert decision.checksum_algorithm=="profile-sum16"
+
+
+class CorrectingChecksum(ChecksumAdapter):
+    name="fixture-correcting"
+    def correct(self,data:bytes)->bytes:
+        out=bytearray(data)
+        out[-1]=0xAA
+        return bytes(out)
+    def verify(self,data:bytes)->ChecksumResult:
+        ok=bool(data) and data[-1]==0xAA
+        return ChecksumResult(status="VERIFIED" if ok else "FAILED",algorithm=self.name,verified=ok)
+
+
+def test_release_accepts_adapter_checksum_correction_offsets():
+    ori=bytes([0,1,2,3,4,5])
+    candidate=bytes([0,9,2,3,4,5])
+    decision=build_release_decision(
+        ori,candidate,allowed_ranges=[(1,2)],checksum_adapter=CorrectingChecksum()
+    )
+    assert decision.ready is True
+    assert decision.mod_bytes==bytes([0,9,2,3,4,0xAA])
+    assert decision.checksum_algorithm=="fixture-correcting"
+    assert decision.changed_offsets==[1,5]
