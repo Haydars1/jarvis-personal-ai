@@ -984,3 +984,23 @@ test('READY composite resolves each completed service knowledge gap once',async(
   assert.equal(updates.length,2);
   assert.notEqual(updates[0][2],updates[1][2]);
 });
+
+
+test('research gaps endpoint returns unresolved autonomous targets',async()=>{
+  const runtime=createEcuRuntime(coreFallback(),{
+    async listResearchGaps(_env,limit){
+      assert.equal(limit,'5');
+      return [{
+        id:'gap-1',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1',
+        operationLabel:'egr_off',attempts:2,lastSourcesFound:4,lastClaimsFound:7,
+        lastResearchedAt:123,createdAt:100,updatedAt:123,
+      }];
+    },
+  });
+  const response=await runtime.fetch(request('/api/ecu/research/gaps?limit=5'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.gaps.length,1);
+  assert.equal(body.gaps[0].operationLabel,'egr_off');
+  assert.equal(body.gaps[0].attempts,2);
+});
