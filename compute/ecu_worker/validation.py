@@ -173,14 +173,101 @@ class ProfileChecksumAdapter(ChecksumAdapter):
         )
 
 
+class Medc17ChecksumAdapter(ChecksumAdapter):
+    """Bosch MED17/EDC17 checksum adapter backed by the vendored MIT engine."""
+
+    name = "medc17-crc32-add32-add16-v1.1"
+
+    @staticmethod
+    def _parser(path: Path):
+        from .vendor.medc17_checksum import MEDC17BinaryParser, set_quiet
+        set_quiet(True)
+        parser=MEDC17BinaryParser(str(path))
+        parser.load_binary()
+        parser.find_bosch_blocks()
+        return parser
+
+    def verify(self, data: bytes) -> ChecksumResult:
+        try:
+            with TemporaryDirectory(prefix="jarvis-medc17-") as temp:
+                path=Path(temp)/"firmware.bin"
+                path.write_bytes(data)
+                parser=self._parser(path)
+                if not parser.bosch_blocks:
+                    return ChecksumResult(status="UNSUPPORTED",algorithm=None,verified=False)
+                parser.validate_all_checksums()
+                counts=parser.checksum_counts()
+                checkable=int(counts.get("checkable_checksums") or counts.get("total_checksums") or 0)
+                if checkable<=0:
+                    return ChecksumResult(status="UNSUPPORTED",algorithm=None,verified=False)
+                ok=bool(counts.get("all_valid"))
+                return ChecksumResult(
+                    status="VERIFIED" if ok else "FAILED",
+                    algorithm=self.name,
+                    verified=ok,
+                )
+        except Exception:
+            return ChecksumResult(status="UNSUPPORTED",algorithm=None,verified=False)
+
+    def apply(self, data: bytes) -> ChecksumApplyResult:
+        try:
+            with TemporaryDirectory(prefix="jarvis-medc17-") as temp:
+                source=Path(temp)/"input.bin"
+                output=Path(temp)/"output.bin"
+                source.write_bytes(data)
+                parser=self._parser(source)
+                if not parser.bosch_blocks:
+                    result=ChecksumResult(status="UNSUPPORTED",algorithm=None,verified=False)
+                    return ChecksumApplyResult(data=data,ranges=[],result=result)
+                parser.validate_all_checksums()
+                counts=parser.checksum_counts()
+                if bool(counts.get("all_valid")):
+                    result=ChecksumResult(status="VERIFIED",algorithm=self.name,verified=True)
+                    return ChecksumApplyResult(data=data,ranges=[],result=result)
+                parser.correct_all_checksums(str(output))
+                if not output.exists():
+                    result=self.verify(data)
+                    return ChecksumApplyResult(data=data,ranges=[],result=result)
+                corrected=output.read_bytes()
+                if len(corrected)!=len(data):
+                    result=ChecksumResult(status="FAILED",algorithm=self.name,verified=False)
+                    return ChecksumApplyResult(data=data,ranges=[],result=result)
+                result=self.verify(corrected)
+                offsets=[i for i,(a,b) in enumerate(zip(data,corrected)) if a!=b]
+                ranges=[]
+                if offsets:
+                    start=previous=offsets[0]
+                    for offset in offsets[1:]:
+                        if offset==previous+1:
+                            previous=offset
+                            continue
+                        ranges.append((start,previous+1))
+                        start=previous=offset
+                    ranges.append((start,previous+1))
+                return ChecksumApplyResult(data=corrected,ranges=ranges,result=result)
+        except Exception:
+            result=ChecksumResult(status="UNSUPPORTED",algorithm=None,verified=False)
+            return ChecksumApplyResult(data=data,ranges=[],result=result)
+
+
 class ChecksumRegistry:
     """Family-scoped checksum adapters. Nothing is inferred or auto-enabled."""
 
     def __init__(self, adapters: dict[str, ChecksumAdapter] | None = None):
-        self._adapters = {str(key).upper(): value for key, value in (adapters or {}).items()}
+        self._adapters = {
+            "EDC17": Medc17ChecksumAdapter(),
+            "MED17": Medc17ChecksumAdapter(),
+        }
+        self._adapters.update({str(key).upper(): value for key, value in (adapters or {}).items()})
 
     def adapter_for(self, ecu_family: str) -> ChecksumAdapter:
-        return self._adapters.get(str(ecu_family or "").upper(), ChecksumAdapter())
+        family=str(ecu_family or "").upper()
+        if family in self._adapters:
+            return self._adapters[family]
+        for prefix,adapter in self._adapters.items():
+            if family.startswith(prefix):
+                return adapter
+        return ChecksumAdapter()
 
     def verify(self, ecu_family: str, data: bytes) -> ChecksumResult:
         return self.adapter_for(ecu_family).verify(data)
