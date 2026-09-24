@@ -65,3 +65,13 @@ test('selected service options map to backend operation identifiers', () => {
   }
   assert.match(ecuApi, /func runOperation\(fileId: String, operation: String\)/);
 });
+
+
+test('ECU research UI shows GitHub coverage and manual trigger', () => {
+  assert.match(ecuView, /Araştırma \/ GitHub/);
+  assert.match(ecuView, /Şimdi İnternet \+ GitHub Araştır/);
+  assert.match(ecuView, /github_sources/);
+  assert.match(ecuView, /api\.runResearch\(\)/);
+  assert.match(ecuApi, /\/api\/ecu\/research\/run/);
+  assert.match(ecuApi, /func researchStatus\(\)/);
+});
