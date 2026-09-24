@@ -9,8 +9,25 @@ async function readText(req){
   const body=await readBody(req);
   return String(body?.text||'').trim();
 }
+const SERVICE_DEFINITIONS=Object.freeze([
+  {label:'Stage 1',operation:'stage1_proposal',match:/\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap|performans.*yap/i},
+  {label:'DTC OFF',operation:'dtc_off_proposal',match:/\bdtc\s*(off|sil|kapat)|arıza\s*kod.*(kapat|sil)/i},
+  {label:'EGR OFF',operation:'egr_off_proposal',match:/\begr\s*(off|kapat|iptal)/i},
+  {label:'DPF OFF',operation:'dpf_off_proposal',match:/\bdpf\s*(off|kapat|iptal)/i},
+  {label:'AdBlue / SCR OFF',operation:'adblue_off_proposal',match:/\b(adblue|scr)\s*(off|kapat|iptal)/i},
+  {label:'VMAX OFF',operation:'vmax_off_proposal',match:/\bvmax\s*(off|kapat|iptal)|hız\s*limit.*(kapat|iptal)/i},
+  {label:'Start/Stop OFF',operation:'startstop_off_proposal',match:/start\s*[/&-]?\s*stop\s*(off|kapat|iptal)/i},
+]);
+
+function requestedOperations(text=''){
+  const value=String(text||'');
+  const found=SERVICE_DEFINITIONS.filter(item=>item.match.test(value));
+  if(!found.length&&/mod.*dosya/i.test(value))return [SERVICE_DEFINITIONS[0]];
+  return found;
+}
+
 function tuningIntent(text=''){
-  return /\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap|performans.*yap|mod.*dosya/i.test(String(text||''));
+  return requestedOperations(text).length>0;
 }
 function binaryAttachment(body={}){
   return (Array.isArray(body.attachments)?body.attachments:[]).find(file=>/\.bin$/i.test(String(file?.name||''))||/octet-stream|macbinary/i.test(String(file?.type||'')));
@@ -18,7 +35,7 @@ function binaryAttachment(body={}){
 function b64Bytes(value=''){
   const raw=atob(String(value||''));const bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes;
 }
-async function startStage1(core,req,env,ctx,attachment){
+async function uploadBinary(core,req,env,ctx,attachment){
   const bytes=b64Bytes(attachment.base64||'');
   const headers=new Headers(req.headers);
   headers.set('content-type',attachment.type||'application/octet-stream');
@@ -26,12 +43,16 @@ async function startStage1(core,req,env,ctx,attachment){
   const upload=await core.fetch(new Request(new URL('/api/ecu/files',req.url),{method:'POST',headers,body:bytes}),env,ctx);
   if(!upload.ok)return null;
   const uploaded=await upload.json();
-  const fileId=uploaded?.file?.id;
-  if(!fileId)return null;
+  return uploaded?.file||null;
+}
+
+async function startOperation(core,req,env,ctx,fileId,operation){
   const jobHeaders=new Headers(req.headers);jobHeaders.set('content-type','application/json');
-  const jobRes=await core.fetch(new Request(new URL('/api/ecu/jobs',req.url),{method:'POST',headers:jobHeaders,body:JSON.stringify({fileId,operation:'stage1_proposal'})}),env,ctx);
+  const jobRes=await core.fetch(new Request(new URL('/api/ecu/jobs',req.url),{
+    method:'POST',headers:jobHeaders,body:JSON.stringify({fileId,operation})
+  }),env,ctx);
   if(!jobRes.ok)return null;
-  return {file:uploaded.file,job:(await jobRes.json())?.job};
+  return (await jobRes.json())?.job||null;
 }
 
 async function readJson(core,url,req,env,ctx){
@@ -54,7 +75,7 @@ function chatPayload(text,reply){
 
 function isEcuText(text){
   const t=text.toLowerCase();
-  return /\becu\b|ecu brain|motor beyni|beyin dosya|\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap/.test(t);
+  return /\becu\b|ecu brain|motor beyni|beyin dosya|\bstage\s*1\b|\bstage1\b|chip\s*tun|\btuning\b|remap|\bdtc\b|\begr\b|\bdpf\b|\badblue\b|\bscr\b|\bvmax\b|start\s*[/&-]?\s*stop/.test(t);
 }
 
 function wantsLatestAnalysis(text){
@@ -77,10 +98,18 @@ export function createEcuChatTool(core){
       const text=String(body?.text||'').trim();
       const attachment=binaryAttachment(body);
       if(tuningIntent(text)&&attachment){
-        const started=await startStage1(core,req,env,ctx,attachment);
-        if(!started)return json(chatPayload(text,'ECU Brain dosyayı Stage 1 akışına alamadı. Depolama/compute bağlantısını kontrol et.'));
-        const job=started.job||{};
-        const reply=`ORI dosyası ECU Brain'e alındı. Stage 1 işi oluşturuldu: ${job.id||'bilinmiyor'}. Durum: ${job.state||'QUEUED'}. Sistem doğrulanmış map/rulepack ve checksum geçerse MOD dosyayı READY yapacak.`;
+        const requested=requestedOperations(text);
+        const file=await uploadBinary(core,req,env,ctx,attachment);
+        if(!file?.id)return json(chatPayload(text,'ECU Brain dosyayı depolama alanına alamadı.'));
+        const started=[];
+        for(const service of requested){
+          const job=await startOperation(core,req,env,ctx,file.id,service.operation);
+          started.push({service,job});
+        }
+        const failed=started.filter(item=>!item.job);
+        const lines=started.filter(item=>item.job).map(item=>`${item.service.label}: ${item.job.state||'QUEUED'} (${item.job.id||'job'})`);
+        if(failed.length)lines.push('Başlatılamayan: '+failed.map(item=>item.service.label).join(', '));
+        const reply=`ORI dosyası ECU Brain'e alındı. ${lines.join(' • ')}. Her işlem ECU/HW/SW eşleşen doğrulanmış rulepack ve checksum geçerse READY MOD üretir.`;
         return json(chatPayload(text,reply));
       }
       if(!text||!isEcuText(text))return core.fetch(req,env,ctx);
