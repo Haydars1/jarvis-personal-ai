@@ -1,4 +1,4 @@
-from ecu_worker.mutation import apply_stage1_mutation
+from ecu_worker.mutation import apply_exact_patches, apply_stage1_mutation
 from ecu_worker.proposal import ProposalItem, Stage1Proposal
 
 
@@ -25,3 +25,33 @@ def test_blocked_proposal_never_mutates():
         assert str(exc)=="STAGE1_PROPOSAL_BLOCKED"
     else:
         raise AssertionError("blocked proposal mutated bytes")
+
+
+def test_exact_patch_mutation_requires_matching_original_bytes():
+    ori=bytes.fromhex("0011223344556677")
+    patches=[{"offset":2,"beforeHex":"2233","afterHex":"aabb"}]
+    result=apply_exact_patches(ori,patches)
+    assert result.data==bytes.fromhex("0011aabb44556677")
+    assert result.allowed_ranges==[(2,4)]
+    assert result.changes[0].changed_cells==2
+
+    try:
+        apply_exact_patches(bytes.fromhex("0011229944556677"),patches)
+    except ValueError as exc:
+        assert str(exc)=="PATCH_PRECONDITION_MISMATCH:2"
+    else:
+        raise AssertionError("mismatched ORI accepted")
+
+
+def test_exact_patch_mutation_rejects_overlap():
+    ori=bytes.fromhex("0011223344556677")
+    patches=[
+        {"offset":1,"beforeHex":"1122","afterHex":"aabb"},
+        {"offset":2,"beforeHex":"2233","afterHex":"ccdd"},
+    ]
+    try:
+        apply_exact_patches(ori,patches)
+    except ValueError as exc:
+        assert str(exc)=="PATCH_RULES_OVERLAP"
+    else:
+        raise AssertionError("overlapping patches accepted")
