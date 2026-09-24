@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview, blockedCompositeOperations } from '../src/application/ecu/runtime.js';
+import { createEcuRuntime, isPortablePatchRulepack, shouldRetryNeedsReview, blockedCompositeOperations, researchKnowledgeGaps } from '../src/application/ecu/runtime.js';
 
 function request(path, init = {}) {
   return new Request(`https://jarvis.test${path}`, init);
@@ -647,11 +647,12 @@ test('scheduled ECU runtime runs review retry after learning refresh',async()=>{
     rulepacks,
     training,
     async dispatchQueuedJobs(){calls.push('dispatch');return {attempted:0,dispatched:0};},
+    async researchKnowledgeGaps(){calls.push('gaps');return {scanned:0,researched:0};},
     async retryReviewJobs(){calls.push('retry');return {attempted:0,retried:0};},
     async refreshChecksumProfiles(){calls.push('checksum');return {created:0};},
   });
   await runtime.scheduled({scheduledTime:123},{},{});
-  assert.deepEqual(calls,['dispatch','research','rulepacks','retry','checksum','training']);
+  assert.deepEqual(calls,['dispatch','research','gaps','rulepacks','retry','checksum','training']);
 });
 
 
@@ -867,4 +868,61 @@ test('service availability requires fileId',async()=>{
   });
   const response=await runtime.fetch(request('/api/ecu/services'),{},{});
   assert.equal(response.status,400);
+});
+
+
+test('knowledge gap research is rate limited per ECU operation',async()=>{
+  const jobResult={
+    ecu_family:'EDC17C46',
+    hw_candidates:[{value:'HW1'}],
+    sw_candidates:[{value:'SW1'}],
+    proposal:{reasons:['egr_off_proposal:RULEPACK_UNVERIFIED']},
+  };
+  let gapRow=null;
+  const db={
+    prepare(sql){
+      return {
+        args:[],
+        bind(...args){this.args=args;return this;},
+        async all(){
+          if(sql.includes("FROM ecu_jobs")&&sql.includes("NEEDS_REVIEW")){
+            return {results:[{
+              id:'job-1',
+              operation:'multi_service_proposal',
+              result_json:JSON.stringify(jobResult),
+            }]};
+          }
+          return {results:[]};
+        },
+        async first(){
+          if(sql.includes('FROM ecu_research_gaps WHERE id='))return gapRow;
+          return null;
+        },
+        async run(){
+          if(sql.startsWith('INSERT INTO ecu_research_gaps')){
+            gapRow={
+              last_researched_at:this.args[5],
+              attempts:this.args[6],
+            };
+          }
+          return {success:true};
+        },
+      };
+    },
+  };
+  const calls=[];
+  const targeted=async(_env,input)=>{
+    calls.push(input);
+    return {sourcesFound:3,claimsFound:5};
+  };
+  const first=await researchKnowledgeGaps({DB:db},targeted,1_000_000,{minIntervalMs:10_000});
+  assert.equal(first.researched,1);
+  assert.equal(calls.length,1);
+  const second=await researchKnowledgeGaps({DB:db},targeted,1_005_000,{minIntervalMs:10_000});
+  assert.equal(second.researched,0);
+  assert.equal(second.skippedRecent,1);
+  assert.equal(calls.length,1);
+  const third=await researchKnowledgeGaps({DB:db},targeted,1_020_001,{minIntervalMs:10_000});
+  assert.equal(third.researched,1);
+  assert.equal(calls.length,2);
 });
