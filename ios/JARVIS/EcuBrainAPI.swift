@@ -136,6 +136,28 @@ struct EcuTrainingPairResponse: Decodable {
     let pair: EcuTrainingPair
 }
 
+struct EcuServiceAvailability: Decodable, Identifiable {
+    var id: String { self.idValue }
+    private let idValue: String
+    let title: String
+    let operation: String
+    let state: String
+    let available: Bool
+    let rulepackVersion: String?
+    let matchTier: String?
+    let checksumKnown: Bool
+    let checksumSource: String?
+
+    enum CodingKeys: String, CodingKey {
+        case idValue = "id"
+        case title, operation, state, available, rulepackVersion, matchTier, checksumKnown, checksumSource
+    }
+}
+
+struct EcuServiceAvailabilityResponse: Decodable {
+    let services: [EcuServiceAvailability]
+}
+
 final class EcuBrainAPI {
     private let baseURL = URL(string: "https://jarvis-personal-ai.haydojarvis.workers.dev")!
     private let session: URLSession
@@ -239,6 +261,12 @@ final class EcuBrainAPI {
         ])
         let payload = try await request("/api/ecu/training/pairs", method: "POST", body: body, headers: ["Content-Type":"application/json"])
         return try decoder.decode(EcuTrainingPairResponse.self, from: payload).pair
+    }
+
+    func serviceAvailability(fileId: String) async throws -> [EcuServiceAvailability] {
+        let encoded = fileId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? fileId
+        let payload = try await request("/api/ecu/services?fileId=\(encoded)")
+        return try decoder.decode(EcuServiceAvailabilityResponse.self, from: payload).services
     }
 
     func runOperation(fileId: String, operation: String) async throws -> EcuJob {
