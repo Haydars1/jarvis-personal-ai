@@ -435,3 +435,22 @@ test('serves checksum profiles only to authorized compute workers', async () => 
   assert.equal(body.profile.algorithm,'sum16');
   assert.equal(body.profile.verifiedPairs,7);
 });
+
+
+test('manual research endpoint triggers GitHub and web research cycle',async()=>{
+  const calls=[];
+  const research={
+    async run(_env,timestamp){
+      calls.push(timestamp);
+      return {skipped:false,sourcesFound:12,claimsFound:30,verified:4};
+    },
+    async status(){return {status:'IDLE',paidApiRequired:false};},
+  };
+  const runtime=createEcuRuntime(coreFallback(),{research});
+  const response=await runtime.fetch(request('/api/ecu/research/run',{method:'POST'}),{},{});
+  assert.equal(response.status,202);
+  const body=await response.json();
+  assert.equal(body.sourcesFound,12);
+  assert.equal(body.claimsFound,30);
+  assert.equal(calls.length,1);
+});
