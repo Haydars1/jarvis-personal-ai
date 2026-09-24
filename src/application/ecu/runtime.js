@@ -7,6 +7,7 @@ import { buildEcuDatasetSnapshot } from './dataset.js';
 import { decideEcuModelPromotion, ecuBenchmarkScore } from './promotion.js';
 import { extractVerifiedChangeEvidence } from './change-evidence.js';
 import { createEcuRulepackLearning } from './rulepacks.js';
+import { evaluateMachineHypothesisGroup } from './machine-consensus.js';
 import { createEcuArtifactStore } from '../../infrastructure/ecu/artifact-store.js';
 import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch.js';
 
@@ -545,11 +546,9 @@ async function promoteMachineMapHypotheses(env,{operationLabel,ecuFamily,hw,sw,t
     ORDER BY semantic_label,map_offset,pair_id,created_at ASC`)
     .bind(ecuFamily,hw,sw).all()).results||[];
 
-  const allowedLabels=new Set(['driver_wish','torque_limiter','boost_target','rail_pressure']);
   const groups=new Map();
   for(const row of rows){
     const label=String(row.semantic_label||'');
-    if(!allowedLabels.has(label))continue;
     let stats={};
     try{stats=JSON.parse(row.delta_stats_json||'{}')}catch{}
     const signed=Number(stats.medianSignedPercent??stats.median_signed_percent??0);
@@ -573,15 +572,10 @@ async function promoteMachineMapHypotheses(env,{operationLabel,ecuFamily,hw,sw,t
   for(const entries of groups.values()){
     const uniquePairs=new Map();
     for(const entry of entries)if(entry.pairId&&!uniquePairs.has(entry.pairId))uniquePairs.set(entry.pairId,entry);
-    const values=[...uniquePairs.values()];
-    if(values.length<8)continue;
-    const positives=values.filter(item=>item.signed>0).length;
-    const negatives=values.filter(item=>item.signed<0).length;
-    const agreement=Math.max(positives,negatives)/values.length;
-    const averageConfidence=values.reduce((sum,item)=>sum+item.confidence,0)/values.length;
-    if(agreement<0.90||averageConfidence<0.94)continue;
+    const decision=evaluateMachineHypothesisGroup([...uniquePairs.values()]);
+    if(!decision.promote)continue;
 
-    for(const entry of values){
+    for(const entry of decision.values){
       const evidenceId=`${entry.pairId}:machine:${entry.label}:${entry.mapOffset}`;
       await env.DB.prepare(`INSERT INTO ecu_change_evidence(
         id,pair_id,operation_label,ecu_family,hw,sw,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,verification_method,created_at
