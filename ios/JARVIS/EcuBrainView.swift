@@ -84,6 +84,11 @@ struct EcuBrainView: View {
                             Text("\(repo.license ?? "unknown") • \(repo.reusePolicy ?? "REVIEW_REQUIRED")")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            if let sha = repo.commitSha, !sha.isEmpty {
+                                Text("commit " + String(sha.prefix(10)))
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(.secondary)
+                            }
                             if let capabilities = repo.capabilities, !capabilities.isEmpty {
                                 Text(capabilities.joined(separator: " • "))
                                     .font(.caption2)
