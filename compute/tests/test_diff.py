@@ -123,3 +123,27 @@ def test_patch_chunks_are_bounded():
     chunks=extract_patch_chunks(ori,mod,max_chunk_bytes=32,max_total_bytes=80)
     assert sum(item["length"] for item in chunks)==80
     assert all(item["length"]<=32 for item in chunks)
+
+
+def test_discovers_simple_checksum_field_candidate():
+    from ecu_worker.diff import discover_simple_checksum_profiles
+    ori=bytes([100,100,50,0,0x00,0xFA])
+    mod=bytes([120,100,50,0,0x01,0x0E])
+    report=diff_bytes(ori,mod)
+    candidates=discover_simple_checksum_profiles(ori,mod,report)
+    assert {
+        "algorithm":"sum16",
+        "data_start":0,
+        "data_end":6,
+        "checksum_offset":4,
+        "checksum_size":2,
+        "endian":"big",
+        "zero_field":True,
+    } in candidates
+
+
+def test_checksum_discovery_rejects_unverified_changed_field():
+    from ecu_worker.diff import discover_simple_checksum_profiles
+    ori=bytes([1,2,3,4,0x12,0x34])
+    mod=bytes([9,2,3,4,0x56,0x78])
+    assert discover_simple_checksum_profiles(ori,mod)==[]
