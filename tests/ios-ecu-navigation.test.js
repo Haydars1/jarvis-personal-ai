@@ -15,7 +15,7 @@ test('native sidebar exposes ECU Brain like a first-class JARVIS area', () => {
   assert.match(contentView, /showSidebar/);
   assert.match(contentView, /Label\("ECU Brain"/);
   assert.match(contentView, /Yeni ECU dosyası/);
-  assert.match(contentView, /EcuChatView\\(\\)/);
+  assert.match(contentView, /EcuChatView\(\)/);
 });
 
 test('ECU Brain uses the same universal picker and calls the ECU analysis endpoint', () => {
