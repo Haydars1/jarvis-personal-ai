@@ -1090,11 +1090,12 @@ export function shouldRetryNeedsReview(result={}){
     ...(Array.isArray(proposal?.reasons)?proposal.reasons:[]),
     ...(Array.isArray(proposal?.validation?.errors)?proposal.validation.errors:[]),
   ].map(value=>String(value||''));
-  return reasons.some(reason=>
-    reason==='RULEPACK_UNVERIFIED' ||
-    reason==='PATCH_RULEPACK_MISSING' ||
-    reason==='CHECKSUM_PROFILE_UNVERIFIED'
-  );
+  return reasons.some(reason=>{
+    const normalized=String(reason||'').split(':').at(-1);
+    return normalized==='RULEPACK_UNVERIFIED' ||
+      normalized==='PATCH_RULEPACK_MISSING' ||
+      normalized==='CHECKSUM_PROFILE_UNVERIFIED';
+  });
 }
 
 async function defaultRetryReviewJobs(env,dispatch){
