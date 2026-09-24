@@ -302,7 +302,8 @@ def extract_structural_map_candidates(
                     ))
                     break
 
-    candidates.sort(key=lambda item:(-item.score,item.offset,item.rows,item.cols,item.endian))
+    structural_priority={"axis-table":0,"axis-vector":1}
+    candidates.sort(key=lambda item:(structural_priority.get(item.source,2),-item.score,item.offset,item.rows,item.cols,item.endian))
     selected: list[MapCandidate]=[]
     for candidate in candidates:
         size=candidate.rows*candidate.cols*2
@@ -388,7 +389,8 @@ def extract_map_candidates_multiendian(
                 endian=endian,
             ))
 
-    merged.sort(key=lambda item: (-item.score, item.offset, item.rows, item.cols, item.endian))
+    source_priority={"axis-table":0,"surface":1,"axis-vector":2}
+    merged.sort(key=lambda item: (source_priority.get(item.source,3),-item.score, item.offset, item.rows, item.cols, item.endian))
     selected: list[MapCandidate] = []
     for candidate in merged:
         candidate_size = candidate.rows * candidate.cols * 2
