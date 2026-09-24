@@ -1176,7 +1176,7 @@ export function shouldRetryNeedsReview(result={}){
   });
 }
 
-async function defaultResearchKnowledgeGaps(env,targeted,timestamp=Date.now(),{minIntervalMs=6*60*60*1000}={}){
+export async function researchKnowledgeGaps(env,targeted,timestamp=Date.now(),{minIntervalMs=6*60*60*1000}={}){
   const rows=(await env.DB.prepare(`SELECT id,operation,result_json
     FROM ecu_jobs
     WHERE state='NEEDS_REVIEW'
@@ -1457,7 +1457,7 @@ export function createEcuRuntime(core, overrides = {}) {
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
     researchTargeted: (env,input) => research.targeted(env,input),
-    researchKnowledgeGaps: (env,timestamp) => defaultResearchKnowledgeGaps(env,(targetEnv,input)=>research.targeted(targetEnv,input),timestamp),
+    researchKnowledgeGaps: (env,timestamp) => researchKnowledgeGaps(env,(targetEnv,input)=>research.targeted(targetEnv,input),timestamp),
     listGitHubRepositories: defaultListGitHubRepositories,
     rulepackStatus: env => rulepacks.status(env),
     trainingStatus: env => training.status(env),
