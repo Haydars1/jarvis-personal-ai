@@ -9,6 +9,10 @@ export const DEFAULT_GITHUB_ECU_QUERIES=Object.freeze([
   'EDC17 MED17 checksum ECU',
   'ECU binary map detection calibration',
   'A2L XDF ECU calibration parser',
+  'ECU EGR DPF SCR DTC patch reverse engineering',
+  'EDC17 DPF EGR AdBlue map switch patch',
+  'ECU VMAX speed limiter calibration patch',
+  'ECU start stop coding calibration binary',
 ]);
 
 export const DEFAULT_GITHUB_ECU_SEEDS=Object.freeze([
@@ -72,6 +76,11 @@ export function capabilityTags(text='',path=''){
     ['ORI_MOD_DIFF',/ori.{0,10}mod|stock.{0,10}tuned|binary diff|diff_maps|cook/],
     ['PATCH_RECIPE',/recipe|patcher|context_before|context_after|portable patch/],
     ['DTC',/dtc|diagnostic trouble|dfc_ctlmsk|fault code/],
+    ['EGR',/\begr\b|exhaust gas recirculation/],
+    ['DPF',/\bdpf\b|diesel particulate|soot filter/],
+    ['SCR_ADBLUE',/\bscr\b|adblue|urea dosing|nox catalyst/],
+    ['VMAX',/\bvmax\b|speed limiter|max speed/],
+    ['START_STOP',/start.?stop|start stop|stop.?start/],
     ['STAGE1',/stage\s*1|torque limiter|driver wish|boost|rail pressure/],
   ];
   for(const [tag,pattern] of rules)if(pattern.test(hay))tags.push(tag);
