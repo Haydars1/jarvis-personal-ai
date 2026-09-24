@@ -57,6 +57,21 @@ struct EcuResearchRun: Decodable {
     let reason: String?
 }
 
+struct EcuGitHubRepository: Decodable, Identifiable {
+    var id: String { repository }
+    let repository: String
+    let license: String?
+    let reusePolicy: String?
+    let stars: Int?
+    let capabilities: [String]?
+    let defaultBranch: String?
+    let lastSeenAt: Int?
+}
+
+struct EcuGitHubRepositoriesResponse: Decodable {
+    let repositories: [EcuGitHubRepository]
+}
+
 struct EcuModelSummary: Decodable, Identifiable {
     var id: String { version }
     let version: String
@@ -177,6 +192,11 @@ final class EcuBrainAPI {
     func runResearch() async throws -> EcuResearchRun {
         let data = try await request("/api/ecu/research/run", method: "POST")
         return try decoder.decode(EcuResearchRun.self, from: data)
+    }
+
+    func githubRepositories(limit: Int = 20) async throws -> [EcuGitHubRepository] {
+        let data = try await request("/api/ecu/research/github?limit=\(max(1,min(100,limit)))")
+        return try decoder.decode(EcuGitHubRepositoriesResponse.self, from: data).repositories
     }
 
     func models() async throws -> [EcuModelSummary] {
