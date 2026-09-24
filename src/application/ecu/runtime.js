@@ -458,6 +458,51 @@ async function defaultReadOriginal(env, sha256) {
   return store.getOriginal(sha256);
 }
 
+async function refreshChecksumProfiles(env,{minPairs=5}={}){
+  const rows=(await env.DB.prepare(`SELECT
+      ecu_family,hw,sw,algorithm,data_start,data_end,checksum_offset,checksum_size,endian,zero_field,
+      COUNT(DISTINCT pair_id) AS pair_count
+    FROM ecu_checksum_evidence
+    WHERE human_verified=1 AND ecu_family<>'' AND hw<>'' AND sw<>''
+    GROUP BY ecu_family,hw,sw,algorithm,data_start,data_end,checksum_offset,checksum_size,endian,zero_field
+    HAVING COUNT(DISTINCT pair_id)>=?
+    ORDER BY pair_count DESC`).bind(minPairs).all()).results||[];
+  const promoted=[];
+  for(const row of rows){
+    const profile={
+      ecuFamily:String(row.ecu_family||''),
+      hw:String(row.hw||''),
+      sw:String(row.sw||''),
+      algorithm:String(row.algorithm||''),
+      dataStart:Number(row.data_start||0),
+      dataEnd:Number(row.data_end||0),
+      checksumOffset:Number(row.checksum_offset||0),
+      checksumSize:Number(row.checksum_size||0),
+      endian:String(row.endian||'big'),
+      zeroField:Boolean(row.zero_field),
+      verifiedPairs:Number(row.pair_count||0),
+    };
+    const digest=await sha256Text(JSON.stringify(profile));
+    const id=`checksum-${digest.slice(0,16)}`;
+    const timestamp=now();
+    await env.DB.prepare(`INSERT INTO ecu_checksum_profiles(
+      id,ecu_family,hw,sw,algorithm,data_start,data_end,checksum_offset,checksum_size,endian,zero_field,
+      state,verified,verified_pairs,digest,created_at,promoted_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(digest) DO UPDATE SET verified_pairs=excluded.verified_pairs,state='PRODUCTION',verified=1,promoted_at=excluded.promoted_at`)
+      .bind(
+        id,profile.ecuFamily,profile.hw,profile.sw,profile.algorithm,
+        profile.dataStart,profile.dataEnd,profile.checksumOffset,profile.checksumSize,
+        profile.endian,profile.zeroField?1:0,'PRODUCTION',1,profile.verifiedPairs,digest,timestamp,timestamp
+      ).run();
+    await env.DB.prepare(`UPDATE ecu_checksum_profiles SET state='SUPERSEDED'
+      WHERE state='PRODUCTION' AND verified=1 AND ecu_family=? AND hw=? AND sw=? AND id<>?`)
+      .bind(profile.ecuFamily,profile.hw,profile.sw,id).run();
+    promoted.push({id,...profile});
+  }
+  return {promoted};
+}
+
 async function defaultApplyPairResult(env,pairId,body={}){
   const status=String(body.status||'FAILED');
   if(!new Set(['COMPLETE','FAILED']).has(status))throw new Error('INVALID_PAIR_RESULT_STATUS');
@@ -514,6 +559,27 @@ async function defaultApplyPairResult(env,pairId,body={}){
           timestamp,
         ).run();
       verifiedEvidenceCount+=1;
+    }
+
+    const checksumCandidates=Array.isArray(diff.checksum_candidates)?diff.checksum_candidates:[];
+    for(const [index,candidate] of checksumCandidates.entries()){
+      const algorithm=String(candidate.algorithm||'').toLowerCase();
+      const dataStart=Math.max(0,Number(candidate.data_start||0));
+      const dataEnd=Math.max(0,Number(candidate.data_end||0));
+      const checksumOffset=Math.max(0,Number(candidate.checksum_offset||0));
+      const checksumSize=Math.max(0,Number(candidate.checksum_size||0));
+      const endian=String(candidate.endian||'big').toLowerCase();
+      if(!['sum16','sum32','crc32'].includes(algorithm))continue;
+      if(!['big','little'].includes(endian)||!dataEnd||!checksumSize)continue;
+      const id=`${pairId}:checksum:${index}:${checksumOffset}`;
+      await env.DB.prepare(`INSERT INTO ecu_checksum_evidence(
+        id,pair_id,ecu_family,hw,sw,algorithm,data_start,data_end,checksum_offset,checksum_size,endian,zero_field,human_verified,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET human_verified=1`)
+        .bind(
+          id,pairId,scopedFamily,scopedHw,scopedSw,algorithm,dataStart,dataEnd,
+          checksumOffset,checksumSize,endian,candidate.zero_field===false?0:1,1,timestamp
+        ).run();
     }
 
     if(String(pair.operation_label||body.operation_label||'')!=='stage1'){
@@ -1000,6 +1066,7 @@ export function createEcuRuntime(core, overrides = {}) {
     readOriginal: defaultReadOriginal,
     rulepackForIdentity: defaultRulepackForIdentity,
     checksumProfileForIdentity: defaultChecksumProfileForIdentity,
+    refreshChecksumProfiles: env => refreshChecksumProfiles(env),
     readDataset: defaultReadDataset,
     readModel: defaultReadModel,
     applyWorkerResult: defaultApplyWorkerResult,
@@ -1368,6 +1435,11 @@ export function createEcuRuntime(core, overrides = {}) {
         await rulepacks.refresh(env);
       } catch {
         // Evidence-only rulepack learning is recoverable and never promotes itself.
+      }
+      try {
+        await deps.refreshChecksumProfiles(env);
+      } catch {
+        // Checksum profile learning is conservative and recoverable.
       }
       try {
         await training.maybeRun(env, timestamp);
