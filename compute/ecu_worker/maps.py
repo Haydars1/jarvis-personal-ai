@@ -103,3 +103,43 @@ def extract_map_candidates(
             continue
         selected.append(candidate)
     return selected
+
+
+def extract_map_candidates_multiendian(
+    data: bytes,
+    *,
+    shapes: tuple[tuple[int, int], ...] = ((8, 8), (12, 12), (16, 16)),
+    min_score: float = 0.85,
+    endians: tuple[str, ...] = ("big", "little"),
+    max_candidates: int = 256,
+) -> list[MapCandidate]:
+    merged: list[MapCandidate] = []
+    for endian in endians:
+        if endian not in {"big", "little"}:
+            continue
+        merged.extend(extract_map_candidates(
+            data,
+            shapes=shapes,
+            min_score=min_score,
+            endian=endian,
+        ))
+
+    merged.sort(key=lambda item: (-item.score, item.offset, item.rows, item.cols, item.endian))
+    selected: list[MapCandidate] = []
+    for candidate in merged:
+        candidate_size = candidate.rows * candidate.cols * 2
+        conflict = False
+        for kept in selected:
+            kept_size = kept.rows * kept.cols * 2
+            left=max(candidate.offset,kept.offset)
+            right=min(candidate.offset+candidate_size,kept.offset+kept_size)
+            overlap=max(0,right-left)
+            if overlap >= min(candidate_size,kept_size)*0.75:
+                conflict=True
+                break
+        if conflict:
+            continue
+        selected.append(candidate)
+        if len(selected)>=max_candidates:
+            break
+    return selected
