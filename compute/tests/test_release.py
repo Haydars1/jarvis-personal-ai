@@ -63,13 +63,15 @@ def test_release_allows_only_checksum_field_added_by_verified_profile():
 
 class CorrectingChecksum(ChecksumAdapter):
     name="fixture-correcting"
-    def correct(self,data:bytes)->bytes:
-        out=bytearray(data)
-        out[-1]=0xAA
-        return bytes(out)
     def verify(self,data:bytes)->ChecksumResult:
         ok=bool(data) and data[-1]==0xAA
         return ChecksumResult(status="VERIFIED" if ok else "FAILED",algorithm=self.name,verified=ok)
+    def apply(self,data:bytes):
+        from ecu_worker.validation import ChecksumApplyResult
+        out=bytearray(data)
+        out[-1]=0xAA
+        repaired=bytes(out)
+        return ChecksumApplyResult(data=repaired,ranges=[(len(data)-1,len(data))],result=self.verify(repaired))
 
 
 def test_release_accepts_adapter_checksum_correction_offsets():
