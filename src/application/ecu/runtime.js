@@ -593,6 +593,44 @@ async function defaultApplyPairResult(env,pairId,body={}){
       verifiedEvidenceCount+=1;
     }
 
+    const autoHypotheses=Array.isArray(diff.auto_map_delta_evidence)?diff.auto_map_delta_evidence:[];
+    for(const [index,row] of autoHypotheses.entries()){
+      const semanticLabel=String(row.semantic_label||row.semanticLabel||'UNKNOWN');
+      const mapOffset=Math.max(0,Number(row.map_offset??row.mapOffset??0));
+      const confidence=Math.max(0,Math.min(1,Number(row.semantic_confidence??row.confidence??0)));
+      if(semanticLabel==='UNKNOWN'||confidence<0.92)continue;
+      const id=`${pairId}:hypothesis:${index}:${semanticLabel}:${mapOffset}`;
+      await env.DB.prepare(`INSERT INTO ecu_change_hypotheses(
+        id,pair_id,operation_label,ecu_family,hw,sw,semantic_label,map_offset,confidence,delta_stats_json,verification_state,created_at,updated_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET
+        confidence=MAX(ecu_change_hypotheses.confidence,excluded.confidence),
+        delta_stats_json=excluded.delta_stats_json,
+        updated_at=excluded.updated_at`)
+        .bind(
+          id,
+          pairId,
+          pair.operation_label||body.operation_label||'',
+          scopedFamily,
+          scopedHw,
+          scopedSw,
+          semanticLabel,
+          mapOffset,
+          confidence,
+          JSON.stringify({
+            changedCells:Number(row.changed_cells??row.changedCells??0),
+            measuredCells:Number(row.measured_cells??row.measuredCells??0),
+            meanAbsPercent:Number(row.mean_abs_percent??row.meanAbsPercent??0),
+            maxAbsPercent:Number(row.max_abs_percent??row.maxAbsPercent??0),
+            p95AbsPercent:Number(row.p95_abs_percent??row.p95AbsPercent??0),
+            medianSignedPercent:Number(row.median_signed_percent??row.medianSignedPercent??0),
+          }),
+          'UNVERIFIED',
+          timestamp,
+          timestamp,
+        ).run();
+    }
+
     const checksumCandidates=Array.isArray(diff.checksum_candidates)?diff.checksum_candidates:[];
     for(const [index,candidate] of checksumCandidates.entries()){
       const algorithm=String(candidate.algorithm||'').toLowerCase();
