@@ -92,53 +92,61 @@ export function isPortablePatchRulepack(operationLabel,rules,minEvidencePairs=5)
   });
 }
 
-async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw='',sw=''}) {
-  const exact=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
+async function defaultRulepackCandidatesForIdentity(env,{operationLabel,ecuFamily='',hw='',sw='',limit=20}) {
+  const safeLimit=Math.max(1,Math.min(50,Number(limit)||20));
+  const rows=(await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw,promoted_at,created_at
     FROM ecu_rulepack_versions
     WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
       AND (ecu_family='' OR ecu_family=?)
       AND (hw='' OR hw=?)
-      AND (sw='' OR sw=?)
     ORDER BY
-      CASE WHEN sw<>'' THEN 3 WHEN hw<>'' THEN 2 WHEN ecu_family<>'' THEN 1 ELSE 0 END DESC,
+      CASE
+        WHEN sw=? AND sw<>'' THEN 5
+        WHEN sw='' AND hw=? AND hw<>'' THEN 4
+        WHEN sw='' AND ecu_family=? AND ecu_family<>'' THEN 3
+        WHEN sw<>'' AND hw=? AND hw<>'' THEN 2
+        ELSE 1
+      END DESC,
       promoted_at DESC,created_at DESC
-    LIMIT 1`)
-    .bind(String(operationLabel||''),String(ecuFamily||''),String(hw||''),String(sw||'')).first();
+    LIMIT ?`)
+    .bind(
+      String(operationLabel||''),
+      String(ecuFamily||''),
+      String(hw||''),
+      String(sw||''),
+      String(hw||''),
+      String(ecuFamily||''),
+      String(hw||''),
+      safeLimit,
+    ).all()).results||[];
 
-  const normalize=(row,portable=false)=>{
-    if(!row?.version)return null;
+  const out=[];
+  for(const row of rows){
     let rules={};
     try{rules=JSON.parse(row.rules_json||'{}')}catch{}
-    return {
+    const rowSw=String(row.sw||'');
+    const exactSw=Boolean(sw)&&rowSw===String(sw);
+    const genericSw=!rowSw;
+    const portable=!exactSw&&!genericSw;
+    if(portable&&!isPortablePatchRulepack(operationLabel,rules))continue;
+    if(String(operationLabel||'')==='stage1'&&portable)continue;
+    out.push({
       version:row.version,
       rules,
       ecuFamily:row.ecu_family||'',
       hw:row.hw||'',
-      sw:row.sw||'',
+      sw:rowSw,
       portable,
-      sourceSw:row.sw||'',
-    };
-  };
-
-  const exactRulepack=normalize(exact,false);
-  if(exactRulepack)return exactRulepack;
-
-  if(String(operationLabel||'')==='stage1'||!ecuFamily||!hw)return null;
-
-  const rows=(await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
-    FROM ecu_rulepack_versions
-    WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
-      AND ecu_family=? AND hw=? AND sw<>''
-    ORDER BY promoted_at DESC,created_at DESC
-    LIMIT 20`)
-    .bind(String(operationLabel||''),String(ecuFamily||''),String(hw||'')).all()).results||[];
-
-  for(const row of rows){
-    if(String(row.sw||'')===String(sw||''))continue;
-    const candidate=normalize(row,true);
-    if(candidate&&isPortablePatchRulepack(operationLabel,candidate.rules))return candidate;
+      sourceSw:rowSw,
+      matchTier:exactSw?'EXACT_SW':genericSw?'GENERIC_SCOPE':'SAME_HW_CONTEXTUAL',
+    });
   }
-  return null;
+  return out;
+}
+
+async function defaultRulepackForIdentity(env,input) {
+  const candidates=await defaultRulepackCandidatesForIdentity(env,{...input,limit:20});
+  return candidates[0]||null;
 }
 
 async function defaultChecksumProfileForIdentity(env,{ecuFamily='',hw='',sw=''}) {
@@ -1314,6 +1322,7 @@ export function createEcuRuntime(core, overrides = {}) {
     getValidatedMod: defaultGetValidatedMod,
     readOriginal: defaultReadOriginal,
     rulepackForIdentity: defaultRulepackForIdentity,
+    rulepackCandidatesForIdentity: defaultRulepackCandidatesForIdentity,
     checksumProfileForIdentity: defaultChecksumProfileForIdentity,
     refreshChecksumProfiles: env => refreshChecksumProfiles(env),
     readDataset: defaultReadDataset,
@@ -1354,6 +1363,17 @@ export function createEcuRuntime(core, overrides = {}) {
         if(!operationLabel)return json({error:'ECU_OPERATION_LABEL_REQUIRED'},400);
         const rulepack=await deps.rulepackForIdentity(env,{operationLabel,ecuFamily,hw,sw});
         return rulepack?json({rulepack}):json({error:'ECU_RULEPACK_NOT_FOUND'},404);
+      }
+
+      if (url.pathname === '/api/ecu/internal/rulepack-candidates' && req.method === 'GET') {
+        if (!isComputeAuthorized(req, env)) return json({ error: 'UNAUTHORIZED' }, 401);
+        const operationLabel=String(url.searchParams.get('operationLabel')||'').trim();
+        const ecuFamily=String(url.searchParams.get('ecuFamily')||'').trim();
+        const hw=String(url.searchParams.get('hw')||'').trim();
+        const sw=String(url.searchParams.get('sw')||'').trim();
+        if(!operationLabel)return json({error:'ECU_OPERATION_LABEL_REQUIRED'},400);
+        const candidates=await deps.rulepackCandidatesForIdentity(env,{operationLabel,ecuFamily,hw,sw,limit:20});
+        return json({candidates});
       }
 
       if (url.pathname === '/api/ecu/internal/checksum-profile' && req.method === 'GET') {
