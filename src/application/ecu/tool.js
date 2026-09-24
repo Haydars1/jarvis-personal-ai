@@ -180,10 +180,12 @@ export function createEcuChatTool(core){
         const required=Number(training?.minVerifiedExamples||0);
         const sources=Number(research?.counts?.sources||0);
         const verifiedClaims=Number(research?.counts?.verified_claims||0);
+        const githubSources=Number(research?.counts?.github_sources||0);
+        const githubHighTrust=Number(research?.counts?.github_high_trust_sources||0);
         const verifiedChanges=Number(training?.verifiedChangeEvidence||0);
         const model=training?.productionModel?.version||'baseline';
         const rulepackText=rulepacks?.production?.version?`production rulepack ${rulepacks.production.version}`:rulepacks?.latest?.version?`kanıt adayı ${rulepacks.latest.version}`:'rulepack kanıtı yetersiz';
-        const reply=`ECU Brain durumu: ${computeText}. Doğrulanmış map verisi: ${verified}/${required}. ORI/MOD değişim kanıtı: ${verifiedChanges}. Aktif model: ${model}. Rulepack: ${rulepackText}. Araştırma kaynağı: ${sources}; doğrulanmış claim: ${verifiedClaims}.`;
+        const reply=`ECU Brain durumu: ${computeText}. Doğrulanmış map verisi: ${verified}/${required}. ORI/MOD değişim kanıtı: ${verifiedChanges}. Aktif model: ${model}. Rulepack: ${rulepackText}. Araştırma kaynağı: ${sources}; GitHub kod kaynağı: ${githubSources} (${githubHighTrust} yüksek güven); doğrulanmış claim: ${verifiedClaims}.`;
         return json(chatPayload(text,reply));
       }
 
