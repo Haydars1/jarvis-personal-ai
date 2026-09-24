@@ -1211,6 +1211,7 @@ export function createEcuRuntime(core, overrides = {}) {
     mapContextForArtifact: defaultMapContextForArtifact,
     listPairs: defaultListPairs,
     researchStatus: env => research.status(env),
+    researchTargeted: (env,input) => research.targeted(env,input),
     listGitHubRepositories: defaultListGitHubRepositories,
     rulepackStatus: env => rulepacks.status(env),
     trainingStatus: env => training.status(env),
@@ -1467,7 +1468,15 @@ export function createEcuRuntime(core, overrides = {}) {
         const operation = String(body.operation || 'analyze').trim() || 'analyze';
         if (!fileId) return json({ error: 'fileId is required' }, 400);
         try {
-          return json({ job: await deps.createJob(env, { fileId, operation, callbackBaseUrl: url.origin }) }, 202);
+          const job=await deps.createJob(env, { fileId, operation, callbackBaseUrl: url.origin });
+          const operationLabel=ECU_OPERATION_LABELS[operation]||null;
+          if(operationLabel&&job?.rulepackVersion==='baseline'&&ctx?.waitUntil&&typeof deps.researchTargeted==='function'){
+            try{
+              const identity=await fileIdentity(env,fileId);
+              ctx.waitUntil(deps.researchTargeted(env,{operationLabel,...identity}).catch(()=>{}));
+            }catch{}
+          }
+          return json({ job }, 202);
         } catch (error) {
           if (error?.message === 'ECU_FILE_NOT_FOUND') return json({ error: 'ECU_FILE_NOT_FOUND' }, 404);
           throw error;
