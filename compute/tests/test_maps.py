@@ -56,3 +56,43 @@ def test_multiendian_deduplicates_overlapping_interpretations():
     )
     covering=[item for item in candidates if item.offset==0]
     assert len(covering)<=1
+
+
+def test_axis_table_scanner_finds_structural_map():
+    from ecu_worker.maps import extract_structural_map_candidates
+
+    x=[0,500,1000,1500,2000,2500,3000,3500]
+    y=[0,20,40,60,80,100]
+    table=[1000 + row*50 + col*7 for row in range(len(y)) for col in range(len(x))]
+    data=b'\xff'*32 + _u16be(x) + _u16be(y) + _u16be(table) + b'\x00'*32
+
+    candidates=extract_structural_map_candidates(
+        data,
+        endians=('big',),
+        min_axis_score=0.35,
+        min_table_score=0.35,
+    )
+    assert candidates
+    best=max(candidates,key=lambda item:item.score)
+    assert best.source=='axis-table'
+    assert best.x_axis_offset==32
+    assert best.y_axis_offset==32+len(x)*2
+    assert best.offset==32+len(x)*2+len(y)*2
+    assert best.cols==len(x)
+    assert best.rows==len(y)
+    assert best.endian=='big'
+
+
+def test_large_binary_multiendian_skips_expensive_surface_scan(monkeypatch):
+    import ecu_worker.maps as maps
+
+    called={'surface':0}
+    original=maps.extract_map_candidates
+    def spy(*args,**kwargs):
+        called['surface']+=1
+        return original(*args,**kwargs)
+    monkeypatch.setattr(maps,'extract_map_candidates',spy)
+
+    data=bytes(300_000)
+    maps.extract_map_candidates_multiendian(data,surface_scan_limit_bytes=262_144)
+    assert called['surface']==0
