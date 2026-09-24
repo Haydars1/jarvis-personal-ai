@@ -52,3 +52,35 @@ test('returns latest ECU job when asked for analysis status',async()=>{
   assert.match(body.reply,/2 map/);
   assert.match(body.reply,/NEEDS_REVIEW/);
 });
+
+
+test('routes multiple ECU service requests from chat attachment into separate jobs',async()=>{
+  const operations=[];
+  const req=new Request('https://jarvis.test/api/chat/send',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      text:'Bu dosyada EGR off ve DPF off yap',
+      attachments:[{name:'ori.bin',type:'application/octet-stream',base64:'AAECAwQ='}]
+    })
+  });
+  const core={async fetch(request){
+    const url=new URL(request.url);
+    if(url.pathname==='/api/ecu/files'){
+      return Response.json({file:{id:'file-1'}},{status:201});
+    }
+    if(url.pathname==='/api/ecu/jobs'){
+      const body=await request.json();
+      operations.push(body.operation);
+      return Response.json({job:{id:'job-'+operations.length,state:'QUEUED',operation:body.operation}},{status:202});
+    }
+    return new Response('delegate',{status:299});
+  }};
+  const tool=createEcuChatTool(core);
+  const response=await tool.fetch(req,{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.deepEqual(operations,['egr_off_proposal','dpf_off_proposal']);
+  assert.match(body.reply,/EGR OFF: QUEUED/);
+  assert.match(body.reply,/DPF OFF: QUEUED/);
+});
