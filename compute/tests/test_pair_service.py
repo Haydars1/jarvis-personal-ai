@@ -129,3 +129,40 @@ def test_pair_worker_fingerprints_ori_for_rulepack_scope():
     assert result["hw_candidates"][0]["value"]=="ABCDEF12"
     assert result["sw_candidates"][0]["value"]=="12345678"
     assert result["diff"]["patch_chunks"]
+
+
+def _u16be(values):
+    return b"".join(int(value).to_bytes(2,"big") for value in values)
+
+
+def test_pair_worker_builds_high_confidence_map_hypotheses_from_structural_axes():
+    marker=b"BOSCH EDC17C46 HW:ABCDEF12 SW:12345678"
+    pad=b"\xff"*16
+    x=[0,500,1000,1500,2000,2500,3000,3500]
+    y=[0,20,40,60,80,100]
+    cells=[100+row*100+col*10 for row in range(len(y)) for col in range(len(x))]
+    table_start=len(marker)+len(pad)+len(x)*2+len(y)*2
+    ori=marker+pad+_u16be(x)+_u16be(y)+_u16be(cells)+b"\x00"*16
+    mod=bytearray(ori)
+    # Raise one row by ~8% without disturbing structural axes.
+    for index in range(len(x)):
+        pos=table_start+(3*len(x)+index)*2
+        value=int.from_bytes(mod[pos:pos+2],"big")
+        mod[pos:pos+2]=round(value*1.08).to_bytes(2,"big")
+
+    client=FakeClient(ori,bytes(mod))
+    job=PairJobInput(
+        job_id="pair-auto-map",
+        ori_artifact_sha256="a"*64,
+        mod_artifact_sha256="b"*64,
+        ori_artifact_uri="r2://ecu-artifacts/originals/"+"a"*64,
+        mod_artifact_uri="r2://ecu-artifacts/originals/"+"b"*64,
+        operation_label="stage1",
+        config={"callback_base_url":"https://jarvis.example"},
+    )
+    result=asyncio.run(process_pair_job(job,"secret",client=client))
+    candidates=result["diff"]["auto_map_candidates"]
+    deltas=result["diff"]["auto_map_delta_evidence"]
+    assert any(item["semantic_label"]=="driver_wish" for item in candidates)
+    assert any(item["semantic_label"]=="driver_wish" and item["changed_cells"]>0 for item in deltas)
+    assert all(item["human_verified"] is False for item in deltas)
