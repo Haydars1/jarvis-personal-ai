@@ -6,6 +6,8 @@ from typing import Any
 from .contracts import PairJobInput
 from .diff import diff_bytes, discover_simple_checksum_profiles, extract_patch_chunks, link_ranges_to_maps, measure_verified_map_deltas
 from .fingerprint import fingerprint_binary
+from .maps import extract_map_candidates_multiendian
+from .map_heuristics import classify_map_heuristic
 
 
 async def process_pair_job(
@@ -55,8 +57,29 @@ async def process_pair_job(
         ori_bytes=bytes(ori_response.content)
         mod_bytes=bytes(mod_response.content)
         fp=fingerprint_binary(ori_bytes)
-        linked_ranges=link_ranges_to_maps(report,normalized_maps)
+        auto_maps=[]
+        for item in extract_map_candidates_multiendian(ori_bytes,max_candidates=128):
+            semantic=classify_map_heuristic(ori_bytes,item,fp.ecu_family)
+            if semantic.label=="UNKNOWN" or semantic.confidence<0.92:
+                continue
+            auto_maps.append({
+                "offset":item.offset,
+                "rows":item.rows,
+                "cols":item.cols,
+                "data_type":"u16",
+                "endian":item.endian,
+                "semantic_label":semantic.label,
+                "semantic_confidence":semantic.confidence,
+                "human_verified":False,
+                "semantic_source":"heuristic",
+                "semantic_evidence":list(semantic.evidence),
+            })
+
+        linked_ranges=link_ranges_to_maps(report,[*normalized_maps,*auto_maps])
         map_delta_evidence=measure_verified_map_deltas(ori_bytes,mod_bytes,normalized_maps)
+        auto_map_delta_evidence=measure_verified_map_deltas(
+            ori_bytes,mod_bytes,auto_maps,require_verified=False
+        )
         patch_chunks=extract_patch_chunks(ori_bytes,mod_bytes,report)
         checksum_candidates=discover_simple_checksum_profiles(ori_bytes,mod_bytes,report)
         payload={
@@ -73,6 +96,8 @@ async def process_pair_job(
                 "ranges":[asdict(item) for item in report.ranges],
                 "linked_ranges":linked_ranges,
                 "map_delta_evidence":map_delta_evidence,
+                "auto_map_delta_evidence":auto_map_delta_evidence,
+                "auto_map_candidates":auto_maps,
                 "patch_chunks":patch_chunks,
                 "checksum_candidates":checksum_candidates,
                 "digest":report.digest,
