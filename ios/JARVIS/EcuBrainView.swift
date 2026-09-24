@@ -27,6 +27,7 @@ struct EcuBrainView: View {
     @State private var models: [EcuModelSummary] = []
     @State private var rulepacks: EcuRulepackStatus?
     @State private var research: EcuResearchStatus?
+    @State private var researchGaps: [EcuResearchGap] = []
     @State private var githubRepositories: [EcuGitHubRepository] = []
     @State private var trainingPairs: [EcuTrainingPair] = []
     @State private var message = ""
@@ -75,6 +76,27 @@ struct EcuBrainView: View {
                     Text("GitHub kaynak kodu, README/dokümantasyon ve teknik kaynaklar taranır. Lisans ve kaynak güveni ayrı tutulur; aynı repository kendi kendini doğrulayan bağımsız kaynak sayılmaz.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                }
+
+                Section("Araştırılan Eksikler") {
+                    if researchGaps.isEmpty {
+                        Text("Aktif bilgi açığı yok")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(researchGaps.prefix(8)) { gap in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("\(gap.ecuFamily.isEmpty ? "UNKNOWN" : gap.ecuFamily) • \(gap.operationLabel)")
+                                .font(.subheadline.weight(.semibold))
+                            if !gap.hw.isEmpty || !gap.sw.isEmpty {
+                                Text([gap.hw, gap.sw].filter { !$0.isEmpty }.joined(separator: " • "))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Text("Araştırma \(gap.attempts)x • son kaynak \(gap.lastSourcesFound) • claim \(gap.lastClaimsFound)")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
                 Section("GitHub ECU Kaynakları") {
@@ -366,6 +388,7 @@ struct EcuBrainView: View {
             async let m = api.models()
             async let r = api.rulepackStatus()
             async let rs = api.researchStatus()
+            async let rg = api.researchGaps()
             async let p = api.trainingPairs()
             compute = try await c
             training = try await t
@@ -376,6 +399,7 @@ struct EcuBrainView: View {
             models = try await m
             rulepacks = try await r
             research = try await rs
+            researchGaps = try await rg
             trainingPairs = try await p
             if let currentFileId {
                 let availability = try await api.serviceAvailability(fileId: currentFileId)
