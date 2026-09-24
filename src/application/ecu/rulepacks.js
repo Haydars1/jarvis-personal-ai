@@ -9,7 +9,7 @@ function validHex(value,length){
   return typeof value==='string' && value.length===length*2 && /^[a-f0-9]+$/i.test(value);
 }
 
-function autoPromotionDecision(candidate){
+function autoPromotionDecision(candidate,minPairsPerLabel=5){
   const fullScope=Boolean(candidate?.ecuFamily&&candidate?.hw&&candidate?.sw);
   if(!fullScope)return {promote:false,reason:'SCOPE_NOT_EXACT'};
 
@@ -17,7 +17,7 @@ function autoPromotionDecision(candidate){
     const entries=Object.entries(candidate.rules||{}).filter(([label])=>label!=='__patches');
     if(!entries.length)return {promote:false,reason:'NO_STAGE1_RULES'};
     const stable=entries.every(([,rule])=>
-      Number(rule?.evidencePairs||0)>=5 &&
+      Number(rule?.evidencePairs||0)>=minPairsPerLabel &&
       Number.isFinite(Number(rule?.targetDeltaPercent)) &&
       Number(rule?.targetDeltaPercent)!==0 &&
       Number(rule?.directionAgreement||0)>=0.9
@@ -33,7 +33,7 @@ function autoPromotionDecision(candidate){
     const offset=Number(patch?.offset);
     const length=Number(patch?.length);
     if(!Number.isInteger(offset)||offset<0||!Number.isInteger(length)||length<=0)return {promote:false,reason:'PATCH_INVALID'};
-    if(Number(patch?.evidencePairs||0)<3)return {promote:false,reason:'PATCH_EVIDENCE_WEAK'};
+    if(Number(patch?.evidencePairs||0)<minPairsPerLabel)return {promote:false,reason:'PATCH_EVIDENCE_WEAK'};
     if(!validHex(String(patch.beforeHex||''),length)||!validHex(String(patch.afterHex||''),length))return {promote:false,reason:'PATCH_HEX_INVALID'};
     if(String(patch.beforeHex).toLowerCase()===String(patch.afterHex).toLowerCase())return {promote:false,reason:'PATCH_NO_CHANGE'};
     if(offset<previousEnd)return {promote:false,reason:'PATCH_OVERLAP'};
@@ -46,6 +46,24 @@ async function sha256Text(value){
   const bytes=new TextEncoder().encode(String(value||''));
   const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
   return [...digest].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function mapRulepackRow(row){
+  if(!row)return null;
+  return {
+    version:row.version,
+    operationLabel:row.operation_label,
+    ecuFamily:row.ecu_family||'',
+    hw:row.hw||'',
+    sw:row.sw||'',
+    state:row.state,
+    verified:Boolean(row.verified),
+    rules:(()=>{try{return JSON.parse(row.rules_json||'{}')}catch{return {}}})(),
+    evidenceCount:Number(row.evidence_count||0),
+    digest:row.digest,
+    createdAt:row.created_at,
+    promotedAt:row.promoted_at||null,
+  };
 }
 
 const defaultRepository={
@@ -70,7 +88,12 @@ const defaultRepository={
     await env.DB.prepare(`INSERT INTO ecu_rulepack_versions(
       version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
     ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
-    ON CONFLICT(digest) DO UPDATE SET evidence_count=excluded.evidence_count,rules_json=excluded.rules_json`)
+    ON CONFLICT(digest) DO UPDATE SET
+      evidence_count=excluded.evidence_count,
+      rules_json=excluded.rules_json,
+      ecu_family=excluded.ecu_family,
+      hw=excluded.hw,
+      sw=excluded.sw`)
       .bind(
         candidate.version,
         candidate.operationLabel,
@@ -101,51 +124,12 @@ const defaultRepository={
     return {...candidate,state:'PRODUCTION',verified:true,promotedAt,promotionReason:reason};
   },
   async latest(env){
-    const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
-      FROM ecu_rulepack_versions ORDER BY created_at DESC LIMIT 1`).first();
-    if(!row)return null;
-    return {
-      version:row.version,
-      operationLabel:row.operation_label,
-      ecuFamily:row.ecu_family||'',
-      hw:row.hw||'',
-      sw:row.sw||'',
-      state:row.state,
-      verified:Boolean(row.verified),
-      rules:(()=>{try{return JSON.parse(row.rules_json||'{}')}catch{return {}}})(),
-      evidenceCount:Number(row.evidence_count||0),
-      digest:row.digest,
-      createdAt:row.created_at,
-      promotedAt:row.promoted_at||null,
-    };
-  },
-  async promoteCandidate(env,candidate){
-    const timestamp=Date.now();
-    await env.DB.prepare(`UPDATE ecu_rulepack_versions
-      SET state='ROLLBACK'
-      WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
-        AND ecu_family=? AND hw=? AND sw=? AND version<>?`)
-      .bind(candidate.operationLabel,candidate.ecuFamily||'',candidate.hw||'',candidate.sw||'',candidate.version).run();
-    await env.DB.prepare(`UPDATE ecu_rulepack_versions
-      SET state='PRODUCTION',verified=1,promoted_at=?
-      WHERE version=?`).bind(timestamp,candidate.version).run();
-    return {...candidate,state:'PRODUCTION',verified:true,promotedAt:timestamp};
+    return mapRulepackRow(await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
+      FROM ecu_rulepack_versions ORDER BY created_at DESC LIMIT 1`).first());
   },
   async production(env){
-    const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
-      FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 ORDER BY promoted_at DESC,created_at DESC LIMIT 1`).first();
-    if(!row)return null;
-    return {
-      version:row.version,
-      operationLabel:row.operation_label,
-      state:row.state,
-      verified:true,
-      rules:(()=>{try{return JSON.parse(row.rules_json||'{}')}catch{return {}}})(),
-      evidenceCount:Number(row.evidence_count||0),
-      digest:row.digest,
-      createdAt:row.created_at,
-      promotedAt:row.promoted_at||null,
-    };
+    return mapRulepackRow(await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
+      FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 ORDER BY promoted_at DESC,created_at DESC LIMIT 1`).first());
   },
 };
 
@@ -158,14 +142,13 @@ export function createEcuRulepackLearning({
     async refresh(env){
       const rows=await repository.listVerifiedEvidence(env);
       const scopes=new Map();
+
       for(const row of rows){
         if(!row.humanVerified)continue;
         if(operationLabel!=='*'&&row.operationLabel!==operationLabel)continue;
         const label=String(row.semanticLabel||'UNKNOWN');
         if(label==='UNKNOWN')continue;
-        const envelope=Number(row.deltaStats?.p95AbsPercent??row.deltaStats?.p95_abs_percent??0);
-        const rawSigned=row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent;
-        const signed=rawSigned==null?null:Number(rawSigned);
+
         const scope={
           operationLabel:String(row.operationLabel||''),
           ecuFamily:String(row.ecuFamily||''),
@@ -176,27 +159,33 @@ export function createEcuRulepackLearning({
         const scopeKey=[scope.operationLabel,scope.ecuFamily,scope.hw,scope.sw].join('|');
         if(!scopes.has(scopeKey))scopes.set(scopeKey,{scope,labels:new Map(),patches:new Map()});
         const bucket=scopes.get(scopeKey);
+
         if(label==='__PATCH__'){
           const beforeHex=String(row.deltaStats?.patchBeforeHex||row.deltaStats?.patch_before_hex||'').toLowerCase();
           const afterHex=String(row.deltaStats?.patchAfterHex||row.deltaStats?.patch_after_hex||'').toLowerCase();
           const length=Number(row.deltaStats?.length||0);
-          if(length>0&&beforeHex.length===length*2&&afterHex.length===length*2&&beforeHex!==afterHex){
+          if(length>0&&beforeHex.length===length*2&&afterHex.length===length*2&&beforeHex!==afterHex&&validHex(beforeHex,length)&&validHex(afterHex,length)){
             const patchKey=[row.mapOffset,beforeHex,afterHex].join(':');
             if(!bucket.patches.has(patchKey))bucket.patches.set(patchKey,{offset:row.mapOffset,beforeHex,afterHex,length,pairs:new Set()});
             bucket.patches.get(patchKey).pairs.add(String(row.pairId||''));
           }
           continue;
         }
+
+        const envelope=Number(row.deltaStats?.p95AbsPercent??row.deltaStats?.p95_abs_percent??0);
+        const rawSigned=row.deltaStats?.medianSignedPercent??row.deltaStats?.median_signed_percent;
+        const signed=rawSigned==null?null:Number(rawSigned);
         if(!Number.isFinite(envelope)||envelope<=0)continue;
-        const labels=bucket.labels;
-        if(!labels.has(label))labels.set(label,new Map());
-        labels.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
+        if(!bucket.labels.has(label))bucket.labels.set(label,new Map());
+        bucket.labels.get(label).set(String(row.pairId||''),{envelope,signed:Number.isFinite(signed)&&signed!==0?signed:null});
       }
 
       const candidates=[];
+      const promoted=[];
       for(const {scope,labels,patches} of scopes.values()){
         const rules={};
         let evidenceCount=0;
+
         for(const [label,byPair] of [...labels.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
           const values=[...byPair.entries()].filter(([pair])=>pair).map(([,value])=>value);
           if(values.length<minPairsPerLabel)continue;
@@ -217,7 +206,8 @@ export function createEcuRulepackLearning({
             }:{}),
           };
         }
-        const exactPatches=[...(patches||new Map()).values()]
+
+        const exactPatches=[...patches.values()]
           .filter(patch=>patch.pairs.size>=minPairsPerLabel)
           .sort((a,b)=>a.offset-b.offset)
           .map(patch=>({
@@ -232,6 +222,7 @@ export function createEcuRulepackLearning({
           evidenceCount+=exactPatches.reduce((sum,patch)=>sum+patch.evidencePairs,0);
         }
         if(!Object.keys(rules).length)continue;
+
         const canonical=JSON.stringify({...scope,rules});
         const digest=await sha256Text(canonical);
         const candidate={
@@ -245,36 +236,18 @@ export function createEcuRulepackLearning({
           createdAt:Date.now(),
         };
         await repository.saveCandidate(env,candidate);
-        const decision=autoPromotionDecision(candidate);
+
+        const decision=autoPromotionDecision(candidate,minPairsPerLabel);
         if(decision.promote&&typeof repository.promoteCandidate==='function'){
-          candidates.push(await repository.promoteCandidate(env,candidate,decision.reason));
+          const item=await repository.promoteCandidate(env,candidate,decision.reason);
+          candidates.push(item);
+          promoted.push(item);
         }else{
           candidates.push({...candidate,promotionReason:decision.reason});
         }
       }
+
       if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
-      const promoted=[];
-      if(typeof repository.promoteCandidate==='function'){
-        for(let index=0;index<candidates.length;index+=1){
-          const candidate=candidates[index];
-          const keys=Object.keys(candidate.rules||{});
-          const patches=Array.isArray(candidate.rules?.__patches)?candidate.rules.__patches:[];
-          const exactOnly=keys.length===1&&keys[0]==='__patches'&&patches.length>0;
-          const fullyRepeated=patches.every(patch=>Number(patch.evidencePairs||0)>=minPairsPerLabel);
-          const exactScope=Boolean(candidate.ecuFamily&&candidate.hw&&candidate.sw);
-          const serviceOperation=Boolean(candidate.operationLabel&&candidate.operationLabel!=='stage1');
-          if(exactOnly&&fullyRepeated&&serviceOperation&&exactScope){
-            const promotedCandidate=await repository.promoteCandidate(env,candidate,'VERIFIED_EXACT_PATCH_CONSENSUS');
-            const normalized={...promotedCandidate,promotionReason:'VERIFIED_EXACT_PATCH_CONSENSUS'};
-            candidates[index]=normalized;
-            promoted.push(normalized);
-          }else if(exactOnly&&fullyRepeated&&!exactScope){
-            candidates[index]={...candidate,promotionReason:'SCOPE_NOT_EXACT'};
-          }else if(exactOnly&&fullyRepeated&&!serviceOperation){
-            candidates[index]={...candidate,promotionReason:'STAGE1_MANUAL_REVIEW'};
-          }
-        }
-      }
       return {created:true,candidate:candidates[0],candidates,autoPromoted:promoted};
     },
     async status(env){
