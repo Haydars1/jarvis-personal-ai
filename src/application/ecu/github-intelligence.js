@@ -104,6 +104,8 @@ function sourceRow(repo,path,text,policy){
       license:policy.license,
       reuse:policy.reuse,
       stars:Number(repo.stargazers_count||0),
+      capabilities,
+      defaultBranch:branch,
     },
   };
 }
