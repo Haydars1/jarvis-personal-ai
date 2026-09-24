@@ -60,3 +60,43 @@ def test_checksum_registry_uses_only_explicitly_registered_adapter():
     registry=ChecksumRegistry({"FIXTURE_ECU":VerifiedFixture()})
     assert registry.verify("FIXTURE_ECU",b"abc").verified is True
     assert registry.verify("EDC17C46",b"abc").status=="UNSUPPORTED"
+
+
+def test_profile_checksum_adapter_repairs_and_verifies_sum16():
+    from ecu_worker.validation import ProfileChecksumAdapter
+    data=bytes.fromhex("010203040000")
+    adapter=ProfileChecksumAdapter({
+        "algorithm":"sum16",
+        "data_start":0,
+        "data_end":6,
+        "checksum_offset":4,
+        "checksum_size":2,
+        "endian":"big",
+        "zero_field":True,
+    })
+    before=adapter.verify(data)
+    assert before.verified is False
+    applied=adapter.apply(data)
+    assert applied.result.verified is True
+    assert applied.ranges==[(4,6)]
+    assert applied.data[-2:]==bytes.fromhex("000a")
+
+
+def test_profile_checksum_adapter_supports_crc32():
+    import zlib
+    from ecu_worker.validation import ProfileChecksumAdapter
+    prefix=b"ABCD"
+    payload=prefix+b"\x00\x00\x00\x00"
+    adapter=ProfileChecksumAdapter({
+        "algorithm":"crc32",
+        "data_start":0,
+        "data_end":8,
+        "checksum_offset":4,
+        "checksum_size":4,
+        "endian":"big",
+        "zero_field":True,
+    })
+    applied=adapter.apply(payload)
+    expected=zlib.crc32(prefix+b"\x00\x00\x00\x00") & 0xffffffff
+    assert int.from_bytes(applied.data[4:8],"big")==expected
+    assert applied.result.verified is True
