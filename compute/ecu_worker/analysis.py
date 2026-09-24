@@ -22,7 +22,7 @@ def checksum_adapter_from_config(job: AnalysisJobInput, ecu_family: str):
 
 def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[AnalysisJobOutput, bytes | None, str | None]:
     fp = fingerprint_binary(data)
-    maps = extract_map_candidates(data)
+    maps = extract_map_candidates_multiendian(data)
     evidence = [{"kind": "fingerprint", "text": item} for item in fp.evidence]
     semantic_model = None
     raw_model = job.config.get("semantic_model_json")
