@@ -837,3 +837,34 @@ test('blocked composite worker result launches focused research for each service
     {ecuFamily:'EDC17C46',operationLabel:'dpf_off',hw:'HW1',sw:'SW2'},
   ]);
 });
+
+
+test('returns per-file ECU service availability',async()=>{
+  const runtime=createEcuRuntime(coreFallback(),{
+    async serviceAvailability(_env,fileId){
+      assert.equal(fileId,'file-1');
+      return {
+        identity:{ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1'},
+        services:[
+          {id:'stage1',title:'Stage 1',operation:'stage1_proposal',state:'AVAILABLE',available:true,checksumKnown:true},
+          {id:'egr_off',title:'EGR OFF',operation:'egr_off_proposal',state:'LEARNING',available:false,checksumKnown:true},
+        ],
+      };
+    },
+  });
+  const response=await runtime.fetch(request('/api/ecu/services?fileId=file-1'),{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.identity.ecuFamily,'EDC17C46');
+  assert.equal(body.services[0].state,'AVAILABLE');
+  assert.equal(body.services[1].state,'LEARNING');
+});
+
+
+test('service availability requires fileId',async()=>{
+  const runtime=createEcuRuntime(coreFallback(),{
+    async serviceAvailability(){throw new Error('should not run');},
+  });
+  const response=await runtime.fetch(request('/api/ecu/services'),{},{});
+  assert.equal(response.status,400);
+});
