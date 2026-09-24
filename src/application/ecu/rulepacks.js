@@ -220,8 +220,8 @@ export function createEcuRulepackLearning({
             length:patch.length,
             beforeHex:patch.beforeHex,
             afterHex:patch.afterHex,
-            contextBeforeHex:patch.contextBeforeHex,
-            contextAfterHex:patch.contextAfterHex,
+            ...(patch.contextBeforeHex?{contextBeforeHex:patch.contextBeforeHex}:{}),
+            ...(patch.contextAfterHex?{contextAfterHex:patch.contextAfterHex}:{}),
             evidencePairs:patch.pairs.size,
           }));
         if(exactPatches.length){
