@@ -388,3 +388,24 @@ test('compute status reflects live local worker heartbeat', async () => {
   assert.equal(body.preferred,'local');
   assert.equal(body.localEndpoint,'https://laptop.example/jobs');
 });
+
+
+test('serves scoped production rulepacks only to authorized compute workers', async () => {
+  const calls=[];
+  const runtime=createEcuRuntime(coreFallback(),{
+    async rulepackForIdentity(_env,input){
+      calls.push(input);
+      return {version:'rules-1',rules:{__patches:[{offset:10,beforeHex:'01',afterHex:'00'}]},ecuFamily:input.ecuFamily,hw:input.hw,sw:input.sw};
+    }
+  });
+  let response=await runtime.fetch(request('/api/ecu/internal/rulepack?operationLabel=egr_off&ecuFamily=EDC17C46&hw=HW1&sw=SW1'),{ECU_COMPUTE_TOKEN:'secret'},{});
+  assert.equal(response.status,401);
+
+  response=await runtime.fetch(request('/api/ecu/internal/rulepack?operationLabel=egr_off&ecuFamily=EDC17C46&hw=HW1&sw=SW1',{
+    headers:{authorization:'Bearer secret'}
+  }),{ECU_COMPUTE_TOKEN:'secret'},{});
+  assert.equal(response.status,200);
+  assert.deepEqual(calls,[{operationLabel:'egr_off',ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1'}]);
+  const body=await response.json();
+  assert.equal(body.rulepack.version,'rules-1');
+});
