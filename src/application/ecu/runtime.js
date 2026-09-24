@@ -461,6 +461,45 @@ async function defaultApplyPairResult(env,pairId,body={}){
         ).run();
       verifiedEvidenceCount+=1;
     }
+
+    if(String(pair.operation_label||body.operation_label||'')!=='stage1'){
+      const patches=Array.isArray(diff.patch_chunks)?diff.patch_chunks:[];
+      for(const [index,patch] of patches.entries()){
+        const offset=Math.max(0,Number(patch.offset||0));
+        const length=Math.max(0,Number(patch.length||0));
+        const beforeHex=String(patch.before_hex||patch.beforeHex||'').toLowerCase();
+        const afterHex=String(patch.after_hex||patch.afterHex||'').toLowerCase();
+        if(!length||beforeHex.length!==length*2||afterHex.length!==length*2||beforeHex===afterHex)continue;
+        if(!/^[a-f0-9]+$/.test(beforeHex)||!/^[a-f0-9]+$/.test(afterHex))continue;
+        const id=`${pairId}:patch:${index}:${offset}`;
+        await env.DB.prepare(`INSERT INTO ecu_change_evidence(
+          id,pair_id,operation_label,ecu_family,hw,sw,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,created_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(id) DO UPDATE SET
+          overlap_bytes=excluded.overlap_bytes,
+          confidence=excluded.confidence,
+          delta_stats_json=excluded.delta_stats_json,
+          human_verified=1`)
+          .bind(
+            id,
+            pairId,
+            pair.operation_label||body.operation_label||'',
+            pair.ecu_family||'',
+            pair.hw||'',
+            pair.sw||'',
+            '__PATCH__',
+            offset,
+            offset+length,
+            offset,
+            length,
+            1,
+            JSON.stringify({patchBeforeHex:beforeHex,patchAfterHex:afterHex,length}),
+            1,
+            timestamp,
+          ).run();
+        verifiedEvidenceCount+=1;
+      }
+    }
   }
   return {id:pairId,state:status,diffDigest:diff?.digest||null,verifiedEvidenceCount};
 }
