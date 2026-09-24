@@ -5,6 +5,7 @@ from typing import Any
 from .analysis import analyze_binary_with_artifact
 from .contracts import AnalysisJobInput, AnalysisJobOutput
 from .fingerprint import fingerprint_binary
+from .rulepack_select import select_rulepack_for_binary
 
 
 async def process_dispatched_job(
@@ -64,24 +65,47 @@ async def process_dispatched_job(
                 "sw":sw,
             }
             from urllib.parse import urlencode
-            rulepack_url=f"{base_url}/api/ecu/internal/rulepack?{urlencode(params)}"
-            rulepack_response=await client.get(rulepack_url,headers=headers)
-            if rulepack_response.status_code==200:
-                payload=rulepack_response.json().get("rulepack") or {}
-                effective_job=effective_job.model_copy(update={
-                    "rulepack_version":str(payload.get("version") or effective_job.rulepack_version),
-                    "config":{
-                        **effective_job.config,
-                        "rulepack_verified":True,
-                        "rulepack":payload.get("rules") or {},
-                        "operation_label":operation_label,
-                        "ecu_family":fp.ecu_family,
-                        "hw":hw,
-                        "sw":sw,
-                    },
-                })
-            elif rulepack_response.status_code not in {404}:
-                rulepack_response.raise_for_status()
+            candidates_url=f"{base_url}/api/ecu/internal/rulepack-candidates?{urlencode(params)}"
+            candidates_response=await client.get(candidates_url,headers=headers)
+            if candidates_response.status_code==200:
+                candidates=candidates_response.json().get("candidates") or []
+                selection=select_rulepack_for_binary(
+                    artifact_bytes,
+                    candidates,
+                    operation_label=operation_label,
+                )
+                payload=selection.candidate or {}
+                if payload:
+                    effective_job=effective_job.model_copy(update={
+                        "rulepack_version":str(payload.get("version") or effective_job.rulepack_version),
+                        "config":{
+                            **effective_job.config,
+                            "rulepack_verified":True,
+                            "rulepack":payload.get("rules") or {},
+                            "operation_label":operation_label,
+                            "ecu_family":fp.ecu_family,
+                            "hw":hw,
+                            "sw":sw,
+                            "rulepack_portable":bool(payload.get("portable")),
+                            "rulepack_source_sw":str(payload.get("sourceSw") or ""),
+                            "rulepack_selection_reason":selection.reason,
+                            "rulepack_compatible_count":selection.compatible_count,
+                        },
+                    })
+                else:
+                    effective_job=effective_job.model_copy(update={
+                        "config":{
+                            **effective_job.config,
+                            "operation_label":operation_label,
+                            "ecu_family":fp.ecu_family,
+                            "hw":hw,
+                            "sw":sw,
+                            "rulepack_selection_reason":selection.reason,
+                            "rulepack_compatible_count":selection.compatible_count,
+                        },
+                    })
+            elif candidates_response.status_code not in {404}:
+                candidates_response.raise_for_status()
 
         fp_for_checksum=fingerprint_binary(artifact_bytes)
         hw_for_checksum=fp_for_checksum.hw_candidates[0] if fp_for_checksum.hw_candidates else ""
