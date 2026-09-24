@@ -1,13 +1,23 @@
 import { decryptCredential, fetchWithTimeout, queryOne } from '../../lib/runtime.js';
 
-const RESEARCH_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const RESEARCH_INTERVAL_MS = 3 * 60 * 60 * 1000;
 
 export const DEFAULT_ECU_RESEARCH_TOPICS = Object.freeze([
-  'Bosch EDC17C46 calibration maps torque boost rail pressure technical documentation',
-  'EDC17C46 map recognition axes calibration educational material',
-  'Bosch EDC17 calibration strategy torque structure technical paper',
+  'Bosch EDC17 MED17 calibration maps torque boost rail pressure technical documentation',
+  'Bosch EDC16 calibration map recognition axes technical documentation',
+  'Bosch MD1 MG1 calibration architecture technical documentation',
+  'Continental Siemens SID ECU calibration maps technical documentation',
+  'Delphi DCM ECU calibration maps technical documentation',
+  'Magneti Marelli ECU calibration map technical documentation',
   'A2L ASAP2 ECU calibration map axis open documentation',
-  'ECU binary calibration map detection open source research',
+  'XCP CCP ECU calibration measurement protocol technical documentation',
+  'ECU binary calibration map detection reverse engineering research paper',
+  'ECU firmware checksum integrity CRC calibration technical documentation',
+  'WinOLS checksum calibration documentation EDC17 MED17 official',
+  'TriCore ECU firmware memory layout calibration technical documentation',
+  'ECU ORI MOD binary diff calibration learning research',
+  'ECU map semantic classification machine learning research',
+  'ECU calibration validation dyno logging exhaust temperature rail pressure boost lambda technical',
 ]);
 
 async function sha256Text(value) {
