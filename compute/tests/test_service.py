@@ -155,3 +155,36 @@ def test_worker_fetches_promoted_semantic_model_before_analysis():
     assert any(url.endswith("/api/ecu/internal/models/model-abc123") for url in urls)
     assert result.map_candidates
     assert "semantic_label" in result.map_candidates[0]
+
+
+class RulepackAwareClient(FakeClient):
+    async def get(self, url, headers=None):
+        self.calls.append(("GET", url, headers))
+        if "/api/ecu/internal/rulepack?" in url:
+            return FakeResponse(200, json_data={
+                "rulepack":{
+                    "version":"rules-verified-1",
+                    "rules":{"__patches":[{"offset":0,"beforeHex":"42","afterHex":"43","evidencePairs":5}]}
+                }
+            })
+        return FakeResponse(200, self.artifact)
+
+
+def test_service_job_fetches_matching_rulepack_after_fingerprint():
+    marker=b"BOSCH EDC17C46 HW:0281012345 SW:1037512345\x00"
+    client=RulepackAwareClient(marker+b"\x00"*64)
+    job=AnalysisJobInput(
+        job_id="job-rulepack",
+        artifact_sha256="a"*64,
+        artifact_uri="r2://ecu-artifacts/originals/"+"a"*64,
+        operation="egr_off_proposal",
+        config={"callback_base_url":"https://jarvis.example","rulepack_verified":False},
+    )
+
+    result=asyncio.run(process_dispatched_job(job,"secret",client=client))
+
+    urls=[call[1] for call in client.calls if call[0]=="GET"]
+    assert any("/api/ecu/internal/rulepack?" in url for url in urls)
+    assert result.ecu_family=="EDC17C46"
+    assert result.proposal is not None
+    assert result.proposal["operation_label"]=="egr_off"
