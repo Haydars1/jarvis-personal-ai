@@ -21,6 +21,7 @@ struct EcuServiceOption: Identifiable, Hashable {
 struct EcuBrainView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showImporter = false
+    @State private var showRunImporter = false
     @State private var compute: EcuComputeStatus?
     @State private var training: EcuTrainingStatus?
     @State private var jobs: [EcuJob] = []
@@ -238,6 +239,13 @@ struct EcuBrainView: View {
                     }
                     .disabled(loading)
 
+                    Button {
+                        showRunImporter = true
+                    } label: {
+                        Label("Yükle + Seçilen İşlemleri Çalıştır", systemImage: "slider.horizontal.3")
+                    }
+                    .disabled(loading || selectedServices.isEmpty)
+
                     if !message.isEmpty {
                         Text(message).font(.footnote).foregroundStyle(.secondary)
                     }
@@ -343,6 +351,19 @@ struct EcuBrainView: View {
                 }
                 .ignoresSafeArea()
             }
+            .sheet(isPresented: $showRunImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showRunImporter = false
+                    guard let url = urls.first else {
+                        message = "Dosya seçilmedi"
+                        return
+                    }
+                    Task { await uploadAndRunSelected(url) }
+                } onCancel: {
+                    showRunImporter = false
+                }
+                .ignoresSafeArea()
+            }
             .sheet(isPresented: $showTrainingOriImporter) {
                 UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
                     showTrainingOriImporter = false
@@ -440,6 +461,24 @@ struct EcuBrainView: View {
             message = "Analiz kuyruğa alındı • \(response.job.state)"
             await refresh()
         } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func uploadAndRunSelected(_ url: URL) async {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        do {
+            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+            loading = true
+            message = "ORI yükleniyor: \(url.lastPathComponent) • \(data.count / 1024) KB"
+            let file = try await api.uploadFile(data: data, filename: url.lastPathComponent)
+            currentFileId = file.id
+            loading = false
+            await runSelected(file.id)
+        } catch {
+            loading = false
             message = error.localizedDescription
         }
     }
