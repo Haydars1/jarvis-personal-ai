@@ -87,10 +87,11 @@ export function capabilityTags(text='',path=''){
   return tags;
 }
 
-function sourceRow(repo,path,text,policy){
+function sourceRow(repo,path,text,policy,commitSha=''){
   const title=`${repo.full_name}: ${path}`;
   const branch=repo.default_branch||'main';
-  const url=`https://github.com/${repo.full_name}/blob/${branch}/${path}`;
+  const ref=commitSha||branch;
+  const url=`https://github.com/${repo.full_name}/blob/${ref}/${path}`;
   const capabilities=capabilityTags(text,path);
   const header=[
     `Repository: ${repo.full_name}`,
@@ -115,6 +116,7 @@ function sourceRow(repo,path,text,policy){
       stars:Number(repo.stargazers_count||0),
       capabilities,
       defaultBranch:branch,
+      commitSha:String(commitSha||''),
     },
   };
 }
@@ -123,16 +125,24 @@ async function repoMeta(env,fullName){
   return gh(env,`/repos/${encodeURIComponent(fullName)}`);
 }
 
-async function repoReadme(env,repo){
+async function repoHeadSha(env,repo){
+  const branch=repo.default_branch||'main';
   try{
-    const body=await gh(env,`/repos/${repo.full_name}/readme`);
+    const payload=await gh(env,`/repos/${repo.full_name}/branches/${encodeURIComponent(branch)}`);
+    return String(payload?.commit?.sha||'').trim();
+  }catch{return '';}
+}
+
+async function repoReadme(env,repo,commitSha=''){
+  try{
+    const body=await gh(env,`/repos/${repo.full_name}/readme${commitSha?`?ref=${encodeURIComponent(commitSha)}`:''}`);
     const text=decodeBase64(body.content||'');
-    return text?sourceRow(repo,body.path||'README.md',text,licensePolicy(repo.license?.spdx_id)):null;
+    return text?sourceRow(repo,body.path||'README.md',text,licensePolicy(repo.license?.spdx_id),commitSha):null;
   }catch{return null;}
 }
 
-async function repoTreeRows(env,repo,{maxFiles=2}={}){
-  const branch=encodeURIComponent(repo.default_branch||'main');
+async function repoTreeRows(env,repo,{maxFiles=2,commitSha=''}={}){
+  const branch=encodeURIComponent(commitSha||repo.default_branch||'main');
   let tree;
   try{tree=await gh(env,`/repos/${repo.full_name}/git/trees/${branch}?recursive=1`,8000);}catch{return [];}
   const candidates=(tree.tree||[])
@@ -148,7 +158,7 @@ async function repoTreeRows(env,repo,{maxFiles=2}={}){
     try{
       const body=await gh(env,`/repos/${repo.full_name}/contents/${item.path.split('/').map(encodeURIComponent).join('/')}?ref=${branch}`);
       const text=decodeBase64(body.content||'');
-      if(text)rows.push(sourceRow(repo,item.path,text,licensePolicy(repo.license?.spdx_id)));
+      if(text)rows.push(sourceRow(repo,item.path,text,licensePolicy(repo.license?.spdx_id),commitSha));
     }catch{}
   }
   return rows;
@@ -187,9 +197,10 @@ export async function discoverGitHubEcuSources(env,{
 
   const rows=[];
   for(const repo of repos.values()){
-    const readme=await repoReadme(env,repo);
+    const commitSha=await repoHeadSha(env,repo);
+    const readme=await repoReadme(env,repo,commitSha);
     if(readme)rows.push(readme);
-    rows.push(...await repoTreeRows(env,repo,{maxFiles:filesPerRepo}));
+    rows.push(...await repoTreeRows(env,repo,{maxFiles:filesPerRepo,commitSha}));
   }
   return rows;
 }
