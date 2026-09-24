@@ -12,6 +12,7 @@ export function extractVerifiedChangeEvidence(diff = {}) {
       meanAbsPercent:Number(item.mean_abs_percent??item.meanAbsPercent??0),
       maxAbsPercent:Number(item.max_abs_percent??item.maxAbsPercent??0),
       p95AbsPercent:Number(item.p95_abs_percent??item.p95AbsPercent??0),
+      medianSignedPercent:Number(item.median_signed_percent??item.medianSignedPercent??0),
     });
   }
   for (const range of Array.isArray(diff.linked_ranges) ? diff.linked_ranges : []) {
