@@ -83,6 +83,24 @@ async def process_dispatched_job(
             elif rulepack_response.status_code not in {404}:
                 rulepack_response.raise_for_status()
 
+        fp_for_checksum=fingerprint_binary(artifact_bytes)
+        hw_for_checksum=fp_for_checksum.hw_candidates[0] if fp_for_checksum.hw_candidates else ""
+        sw_for_checksum=fp_for_checksum.sw_candidates[0] if fp_for_checksum.sw_candidates else ""
+        from urllib.parse import urlencode
+        checksum_url=f"{base_url}/api/ecu/internal/checksum-profile?{urlencode({
+            'ecuFamily':fp_for_checksum.ecu_family,
+            'hw':hw_for_checksum,
+            'sw':sw_for_checksum,
+        })}"
+        checksum_response=await client.get(checksum_url,headers=headers)
+        if checksum_response.status_code==200:
+            profile=checksum_response.json().get("profile") or {}
+            effective_job=effective_job.model_copy(update={
+                "config":{**effective_job.config,"checksum_profile":profile},
+            })
+        elif checksum_response.status_code not in {404}:
+            checksum_response.raise_for_status()
+
         result, mod_bytes, checksum_algorithm = analyze_binary_with_artifact(effective_job, artifact_bytes)
         callback_response = await client.post(
             callback_url,
