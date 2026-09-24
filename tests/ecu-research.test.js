@@ -164,3 +164,32 @@ test('scheduled research ingests GitHub implementation sources with code provena
   assert.ok(repository.claims.some(item=>/ADAPT_WITH_ATTRIBUTION/.test(item.text)));
   assert.ok(repository.claims.some(item=>/ARCHITECTURE_ONLY/.test(item.text)));
 });
+
+
+test('does not treat two files from the same GitHub repository as independent corroboration', async () => {
+  const repository=memoryRepository();
+  repository.listClaims=async()=>[
+    {
+      id:'g1',
+      sourceUrl:'https://github.com/example/ecu-tool/blob/main/README.md',
+      topic:'github-ecu-source-code',
+      text:'EDC17 checksum correction uses CRC32 over calibration blocks',
+      verificationState:'UNVERIFIED',
+      trustScore:0.9,
+    },
+    {
+      id:'g2',
+      sourceUrl:'https://github.com/example/ecu-tool/blob/main/src/checksum.py',
+      topic:'github-ecu-source-code',
+      text:'EDC17 checksum correction uses CRC32 over calibration block regions',
+      verificationState:'UNVERIFIED',
+      trustScore:0.9,
+    },
+  ];
+  const patches=[];
+  repository.markClaimState=async(_env,id,state)=>patches.push([id,state]);
+  const research=createEcuResearch({repository,topics:[],search:async()=>[],githubDiscover:null});
+  const result=await research.corroborate({});
+  assert.equal(result.corroborated,0);
+  assert.deepEqual(patches,[]);
+});
