@@ -193,3 +193,39 @@ test('does not treat two files from the same GitHub repository as independent co
   assert.equal(result.corroborated,0);
   assert.deepEqual(patches,[]);
 });
+
+
+test('GitHub repository metadata is persisted alongside code claims', async () => {
+  const repository=memoryRepository();
+  const repos=[];
+  repository.storeGitHubRepository=async(_env,meta)=>repos.push(meta);
+  const research=createEcuResearch({
+    repository,
+    topics:[],
+    search:async()=>[],
+    githubDiscover:async()=>[
+      {
+        title:'openremap-core: patcher.py',
+        url:'https://github.com/v-arapidis/openremap-core/blob/main/openremap/core/services/recipes/patcher.py',
+        snippet:'context_before context_after patch recipe checksum',
+        source:'GitHub',
+        sourceKind:'code',
+        trustScore:0.9,
+        github:{
+          repository:'v-arapidis/openremap-core',
+          path:'openremap/core/services/recipes/patcher.py',
+          license:'mit',
+          reuse:'ADAPT_WITH_ATTRIBUTION',
+          stars:123,
+          capabilities:['PATCH_RECIPE','ORI_MOD_DIFF','CHECKSUM'],
+          defaultBranch:'main',
+        },
+      },
+    ],
+  });
+  await research.run({},32_400_000);
+  assert.equal(repos.length,1);
+  assert.equal(repos[0].repository,'v-arapidis/openremap-core');
+  assert.equal(repos[0].reuse,'ADAPT_WITH_ATTRIBUTION');
+  assert.ok(repos[0].capabilities.includes('PATCH_RECIPE'));
+});
