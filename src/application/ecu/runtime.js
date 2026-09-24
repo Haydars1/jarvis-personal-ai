@@ -12,6 +12,37 @@ import { createComputeDispatch } from '../../infrastructure/ecu/compute-dispatch
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
 
+const ECU_OPERATION_LABELS=Object.freeze({
+  stage1_proposal:'stage1',
+  dtc_off_proposal:'dtc_off',
+  egr_off_proposal:'egr_off',
+  dpf_off_proposal:'dpf_off',
+  adblue_off_proposal:'adblue_off',
+  vmax_off_proposal:'vmax_off',
+  startstop_off_proposal:'startstop_off',
+});
+
+function firstCandidate(raw){
+  try{
+    const values=JSON.parse(raw||'[]');
+    const first=values?.[0];
+    return typeof first==='string'?first:String(first?.value||'');
+  }catch{return '';}
+}
+
+async function fileIdentity(env,fileId){
+  const row=await env.DB.prepare(`SELECT a.ecu_family,a.hw_candidates,a.sw_candidates
+    FROM ecu_analysis_results a
+    JOIN ecu_jobs j ON j.id=a.job_id
+    WHERE j.file_id=?
+    ORDER BY a.created_at DESC LIMIT 1`).bind(fileId).first();
+  return {
+    ecuFamily:String(row?.ecu_family||''),
+    hw:firstCandidate(row?.hw_candidates),
+    sw:firstCandidate(row?.sw_candidates),
+  };
+}
+
 async function sha256Text(value) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(value))));
   return [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -88,10 +119,11 @@ async function defaultCreatePair(env,{oriFileId,modFileId,operationLabel,callbac
     mod:mod.sha256,
     operationLabel,
   }));
+  const identity=await fileIdentity(env,oriFileId);
   await env.DB.prepare(`INSERT INTO ecu_training_pairs(
-    id,ori_file_id,mod_file_id,operation_label,state,run_fingerprint,created_at,updated_at
-  ) VALUES(?,?,?,?,?,?,?,?)`)
-    .bind(id,oriFileId,modFileId,operationLabel,'QUEUED',runFingerprint,createdAt,createdAt).run();
+    id,ori_file_id,mod_file_id,operation_label,ecu_family,hw,sw,state,run_fingerprint,created_at,updated_at
+  ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+    .bind(id,oriFileId,modFileId,operationLabel,identity.ecuFamily,identity.hw,identity.sw,'QUEUED',runFingerprint,createdAt,createdAt).run();
 
   const result=await dispatch({
     id,
@@ -117,15 +149,40 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   const modelVersion = productionModel?.version || 'baseline';
   let rulepackVersion = 'baseline';
   let rulepackConfig = {};
-  if (operation === 'stage1_proposal') {
-    const rulepack=await env.DB.prepare("SELECT version,rules_json FROM ecu_rulepack_versions WHERE state='PRODUCTION' AND verified=1 AND operation_label='stage1' ORDER BY promoted_at DESC,created_at DESC LIMIT 1").first();
+  const operationLabel=ECU_OPERATION_LABELS[operation]||null;
+  const identity=await fileIdentity(env,fileId);
+  if (operationLabel) {
+    const rulepack=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
+      FROM ecu_rulepack_versions
+      WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
+        AND (ecu_family='' OR ecu_family=?)
+        AND (hw='' OR hw=?)
+        AND (sw='' OR sw=?)
+      ORDER BY
+        CASE WHEN sw<>'' THEN 3 WHEN hw<>'' THEN 2 WHEN ecu_family<>'' THEN 1 ELSE 0 END DESC,
+        promoted_at DESC,created_at DESC
+      LIMIT 1`)
+      .bind(operationLabel,identity.ecuFamily,identity.hw,identity.sw).first();
     if (rulepack?.version) {
       let rules={};
       try { rules=JSON.parse(rulepack.rules_json||'{}'); } catch {}
       rulepackVersion=rulepack.version;
-      rulepackConfig={rulepack_verified:true,rulepack:rules};
+      rulepackConfig={
+        rulepack_verified:true,
+        rulepack:rules,
+        operation_label:operationLabel,
+        ecu_family:identity.ecuFamily,
+        hw:identity.hw,
+        sw:identity.sw,
+      };
     } else {
-      rulepackConfig={rulepack_verified:false};
+      rulepackConfig={
+        rulepack_verified:false,
+        operation_label:operationLabel,
+        ecu_family:identity.ecuFamily,
+        hw:identity.hw,
+        sw:identity.sw,
+      };
     }
   }
   const runFingerprint = await sha256Text(JSON.stringify({
@@ -356,7 +413,7 @@ async function defaultReadOriginal(env, sha256) {
 async function defaultApplyPairResult(env,pairId,body={}){
   const status=String(body.status||'FAILED');
   if(!new Set(['COMPLETE','FAILED']).has(status))throw new Error('INVALID_PAIR_RESULT_STATUS');
-  const pair=await env.DB.prepare('SELECT id,operation_label FROM ecu_training_pairs WHERE id=? LIMIT 1').bind(pairId).first();
+  const pair=await env.DB.prepare('SELECT id,operation_label,ecu_family,hw,sw FROM ecu_training_pairs WHERE id=? LIMIT 1').bind(pairId).first();
   if(!pair)throw new Error('ECU_PAIR_NOT_FOUND');
   const diff=body.diff&&typeof body.diff==='object'?body.diff:null;
   if(status==='COMPLETE'&&!diff?.digest)throw new Error('ECU_PAIR_DIFF_REQUIRED');
@@ -378,8 +435,8 @@ async function defaultApplyPairResult(env,pairId,body={}){
     for(const [index,row] of evidenceRows.entries()){
       const id=`${pairId}:change:${index}:${row.semanticLabel}`;
       await env.DB.prepare(`INSERT INTO ecu_change_evidence(
-        id,pair_id,operation_label,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,created_at
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+        id,pair_id,operation_label,ecu_family,hw,sw,semantic_label,range_start,range_end,map_offset,overlap_bytes,confidence,delta_stats_json,human_verified,created_at
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET
         overlap_bytes=excluded.overlap_bytes,
         confidence=excluded.confidence,
@@ -389,6 +446,9 @@ async function defaultApplyPairResult(env,pairId,body={}){
           id,
           pairId,
           pair.operation_label||body.operation_label||'',
+          pair.ecu_family||'',
+          pair.hw||'',
+          pair.sw||'',
           row.semanticLabel,
           row.rangeStart,
           row.rangeEnd,
@@ -811,7 +871,7 @@ async function defaultUploadStatus(env) {
 
 export function createEcuRuntime(core, overrides = {}) {
   const research = overrides.research || createEcuResearch();
-  const rulepacks = overrides.rulepacks || createEcuRulepackLearning();
+  const rulepacks = overrides.rulepacks || createEcuRulepackLearning({operationLabel:'*'});
   const computeDispatch = overrides.computeDispatch || createComputeDispatch();
   const training = overrides.training || createEcuTraining({
     dispatch: (job, env) => computeDispatch({
