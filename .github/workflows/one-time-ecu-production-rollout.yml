@@ -1,4 +1,5 @@
 name: One-time ECU production rollout
+# retry after Cloudflare token refresh
 on:
   push:
     branches: [feature/learning-engine]
