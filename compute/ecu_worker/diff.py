@@ -182,3 +182,38 @@ def measure_verified_map_deltas(ori: bytes, mod: bytes, maps: list[dict]) -> lis
         })
     out.sort(key=lambda item:(item["semantic_label"],item["map_offset"]))
     return out
+
+
+def extract_patch_chunks(
+    ori: bytes,
+    mod: bytes,
+    report: DiffReport | None = None,
+    *,
+    max_chunk_bytes: int = 64,
+    max_total_bytes: int = 4096,
+) -> list[dict]:
+    if len(ori) != len(mod):
+        raise ValueError("ECU_BINARY_SIZE_MISMATCH")
+    if max_chunk_bytes <= 0 or max_total_bytes <= 0:
+        return []
+    report = report or diff_bytes(ori, mod)
+    out: list[dict] = []
+    total = 0
+    for changed in report.ranges:
+        start = changed.start
+        while start < changed.end and total < max_total_bytes:
+            size = min(max_chunk_bytes, changed.end - start, max_total_bytes - total)
+            if size <= 0:
+                break
+            end = start + size
+            out.append({
+                "offset": start,
+                "length": size,
+                "before_hex": ori[start:end].hex(),
+                "after_hex": mod[start:end].hex(),
+            })
+            total += size
+            start = end
+        if total >= max_total_bytes:
+            break
+    return out
