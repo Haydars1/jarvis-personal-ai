@@ -1069,6 +1069,45 @@ async function defaultVerifyMap(env, mapId, { semanticLabel }) {
   };
 }
 
+export function shouldRetryNeedsReview(result={}){
+  const proposal=result?.proposal||{};
+  const reasons=[
+    ...(Array.isArray(proposal?.reasons)?proposal.reasons:[]),
+    ...(Array.isArray(proposal?.validation?.errors)?proposal.validation.errors:[]),
+  ].map(value=>String(value||''));
+  return reasons.some(reason=>
+    reason==='RULEPACK_UNVERIFIED' ||
+    reason==='PATCH_RULEPACK_MISSING' ||
+    reason==='CHECKSUM_PROFILE_UNVERIFIED'
+  );
+}
+
+async function defaultRetryReviewJobs(env,dispatch){
+  const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
+  if(!callbackBaseUrl)return {attempted:0,retried:0,reason:'NO_CALLBACK_URL'};
+  const rows=(await env.DB.prepare(`SELECT id,file_id,operation,result_json,updated_at
+    FROM ecu_jobs
+    WHERE state='NEEDS_REVIEW'
+      AND operation IN ('stage1_proposal','dtc_off_proposal','egr_off_proposal','dpf_off_proposal','adblue_off_proposal','vmax_off_proposal','startstop_off_proposal')
+    ORDER BY updated_at ASC
+    LIMIT 10`).all()).results||[];
+  let attempted=0;
+  let retried=0;
+  for(const row of rows){
+    let result={};
+    try{result=JSON.parse(row.result_json||'{}')}catch{}
+    if(!shouldRetryNeedsReview(result))continue;
+    attempted+=1;
+    const job=await defaultCreateJob(env,{
+      fileId:row.file_id,
+      operation:row.operation,
+      callbackBaseUrl,
+    },dispatch);
+    if(job?.id&&job.id!==row.id&&!job.cached)retried+=1;
+  }
+  return {attempted,retried};
+}
+
 async function defaultDispatchQueuedJobs(env, _timestamp, dispatch) {
   const callbackBaseUrl=String(env.JARVIS_PUBLIC_URL||'').trim();
   if(!callbackBaseUrl)return {attempted:0,dispatched:0,reason:'NO_CALLBACK_URL'};
@@ -1285,6 +1324,7 @@ export function createEcuRuntime(core, overrides = {}) {
     applyTrainingResult: defaultApplyTrainingResult,
     applyPairResult: defaultApplyPairResult,
     dispatchQueuedJobs: (env, timestamp) => defaultDispatchQueuedJobs(env, timestamp, computeDispatch),
+    retryReviewJobs: env => defaultRetryReviewJobs(env, computeDispatch),
     ...overrides,
   };
 
@@ -1662,6 +1702,11 @@ export function createEcuRuntime(core, overrides = {}) {
         await rulepacks.refresh(env);
       } catch {
         // Evidence-only rulepack learning is recoverable and never promotes itself.
+      }
+      try {
+        await deps.retryReviewJobs(env);
+      } catch {
+        // Previously blocked jobs are retried only when a new rule/checksum path is available.
       }
       try {
         await deps.refreshChecksumProfiles(env);
