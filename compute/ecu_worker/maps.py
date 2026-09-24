@@ -15,6 +15,19 @@ class MapCandidate:
     unique_ratio: float
     smoothness: float
     score: float
+    x_axis_offset: int | None = None
+    y_axis_offset: int | None = None
+    axis_score: float = 0.0
+    source: str = "surface"
+
+
+@dataclass(frozen=True)
+class MapAxis:
+    offset: int
+    length: int
+    endian: str
+    values: tuple[int, ...]
+    score: float
 
 
 def _decode_u16(data: bytes, offset: int, count: int, endian: str) -> list[int]:
@@ -66,6 +79,187 @@ def _score(values: list[int], rows: int, cols: int) -> tuple[float, float, float
     return score, unique_ratio, smoothness
 
 
+
+def _axis_score(values: list[int]) -> float:
+    if len(values) < 4:
+        return 0.0
+    steps=[b-a for a,b in zip(values,values[1:])]
+    if not steps or any(step<=0 or step>10_000 for step in steps):
+        return 0.0
+    span=values[-1]-values[0]
+    if span<3 or span>65_000:
+        return 0.0
+    med=sorted(steps)[len(steps)//2]
+    if med<=0:
+        return 0.0
+    spread=max(steps)-min(steps)
+    regularity=max(0.0,1.0-min(1.0,spread/max(float(med)*6.0,1.0)))
+    length_score=min(1.0,(len(values)-3)/13.0)
+    bounded=1.0 if values[-1] <= 20_000 else 0.65
+    return round(0.45*regularity+0.35*length_score+0.20*bounded,6)
+
+
+def scan_map_axes(
+    data: bytes,
+    *,
+    endian: str,
+    min_axis_length: int = 4,
+    max_axis_length: int = 32,
+    min_step: int = 1,
+    max_step: int = 10_000,
+    max_axes: int = 4096,
+) -> list[MapAxis]:
+    if endian not in {"big","little"} or len(data)<min_axis_length*2:
+        return []
+    axes: list[MapAxis]=[]
+    run_start=0
+    run_values: list[int]=[]
+    previous: int | None=None
+
+    def flush() -> None:
+        nonlocal run_values,run_start
+        n=len(run_values)
+        if n<min_axis_length:
+            run_values=[]
+            return
+        limit=min(n,max_axis_length)
+        lengths={limit}
+        for common in (4,5,6,8,10,12,16,20,24,32):
+            if min_axis_length<=common<=limit:
+                lengths.add(common)
+        for length in sorted(lengths):
+            values=run_values[:length]
+            score=_axis_score(values)
+            if score<0.35:
+                continue
+            axes.append(MapAxis(
+                offset=run_start,
+                length=length,
+                endian=endian,
+                values=tuple(values),
+                score=score,
+            ))
+            if len(axes)>=max_axes:
+                break
+        run_values=[]
+
+    for offset in range(0,len(data)-1,2):
+        value=int.from_bytes(data[offset:offset+2],endian)
+        if previous is None:
+            run_start=offset
+            run_values=[value]
+            previous=value
+            continue
+        step=value-previous
+        if min_step<=step<=max_step and len(run_values)<max_axis_length:
+            run_values.append(value)
+        else:
+            flush()
+            if len(axes)>=max_axes:
+                break
+            run_start=offset
+            run_values=[value]
+        previous=value
+    if len(axes)<max_axes:
+        flush()
+
+    # Same bytes interpreted in both endian modes can produce overlapping axes.
+    # Keep strongest axes first and suppress near-identical ranges.
+    axes.sort(key=lambda item:(-item.score,item.offset,-item.length))
+    selected: list[MapAxis]=[]
+    for axis in axes:
+        end=axis.offset+axis.length*2
+        if any(axis.offset==kept.offset and end==kept.offset+kept.length*2 for kept in selected):
+            continue
+        selected.append(axis)
+        if len(selected)>=max_axes:
+            break
+    selected.sort(key=lambda item:(item.offset,item.length))
+    return selected
+
+
+def extract_structural_map_candidates(
+    data: bytes,
+    *,
+    endians: tuple[str,...]=("big","little"),
+    min_axis_score: float = 0.40,
+    min_table_score: float = 0.45,
+    max_axis_gap: int = 8,
+    max_data_gap: int = 8,
+    max_candidates: int = 512,
+) -> list[MapCandidate]:
+    candidates: list[MapCandidate]=[]
+    for endian in endians:
+        axes=[axis for axis in scan_map_axes(data,endian=endian) if axis.score>=min_axis_score]
+        if not axes:
+            continue
+        by_offset: dict[int,list[MapAxis]]={}
+        for axis in axes:
+            by_offset.setdefault(axis.offset,[]).append(axis)
+
+        for x in axes:
+            x_end=x.offset+x.length*2
+            y_options: list[MapAxis]=[]
+            for gap in range(0,max_axis_gap+1,2):
+                y_options.extend(by_offset.get(x_end+gap,[]))
+            for y in y_options:
+                if y.endian!=endian or y.length<3:
+                    continue
+                rows=y.length
+                cols=x.length
+                if rows>32 or cols>32:
+                    continue
+                y_end=y.offset+y.length*2
+                for data_gap in range(0,max_data_gap+1,2):
+                    offset=y_end+data_gap
+                    count=rows*cols
+                    end=offset+count*2
+                    if end>len(data):
+                        continue
+                    values=_decode_u16(data,offset,count,endian)
+                    table_score,unique_ratio,smoothness=_score(values,rows,cols)
+                    if unique_ratio<0.05 or max(values)-min(values)<20:
+                        continue
+                    axis_score=(x.score+y.score)/2.0
+                    combined=0.58*axis_score+0.42*table_score
+                    if combined<min_table_score:
+                        continue
+                    candidates.append(MapCandidate(
+                        offset=offset,
+                        rows=rows,
+                        cols=cols,
+                        endian=endian,
+                        min_value=min(values),
+                        max_value=max(values),
+                        unique_ratio=unique_ratio,
+                        smoothness=smoothness,
+                        score=round(min(1.0,combined),6),
+                        x_axis_offset=x.offset,
+                        y_axis_offset=y.offset,
+                        axis_score=round(axis_score,6),
+                        source="axis-table",
+                    ))
+                    break
+
+    candidates.sort(key=lambda item:(-item.score,item.offset,item.rows,item.cols,item.endian))
+    selected: list[MapCandidate]=[]
+    for candidate in candidates:
+        size=candidate.rows*candidate.cols*2
+        overlap=False
+        for kept in selected:
+            kept_size=kept.rows*kept.cols*2
+            left=max(candidate.offset,kept.offset)
+            right=min(candidate.offset+size,kept.offset+kept_size)
+            if max(0,right-left)>=min(size,kept_size)*0.75:
+                overlap=True
+                break
+        if overlap:
+            continue
+        selected.append(candidate)
+        if len(selected)>=max_candidates:
+            break
+    return selected
+
 def extract_map_candidates(
     data: bytes,
     *,
@@ -112,17 +306,26 @@ def extract_map_candidates_multiendian(
     min_score: float = 0.85,
     endians: tuple[str, ...] = ("big", "little"),
     max_candidates: int = 256,
+    surface_scan_limit_bytes: int = 262_144,
 ) -> list[MapCandidate]:
-    merged: list[MapCandidate] = []
-    for endian in endians:
-        if endian not in {"big", "little"}:
-            continue
-        merged.extend(extract_map_candidates(
-            data,
-            shapes=shapes,
-            min_score=min_score,
-            endian=endian,
-        ))
+    merged: list[MapCandidate] = extract_structural_map_candidates(
+        data,
+        endians=endians,
+        max_candidates=max_candidates*2,
+    )
+    # Full byte-by-byte surface scanning is intentionally limited to small
+    # binaries. On multi-megabyte ECU dumps it is prohibitively expensive;
+    # structural axis/table discovery remains linear in file size.
+    if len(data) <= surface_scan_limit_bytes:
+        for endian in endians:
+            if endian not in {"big", "little"}:
+                continue
+            merged.extend(extract_map_candidates(
+                data,
+                shapes=shapes,
+                min_score=min_score,
+                endian=endian,
+            ))
 
     merged.sort(key=lambda item: (-item.score, item.offset, item.rows, item.cols, item.endian))
     selected: list[MapCandidate] = []
