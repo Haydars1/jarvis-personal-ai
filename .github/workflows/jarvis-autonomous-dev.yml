@@ -1,0 +1,66 @@
+name: JARVIS Autonomous Dev Agent
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jarvis-autonomous-dev-feature-learning-engine
+  cancel-in-progress: false
+
+jobs:
+  develop:
+    if: github.repository == 'Haydars1/jarvis-personal-ai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/learning-engine
+          fetch-depth: 0
+
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run Codex development loop
+        uses: openai/codex-action@main
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          prompt: |
+            Work only in this checked-out repository and only toward branch feature/learning-engine.
+            Continue JARVIS development autonomously for this run. Do not stop after one tiny change.
+            First inspect the implementation, tests, git history, and current working tree. Run npm run check.
+            Prioritize the already-defined work: conversation/task continuity, persistent learning-context integration,
+            real video-provider execution/failover, reliability, observability, regression coverage, performance,
+            UX, and maintainability.
+            For each concrete gap, define an acceptance condition, add/update a regression test when practical,
+            implement the smallest safe reversible fix, and run relevant tests. Continue to another independent
+            useful improvement while time remains. Never modify GitHub secrets, credentials, production deployment
+            configuration, branch protections, or security gates. Never deploy production, merge to main, force-push,
+            delete data, spend money, or make irreversible external changes. Do not print or inspect secrets.
+            Keep all repository changes suitable for feature/learning-engine. Finish by running npm run check.
+            Leave the validated changes in the working tree; the workflow will commit them.
+
+      - name: Verify full test suite
+        run: npm run check
+
+      - name: Commit validated changes to feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No repository changes produced."
+            exit 0
+          fi
+          git config user.name "jarvis-dev-agent"
+          git config user.email "jarvis-dev-agent@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(agent): autonomous JARVIS development"
+          git push origin HEAD:feature/learning-engine
