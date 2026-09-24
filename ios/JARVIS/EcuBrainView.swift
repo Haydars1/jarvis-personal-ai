@@ -370,6 +370,9 @@ struct EcuBrainView: View {
             compute = try await c
             training = try await t
             jobs = try await j
+            if currentFileId == nil {
+                currentFileId = jobs.first?.fileId
+            }
             models = try await m
             rulepacks = try await r
             research = try await rs
