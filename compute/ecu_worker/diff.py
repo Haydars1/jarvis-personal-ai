@@ -217,3 +217,63 @@ def extract_patch_chunks(
         if total >= max_total_bytes:
             break
     return out
+
+
+def discover_simple_checksum_profiles(
+    ori: bytes,
+    mod: bytes,
+    report: DiffReport | None = None,
+    *,
+    max_candidates: int = 32,
+) -> list[dict]:
+    """Find conservative whole-image checksum fields changed by a verified ORI/MOD pair.
+
+    Only 2/4-byte changed ranges are considered. A candidate must validate on BOTH
+    the original and modified file with the checksum field zeroed. This deliberately
+    favors false negatives over unsafe guesses.
+    """
+    import zlib
+
+    if len(ori) != len(mod) or not ori:
+        return []
+    report = report or diff_bytes(ori, mod)
+    candidates: list[dict] = []
+
+    def value(data: bytes, algorithm: str, offset: int, size: int, endian: str) -> int:
+        work=bytearray(data)
+        work[offset:offset+size]=b"\x00"*size
+        if algorithm=="sum16":
+            return sum(work) & 0xFFFF
+        if algorithm=="sum32":
+            return sum(work) & 0xFFFFFFFF
+        if algorithm=="crc32":
+            return zlib.crc32(bytes(work)) & 0xFFFFFFFF
+        raise ValueError("unsupported")
+
+    for changed in report.ranges:
+        size=changed.end-changed.start
+        if size not in {2,4}:
+            continue
+        offset=changed.start
+        for algorithm in (["sum16"] if size==2 else ["sum32","crc32"]):
+            for endian in ("big","little"):
+                ori_actual=int.from_bytes(ori[offset:offset+size],endian,signed=False)
+                mod_actual=int.from_bytes(mod[offset:offset+size],endian,signed=False)
+                if ori_actual==mod_actual:
+                    continue
+                if value(ori,algorithm,offset,size,endian)!=ori_actual:
+                    continue
+                if value(mod,algorithm,offset,size,endian)!=mod_actual:
+                    continue
+                candidates.append({
+                    "algorithm":algorithm,
+                    "data_start":0,
+                    "data_end":len(ori),
+                    "checksum_offset":offset,
+                    "checksum_size":size,
+                    "endian":endian,
+                    "zero_field":True,
+                })
+                if len(candidates)>=max_candidates:
+                    return candidates
+    return candidates
