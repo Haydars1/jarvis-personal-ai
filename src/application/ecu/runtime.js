@@ -68,8 +68,32 @@ async function defaultListGitHubRepositories(env,limit=20){
   }));
 }
 
+export function isPortablePatchRulepack(operationLabel,rules,minEvidencePairs=5){
+  if(String(operationLabel||'')==='stage1')return false;
+  const keys=Object.keys(rules||{});
+  const patches=Array.isArray(rules?.__patches)?rules.__patches:[];
+  if(keys.length!==1||keys[0]!=='__patches'||!patches.length)return false;
+  return patches.every(patch=>{
+    const length=Number(patch?.length||0);
+    const beforeHex=String(patch?.beforeHex||'').toLowerCase();
+    const afterHex=String(patch?.afterHex||'').toLowerCase();
+    const contextBeforeHex=String(patch?.contextBeforeHex||'').toLowerCase();
+    const contextAfterHex=String(patch?.contextAfterHex||'').toLowerCase();
+    const evidencePairs=Number(patch?.evidencePairs||0);
+    const validHex=value=>/^[a-f0-9]*$/.test(value);
+    return Number.isInteger(length)&&length>0
+      &&beforeHex.length===length*2
+      &&afterHex.length===length*2
+      &&beforeHex!==afterHex
+      &&validHex(beforeHex)&&validHex(afterHex)
+      &&(contextBeforeHex.length>0||contextAfterHex.length>0)
+      &&validHex(contextBeforeHex)&&validHex(contextAfterHex)
+      &&evidencePairs>=minEvidencePairs;
+  });
+}
+
 async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw='',sw=''}) {
-  const row=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
+  const exact=await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
     FROM ecu_rulepack_versions
     WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
       AND (ecu_family='' OR ecu_family=?)
@@ -80,16 +104,41 @@ async function defaultRulepackForIdentity(env,{operationLabel,ecuFamily='',hw=''
       promoted_at DESC,created_at DESC
     LIMIT 1`)
     .bind(String(operationLabel||''),String(ecuFamily||''),String(hw||''),String(sw||'')).first();
-  if(!row?.version)return null;
-  let rules={};
-  try{rules=JSON.parse(row.rules_json||'{}')}catch{}
-  return {
-    version:row.version,
-    rules,
-    ecuFamily:row.ecu_family||'',
-    hw:row.hw||'',
-    sw:row.sw||'',
+
+  const normalize=(row,portable=false)=>{
+    if(!row?.version)return null;
+    let rules={};
+    try{rules=JSON.parse(row.rules_json||'{}')}catch{}
+    return {
+      version:row.version,
+      rules,
+      ecuFamily:row.ecu_family||'',
+      hw:row.hw||'',
+      sw:row.sw||'',
+      portable,
+      sourceSw:row.sw||'',
+    };
   };
+
+  const exactRulepack=normalize(exact,false);
+  if(exactRulepack)return exactRulepack;
+
+  if(String(operationLabel||'')==='stage1'||!ecuFamily||!hw)return null;
+
+  const rows=(await env.DB.prepare(`SELECT version,rules_json,ecu_family,hw,sw
+    FROM ecu_rulepack_versions
+    WHERE state='PRODUCTION' AND verified=1 AND operation_label=?
+      AND ecu_family=? AND hw=? AND sw<>''
+    ORDER BY promoted_at DESC,created_at DESC
+    LIMIT 20`)
+    .bind(String(operationLabel||''),String(ecuFamily||''),String(hw||'')).all()).results||[];
+
+  for(const row of rows){
+    if(String(row.sw||'')===String(sw||''))continue;
+    const candidate=normalize(row,true);
+    if(candidate&&isPortablePatchRulepack(operationLabel,candidate.rules))return candidate;
+  }
+  return null;
 }
 
 async function defaultChecksumProfileForIdentity(env,{ecuFamily='',hw='',sw=''}) {
@@ -245,16 +294,16 @@ async function defaultCreateJob(env, { fileId, operation = 'analyze', callbackBa
   if (operationLabel) {
     const rulepack=await defaultRulepackForIdentity(env,{operationLabel,...identity});
     if (rulepack?.version) {
-      let rules={};
-      try { rules=JSON.parse(rulepack.rules_json||'{}'); } catch {}
       rulepackVersion=rulepack.version;
       rulepackConfig={
         rulepack_verified:true,
-        rulepack:rules,
+        rulepack:rulepack.rules||{},
         operation_label:operationLabel,
         ecu_family:identity.ecuFamily,
         hw:identity.hw,
         sw:identity.sw,
+        rulepack_portable:Boolean(rulepack.portable),
+        rulepack_source_sw:rulepack.sourceSw||'',
       };
     } else {
       rulepackConfig={
