@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from .analysis import analyze_binary_with_artifact
-from .contracts import AnalysisJobInput, AnalysisJobOutput
+from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprint
 from .fingerprint import fingerprint_binary
 from .rulepack_select import select_rulepack_for_binary
 
