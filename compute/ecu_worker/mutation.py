@@ -66,19 +66,22 @@ def apply_exact_patches(
     *,
     max_patches: int = 256,
     max_total_bytes: int = 16384,
+    relocation_window: int = 2048,
 ) -> MutationResult:
     if not patches:
         raise ValueError("PATCH_RULEPACK_EMPTY")
     if len(patches) > max_patches:
         raise ValueError("PATCH_RULEPACK_TOO_LARGE")
 
-    normalized: list[tuple[int, bytes, bytes]] = []
+    normalized: list[dict] = []
     total = 0
     for raw in patches:
         try:
             offset = int(raw.get("offset"))
             before = bytes.fromhex(str(raw.get("beforeHex") or raw.get("before_hex") or ""))
             after = bytes.fromhex(str(raw.get("afterHex") or raw.get("after_hex") or ""))
+            context_before = bytes.fromhex(str(raw.get("contextBeforeHex") or raw.get("context_before_hex") or ""))
+            context_after = bytes.fromhex(str(raw.get("contextAfterHex") or raw.get("context_after_hex") or ""))
         except (TypeError, ValueError):
             raise ValueError("PATCH_RULE_INVALID")
         if offset < 0 or not before or len(before) != len(after) or before == after:
@@ -89,30 +92,78 @@ def apply_exact_patches(
         total += len(before)
         if total > max_total_bytes:
             raise ValueError("PATCH_RULEPACK_TOO_LARGE")
-        normalized.append((offset, before, after))
+        normalized.append({
+            "offset": offset,
+            "before": before,
+            "after": after,
+            "context_before": context_before,
+            "context_after": context_after,
+        })
 
-    normalized.sort(key=lambda item: item[0])
+    normalized.sort(key=lambda item: item["offset"])
     previous_end = -1
-    for offset, before, _after in normalized:
-        if offset < previous_end:
+    for item in normalized:
+        if item["offset"] < previous_end:
             raise ValueError("PATCH_RULES_OVERLAP")
-        previous_end = offset + len(before)
+        previous_end = item["offset"] + len(item["before"])
 
-    out = bytearray(ori)
+    snapshot = bytes(ori)
+    resolved: list[tuple[int, dict]] = []
+    for item in normalized:
+        expected = item["offset"]
+        before = item["before"]
+        end = expected + len(before)
+        if snapshot[expected:end] == before:
+            resolved.append((expected, item))
+            continue
+
+        ctx_before = item["context_before"]
+        ctx_after = item["context_after"]
+        if not ctx_before and not ctx_after:
+            raise ValueError(f"PATCH_PRECONDITION_MISMATCH:{expected}")
+
+        anchor = ctx_before + before + ctx_after
+        start = max(0, expected - relocation_window - len(ctx_before))
+        stop = min(len(snapshot), expected + relocation_window + len(before) + len(ctx_after))
+        region = snapshot[start:stop]
+        matches: list[int] = []
+        pos = 0
+        while True:
+            found = region.find(anchor, pos)
+            if found < 0:
+                break
+            matches.append(start + found + len(ctx_before))
+            pos = found + 1
+        if not matches:
+            raise ValueError(f"PATCH_CONTEXT_NOT_FOUND:{expected}")
+        if len(matches) != 1:
+            raise ValueError(f"PATCH_CONTEXT_AMBIGUOUS:{expected}")
+        resolved.append((matches[0], item))
+
+    resolved.sort(key=lambda entry: entry[0])
+    previous_end = -1
+    for actual, item in resolved:
+        if actual < previous_end:
+            raise ValueError("PATCH_RESOLVED_OVERLAP")
+        previous_end = actual + len(item["before"])
+
+    out = bytearray(snapshot)
     changes: list[MutationChange] = []
     allowed: list[tuple[int, int]] = []
-    for offset, before, after in normalized:
-        end = offset + len(before)
-        current = bytes(out[offset:end])
-        if current != before:
-            raise ValueError(f"PATCH_PRECONDITION_MISMATCH:{offset}")
+    for actual, item in resolved:
+        before = item["before"]
+        after = item["after"]
+        end = actual + len(before)
+        if snapshot[actual:end] != before:
+            raise ValueError(f"PATCH_PRECONDITION_MISMATCH:{item['offset']}")
         changed = sum(1 for left, right in zip(before, after) if left != right)
         if not changed:
             continue
-        out[offset:end] = after
-        allowed.append((offset, end))
-        changes.append(MutationChange("EXACT_PATCH", offset, len(before), changed, 0.0))
+        out[actual:end] = after
+        allowed.append((actual, end))
+        changes.append(MutationChange("EXACT_PATCH", actual, len(before), changed, 0.0))
 
     if not changes:
         raise ValueError("PATCH_NO_CHANGES")
     return MutationResult(data=bytes(out), changes=changes, allowed_ranges=allowed)
+
