@@ -5,7 +5,7 @@ from .fingerprint import fingerprint_binary
 from .maps import extract_map_candidates
 from .training.semantic_model import load_semantic_model, predict_semantic
 from .proposal import stage1_proposal_from_config
-from .mutation import apply_stage1_mutation
+from .mutation import apply_exact_patches, apply_stage1_mutation
 from .release import build_release_decision
 from .validation import ChecksumRegistry
 
@@ -118,6 +118,68 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
                 }
                 for item in stage1.items
             ],
+        }
+
+    elif job.operation != "analyze":
+        checksum_registry=ChecksumRegistry()
+        checksum_adapter=checksum_registry.adapter_for(fp.ecu_family)
+        raw_rules=job.config.get("rulepack") or {}
+        patches=raw_rules.get("__patches") if isinstance(raw_rules,dict) else None
+        mutation=None
+        release=None
+        mutation_error=None
+        reasons=[]
+        if not bool(job.config.get("rulepack_verified")):
+            reasons.append("RULEPACK_UNVERIFIED")
+        elif not isinstance(patches,list) or not patches:
+            reasons.append("PATCH_RULEPACK_MISSING")
+        else:
+            try:
+                mutation=apply_exact_patches(data,patches)
+                release=build_release_decision(
+                    data,
+                    mutation.data,
+                    allowed_ranges=mutation.allowed_ranges,
+                    checksum_adapter=checksum_adapter,
+                )
+                if release.ready:
+                    status="READY"
+                    mod_bytes=release.mod_bytes
+                    checksum_algorithm=release.checksum_algorithm
+            except ValueError as exc:
+                mutation_error=str(exc)
+                reasons.append(mutation_error)
+        checksum_support=checksum_adapter.verify(mutation.data if mutation else data)
+        proposal={
+            "operation":job.operation,
+            "operation_label":str(job.config.get("operation_label") or ""),
+            "blocked":bool(reasons),
+            "reasons":reasons,
+            "requires_checksum":True,
+            "checksum_support":checksum_support.status,
+            "release_ready":bool(release.ready) if release else False,
+            "validation":{
+                "ready":bool(release.ready) if release else False,
+                "errors":list(release.errors) if release else reasons,
+                "checksum":{
+                    "status":checksum_support.status,
+                    "algorithm":checksum_support.algorithm,
+                    "verified":checksum_support.verified,
+                },
+            },
+            "mutation":{
+                "changed_maps":0,
+                "changed_cells":sum(change.changed_cells for change in mutation.changes) if mutation else 0,
+                "patch_count":len(mutation.changes) if mutation else 0,
+                "changes":[
+                    {
+                        "semantic_label":change.semantic_label,
+                        "offset":change.offset,
+                        "changed_cells":change.changed_cells,
+                    }
+                    for change in (mutation.changes if mutation else [])
+                ],
+            },
         }
 
     output=AnalysisJobOutput(
