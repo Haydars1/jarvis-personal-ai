@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .contracts import AnalysisJobInput, AnalysisJobOutput, build_run_fingerprint
 from .fingerprint import fingerprint_binary
-from .maps import extract_map_candidates
+from .maps import extract_map_candidates, extract_map_candidates_multiendian
 from .training.semantic_model import load_semantic_model, predict_semantic
 from .proposal import stage1_proposal_from_config
 from .mutation import apply_exact_patches, apply_stage1_mutation
