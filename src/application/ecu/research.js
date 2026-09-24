@@ -415,6 +415,89 @@ export function createEcuResearch({
       return { skipped: false, bucket, ...summary, ...corroboration };
     },
 
+    async targeted(env,{ecuFamily='',operationLabel='',hw='',sw=''}={}) {
+      const family=String(ecuFamily||'').trim();
+      const operation=String(operationLabel||'').trim();
+      if(!family&&!operation)return {sourcesFound:0,claimsFound:0,errors:0,skipped:true};
+
+      const identity=[family,hw,sw].filter(Boolean).join(' ');
+      const serviceTerms={
+        stage1:'Stage 1 torque boost rail driver wish calibration',
+        dtc_off:'DTC diagnostic trouble code patch',
+        egr_off:'EGR patch calibration',
+        dpf_off:'DPF patch calibration',
+        adblue_off:'SCR AdBlue patch calibration',
+        vmax_off:'VMAX speed limiter calibration',
+        startstop_off:'start stop calibration coding',
+      };
+      const term=serviceTerms[operation]||operation||'ECU calibration';
+      const queries=[
+        `${identity} ${term} technical implementation`.trim(),
+        `${identity} ${term} checksum map binary`.trim(),
+      ];
+
+      let sourcesFound=0,claimsFound=0,errors=0;
+      const seen=new Set();
+
+      for(const query of queries){
+        try{
+          const results=await search(env,query);
+          for(const raw of Array.isArray(results)?results:[]){
+            const source=normalizeResult(raw,`targeted:${family}:${operation}`);
+            if(!source||seen.has(source.url))continue;
+            seen.add(source.url);
+            await repository.storeSource(env,source);
+            sourcesFound+=1;
+            if(source.snippet){
+              await repository.storeClaim(env,{
+                sourceUrl:source.url,
+                topic:`targeted:${family}:${operation}`,
+                text:source.snippet,
+                verificationState:'UNVERIFIED',
+              });
+              claimsFound+=1;
+            }
+          }
+        }catch{errors+=1;}
+      }
+
+      if(typeof githubDiscover==='function'){
+        try{
+          const rows=await githubDiscover(env,{
+            queries:queries.map(query=>query+' ECU'),
+            seeds:[],
+            reposPerQuery:3,
+            filesPerRepo:3,
+            maxRepos:8,
+          });
+          for(const raw of Array.isArray(rows)?rows:[]){
+            const source=normalizeResult(raw,`targeted-github:${family}:${operation}`);
+            if(!source||seen.has(source.url))continue;
+            if(raw?.sourceKind)source.sourceKind=String(raw.sourceKind);
+            if(Number.isFinite(Number(raw?.trustScore)))source.trustScore=Number(raw.trustScore);
+            seen.add(source.url);
+            await repository.storeSource(env,source);
+            if(raw?.github&&typeof repository.storeGitHubRepository==='function'){
+              await repository.storeGitHubRepository(env,raw.github);
+            }
+            sourcesFound+=1;
+            for(const text of sourceClaimChunks(source.snippet,4)){
+              await repository.storeClaim(env,{
+                sourceUrl:source.url,
+                topic:`targeted-github:${family}:${operation}`,
+                text,
+                verificationState:'UNVERIFIED',
+              });
+              claimsFound+=1;
+            }
+          }
+        }catch{errors+=1;}
+      }
+
+      const corroboration=await corroborate(env);
+      return {sourcesFound,claimsFound,errors,...corroboration,ecuFamily:family,operationLabel:operation};
+    },
+
     async corroborate(env) {
       return corroborate(env);
     },
