@@ -161,3 +161,59 @@ test('does not amplify evidence when backend reports cached ORI MOD pair',async(
   const body=await response.json();
   assert.match(body.reply,/tekrar kanıt sayılmadı/);
 });
+
+
+test('reports live service availability for latest ECU file',async()=>{
+  const req=new Request('https://jarvis.test/api/chat/send',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({text:'Bu ECU dosyasında hangi işlemler hazır?'}),
+  });
+  const core={async fetch(request){
+    const url=new URL(request.url);
+    if(url.pathname==='/api/ecu/jobs'){
+      return Response.json({jobs:[{
+        id:'job-1',fileId:'file-1',state:'READY',
+        result:{ecu_family:'EDC17C46'}
+      }]});
+    }
+    if(url.pathname==='/api/ecu/services'){
+      assert.equal(url.searchParams.get('fileId'),'file-1');
+      return Response.json({
+        identity:{ecuFamily:'EDC17C46',hw:'HW1',sw:'SW1'},
+        services:[
+          {title:'Stage 1',state:'AVAILABLE'},
+          {title:'EGR OFF',state:'LEARNING'},
+          {title:'DPF OFF',state:'CONTEXT_VERIFY'},
+        ],
+      });
+    }
+    return new Response('delegate',{status:299});
+  }};
+  const tool=createEcuChatTool(core);
+  const response=await tool.fetch(req,{},{});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.match(body.reply,/ECU: EDC17C46/);
+  assert.match(body.reply,/Stage 1: Hazır/);
+  assert.match(body.reply,/EGR OFF: Öğreniliyor/);
+  assert.match(body.reply,/DPF OFF: Dosyada doğrulanacak/);
+});
+
+
+test('service availability prompt asks for ECU file when no analysis exists',async()=>{
+  const req=new Request('https://jarvis.test/api/chat/send',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({text:'Hangi tuning seçenekleri hazır?'}),
+  });
+  const core={async fetch(request){
+    const url=new URL(request.url);
+    if(url.pathname==='/api/ecu/jobs')return Response.json({jobs:[]});
+    return new Response('delegate',{status:299});
+  }};
+  const tool=createEcuChatTool(core);
+  const response=await tool.fetch(req,{},{});
+  const body=await response.json();
+  assert.match(body.reply,/Önce bir ECU\/BIN dosyası/);
+});
