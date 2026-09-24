@@ -1496,7 +1496,25 @@ export function createEcuRuntime(core, overrides = {}) {
         if (!jobId) return json({ error: 'ECU_JOB_ID_REQUIRED' }, 400);
         const body = await readJson(req);
         try {
-          return json({ job: await deps.applyWorkerResult(env, jobId, body) });
+          const job=await deps.applyWorkerResult(env, jobId, body);
+          const operationLabel=ECU_OPERATION_LABELS[job?.operation]||null;
+          if(
+            job?.state==='NEEDS_REVIEW' &&
+            operationLabel &&
+            shouldRetryNeedsReview(body) &&
+            ctx?.waitUntil &&
+            typeof deps.researchTargeted==='function'
+          ){
+            const hw=firstBodyCandidate(body.hw_candidates);
+            const sw=firstBodyCandidate(body.sw_candidates);
+            ctx.waitUntil(deps.researchTargeted(env,{
+              ecuFamily:String(body.ecu_family||''),
+              operationLabel,
+              hw,
+              sw,
+            }).catch(()=>{}));
+          }
+          return json({job});
         } catch (error) {
           if (error?.message === 'ECU_JOB_NOT_FOUND') return json({ error: 'ECU_JOB_NOT_FOUND' }, 404);
           throw error;
