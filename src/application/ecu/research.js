@@ -202,6 +202,31 @@ const defaultRepository = {
       .bind(id, source.url, source.title, source.provider, source.topic, source.sourceKind, source.trustScore, 0, now, now).run();
   },
 
+  async storeGitHubRepository(env, meta) {
+    const repository=String(meta?.repository||'').trim();
+    if(!repository)return;
+    const now=Date.now();
+    await env.DB.prepare(`INSERT INTO ecu_github_repositories(
+      repository,license,reuse_policy,stars,capabilities_json,default_branch,first_seen_at,last_seen_at
+    ) VALUES(?,?,?,?,?,?,?,?)
+    ON CONFLICT(repository) DO UPDATE SET
+      license=excluded.license,
+      reuse_policy=excluded.reuse_policy,
+      stars=MAX(ecu_github_repositories.stars,excluded.stars),
+      capabilities_json=excluded.capabilities_json,
+      default_branch=excluded.default_branch,
+      last_seen_at=excluded.last_seen_at`)
+      .bind(
+        repository,
+        String(meta.license||'unknown'),
+        String(meta.reuse||'REVIEW_REQUIRED'),
+        Number(meta.stars||0),
+        JSON.stringify(Array.isArray(meta.capabilities)?meta.capabilities:[]),
+        String(meta.defaultBranch||''),
+        now,
+        now,
+      ).run();
+  },
   async storeClaim(env, claim) {
     const id = await sha256Text(`${claim.sourceUrl}\n${claim.text}`);
     const now = Date.now();
@@ -359,6 +384,9 @@ export function createEcuResearch({
             if(Number.isFinite(Number(raw?.trustScore)))source.trustScore=Number(raw.trustScore);
             seenUrls.add(source.url);
             await repository.storeSource(env,source);
+            if(raw?.github&&typeof repository.storeGitHubRepository==='function'){
+              await repository.storeGitHubRepository(env,raw.github);
+            }
             sourcesFound+=1;
             if(source.snippet){
               for(const text of sourceClaimChunks(source.snippet,4)){
