@@ -7,7 +7,14 @@ from .training.semantic_model import load_semantic_model, predict_semantic
 from .proposal import stage1_proposal_from_config
 from .mutation import apply_exact_patches, apply_stage1_mutation
 from .release import build_release_decision
-from .validation import ChecksumRegistry
+from .validation import ChecksumRegistry, ProfileChecksumAdapter
+
+
+def checksum_adapter_from_config(job: AnalysisJobInput, ecu_family: str):
+    profile=job.config.get("checksum_profile")
+    if isinstance(profile,dict) and profile.get("algorithm"):
+        return ProfileChecksumAdapter(profile)
+    return ChecksumRegistry().adapter_for(ecu_family)
 
 
 def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[AnalysisJobOutput, bytes | None, str | None]:
@@ -54,8 +61,7 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
     checksum_algorithm = None
     if job.operation == "stage1_proposal":
         stage1 = stage1_proposal_from_config(map_candidates, job.config)
-        checksum_registry=ChecksumRegistry()
-        checksum_adapter=checksum_registry.adapter_for(fp.ecu_family)
+        checksum_adapter=checksum_adapter_from_config(job,fp.ecu_family)
         mutation=None
         release=None
         mutation_error=None
@@ -121,8 +127,7 @@ def analyze_binary_with_artifact(job: AnalysisJobInput, data: bytes) -> tuple[An
         }
 
     elif job.operation != "analyze":
-        checksum_registry=ChecksumRegistry()
-        checksum_adapter=checksum_registry.adapter_for(fp.ecu_family)
+        checksum_adapter=checksum_adapter_from_config(job,fp.ecu_family)
         raw_rules=job.config.get("rulepack") or {}
         patches=raw_rules.get("__patches") if isinstance(raw_rules,dict) else None
         mutation=None
