@@ -1,0 +1,1 @@
+ALTER TABLE ecu_jobs ADD COLUMN config_json TEXT NOT NULL DEFAULT '{}';
