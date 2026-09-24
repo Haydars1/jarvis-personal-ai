@@ -5,6 +5,43 @@ const median = values => {
   return xs.length%2?xs[m]:(xs[m-1]+xs[m])/2;
 };
 
+function validHex(value,length){
+  return typeof value==='string' && value.length===length*2 && /^[a-f0-9]+$/i.test(value);
+}
+
+function autoPromotionDecision(candidate){
+  const fullScope=Boolean(candidate?.ecuFamily&&candidate?.hw&&candidate?.sw);
+  if(!fullScope)return {promote:false,reason:'SCOPE_NOT_EXACT'};
+
+  if(candidate.operationLabel==='stage1'){
+    const entries=Object.entries(candidate.rules||{}).filter(([label])=>label!=='__patches');
+    if(!entries.length)return {promote:false,reason:'NO_STAGE1_RULES'};
+    const stable=entries.every(([,rule])=>
+      Number(rule?.evidencePairs||0)>=5 &&
+      Number.isFinite(Number(rule?.targetDeltaPercent)) &&
+      Number(rule?.targetDeltaPercent)!==0 &&
+      Number(rule?.directionAgreement||0)>=0.9
+    );
+    return stable?{promote:true,reason:'VERIFIED_STAGE1_CONSENSUS'}:{promote:false,reason:'STAGE1_CONSENSUS_WEAK'};
+  }
+
+  const patches=Array.isArray(candidate?.rules?.__patches)?candidate.rules.__patches:[];
+  if(!patches.length)return {promote:false,reason:'NO_EXACT_PATCHES'};
+  const sorted=[...patches].sort((a,b)=>Number(a.offset)-Number(b.offset));
+  let previousEnd=-1;
+  for(const patch of sorted){
+    const offset=Number(patch?.offset);
+    const length=Number(patch?.length);
+    if(!Number.isInteger(offset)||offset<0||!Number.isInteger(length)||length<=0)return {promote:false,reason:'PATCH_INVALID'};
+    if(Number(patch?.evidencePairs||0)<3)return {promote:false,reason:'PATCH_EVIDENCE_WEAK'};
+    if(!validHex(String(patch.beforeHex||''),length)||!validHex(String(patch.afterHex||''),length))return {promote:false,reason:'PATCH_HEX_INVALID'};
+    if(String(patch.beforeHex).toLowerCase()===String(patch.afterHex).toLowerCase())return {promote:false,reason:'PATCH_NO_CHANGE'};
+    if(offset<previousEnd)return {promote:false,reason:'PATCH_OVERLAP'};
+    previousEnd=offset+length;
+  }
+  return {promote:true,reason:'VERIFIED_EXACT_PATCH_CONSENSUS'};
+}
+
 async function sha256Text(value){
   const bytes=new TextEncoder().encode(String(value||''));
   const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',bytes));
@@ -49,6 +86,19 @@ const defaultRepository={
         null,
       ).run();
     return candidate;
+  },
+  async promoteCandidate(env,candidate,reason){
+    const promotedAt=Date.now();
+    const supersede=env.DB.prepare(`UPDATE ecu_rulepack_versions
+      SET state='SUPERSEDED'
+      WHERE state='PRODUCTION' AND verified=1 AND operation_label=? AND ecu_family=? AND hw=? AND sw=? AND version<>?`)
+      .bind(candidate.operationLabel,candidate.ecuFamily||'',candidate.hw||'',candidate.sw||'',candidate.version);
+    const promote=env.DB.prepare(`UPDATE ecu_rulepack_versions
+      SET state='PRODUCTION',verified=1,promoted_at=?
+      WHERE version=?`).bind(promotedAt,candidate.version);
+    if(typeof env.DB.batch==='function')await env.DB.batch([supersede,promote]);
+    else { await supersede.run(); await promote.run(); }
+    return {...candidate,state:'PRODUCTION',verified:true,promotedAt,promotionReason:reason};
   },
   async latest(env){
     const row=await env.DB.prepare(`SELECT version,operation_label,ecu_family,hw,sw,state,verified,rules_json,evidence_count,digest,created_at,promoted_at
@@ -183,7 +233,12 @@ export function createEcuRulepackLearning({
           createdAt:Date.now(),
         };
         await repository.saveCandidate(env,candidate);
-        candidates.push(candidate);
+        const decision=autoPromotionDecision(candidate);
+        if(decision.promote&&typeof repository.promoteCandidate==='function'){
+          candidates.push(await repository.promoteCandidate(env,candidate,decision.reason));
+        }else{
+          candidates.push({...candidate,promotionReason:decision.reason});
+        }
       }
       if(!candidates.length)return {created:false,reason:'INSUFFICIENT_VERIFIED_CHANGE_EVIDENCE'};
       return {created:true,candidate:candidates[0],candidates};
