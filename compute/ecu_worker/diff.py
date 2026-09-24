@@ -230,11 +230,11 @@ def discover_simple_checksum_profiles(
     *,
     max_candidates: int = 32,
 ) -> list[dict]:
-    """Find conservative whole-image checksum fields changed by a verified ORI/MOD pair.
+    """Find conservative checksum profiles changed by a verified ORI/MOD pair.
 
-    Only 2/4-byte changed ranges are considered. A candidate must validate on BOTH
-    the original and modified file with the checksum field zeroed. This deliberately
-    favors false negatives over unsafe guesses.
+    Only 2/4-byte changed ranges are considered as checksum fields. Candidate
+    algorithms/ranges must validate on BOTH ORI and MOD with the checksum field
+    zeroed. Whole-image and common aligned calibration blocks are tested.
     """
     import zlib
 
@@ -242,10 +242,21 @@ def discover_simple_checksum_profiles(
         return []
     report = report or diff_bytes(ori, mod)
     candidates: list[dict] = []
+    seen: set[tuple] = set()
 
-    def value(data: bytes, algorithm: str, offset: int, size: int, endian: str) -> int:
-        work=bytearray(data)
-        work[offset:offset+size]=b"\x00"*size
+    def value(
+        data: bytes,
+        algorithm: str,
+        field_offset: int,
+        field_size: int,
+        endian: str,
+        data_start: int,
+        data_end: int,
+    ) -> int:
+        work=bytearray(data[data_start:data_end])
+        relative=field_offset-data_start
+        if 0 <= relative and relative+field_size <= len(work):
+            work[relative:relative+field_size]=b"\x00"*field_size
         if algorithm=="sum16":
             return sum(work) & 0xFFFF
         if algorithm=="sum32":
@@ -253,6 +264,17 @@ def discover_simple_checksum_profiles(
         if algorithm=="crc32":
             return zlib.crc32(bytes(work)) & 0xFFFFFFFF
         raise ValueError("unsupported")
+
+    def ranges_for(offset: int, size: int) -> list[tuple[int,int]]:
+        ranges={(0,len(ori))}
+        for block_size in (4096,8192,16384,32768,65536,131072,262144,524288,1048576):
+            if block_size>len(ori):
+                continue
+            block_start=(offset//block_size)*block_size
+            block_end=min(len(ori),block_start+block_size)
+            if block_start <= offset and offset+size <= block_end:
+                ranges.add((block_start,block_end))
+        return sorted(ranges,key=lambda item:(item[1]-item[0],item[0]))
 
     for changed in report.ranges:
         size=changed.end-changed.start
@@ -265,19 +287,24 @@ def discover_simple_checksum_profiles(
                 mod_actual=int.from_bytes(mod[offset:offset+size],endian,signed=False)
                 if ori_actual==mod_actual:
                     continue
-                if value(ori,algorithm,offset,size,endian)!=ori_actual:
-                    continue
-                if value(mod,algorithm,offset,size,endian)!=mod_actual:
-                    continue
-                candidates.append({
-                    "algorithm":algorithm,
-                    "data_start":0,
-                    "data_end":len(ori),
-                    "checksum_offset":offset,
-                    "checksum_size":size,
-                    "endian":endian,
-                    "zero_field":True,
-                })
-                if len(candidates)>=max_candidates:
-                    return candidates
+                for data_start,data_end in ranges_for(offset,size):
+                    profile_key=(algorithm,data_start,data_end,offset,size,endian,True)
+                    if profile_key in seen:
+                        continue
+                    if value(ori,algorithm,offset,size,endian,data_start,data_end)!=ori_actual:
+                        continue
+                    if value(mod,algorithm,offset,size,endian,data_start,data_end)!=mod_actual:
+                        continue
+                    seen.add(profile_key)
+                    candidates.append({
+                        "algorithm":algorithm,
+                        "data_start":data_start,
+                        "data_end":data_end,
+                        "checksum_offset":offset,
+                        "checksum_size":size,
+                        "endian":endian,
+                        "zero_field":True,
+                    })
+                    if len(candidates)>=max_candidates:
+                        return candidates
     return candidates
