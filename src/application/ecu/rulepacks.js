@@ -166,10 +166,12 @@ export function createEcuRulepackLearning({
         if(label==='__PATCH__'){
           const beforeHex=String(row.deltaStats?.patchBeforeHex||row.deltaStats?.patch_before_hex||'').toLowerCase();
           const afterHex=String(row.deltaStats?.patchAfterHex||row.deltaStats?.patch_after_hex||'').toLowerCase();
+          const contextBeforeHex=String(row.deltaStats?.contextBeforeHex||row.deltaStats?.context_before_hex||'').toLowerCase();
+          const contextAfterHex=String(row.deltaStats?.contextAfterHex||row.deltaStats?.context_after_hex||'').toLowerCase();
           const length=Number(row.deltaStats?.length||0);
           if(length>0&&beforeHex.length===length*2&&afterHex.length===length*2&&beforeHex!==afterHex&&validHex(beforeHex,length)&&validHex(afterHex,length)){
-            const patchKey=[row.mapOffset,beforeHex,afterHex].join(':');
-            if(!bucket.patches.has(patchKey))bucket.patches.set(patchKey,{offset:row.mapOffset,beforeHex,afterHex,length,pairs:new Set()});
+            const patchKey=[row.mapOffset,beforeHex,afterHex,contextBeforeHex,contextAfterHex].join(':');
+            if(!bucket.patches.has(patchKey))bucket.patches.set(patchKey,{offset:row.mapOffset,beforeHex,afterHex,contextBeforeHex,contextAfterHex,length,pairs:new Set()});
             bucket.patches.get(patchKey).pairs.add(String(row.pairId||''));
           }
           continue;
@@ -218,6 +220,8 @@ export function createEcuRulepackLearning({
             length:patch.length,
             beforeHex:patch.beforeHex,
             afterHex:patch.afterHex,
+            contextBeforeHex:patch.contextBeforeHex,
+            contextAfterHex:patch.contextAfterHex,
             evidencePairs:patch.pairs.size,
           }));
         if(exactPatches.length){
