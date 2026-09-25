@@ -18,17 +18,10 @@ function normalizeKnowledgeText(value = '') {
 }
 
 export function sourceBackedKnowledge(domain, results = [], now = Date.now()) {
-  const seen = new Set();
-  return (Array.isArray(results) ? results : []).slice(0, 8).flatMap(row => {
-    const text = normalizeKnowledgeText(row?.snippet);
-    const sourceUrl = safeSourceUrl(row?.url);
-    if (!text || text.length < 24 || !sourceUrl) return [];
-    const fingerprint = normalizeMemoryText(text);
-    if (seen.has(fingerprint)) return [];
-    seen.add(fingerprint);
-    try { return [buildKnowledgeRecord({ domain, text, sourceUrl, sourceTitle: row.title || '', confidence: 0.72, now })]; }
+  return synthesizeResearchEvidence(results).flatMap(row => {
+    try { return [buildKnowledgeRecord({ domain, text:row.text, sourceUrl:row.sourceUrl, sourceTitle:row.sourceTitle, confidence:row.confidence, now })]; }
     catch { return []; }
-  }).slice(0, 6);
+  });
 }
 
 export async function learnSearchResults(env, query, results = []) {
