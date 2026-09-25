@@ -17,6 +17,44 @@ function normalizeKnowledgeText(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
+function evidenceTokens(value = '') {
+  return new Set(normalizeMemoryText(value).split(/[^a-z0-9çğıöşü]+/i).filter(token => token.length >= 3));
+}
+
+function evidenceSimilarity(a = '', b = '') {
+  const left = evidenceTokens(a), right = evidenceTokens(b);
+  if (!left.size || !right.size) return 0;
+  let overlap = 0;
+  for (const token of left) if (right.has(token)) overlap += 1;
+  return overlap / Math.max(left.size, right.size);
+}
+
+function sourceHost(value = '') {
+  try { return new URL(value).hostname.toLowerCase().replace(/^www\./, ''); }
+  catch { return ''; }
+}
+
+export function synthesizeResearchEvidence(results = []) {
+  const candidates = (Array.isArray(results) ? results : []).slice(0, 8).flatMap((row, index) => {
+    const text = normalizeKnowledgeText(row?.snippet);
+    const sourceUrl = safeSourceUrl(row?.url);
+    if (!text || text.length < 24 || !sourceUrl) return [];
+    return [{ index, text, sourceUrl, sourceTitle:String(row?.title || ''), host:sourceHost(sourceUrl) }];
+  });
+  const groups = [];
+  for (const candidate of candidates) {
+    const group = groups.find(item => item.some(existing => evidenceSimilarity(existing.text, candidate.text) >= 0.72));
+    if (group) group.push(candidate);
+    else groups.push([candidate]);
+  }
+  return groups.map(group => {
+    const ordered = [...group].sort((a,b) => b.text.length - a.text.length || a.index - b.index);
+    const representative = ordered[0];
+    const independentSources = new Set(group.map(item => item.host).filter(Boolean)).size;
+    return { ...representative, support:group.length, independentSources, confidence:Math.min(0.92, 0.72 + Math.max(0, independentSources - 1) * 0.08) };
+  }).sort((a,b) => b.confidence - a.confidence || a.index - b.index).slice(0, 6);
+}
+
 export function sourceBackedKnowledge(domain, results = [], now = Date.now()) {
   return synthesizeResearchEvidence(results).flatMap(row => {
     try { return [buildKnowledgeRecord({ domain, text:row.text, sourceUrl:row.sourceUrl, sourceTitle:row.sourceTitle, confidence:row.confidence, now })]; }
