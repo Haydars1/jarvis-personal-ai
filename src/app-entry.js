@@ -55,7 +55,13 @@ async function routeRequest(req, env, ctx) {
     const response = await handlePush(req, env, ctx);
     if (response) return response;
   }
-  if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleChat(req, env, ctx);
+  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
+    try {
+      const body = await req.clone().json();
+      if (String(body?.channel || '').toLowerCase() === 'ecu') return ecuCore.fetch(req, env, ctx);
+    } catch {}
+    return handleChat(req, env, ctx);
+  }
   return capabilityCore.fetch(req, env, ctx);
 }
 
