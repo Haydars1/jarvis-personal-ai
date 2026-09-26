@@ -31,28 +31,5 @@
   },
   "vars": {
     "JARVIS_PUBLIC_URL": "https://jarvis-personal-ai.haydojarvis.workers.dev"
-  },
-  "containers": [
-    {
-      "class_name": "EcuComputeContainer",
-      "image": "./compute/Dockerfile",
-      "max_instances": 1
-    }
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "class_name": "EcuComputeContainer",
-        "name": "ECU_COMPUTE_CONTAINER"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "new_sqlite_classes": [
-        "EcuComputeContainer"
-      ],
-      "tag": "ecu-container-v1"
-    }
-  ]
+  }
 }

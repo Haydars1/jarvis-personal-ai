@@ -1,4 +1,3 @@
-export { EcuComputeContainer } from './infrastructure/ecu/cloud-container.js';
 import legacyBase, { isAuthed as isOwnerAuthenticated } from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';

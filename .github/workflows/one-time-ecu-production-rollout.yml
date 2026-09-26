@@ -1,5 +1,5 @@
 name: One-time ECU production rollout
-# cardless rollout with Google Drive artifact storage
+# cardless rollout: Google Drive storage, no paid Cloudflare Containers
 on:
   push:
     branches: [feature/learning-engine]
