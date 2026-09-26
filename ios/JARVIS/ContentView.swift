@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showSidebar = false
     @State private var showEcu = false
+    @State private var showYouTube = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -48,6 +49,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showEcu) {
             EcuChatView().presentationDetents([.large])
+        }
+        .sheet(isPresented: $showYouTube) {
+            YouTubeStudioView().presentationDetents([.large])
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
@@ -144,6 +148,16 @@ struct ContentView: View {
                         showEcu = true
                     } label: {
                         Label("ECU Brain", systemImage: "waveform.path.ecg.rectangle")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+
+                    Button {
+                        showSidebar = false
+                        showYouTube = true
+                    } label: {
+                        Label("YouTube", systemImage: "play.rectangle.fill")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
