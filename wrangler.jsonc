@@ -32,12 +32,6 @@
   "vars": {
     "JARVIS_PUBLIC_URL": "https://jarvis-personal-ai.haydojarvis.workers.dev"
   },
-  "r2_buckets": [
-    {
-      "binding": "ECU_ARTIFACTS",
-      "bucket_name": "jarvis-ecu-artifacts"
-    }
-  ],
   "containers": [
     {
       "class_name": "EcuComputeContainer",

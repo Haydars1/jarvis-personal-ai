@@ -514,7 +514,7 @@ async function defaultListJobs(env, limit = 50) {
 }
 
 async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', contentType = 'application/octet-stream' }) {
-  const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store = createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   const saved = await store.putOriginal(bytes, { filename, contentType });
   const id = saved.sha256;
   const artifactUri = `r2://ecu-artifacts/${saved.key}`;
@@ -537,7 +537,7 @@ async function defaultUploadOriginal(env, { bytes, filename = 'original.bin', co
 async function defaultGetValidatedMod(env, jobId) {
   const row=await env.DB.prepare('SELECT sha256,checksum_algorithm FROM ecu_mod_artifacts WHERE job_id=? LIMIT 1').bind(jobId).first();
   if(!row)return null;
-  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   const bytes=await store.getValidatedMod(String(row.sha256||'').toLowerCase());
   if(!bytes)return null;
   return {
@@ -579,7 +579,7 @@ async function defaultStoreValidatedMod(env, jobId, { bytes, checksumAlgorithm }
     throw new Error('ECU_MOD_CHECKSUM_ALGORITHM_MISMATCH');
   }
 
-  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   const saved=await store.putValidatedMod(bytes,{jobId,checksumAlgorithm});
   const id=`mod-${jobId}`;
   const artifactUri=`r2://ecu-artifacts/${saved.key}`;
@@ -606,17 +606,17 @@ async function defaultReadModel(env, version) {
   if(!row?.artifact_uri)return null;
   const match=String(row.artifact_uri).match(/models\/([a-f0-9]{64})\.json$/i);
   if(!match)return null;
-  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   return store.getModelArtifact(match[1].toLowerCase());
 }
 
 async function defaultReadDataset(env, digest) {
-  const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store = createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   return store.getDatasetSnapshot(digest);
 }
 
 async function defaultReadOriginal(env, sha256) {
-  const store = createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store = createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   return store.getOriginal(sha256);
 }
 
@@ -928,7 +928,7 @@ async function defaultApplyTrainingResult(env, trainingId, body = {}) {
 
   const modelJson=String(body.model_json||'');
   if(!modelJson)throw new Error('ECU_MODEL_ARTIFACT_REQUIRED');
-  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   const provisionalVersion='candidate-'+String(body.dataset_version||'dataset');
   const artifact=await store.putModelArtifact(modelJson,{modelVersion:provisionalVersion});
   const modelVersion=`model-${artifact.sha256.slice(0,16)}`;
@@ -1101,7 +1101,7 @@ async function refreshDatasetSnapshot(env) {
   const maxUpdated=rows.reduce((m,row)=>Math.max(m,Number(row.updated_at||0)),0);
   const version=`dataset-${rows.length}-${maxUpdated}`;
   const snapshot=await buildEcuDatasetSnapshot(rows,version);
-  const store=createEcuArtifactStore(env.ECU_ARTIFACTS);
+  const store=createEcuArtifactStore(env.ECU_ARTIFACTS,env.DB);
   const artifact=await store.putDatasetSnapshot(snapshot);
   const artifactUri=`r2://ecu-artifacts/${artifact.key}`;
   await env.DB.prepare(`INSERT INTO ecu_dataset_versions(version,digest,example_count,artifact_uri,created_at)

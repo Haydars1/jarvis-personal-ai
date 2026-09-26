@@ -325,3 +325,6 @@ CREATE TABLE IF NOT EXISTS ecu_workers (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_workers_live ON ecu_workers(kind, enabled, expires_at DESC, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS ecu_artifact_objects (object_key TEXT PRIMARY KEY,size_bytes INTEGER NOT NULL,content_type TEXT NOT NULL DEFAULT 'application/octet-stream',metadata_json TEXT NOT NULL DEFAULT '{}',created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS ecu_artifact_chunks (object_key TEXT NOT NULL,chunk_index INTEGER NOT NULL,data BLOB NOT NULL,PRIMARY KEY(object_key,chunk_index),FOREIGN KEY(object_key) REFERENCES ecu_artifact_objects(object_key) ON DELETE CASCADE);
