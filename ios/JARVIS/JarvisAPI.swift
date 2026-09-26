@@ -53,9 +53,10 @@ final class JarvisAPI {
         return try decoder.decode([ChatMessage].self, from: data)
     }
 
-    func send(text: String, attachments: [NativeAttachment] = [], channel: String? = nil) async throws -> ChatResponse {
+    func send(text: String, attachments: [NativeAttachment] = [], channel: String? = nil, channelId: String? = nil) async throws -> ChatResponse {
         var payload: [String: Any] = ["text": text]
         if let channel, !channel.isEmpty { payload["channel"] = channel }
+        if let channelId, !channelId.isEmpty { payload["channelId"] = channelId }
         if !attachments.isEmpty {
             payload["attachments"] = attachments.map {
                 ["name": $0.name, "type": $0.mimeType, "base64": $0.data.base64EncodedString()]
@@ -64,6 +65,29 @@ final class JarvisAPI {
         let data = try JSONSerialization.data(withJSONObject: payload)
         let response = try await request("/api/chat/send", method: "POST", body: data)
         return try decoder.decode(ChatResponse.self, from: response)
+    }
+
+    func ecuChannels(query: String = "") async throws -> [EcuChannel] {
+        var items: [URLQueryItem] = []
+        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            items.append(URLQueryItem(name: "q", value: query))
+        }
+        let data = try await request("/api/ecu/channels", query: items)
+        struct Response: Decodable { let channels: [EcuChannel] }
+        return try decoder.decode(Response.self, from: data).channels
+    }
+
+    func ecuChannelMessages(_ channelId: String) async throws -> [ChatMessage] {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? channelId
+        let data = try await request("/api/ecu/channels/\(encoded)/messages")
+        struct Response: Decodable { let messages: [ChatMessage] }
+        return try decoder.decode(Response.self, from: data).messages
+    }
+
+    func renameEcuChannel(_ channelId: String, title: String) async throws {
+        let encoded = channelId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? channelId
+        let body = try JSONSerialization.data(withJSONObject: ["title": title])
+        _ = try await request("/api/ecu/channels/\(encoded)", method: "PATCH", body: body)
     }
 
     func googleSetupInfo() async throws -> GoogleSetupInfo {
