@@ -36,9 +36,10 @@ struct ChatResponse: Decodable {
     let reply: String
     let provider: String?
     let history: [ChatMessage]
+    let channelId: String?
 
     enum CodingKeys: String, CodingKey {
-        case reply, provider, history
+        case reply, provider, history, channelId
     }
 
     init(from decoder: Decoder) throws {
@@ -46,6 +47,32 @@ struct ChatResponse: Decodable {
         reply = try container.decodeIfPresent(String.self, forKey: .reply) ?? ""
         provider = try container.decodeIfPresent(String.self, forKey: .provider)
         history = try container.decodeIfPresent([ChatMessage].self, forKey: .history) ?? []
+        channelId = try container.decodeIfPresent(String.self, forKey: .channelId)
+    }
+}
+
+struct EcuChannel: Identifiable, Decodable {
+    let id: String
+    let title: String
+    let fileName: String
+    let fileSha256: String
+    let fileSize: Int
+    let identityText: String
+    let lastMessage: String?
+    let matchMessage: String?
+    let createdAt: Double
+    let updatedAt: Double
+
+    enum CodingKeys: String, CodingKey {
+        case id, title
+        case fileName = "file_name"
+        case fileSha256 = "file_sha256"
+        case fileSize = "file_size"
+        case identityText = "identity_text"
+        case lastMessage = "last_message"
+        case matchMessage = "match_message"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
     }
 }
 
