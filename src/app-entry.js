@@ -4,6 +4,7 @@ import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
+import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
@@ -39,7 +40,8 @@ const mediaCore = {
   }
 };
 
-const handleChat = createEmergencyChatFallback(createChatOrchestrator(mediaCore));
+const ecuCore = createEcuBinaryInspector(mediaCore);
+const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
 const handlePush = createPushApi(capabilityCore);
 
 function shouldFlushPush(req, response) {
