@@ -28,13 +28,5 @@
   },
   "observability": {
     "enabled": true
-  },
-  "migrations": [
-    {
-      "tag": "ecu-container-v2-remove",
-      "deleted_classes": [
-        "EcuComputeContainer"
-      ]
-    }
-  ]
+  }
 }
