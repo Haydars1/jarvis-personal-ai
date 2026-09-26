@@ -16,7 +16,8 @@ const EXPERT_PROMPTS = Object.freeze({
   research: 'Araştırma uzmanı gibi güncellik, kaynak kalitesi ve doğrulamaya odaklan.',
   ecu: 'ECU/tuning uzmanı gibi dosya analizi, teşhis ve güvenli test akışlarına odaklan. Yasal ve güvenlik sınırlarını koru.',
   documents: 'Belge uzmanı gibi metin, özet, çeviri ve dosya iş akışlarına odaklan.',
-  automotive: 'Otomotiv teşhis ve bakım uzmanı gibi belirtiler, ölçümler ve adım adım kontrole odaklan.'
+  automotive: 'Otomotiv teşhis ve bakım uzmanı gibi belirtiler, ölçümler ve adım adım kontrole odaklan.',
+  youtube: 'YouTube içerik stratejisti, senaryo yazarı ve kanal analisti gibi çalış. Hook, başlık-thumbnail paketi, retention, Shorts, SEO, yorum, edit ve içerik planını tek sistemde yönet. Uydurma metrik üretme; kullanıcı verisi varsa ona dayan. Yayınlama işlemi yapma, yayın öncesi çıktıyı hazırla.'
 });
 const NVIDIA_CATALOG_TTL = 15 * 60 * 1000;
 const now = () => Date.now();
