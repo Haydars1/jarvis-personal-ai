@@ -1,5 +1,5 @@
 name: One-time ECU production rollout
-# cardless rollout with D1 artifact fallback
+# cardless rollout with Google Drive artifact storage
 on:
   push:
     branches: [feature/learning-engine]
@@ -26,6 +26,21 @@ jobs:
         run: |
           npx wrangler d1 execute jarvis-db --remote --file=./schema.sql
           npx wrangler d1 migrations apply jarvis-db --remote
+      - name: Configure Google Drive runtime secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GOOGLE_DRIVE_CLIENT_ID: ${{ secrets.GOOGLE_DRIVE_CLIENT_ID }}
+          GOOGLE_DRIVE_CLIENT_SECRET: ${{ secrets.GOOGLE_DRIVE_CLIENT_SECRET }}
+          GOOGLE_DRIVE_REFRESH_TOKEN: ${{ secrets.GOOGLE_DRIVE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GOOGLE_DRIVE_CLIENT_ID"
+          test -n "$GOOGLE_DRIVE_CLIENT_SECRET"
+          test -n "$GOOGLE_DRIVE_REFRESH_TOKEN"
+          printf '%s' "$GOOGLE_DRIVE_CLIENT_ID" | npx wrangler secret put GOOGLE_DRIVE_CLIENT_ID
+          printf '%s' "$GOOGLE_DRIVE_CLIENT_SECRET" | npx wrangler secret put GOOGLE_DRIVE_CLIENT_SECRET
+          printf '%s' "$GOOGLE_DRIVE_REFRESH_TOKEN" | npx wrangler secret put GOOGLE_DRIVE_REFRESH_TOKEN
       - name: Deploy verified ECU backend
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

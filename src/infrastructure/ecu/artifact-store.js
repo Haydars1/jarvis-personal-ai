@@ -1,3 +1,5 @@
+import { createGoogleDriveBackend } from './google-drive-artifact-store.js';
+
 function toHex(bytes) {
   return [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -7,9 +9,11 @@ async function sha256(bytes) {
   return toHex(await crypto.subtle.digest('SHA-256', view));
 }
 
-export function createEcuArtifactStore(bucket, db) {
-  if ((!bucket || typeof bucket.put !== 'function' || typeof bucket.get !== 'function') && !db) throw new Error('ECU artifact storage is required');
-  const backend = bucket || {
+export function createEcuArtifactStore(bucket, db, googleDrive = null) {
+  const hasBucket=Boolean(bucket&&typeof bucket.put==='function'&&typeof bucket.get==='function');
+  const hasDrive=Boolean(googleDrive?.clientId&&googleDrive?.clientSecret&&googleDrive?.refreshToken);
+  if(!hasBucket&&!hasDrive&&!db) throw new Error('ECU artifact storage is required');
+  const backend = hasBucket ? bucket : hasDrive ? createGoogleDriveBackend(googleDrive) : {
     async head(key) {
       const row=await db.prepare('SELECT size_bytes FROM ecu_artifact_objects WHERE object_key=? LIMIT 1').bind(key).first();
       return row?{size:Number(row.size_bytes||0)}:null;
@@ -36,7 +40,7 @@ export function createEcuArtifactStore(bucket, db) {
       const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
       const digest = await sha256(view);
       const key = `originals/${digest}`;
-      const existing = typeof bucket.head === 'function' ? await backend.head(key) : null;
+      const existing = typeof backend.head === 'function' ? await backend.head(key) : null;
       if (!existing) {
         await backend.put(key, view, {
           httpMetadata: { contentType },
@@ -60,7 +64,7 @@ export function createEcuArtifactStore(bucket, db) {
       const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
       const digest = await sha256(view);
       const key = `mods/${digest}`;
-      const existing = typeof bucket.head === 'function' ? await backend.head(key) : null;
+      const existing = typeof backend.head === 'function' ? await backend.head(key) : null;
       if (!existing) {
         await backend.put(key, view, {
           httpMetadata: { contentType: 'application/octet-stream' },
@@ -86,7 +90,7 @@ export function createEcuArtifactStore(bucket, db) {
       const digest = String(snapshot?.digest || '').trim().toLowerCase();
       if (!/^[a-f0-9]{64}$/.test(digest)) throw new Error('INVALID_DATASET_DIGEST');
       const key = `datasets/${digest}.json`;
-      const existing = typeof bucket.head === 'function' ? await backend.head(key) : null;
+      const existing = typeof backend.head === 'function' ? await backend.head(key) : null;
       if (!existing) {
         const bytes = new TextEncoder().encode(JSON.stringify(snapshot));
         await backend.put(key, bytes, {
@@ -119,7 +123,7 @@ export function createEcuArtifactStore(bucket, db) {
       const bytes = new TextEncoder().encode(String(modelJson || ''));
       const digest = await sha256(bytes);
       const key = `models/${digest}.json`;
-      const existing = typeof bucket.head === 'function' ? await backend.head(key) : null;
+      const existing = typeof backend.head === 'function' ? await backend.head(key) : null;
       if (!existing) {
         await backend.put(key, bytes, {
           httpMetadata: { contentType: 'application/json' },

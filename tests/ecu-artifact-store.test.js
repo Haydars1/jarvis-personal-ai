@@ -41,8 +41,8 @@ test('reads back exact original bytes', async () => {
   assert.deepEqual([...restored], [...bytes]);
 });
 
-test('fails explicitly when object storage binding is missing', async () => {
-  assert.throws(() => createEcuArtifactStore(null), /ECU_ARTIFACTS binding/);
+test('fails explicitly when no artifact storage backend is configured', async () => {
+  assert.throws(() => createEcuArtifactStore(null), /ECU artifact storage is required/);
 });
 
 
