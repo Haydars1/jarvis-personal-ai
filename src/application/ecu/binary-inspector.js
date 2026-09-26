@@ -137,6 +137,41 @@ function isBinaryAttachment(file) {
   return /\.(bin|ori|hex|rom)$/i.test(name) || /octet-stream|macbinary/i.test(type);
 }
 
+function diagnosticIntent(text='') {
+  const value=String(text||'').toLowerCase();
+  const systems=[];
+  if(/\begr\b/.test(value))systems.push('EGR');
+  if(/\bdpf\b/.test(value))systems.push('DPF');
+  if(/\badblue\b|\bscr\b/.test(value))systems.push('AdBlue/SCR');
+  if(/\bdtc\b|arıza\s*kod/.test(value))systems.push('DTC');
+  if(/\bstage\s*1\b|\bstage1\b|remap|chip\s*tun/.test(value))systems.push('Stage 1');
+  if(!systems.length)return null;
+  const requestedAction=/\b(off|kapat|iptal|disable)\b/.test(value)?'OFF':
+    /\b(on|aç|aktif|enable)\b/.test(value)?'ON':'ANALYZE';
+  return {systems:[...new Set(systems)],requestedAction};
+}
+
+function diagnosticWorkspaceReply(file,bytes,digest,intent) {
+  const lines=[
+    'Teşhis isteğini algıladım ve bu dosyayı aktif ECU çalışma dosyası olarak kullanıyorum.',
+    `Dosya: ${file.name}`,
+    `Boyut: ${bytes.length.toLocaleString('tr-TR')} byte`,
+    `SHA256: ${digest}`,
+    `Hedef sistem: ${intent.systems.join(' + ')}`,
+    `İstenen durum: ${intent.requestedAction}`,
+    '',
+    'Bu kanalda artık şunları aynı dosya üzerinde sürdürebilirim:',
+    '• ORI ↔ MOD byte farkı ve offset bölgeleri',
+    '• Dosya sürümü / geri dönüş takibi',
+    '• DTC ve ECU/HW/SW notlarının kanal içinde aranması',
+    '• Checksum/doğrulama durumu',
+    '• Değişiklik raporu ve hexdump kanıtı',
+    '',
+    'Yeni bir dosya gerçekten üretilmediyse “MOD hazır” demeyeceğim. Gerçek değişiklik sonucu oluştuğunda ayrı sürüm olarak kaydedilmeli.'
+  ];
+  return lines.join('\n');
+}
+
 function operationIntent(text = '') {
   const value = String(text || '').toLowerCase();
   if (/\b(egr|dpf|adblue|scr)\b.*\b(off|kapat|iptal|disable)\b|\b(off|kapat|iptal|disable)\b.*\b(egr|dpf|adblue|scr)\b/i.test(value)) {
