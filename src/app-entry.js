@@ -1,3 +1,4 @@
+import { DurableObject } from 'cloudflare:workers';
 import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
@@ -70,3 +71,10 @@ export default {
     })().catch(() => {}));
   }
 };
+
+
+// Compatibility export for a retired Cloudflare container-backed Durable Object.
+// Kept so existing Worker versions can be replaced cleanly without re-enabling paid Containers.
+export class EcuComputeContainer extends DurableObject {
+  async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
+}
