@@ -43,7 +43,7 @@ export function synthesizeResearchEvidence(results = []) {
   });
   const groups = [];
   for (const candidate of candidates) {
-    const group = groups.find(item => item.some(existing => evidenceSimilarity(existing.text, candidate.text) >= 0.72));
+    const group = groups.find(item => item.some(existing => evidenceSimilarity(existing.text, candidate.text) >= 0.8));
     if (group) group.push(candidate);
     else groups.push([candidate]);
   }
@@ -51,7 +51,7 @@ export function synthesizeResearchEvidence(results = []) {
     const ordered = [...group].sort((a,b) => b.text.length - a.text.length || a.index - b.index);
     const representative = ordered[0];
     const independentSources = new Set(group.map(item => item.host).filter(Boolean)).size;
-    return { ...representative, support:group.length, independentSources, confidence:Math.min(0.92, 0.72 + Math.max(0, independentSources - 1) * 0.08) };
+    return { ...representative, support:group.length, independentSources, confidence:Number(Math.min(0.92, 0.72 + Math.max(0, independentSources - 1) * 0.08).toFixed(2)) };
   }).sort((a,b) => b.confidence - a.confidence || a.index - b.index).slice(0, 6);
 }
 
