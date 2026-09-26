@@ -43,7 +43,7 @@ export function synthesizeResearchEvidence(results = []) {
   });
   const groups = [];
   for (const candidate of candidates) {
-    const group = groups.find(item => item.some(existing => evidenceSimilarity(existing.text, candidate.text) >= 0.86));
+    const group = groups.find(item => item.some(existing => evidenceSimilarity(existing.text, candidate.text) >= 0.9));
     if (group) group.push(candidate);
     else groups.push([candidate]);
   }
