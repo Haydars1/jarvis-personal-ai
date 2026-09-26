@@ -3,7 +3,9 @@
   "name": "jarvis-personal-ai",
   "main": "src/app-entry.js",
   "compatibility_date": "2026-09-12",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -16,7 +18,23 @@
       "database_id": "710f1325-af9a-4d03-acbf-d4c6862b7633"
     }
   ],
-  "ai": { "binding": "AI" },
-  "triggers": { "crons": ["*/30 * * * *"] },
-  "observability": { "enabled": true }
+  "ai": {
+    "binding": "AI"
+  },
+  "triggers": {
+    "crons": [
+      "*/30 * * * *"
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "migrations": [
+    {
+      "tag": "ecu-container-v2-remove",
+      "deleted_classes": [
+        "EcuComputeContainer"
+      ]
+    }
+  ]
 }
