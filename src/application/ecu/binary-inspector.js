@@ -137,6 +137,49 @@ function isBinaryAttachment(file) {
   return /\.(bin|ori|hex|rom)$/i.test(name) || /octet-stream|macbinary/i.test(type);
 }
 
+function operationIntent(text = '') {
+  const value = String(text || '').toLowerCase();
+  if (/\b(egr|dpf|adblue|scr)\b.*\b(off|kapat|iptal|disable)\b|\b(off|kapat|iptal|disable)\b.*\b(egr|dpf|adblue|scr)\b/i.test(value)) {
+    return { kind: 'emissions-disable' };
+  }
+  if (/\bstage\s*1\b|\bstage1\b|remap|chip\s*tun/i.test(value)) {
+    return { kind: 'stage1' };
+  }
+  if (/\bdtc\b.*\b(off|sil|kapat)\b|arıza\s*kod.*\b(sil|kapat)\b/i.test(value)) {
+    return { kind: 'dtc' };
+  }
+  if (/\b(vmax|speed\s*limit|hız\s*limit)\b.*\b(off|kapat|iptal)\b/i.test(value)) {
+    return { kind: 'vmax' };
+  }
+  return { kind: 'analyze' };
+}
+
+function unsupportedModificationReply(file, bytes, digest, kind) {
+  const common = [
+    'Dosyayı ve isteğini algıladım.',
+    `Dosya: ${file.name}`,
+    `Boyut: ${bytes.length.toLocaleString('tr-TR')} byte`,
+    `SHA256: ${digest}`
+  ];
+  if (kind === 'emissions-disable') {
+    return [
+      ...common,
+      '',
+      'Bu istek EGR/DPF/AdBlue/SCR gibi emisyon kontrolünü devre dışı bırakmaya yönelik. Bu yüzden yeni bir MOD dosyası üretmedim.',
+      'Yapabildiğim güvenli alternatifler: dosyayı analiz etmek, ORI↔MOD farkını çıkarmak, ilgili DTC/harita bölgelerini incelemek ve arızanın nedenini teşhis etmeye yardımcı olmak.',
+      '',
+      'Önemli: “yaptım” demeyeceğim; yeni MOD üretmediysem bunu açıkça söyleyeceğim.'
+    ].join('\n');
+  }
+  return [
+    ...common,
+    '',
+    `İsteği “${kind}” modifikasyonu olarak algıladım; fakat bu production hattı şu an güvenilir ve doğrulanmış şekilde yeni MOD dosyası üretmiyor.`,
+    'Bu nedenle sadece dosyayı okumuş gibi davranıp isteğin yapılmış izlenimini vermeyeceğim.',
+    'ORI dosyanı da yüklersen gerçek fark analizi ve harita bölgelerini inceleyebilirim.'
+  ].join('\n');
+}
+
 export function createEcuBinaryInspector(core) {
   if (!core?.fetch) throw new Error('ECU_BINARY_CORE_REQUIRED');
   return {
@@ -189,6 +232,13 @@ export function createEcuBinaryInspector(core) {
         const file = files[0];
         const bytes = b64Bytes(file.base64);
         const digest = await sha256(bytes);
+        const op = operationIntent(text);
+        if (op.kind !== 'analyze') {
+          return json(chatPayload(text, unsupportedModificationReply(file, bytes, digest, op.kind), [
+            { kind: 'ecu-intent', label: 'İstek türü', value: op.kind },
+            { kind: 'binary', label: 'SHA256', value: digest }
+          ]));
+        }
         const s = stats(bytes);
         const reply = [
           'Dosyayı gerçekten açıp byte içeriğini okudum.',
