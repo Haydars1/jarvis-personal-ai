@@ -21,7 +21,10 @@ struct ThinkDiagFrameAssembler {
         stats = ThinkDiagStreamStats()
     }
 
-    mutating func append(_ chunk: Data) -> [ThinkDiagVciFrame] {
+    mutating func append(
+        _ chunk: Data,
+        preferredHeader: [UInt8]? = nil
+    ) -> [ThinkDiagVciFrame] {
         guard !chunk.isEmpty else { return [] }
         stats.bytesSeen += chunk.count
         buffer.append(chunk)
@@ -49,12 +52,24 @@ struct ThinkDiagFrameAssembler {
                 continue
             }
 
-            // A checksum-valid frame is strong evidence of correct alignment.
-            // For checksum mismatch, keep the decoded frame only if its length field is sane,
-            // then consume it so we can inspect firmware variants that patch the checksum.
+            if let preferredHeader, frame.header != preferredHeader {
+                buffer.removeFirst()
+                stats.discardedBytes += 1
+                continue
+            }
+
+            // Until a header is confirmed, checksum validity is our strongest alignment signal.
+            // Do not consume an entire checksum-bad candidate because that can skip a valid frame
+            // starting one byte later in the stream.
+            guard frame.checksumValid else {
+                buffer.removeFirst()
+                stats.discardedBytes += 1
+                continue
+            }
+
             decoded.append(frame)
             stats.framesDecoded += 1
-            if frame.checksumValid { stats.checksumValid += 1 }
+            stats.checksumValid += 1
             buffer.removeFirst(totalLength)
         }
 
