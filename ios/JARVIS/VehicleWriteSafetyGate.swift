@@ -68,7 +68,7 @@ enum VehicleWriteSafetyGate {
             guard text.localizedCaseInsensitiveContains("PID 0x42")
                     || item.title.localizedCaseInsensitiveContains("voltaj") else { continue }
 
-            let pattern = #"([0-9]+(?:[.,][0-9]+)?)s*V"#
+            let pattern = #"([0-9]+(?:[.,][0-9]+)?)\s*V"#
             guard let regex = try? NSRegularExpression(pattern: pattern),
                   let match = regex.firstMatch(
                     in: text,
