@@ -8,7 +8,10 @@ struct ManufacturerFeaturePackManifest: Codable {
 }
 
 enum ManufacturerFeaturePackLoader {
-    static func load(data: Data) throws -> ManufacturerFeaturePackManifest {
+    static func load(
+        data: Data,
+        persistOffline: Bool = true
+    ) throws -> ManufacturerFeaturePackManifest {
         let manifest = try JSONDecoder().decode(ManufacturerFeaturePackManifest.self, from: data)
         guard manifest.schemaVersion == 1 else {
             throw NSError(
@@ -27,6 +30,9 @@ enum ManufacturerFeaturePackLoader {
                 )
             }
             CodingRecipeRegistry.shared.register(recipe)
+        }
+        if persistOffline {
+            OfflineVehicleDataStore.saveFeaturePack(data, brand: manifest.brand)
         }
         return manifest
     }
