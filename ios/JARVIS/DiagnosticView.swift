@@ -8,6 +8,7 @@ struct DiagnosticView: View {
     @StateObject private var diagnosticAI = VehicleDiagnosticAI()
     @StateObject private var moduleScanner = ManufacturerModuleScanner()
     @StateObject private var manufacturerLive = ManufacturerLiveDataController()
+    @StateObject private var protocolLearner = ManufacturerProtocolLearner()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -17,6 +18,7 @@ struct DiagnosticView: View {
     @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
+    @State private var learnedPackURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -468,6 +470,58 @@ struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                Section("Protokol Öğrenme") {
+                    Button {
+                        if protocolLearner.active {
+                            protocolLearner.stop()
+                            message = "Protokol öğrenme durduruldu."
+                        } else {
+                            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+                            message = "Protokol öğrenme başladı; JARVIS gelen UDS servislerini ve DID'leri kaydediyor."
+                        }
+                    } label: {
+                        Label(
+                            protocolLearner.active ? "Öğrenmeyi durdur" : "Protokol öğrenmeyi başlat",
+                            systemImage: protocolLearner.active ? "stop.circle" : "brain.head.profile"
+                        )
+                    }
+
+                    if !protocolLearner.observations.isEmpty {
+                        Text("\(protocolLearner.observations.count) protokol gözlemi bulundu")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                        DisclosureGroup("Bulunan servisler / DID'ler") {
+                            ForEach(protocolLearner.observations) { item in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.detail)
+                                        .font(.caption)
+                                    Text("VCI op \(String(format: "%04X", item.opcode)) • \(item.rawHex)")
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        }
+
+                        Button {
+                            learnedPackURL = makeLearnedPackFile()
+                        } label: {
+                            Label("Aday üretici paketi oluştur", systemImage: "wand.and.stars")
+                        }
+
+                        if let learnedPackURL {
+                            ShareLink(item: learnedPackURL) {
+                                Label("Öğrenilen paketi paylaş / kaydet", systemImage: "square.and.arrow.up")
+                            }
+                        }
+                    }
+
+                    Text("Öğrenme modu yalnızca gözlem yapar. Yakalanan opcode, UDS servisleri ve DID'lerden aday paket üretir; bilinmeyen kodlama yazma komutları otomatik oluşturulmaz.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("ThinkDiag Kayıt / Rapor") {
                     Button {
                         showImporter = true
@@ -563,6 +617,9 @@ struct DiagnosticView: View {
                 }
             } message: {
                 Text("Mevcut değer yedeklendi. Doğrulanmış reçete araca yazılacak ve ardından tekrar okunarak kontrol edilecek.")
+            }
+            .onChange(of: bluetooth.decodedFrames.count) { _, _ in
+                protocolLearner.ingest(bluetooth.decodedFrames)
             }
             .onChange(of: dtcCodeKey) { _, _ in
                 Task {
@@ -662,6 +719,24 @@ struct DiagnosticView: View {
             message = "Dosya analiz edildi"
         } catch {
             message = "Dosya açılamadı: \(error.localizedDescription)"
+        }
+    }
+
+    private func makeLearnedPackFile() -> URL? {
+        do {
+            let data = try ManufacturerPackCandidateGenerator.exportCandidate(
+                brand: effectiveBrand,
+                observations: protocolLearner.observations
+            )
+            let safeBrand = effectiveBrand.rawValue.replacingOccurrences(of: " ", with: "-")
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("JARVIS-\(safeBrand)-learned-pack.json")
+            try data.write(to: url, options: .atomic)
+            message = "Aday üretici paketi oluşturuldu."
+            return url
+        } catch {
+            message = "Aday paket oluşturulamadı: \(error.localizedDescription)"
+            return nil
         }
     }
 
