@@ -273,6 +273,13 @@ struct DiagnosticView: View {
                     }
                 }
 
+                GenericObdLivePanel(
+                    samples: bluetooth.liveSamples,
+                    supportedPids: bluetooth.supportedPids,
+                    freezeFrame: bluetooth.freezeFrameValues,
+                    p0299Active: currentDtcExplanations.contains { $0.code == "P0299" }
+                )
+
                 Section("Atölye Hızlı İşlemler") {
                     Button {
                         Task { await runWorkshopAutoDiagnosis() }
@@ -319,7 +326,12 @@ struct DiagnosticView: View {
                             if bluetooth.livePolling {
                                 bluetooth.stopLivePolling()
                             } else {
-                                bluetooth.startLivePolling()
+                                Task {
+                                    if bluetooth.supportedPids.isEmpty {
+                                        await bluetooth.discoverGenericCapabilities()
+                                    }
+                                    bluetooth.startLivePolling()
+                                }
                             }
                         } label: {
                             Label("Canlı veri", systemImage: "waveform.path.ecg")
@@ -1215,6 +1227,9 @@ struct DiagnosticView: View {
             return
         }
 
+        workshopStep = "VIN, desteklenen PID'ler ve freeze frame hazırlanıyor…"
+        await bluetooth.discoverGenericCapabilities()
+
         workshopStep = "Kayıtlı / bekleyen / kalıcı DTC taranıyor…"
         await bluetooth.scanGenericDtcStates()
 
@@ -1294,7 +1309,11 @@ struct DiagnosticView: View {
             liveData: live,
             notes: [
                 networkMonitor.isOnline ? "İnternet bağlantısı mevcut." : "Çevrimdışı teşhis kullanıldı.",
-                vehicleWriteSafety.message
+                vehicleWriteSafety.message,
+                "Desteklenen generic PID sayısı: \(bluetooth.supportedPids.count)",
+                bluetooth.freezeFrameValues.isEmpty
+                    ? "Freeze frame verisi alınmadı."
+                    : "Freeze frame: \(bluetooth.freezeFrameValues.count) parametre."
             ]
         )
     }
