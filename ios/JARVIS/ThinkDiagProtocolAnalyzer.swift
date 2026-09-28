@@ -1,6 +1,6 @@
 import Foundation
 
-struct ThinkDiagProtocolFingerprint: Equatable {
+struct ThinkDiagProtocolFingerprint {
     let frameCount: Int
     let checksumValidCount: Int
     let dominantHeader: String?
