@@ -103,6 +103,18 @@ struct DiagnosticView: View {
                                     .font(.caption)
                             }
 
+                            if !bluetooth.verifiedReadCapabilities.isEmpty {
+                                DisclosureGroup("Bu adaptörde doğrulanan okuma modları") {
+                                    ForEach(
+                                        bluetooth.verifiedReadCapabilities.sorted { $0.rawValue < $1.rawValue },
+                                        id: \.self
+                                    ) { capability in
+                                        Label(capability.rawValue, systemImage: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
+
                             Label(
                                 "Çevrimdışı teşhis hazır • \(offlineDtcCount) yerel DTC kaydı",
                                 systemImage: "iphone.and.arrow.forward"
