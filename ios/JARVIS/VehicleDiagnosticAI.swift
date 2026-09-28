@@ -21,6 +21,11 @@ final class VehicleDiagnosticAI: ObservableObject {
         guard key != lastCodeKey, !loading else { return }
 
         lastCodeKey = key
+        explanation = OfflineDiagnosticReasoner.summary(
+            codes: normalized,
+            brand: brand,
+            observations: observations
+        )
         loading = true
         defer { loading = false }
 
@@ -45,7 +50,7 @@ final class VehicleDiagnosticAI: ObservableObject {
             let response = try await api.send(text: prompt, channel: "vehicle-diagnostics")
             explanation = response.reply
         } catch {
-            explanation = "JARVIS teşhis yorumu alınamadı: \(error.localizedDescription)"
+            // İnternet yoksa yerel açıklamayı koru. DTC okuma ve temel teşhis çevrimdışı çalışır.
         }
     }
 }
