@@ -34,6 +34,9 @@ const semanticRegistry = fs.readFileSync(new URL('../ios/JARVIS/SemanticCodingRe
 const researchRegistry = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingResearchRegistry.swift', import.meta.url), 'utf8');
 const allBrandResearch = fs.readFileSync(new URL('../ios/JARVIS/AllBrandCodingResearchCatalog.swift', import.meta.url), 'utf8');
 const researchPaging = fs.readFileSync(new URL('../ios/JARVIS/ResearchPaginationPolicy.swift', import.meta.url), 'utf8');
+const genericObd = fs.readFileSync(new URL('../ios/JARVIS/GenericObdLiveData.swift', import.meta.url), 'utf8');
+const genericPanel = fs.readFileSync(new URL('../ios/JARVIS/GenericObdLivePanel.swift', import.meta.url), 'utf8');
+const boostAnalyzer = fs.readFileSync(new URL('../ios/JARVIS/GenericBoostAnalyzer.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -66,10 +69,10 @@ test('ThinkDiag transport fingerprints Launch BLE services and decodes VCI frame
 });
 
 test('ThinkDiag stream assembler handles fragmented notifications', () => {
-  assert.match(assembler, /append\(_ chunk: Data\)/);
+  assert.match(assembler, /preferredHeader/);
   assert.match(assembler, /payloadLength/);
   assert.match(assembler, /checksumValid/);
-  assert.match(bluetooth, /assembler\.append\(data\)/);
+  assert.match(bluetooth, /assembler\.append\(data, preferredHeader: protocolProfile\?\.header\)/);
 });
 
 test('passive decoder recognizes standard read-only OBD responses', () => {
@@ -80,6 +83,7 @@ test('passive decoder recognizes standard read-only OBD responses', () => {
   assert.match(passive, /Motor devri/);
   assert.match(passive, /Manifold basıncı/);
   assert.match(bluetooth, /passiveObservations/);
+  assert.match(passive, /case 0x42/);
 });
 
 test('captured frames are fingerprinted without sending vehicle commands', () => {
@@ -91,7 +95,7 @@ test('captured frames are fingerprinted without sending vehicle commands', () =>
 test('direct ThinkDiag path exposes a read-only DTC probe', () => {
   assert.match(bluetooth, /sendReadOnlyDtcProbe/);
   assert.match(bluetooth, /opcode: 0x0103/);
-  assert.match(diagnostics, /DTC oku — deneysel salt-okuma/);
+  assert.match(diagnostics, /Hata kodlarını tara/);
 });
 
 test('ThinkDiag protocol profile is learned and persisted from read-only sweep', () => {
@@ -108,7 +112,8 @@ test('confirmed ThinkDiag profile unlocks read-only live PID polling', () => {
   assert.match(bluetooth, /sendReadOnlyPid/);
   assert.match(bluetooth, /opcode: 0x0101/);
   assert.match(bluetooth, /startLivePolling/);
-  assert.match(bluetooth, /0x0C, 0x0B, 0x10, 0x05, 0x0D, 0x42/);
+  assert.match(bluetooth, /supportedPids/);
+  assert.match(bluetooth, /discoverGenericCapabilities/);
   assert.match(diagnostics, /Canlı veriyi başlat/);
 });
 
@@ -294,6 +299,29 @@ test('research registry includes non-VAG community ecosystems', () => {
   assert.match(researchRegistry, /mbworld-variant-coding/);
   assert.match(researchRegistry, /clublexus-techstream/);
   assert.match(researchRegistry, /reddit-bmw-bimmercode/);
+});
+
+test('generic OBD capability discovery reads supported PIDs VIN and freeze frame', () => {
+  assert.match(bluetooth, /sendReadOnlySupportedPidBlock/);
+  assert.match(bluetooth, /opcode: 0x0109/);
+  assert.match(bluetooth, /opcode: 0x0102/);
+  assert.match(genericObd, /supportedPids/);
+  assert.match(genericObd, /decodeMode02/);
+  assert.match(genericObd, /freezeFrame/);
+});
+
+test('generic live data is stored and shown with charts plus P0299 analysis', () => {
+  assert.match(bluetooth, /liveSamples/);
+  assert.match(genericPanel, /import Charts/);
+  assert.match(genericPanel, /P0299 sürüş verisi analizi/);
+  assert.match(boostAnalyzer, /Generic OBD MAP gerçek manifold basıncıdır/);
+  assert.match(diagnostics, /GenericObdLivePanel/);
+});
+
+test('VCI stream rejects bad checksum alignment instead of consuming whole frames', () => {
+  assert.match(assembler, /guard frame\.checksumValid else/);
+  assert.match(assembler, /buffer\.removeFirst\(\)/);
+  assert.match(assembler, /frame\.header != preferredHeader/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
