@@ -17,6 +17,7 @@ struct DiagnosticView: View {
     @StateObject private var codingBackupVault = CodingBackupVault()
     @StateObject private var codingFavorites = CodingFavoritesStore()
     @StateObject private var driveLogger = DriveLogRecorder()
+    @StateObject private var workshopPreferences = WorkshopPreferences()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -283,6 +284,8 @@ struct DiagnosticView: View {
                 )
 
                 Section("Atölye Hızlı İşlemler") {
+                    Toggle("ThinkDiag bağlanınca otomatik tam teşhis", isOn: $workshopPreferences.autoDiagnoseOnConnect)
+                    Toggle("Bağlantıda protokol öğrenmeyi otomatik başlat", isOn: $workshopPreferences.autoStartProtocolLearning)
                     Button {
                         Task { await runWorkshopAutoDiagnosis() }
                     } label: {
@@ -585,6 +588,35 @@ struct DiagnosticView: View {
                                 Spacer()
                                 Text(item.unit.map { "\(item.textValue) \($0)" } ?? item.textValue)
                                     .font(.caption.monospaced())
+                            }
+                        }
+                    }
+                }
+
+                let triageFindings = DiagnosticTriageEngine.analyze(
+                    codes: currentDtcExplanations.map(\.code),
+                    observations: bluetooth.passiveObservations
+                )
+
+                if !triageFindings.isEmpty {
+                    Section("Arıza Öncelik Sırası") {
+                        ForEach(triageFindings) { finding in
+                            DisclosureGroup {
+                                Text(finding.detail)
+                                    .font(.caption)
+                                if !finding.relatedCodes.isEmpty {
+                                    Text("İlgili kodlar: " + finding.relatedCodes.joined(separator: ", "))
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(finding.title)
+                                    Spacer()
+                                    Text("P\(finding.priority)")
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -1218,6 +1250,22 @@ struct DiagnosticView: View {
                 offlineDtcCount = OfflineDtcDatabase.shared.count
                 if effectiveBrand != .generic {
                     await codingResearch.refresh(brand: effectiveBrand)
+                }
+            }
+            .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
+                guard ready else { return }
+
+                if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
+                    protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+                }
+
+                if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 650_000_000)
+                        if bluetooth.isThinkDiagTransportReady && !workshopRunning {
+                            await runWorkshopAutoDiagnosis()
+                        }
+                    }
                 }
             }
             .onChange(of: bluetooth.decodedFrames.count) { _, _ in
