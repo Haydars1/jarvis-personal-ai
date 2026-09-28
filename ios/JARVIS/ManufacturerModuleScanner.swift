@@ -88,10 +88,9 @@ final class ManufacturerModuleScanner: ObservableObject {
     }
 
     private func decodeDisplay(_ data: Data) -> String {
-        if let string = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .controlCharacters.union(.whitespacesAndNewlines)),
-           !string.isEmpty {
-            return string
+        if let decoded = String(data: data, encoding: .utf8) {
+            let string = decoded.trimmingCharacters(in: .controlCharacters.union(.whitespacesAndNewlines))
+            if !string.isEmpty { return string }
         }
         return data.map { String(format: "%02X", $0) }.joined()
     }
