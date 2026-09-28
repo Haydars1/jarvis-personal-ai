@@ -9,6 +9,8 @@ struct DiagnosticView: View {
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
+    @State private var showFeaturePackImporter = false
+    @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
 
@@ -286,6 +288,18 @@ struct DiagnosticView: View {
                         }
                     }
 
+                    Button {
+                        showFeaturePackImporter = true
+                    } label: {
+                        Label("Üretici özellik paketi yükle", systemImage: "shippingbox.and.arrow.backward")
+                    }
+
+                    if !featurePackStatus.isEmpty {
+                        Text(featurePackStatus)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
                     Text("Kodlama işlemleri yalnızca araç/modül için doğrulanmış üretici reçetesi bulunduğunda açılır; mevcut değer önce yedeklenir ve yazma öncesi ayrıca onay gerekir.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -344,6 +358,16 @@ struct DiagnosticView: View {
                 }
                 .ignoresSafeArea()
             }
+            .sheet(isPresented: $showFeaturePackImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showFeaturePackImporter = false
+                    guard let url = urls.first else { return }
+                    loadFeaturePack(url)
+                } onCancel: {
+                    showFeaturePackImporter = false
+                }
+                .ignoresSafeArea()
+            }
             .onChange(of: dtcCodeKey) { _, _ in
                 Task {
                     await diagnosticAI.explainIfNeeded(
@@ -393,6 +417,22 @@ struct DiagnosticView: View {
         }
 
         return codes.sorted().map(DiagnosticDtcCatalog.explain)
+    }
+
+    private func loadFeaturePack(_ url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let manifest = try ManufacturerFeaturePackLoader.load(data: data)
+            featurePackStatus = "\(manifest.brand.rawValue) özellik paketi \(manifest.packVersion) yüklendi • \(manifest.recipes.count) reçete"
+            if selectedBrand == .generic {
+                selectedBrand = manifest.brand
+            }
+        } catch {
+            featurePackStatus = "Özellik paketi yüklenemedi: \(error.localizedDescription)"
+        }
     }
 
     private func load(_ url: URL) {
