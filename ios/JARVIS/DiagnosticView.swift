@@ -4,8 +4,13 @@ import UniformTypeIdentifiers
 struct DiagnosticView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var bluetooth = ThinkDiagBluetooth()
+    @StateObject private var codingCoordinator = VehicleCodingCoordinator()
+    @StateObject private var diagnosticAI = VehicleDiagnosticAI()
+    @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
+    @State private var showFeaturePackImporter = false
+    @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
 
@@ -173,6 +178,133 @@ struct DiagnosticView: View {
                     }
                 }
 
+                Section("Araç") {
+                    Picker("Marka", selection: $selectedBrand) {
+                        ForEach(VehicleBrand.allCases) { brand in
+                            Text(brand.rawValue).tag(brand)
+                        }
+                    }
+
+                    if let vin = detectedVIN {
+                        LabeledContent("VIN", value: vin)
+                        if selectedBrand == .generic {
+                            let detected = VehicleBrand.detect(fromVIN: vin)
+                            if detected != .generic {
+                                Button("Markayı VIN'den seç: \(detected.rawValue)") {
+                                    selectedBrand = detected
+                                }
+                            }
+                        }
+                    }
+
+                    ForEach([VehicleCapability.readDtcs, .liveData, .moduleScan, .coding, .adaptations, .hiddenFeatures]) { capability in
+                        LabeledContent(
+                            capability.rawValue,
+                            value: VehicleCapabilityMatrix.support(
+                                for: capability,
+                                brand: selectedBrand,
+                                protocolConfirmed: bluetooth.protocolProfile != nil
+                            ).rawValue
+                        )
+                        .font(.caption)
+                    }
+                }
+
+                let dtcExplanations = currentDtcExplanations
+                if !dtcExplanations.isEmpty {
+                    Section("Hata Kodları ve Açıklamalar") {
+                        ForEach(dtcExplanations) { item in
+                            DisclosureGroup {
+                                Text(item.meaning)
+                                    .font(.caption)
+                                if !item.likelyCauses.isEmpty {
+                                    Text("Olası nedenler: " + item.likelyCauses.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if !item.checks.isEmpty {
+                                    Text("Kontroller: " + item.checks.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text("\(item.code) — \(item.title)")
+                                        .font(.headline)
+                                    Text("Önem: \(item.severity)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+
+                        if diagnosticAI.loading {
+                            HStack {
+                                ProgressView()
+                                Text("JARVIS hata kodlarını yorumluyor…")
+                                    .font(.caption)
+                            }
+                        } else if !diagnosticAI.explanation.isEmpty {
+                            DisclosureGroup("JARVIS teşhis yorumu") {
+                                Text(diagnosticAI.explanation)
+                                    .font(.caption)
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+                }
+
+                Section("Kodlama / Adaptasyon / Gizli Özellikler") {
+                    let pack = CodingFeatureCatalog.pack(for: selectedBrand)
+                    if selectedBrand == .generic {
+                        Text("Önce marka seç veya VIN okununca JARVIS markayı belirlesin.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if pack.features.isEmpty {
+                        Text("\(selectedBrand.rawValue) için üretici özellik paketi altyapısı hazır; doğrulanmış modül/reçeteler eklendikçe burada açılacak.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(pack.features) { feature in
+                            Button {
+                                codingCoordinator.prepare(
+                                    feature,
+                                    vin: detectedVIN,
+                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                )
+                                message = codingCoordinator.state.label
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(feature.title)
+                                    Text("\(feature.module) • \(feature.kind.rawValue) • Risk: \(feature.risk.rawValue)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(feature.description)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+
+                    Button {
+                        showFeaturePackImporter = true
+                    } label: {
+                        Label("Üretici özellik paketi yükle", systemImage: "shippingbox.and.arrow.backward")
+                    }
+
+                    if !featurePackStatus.isEmpty {
+                        Text(featurePackStatus)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Text("Kodlama işlemleri yalnızca araç/modül için doğrulanmış üretici reçetesi bulunduğunda açılır; mevcut değer önce yedeklenir ve yazma öncesi ayrıca onay gerekir.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("ThinkDiag Kayıt / Rapor") {
                     Button {
                         showImporter = true
@@ -185,20 +317,6 @@ struct DiagnosticView: View {
                 }
 
                 if let snapshot {
-                    Section("Arıza Kodları") {
-                        if snapshot.dtcs.isEmpty {
-                            Text("DTC bulunamadı").foregroundStyle(.secondary)
-                        }
-                        ForEach(snapshot.dtcs) { dtc in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(dtc.code).font(.headline.monospaced())
-                                Text(dtc.description ?? "Açıklama JARVIS teşhis katmanında çözümlenecek")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-
                     Section("Canlı Veriler") {
                         if snapshot.metrics.isEmpty {
                             Text("Tanımlanan canlı değer bulunamadı").foregroundStyle(.secondary)
@@ -240,6 +358,80 @@ struct DiagnosticView: View {
                 }
                 .ignoresSafeArea()
             }
+            .sheet(isPresented: $showFeaturePackImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showFeaturePackImporter = false
+                    guard let url = urls.first else { return }
+                    loadFeaturePack(url)
+                } onCancel: {
+                    showFeaturePackImporter = false
+                }
+                .ignoresSafeArea()
+            }
+            .onChange(of: dtcCodeKey) { _, _ in
+                Task {
+                    await diagnosticAI.explainIfNeeded(
+                        codes: currentDtcExplanations.map(\.code),
+                        brand: effectiveBrand,
+                        vin: detectedVIN,
+                        observations: bluetooth.passiveObservations
+                    )
+                }
+            }
+            .onChange(of: detectedVIN) { _, newVIN in
+                guard selectedBrand == .generic, let newVIN else { return }
+                let detected = VehicleBrand.detect(fromVIN: newVIN)
+                if detected != .generic { selectedBrand = detected }
+            }
+        }
+    }
+
+    private var effectiveBrand: VehicleBrand {
+        if selectedBrand != .generic { return selectedBrand }
+        if let vin = detectedVIN {
+            return VehicleBrand.detect(fromVIN: vin)
+        }
+        return .generic
+    }
+
+    private var dtcCodeKey: String {
+        currentDtcExplanations.map(\.code).sorted().joined(separator: "|")
+    }
+
+    private var detectedVIN: String? {
+        bluetooth.passiveObservations
+            .last(where: { $0.kind == "VIN" })?
+            .detail
+    }
+
+    private var currentDtcExplanations: [DtcExplanation] {
+        var codes = Set<String>()
+
+        for observation in bluetooth.passiveObservations
+            where observation.kind == "DTC" || observation.kind == "PENDING_DTC" {
+            codes.insert(observation.title.uppercased())
+        }
+
+        for dtc in snapshot?.dtcs ?? [] {
+            codes.insert(dtc.code.uppercased())
+        }
+
+        return codes.sorted().map(DiagnosticDtcCatalog.explain)
+    }
+
+    private func loadFeaturePack(_ url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let manifest = try ManufacturerFeaturePackLoader.load(data: data)
+            featurePackStatus = "\(manifest.brand.rawValue) özellik paketi \(manifest.packVersion) yüklendi • \(manifest.recipes.count) reçete"
+            if selectedBrand == .generic {
+                selectedBrand = manifest.brand
+            }
+        } catch {
+            featurePackStatus = "Özellik paketi yüklenemedi: \(error.localizedDescription)"
         }
     }
 
