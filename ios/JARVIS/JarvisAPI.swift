@@ -114,6 +114,29 @@ final class JarvisAPI {
         try await request("/api/mobile/push/status")
     }
 
+    func syncVehicleCodingResearch(brand: String, pages: Int = 3) async throws -> VehicleCodingResearchSyncResponse {
+        let payload: [String: Any] = [
+            "brand": brand,
+            "pages": max(1, min(10, pages))
+        ]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        let data = try await request("/api/vehicle/coding-research/sync", method: "POST", body: body)
+        return try decoder.decode(VehicleCodingResearchSyncResponse.self, from: data)
+    }
+
+    func vehicleCodingResearchCatalog(brand: String) async throws -> VehicleCodingResearchCatalogResponse {
+        let data = try await request(
+            "/api/vehicle/coding-research/catalog",
+            query: [URLQueryItem(name: "brand", value: brand)]
+        )
+        return try decoder.decode(VehicleCodingResearchCatalogResponse.self, from: data)
+    }
+
+    func vehicleCodingResearchStatus() async throws -> VehicleCodingResearchStatusResponse {
+        let data = try await request("/api/vehicle/coding-research/status")
+        return try decoder.decode(VehicleCodingResearchStatusResponse.self, from: data)
+    }
+
     func reportRuntimeIssue(message: String, context: String, userText: String? = nil) async {
         var payload: [String: Any] = [
             "message": message,
@@ -151,4 +174,66 @@ struct GoogleConnectInfo: Decodable {
     let setupRequired: Bool?
     let detail: String?
     let error: String?
+}
+
+
+struct VehicleCodingResearchCandidate: Decodable, Identifiable, Hashable {
+    let id: String
+    let target: String
+    let brands: [String]
+    let query: String
+    let title: String
+    let feature: String
+    let module: String
+    let channel: String
+    let value: String
+    let applicability: String
+    let sourceUrl: String
+    let sourceTitle: String
+    let sourceKind: String
+    let confidence: Double
+    let status: String
+    let observedAt: Double
+}
+
+struct VehicleCodingResearchCatalogResponse: Decodable {
+    let target: String?
+    let brands: [String]?
+    let candidates: [VehicleCodingResearchCandidate]
+    let total: Int?
+}
+
+struct VehicleCodingResearchTargetStatus: Decodable, Identifiable {
+    var id: String { targetID }
+    let targetID: String
+    let brands: [String]
+    let queryCount: Int
+    let candidates: Int
+    let updatedAt: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case targetID = "id"
+        case brands, queryCount, candidates, updatedAt
+    }
+}
+
+struct VehicleCodingResearchStatusResponse: Decodable {
+    let targets: [VehicleCodingResearchTargetStatus]
+    let targetCount: Int
+    let totalCandidates: Int
+    let googleConfigured: Bool
+    let githubTokenConfigured: Bool
+}
+
+struct VehicleCodingResearchSyncResult: Decodable {
+    let target: String
+    let brands: [String]
+    let added: Int
+    let errors: [String]
+}
+
+struct VehicleCodingResearchSyncResponse: Decodable {
+    let ok: Bool
+    let result: VehicleCodingResearchSyncResult
+    let status: VehicleCodingResearchStatusResponse
 }

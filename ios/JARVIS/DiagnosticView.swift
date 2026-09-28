@@ -10,6 +10,7 @@ struct DiagnosticView: View {
     @StateObject private var manufacturerLive = ManufacturerLiveDataController()
     @StateObject private var protocolLearner = ManufacturerProtocolLearner()
     @StateObject private var oneTapCoordinator = OneTapCodingCoordinator()
+    @StateObject private var codingResearch = VehicleCodingResearchStore()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -385,6 +386,85 @@ struct DiagnosticView: View {
                                     .textSelection(.enabled)
                             }
                         }
+                    }
+                }
+
+                if effectiveBrand != .generic {
+                    Section("Kodlama Araştırması") {
+                        HStack {
+                            Button {
+                                Task {
+                                    await codingResearch.sync(brand: effectiveBrand, pages: 3)
+                                    if let error = codingResearch.lastError {
+                                        message = "Kodlama araştırması: \(error)"
+                                    } else {
+                                        message = "\(effectiveBrand.rawValue) için araştırma güncellendi • \(codingResearch.candidates.count) aday"
+                                    }
+                                }
+                            } label: {
+                                Label(
+                                    codingResearch.loading ? "Araştırılıyor…" : "İnternetten araştır / güncelle",
+                                    systemImage: "globe.badge.chevron.backward"
+                                )
+                            }
+                            .disabled(codingResearch.loading)
+
+                            Spacer()
+
+                            Text("\(codingResearch.candidates.count)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let error = codingResearch.lastError {
+                            Text(error)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if !codingResearch.exactParameterCandidates.isEmpty {
+                            DisclosureGroup("Bulunan kanal / parametre adayları") {
+                                ForEach(codingResearch.exactParameterCandidates.prefix(50)) { item in
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(item.feature.isEmpty ? item.title : item.feature)
+                                            .font(.caption.weight(.semibold))
+                                        if !item.module.isEmpty {
+                                            Text("Modül: \(item.module)")
+                                                .font(.caption2)
+                                        }
+                                        if !item.channel.isEmpty {
+                                            Text("Kanal: \(item.channel)")
+                                                .font(.caption2.monospaced())
+                                                .textSelection(.enabled)
+                                        }
+                                        if !item.value.isEmpty {
+                                            Text("Değer: \(item.value)")
+                                                .font(.caption2.monospaced())
+                                                .textSelection(.enabled)
+                                        }
+                                        if !item.applicability.isEmpty {
+                                            Text("Uygunluk: \(item.applicability)")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        HStack {
+                                            Text("\(item.sourceKind) • güven \(Int(item.confidence * 100))%")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                            if let url = URL(string: item.sourceUrl) {
+                                                Link("Kaynak", destination: url)
+                                                    .font(.caption2)
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 3)
+                                }
+                            }
+                        }
+
+                        Text("Bu araştırma kayıtları önce aday olarak tutulur. Araçtaki ECU parça/yazılım kimliğiyle exact eşleşme doğrulanmadan yazma butonu açılmaz.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -767,6 +847,15 @@ struct DiagnosticView: View {
             .onDisappear {
                 bluetooth.stopLivePolling()
                 manufacturerLive.stop()
+            }
+            .onChange(of: effectiveBrand) { _, newBrand in
+                guard newBrand != .generic else { return }
+                Task {
+                    await codingResearch.refresh(brand: newBrand)
+                    if codingResearch.candidates.isEmpty {
+                        await codingResearch.sync(brand: newBrand, pages: 2)
+                    }
+                }
             }
             .onChange(of: detectedVIN) { _, newVIN in
                 guard selectedBrand == .generic, let newVIN else { return }
