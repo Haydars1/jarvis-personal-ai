@@ -303,20 +303,6 @@ struct DiagnosticView: View {
                 }
 
                 if let snapshot {
-                    Section("Arıza Kodları") {
-                        if snapshot.dtcs.isEmpty {
-                            Text("DTC bulunamadı").foregroundStyle(.secondary)
-                        }
-                        ForEach(snapshot.dtcs) { dtc in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(dtc.code).font(.headline.monospaced())
-                                Text(dtc.description ?? "Açıklama JARVIS teşhis katmanında çözümlenecek")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-
                     Section("Canlı Veriler") {
                         if snapshot.metrics.isEmpty {
                             Text("Tanımlanan canlı değer bulunamadı").foregroundStyle(.secondary)
@@ -357,6 +343,21 @@ struct DiagnosticView: View {
                     showImporter = false
                 }
                 .ignoresSafeArea()
+            }
+            .onChange(of: dtcCodeKey) { _, _ in
+                Task {
+                    await diagnosticAI.explainIfNeeded(
+                        codes: currentDtcExplanations.map(\.code),
+                        brand: effectiveBrand,
+                        vin: detectedVIN,
+                        observations: bluetooth.passiveObservations
+                    )
+                }
+            }
+            .onChange(of: detectedVIN) { _, newVIN in
+                guard selectedBrand == .generic, let newVIN else { return }
+                let detected = VehicleBrand.detect(fromVIN: newVIN)
+                if detected != .generic { selectedBrand = detected }
             }
         }
     }
