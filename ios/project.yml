@@ -45,6 +45,8 @@ targets:
           - CFBundleURLName: com.haydojarvis.jarvis
             CFBundleURLSchemes:
               - jarvis
+        NSBluetoothAlwaysUsageDescription: "JARVIS ThinkDiag ve diğer OBD Bluetooth cihazlarına bağlanarak araç teşhisi yapmak için Bluetooth kullanır."
+        NSBluetoothPeripheralUsageDescription: "JARVIS ThinkDiag ve diğer OBD Bluetooth cihazlarıyla doğrudan haberleşmek için Bluetooth kullanır."
         NSMicrophoneUsageDescription: "JARVIS ile sesli konuşmak için mikrofon kullanılır."
         NSSpeechRecognitionUsageDescription: "JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
         NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
