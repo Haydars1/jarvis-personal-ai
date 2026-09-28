@@ -32,6 +32,8 @@ const oneTapResolver = fs.readFileSync(new URL('../ios/JARVIS/OneTapCodingResolv
 const oneTapCoordinator = fs.readFileSync(new URL('../ios/JARVIS/OneTapCodingCoordinator.swift', import.meta.url), 'utf8');
 const semanticRegistry = fs.readFileSync(new URL('../ios/JARVIS/SemanticCodingRegistry.swift', import.meta.url), 'utf8');
 const researchRegistry = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingResearchRegistry.swift', import.meta.url), 'utf8');
+const allBrandResearch = fs.readFileSync(new URL('../ios/JARVIS/AllBrandCodingResearchCatalog.swift', import.meta.url), 'utf8');
+const researchPaging = fs.readFileSync(new URL('../ios/JARVIS/ResearchPaginationPolicy.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -263,6 +265,35 @@ test('research registry tracks public sources without blindly bulk-copying datas
   assert.match(researchRegistry, /github-vagcan/);
   assert.match(researchRegistry, /ross-tech-wiki/);
   assert.match(researchRegistry, /allowedForDataImport: false/);
+});
+
+test('coding research covers all major manufacturer ecosystems instead of VAG only', () => {
+  assert.match(allBrandResearch, /bmw-mini/);
+  assert.match(allBrandResearch, /mercedes/);
+  assert.match(allBrandResearch, /ford-mazda/);
+  assert.match(allBrandResearch, /toyota-lexus/);
+  assert.match(allBrandResearch, /hyundai-kia/);
+  assert.match(allBrandResearch, /renault-dacia/);
+  assert.match(allBrandResearch, /psa-stellantis/);
+  assert.match(allBrandResearch, /volvo/);
+  assert.match(allBrandResearch, /honda/);
+  assert.match(allBrandResearch, /nissan/);
+  assert.match(allBrandResearch, /mitsubishi/);
+  assert.match(allBrandResearch, /jaguar-landrover/);
+  assert.match(allBrandResearch, /chevrolet-gm/);
+});
+
+test('research pagination removes the single top-50 ceiling', () => {
+  assert.match(researchPaging, /perQueryPageSize: 30/);
+  assert.match(researchPaging, /maxPagesPerQuery: 10/);
+  assert.match(researchPaging, /theoreticalMaxResultsPerQuery/);
+});
+
+test('research registry includes non-VAG community ecosystems', () => {
+  assert.match(researchRegistry, /forscan-forum-asbuilt/);
+  assert.match(researchRegistry, /mbworld-variant-coding/);
+  assert.match(researchRegistry, /clublexus-techstream/);
+  assert.match(researchRegistry, /reddit-bmw-bimmercode/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
