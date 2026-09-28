@@ -25,6 +25,9 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var probeRunning = false
     @Published private(set) var livePolling = false
     @Published private(set) var genericDtcScanRunning = false
+    @Published private(set) var packetEvents: [ThinkDiagPacketEvent] = []
+    @Published private(set) var maxWriteWithResponse = 0
+    @Published private(set) var maxWriteWithoutResponse = 0
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -35,6 +38,8 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     private var livePollTask: Task<Void, Never>?
     private let lastPeripheralKey = "jarvis.thinkdiag.lastPeripheral"
     private let autoReconnectKey = "jarvis.thinkdiag.autoReconnect"
+    private var writeCharacteristicScore = Int.min
+    private var notifyCharacteristicScore = Int.min
 
     override init() {
         super.init()
@@ -120,6 +125,13 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         let data = ThinkDiagVciFrame.build(header: selectedHeader, opcode: opcode, payload: payload)
         let type: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
         peripheral.writeValue(data, for: characteristic, type: type)
+        packetEvents.append(.init(
+            timestamp: Date(),
+            direction: .tx,
+            characteristic: writableCharacteristic ?? characteristic.uuid.uuidString,
+            data: data
+        ))
+        trimPacketEvents()
         return true
     }
 
@@ -301,6 +313,12 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         ThinkDiagProtocolAnalyzer.fingerprint(decodedFrames)
     }
 
+    private func trimPacketEvents() {
+        if packetEvents.count > 1000 {
+            packetEvents.removeFirst(packetEvents.count - 1000)
+        }
+    }
+
     var transportNotice: String {
         if preferredServiceDetected {
             return "Launch/ThinkDiag BLE servis imzası bulundu. JARVIS bildirimleri dinliyor ve bilinen VCI çerçeve yapısını pasif olarak çözüyor."
@@ -344,11 +362,16 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             discoveredServices.removeAll()
             notificationFrames.removeAll()
             decodedFrames.removeAll()
+            packetEvents.removeAll()
             preferredServiceDetected = false
             writableCharacteristic = nil
             notifyCharacteristic = nil
             writeCBCharacteristic = nil
             notifyCBCharacteristic = nil
+            writeCharacteristicScore = Int.min
+            notifyCharacteristicScore = Int.min
+            maxWriteWithResponse = peripheral.maximumWriteValueLength(for: .withResponse)
+            maxWriteWithoutResponse = peripheral.maximumWriteValueLength(for: .withoutResponse)
             passiveObservations.removeAll()
             assembler.reset()
             streamStats = assembler.stats
@@ -395,15 +418,27 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
 
                 let props = characteristic.properties
                 let preferred = ThinkDiagKnownBle.isPreferredService(service.uuid.uuidString)
-                if (props.contains(.write) || props.contains(.writeWithoutResponse)),
-                   writeCBCharacteristic == nil || preferred {
-                    writableCharacteristic = marker
-                    writeCBCharacteristic = characteristic
+
+                if props.contains(.write) || props.contains(.writeWithoutResponse) {
+                    let score = (preferred ? 100 : 0)
+                        + (props.contains(.writeWithoutResponse) ? 20 : 0)
+                        + (props.contains(.write) ? 10 : 0)
+                    if score > writeCharacteristicScore {
+                        writeCharacteristicScore = score
+                        writableCharacteristic = marker
+                        writeCBCharacteristic = characteristic
+                    }
                 }
-                if (props.contains(.notify) || props.contains(.indicate)),
-                   notifyCBCharacteristic == nil || preferred {
-                    notifyCharacteristic = marker
-                    notifyCBCharacteristic = characteristic
+
+                if props.contains(.notify) || props.contains(.indicate) {
+                    let score = (preferred ? 100 : 0)
+                        + (props.contains(.notify) ? 20 : 0)
+                        + (props.contains(.indicate) ? 10 : 0)
+                    if score > notifyCharacteristicScore {
+                        notifyCharacteristicScore = score
+                        notifyCharacteristic = marker
+                        notifyCBCharacteristic = characteristic
+                    }
                 }
                 if props.contains(.notify) || props.contains(.indicate) {
                     peripheral.setNotifyValue(true, for: characteristic)
@@ -419,6 +454,13 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
         Task { @MainActor in
             guard error == nil, let data = characteristic.value, !data.isEmpty else { return }
             notificationFrames.append(data)
+            packetEvents.append(.init(
+                timestamp: Date(),
+                direction: .rx,
+                characteristic: "\(characteristic.service?.uuid.uuidString ?? "-")/\(characteristic.uuid.uuidString)",
+                data: data
+            ))
+            trimPacketEvents()
             let frames = assembler.append(data)
             streamStats = assembler.stats
             for frame in frames {
