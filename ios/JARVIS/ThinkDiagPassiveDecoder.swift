@@ -25,13 +25,15 @@ enum ThinkDiagPassiveDecoder {
                     result.append(obs)
                 }
             case 0x43:
-                result.append(contentsOf: decodeDtcs(Array(bytes[start...]), pending: false, opcode: frame.opcode))
+                result.append(contentsOf: decodeDtcs(Array(bytes[start...]), status: "DTC", responseMode: 0x43, opcode: frame.opcode))
             case 0x47:
-                result.append(contentsOf: decodeDtcs(Array(bytes[start...]), pending: true, opcode: frame.opcode))
+                result.append(contentsOf: decodeDtcs(Array(bytes[start...]), status: "PENDING_DTC", responseMode: 0x47, opcode: frame.opcode))
             case 0x49:
                 if let obs = decodeVehicleInfo(Array(bytes[start...]), opcode: frame.opcode) {
                     result.append(obs)
                 }
+            case 0x4A:
+                result.append(contentsOf: decodeDtcs(Array(bytes[start...]), status: "PERMANENT_DTC", responseMode: 0x4A, opcode: frame.opcode))
             default:
                 continue
             }
@@ -77,8 +79,8 @@ enum ThinkDiagPassiveDecoder {
         )
     }
 
-    private static func decodeDtcs(_ bytes: [UInt8], pending: Bool, opcode: UInt16) -> [ThinkDiagPassiveObservation] {
-        guard !bytes.isEmpty, bytes[0] == (pending ? 0x47 : 0x43) else { return [] }
+    private static func decodeDtcs(_ bytes: [UInt8], status: String, responseMode: UInt8, opcode: UInt16) -> [ThinkDiagPassiveObservation] {
+        guard !bytes.isEmpty, bytes[0] == responseMode else { return [] }
         let payload = Array(bytes.dropFirst())
         var observations: [ThinkDiagPassiveObservation] = []
         var i = 0
@@ -103,9 +105,11 @@ enum ThinkDiagPassiveDecoder {
             let digit4 = Int(b & 0x0F)
             let code = "\(prefix)\(digit1)\(String(format: "%X", digit2))\(String(format: "%X", digit3))\(String(format: "%X", digit4))"
             observations.append(.init(
-                kind: pending ? "PENDING_DTC" : "DTC",
+                kind: status,
                 title: code,
-                detail: pending ? "Bekleyen arıza kodu" : "Kayıtlı arıza kodu",
+                detail: status == "PENDING_DTC"
+                    ? "Bekleyen arıza kodu"
+                    : (status == "PERMANENT_DTC" ? "Kalıcı arıza kodu" : "Kayıtlı arıza kodu"),
                 sourceOpcode: opcode
             ))
         }

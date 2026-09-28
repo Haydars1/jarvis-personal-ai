@@ -132,6 +132,20 @@ test('cross-brand module catalog includes engine transmission ABS SRS and body s
   assert.match(moduleCatalog, /case body/);
 });
 
+test('generic DTC scan reads stored pending and permanent states', () => {
+  assert.match(bluetooth, /scanGenericDtcStates/);
+  assert.match(bluetooth, /opcode: 0x0107/);
+  assert.match(bluetooth, /opcode: 0x010A/);
+  assert.match(passive, /case 0x4A/);
+  assert.match(passive, /PERMANENT_DTC/);
+  assert.match(diagnostics, /Hata kodlarını tara/);
+});
+
+test('diagnostic UI exposes cross-brand control-unit coverage', () => {
+  assert.match(diagnostics, /Kontrol Üniteleri/);
+  assert.match(diagnostics, /VehicleModuleCatalog\.modules/);
+});
+
 test('iOS declares Bluetooth privacy usage descriptions', () => {
   assert.match(project, /NSBluetoothAlwaysUsageDescription/);
   assert.match(project, /NSBluetoothPeripheralUsageDescription/);

@@ -78,13 +78,18 @@ struct DiagnosticView: View {
                             }
 
                             Button {
-                                let sent = bluetooth.sendReadOnlyDtcProbe()
-                                message = sent
-                                    ? "Salt-okuma DTC probu gönderildi; gelen cevaplar aşağıda otomatik çözülecek."
-                                    : "DTC probu gönderilemedi."
+                                Task {
+                                    message = "Kayıtlı, bekleyen ve kalıcı OBD hata kodları taranıyor…"
+                                    await bluetooth.scanGenericDtcStates()
+                                    message = "Genel OBD hata kodu taraması tamamlandı."
+                                }
                             } label: {
-                                Label("DTC oku — deneysel salt-okuma", systemImage: "stethoscope")
+                                Label(
+                                    bluetooth.genericDtcScanRunning ? "Hata kodları taranıyor…" : "Hata kodlarını tara",
+                                    systemImage: "stethoscope"
+                                )
                             }
+                            .disabled(bluetooth.genericDtcScanRunning)
 
                             Button {
                                 Task {
@@ -207,6 +212,23 @@ struct DiagnosticView: View {
                             ).rawValue
                         )
                         .font(.caption)
+                    }
+                }
+
+                Section("Kontrol Üniteleri") {
+                    ForEach(VehicleModuleCatalog.modules(for: effectiveBrand)) { module in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(module.kind.rawValue)
+                                Text(module.logicalName + " • " + module.protocolFamily.rawValue)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(module.manufacturerPackRequired ? "Üretici paketi" : "Genel OBD")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -408,7 +430,9 @@ struct DiagnosticView: View {
         var codes = Set<String>()
 
         for observation in bluetooth.passiveObservations
-            where observation.kind == "DTC" || observation.kind == "PENDING_DTC" {
+            where observation.kind == "DTC"
+                || observation.kind == "PENDING_DTC"
+                || observation.kind == "PERMANENT_DTC" {
             codes.insert(observation.title.uppercased())
         }
 
