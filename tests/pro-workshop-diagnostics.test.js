@@ -8,6 +8,8 @@ const safety = fs.readFileSync(new URL('../ios/JARVIS/VehicleWriteSafetyGate.swi
 const sessions = fs.readFileSync(new URL('../ios/JARVIS/WorkshopSessionStore.swift', import.meta.url), 'utf8');
 const backups = fs.readFileSync(new URL('../ios/JARVIS/CodingBackupVault.swift', import.meta.url), 'utf8');
 const favorites = fs.readFileSync(new URL('../ios/JARVIS/CodingFavoritesStore.swift', import.meta.url), 'utf8');
+const comparison = fs.readFileSync(new URL('../ios/JARVIS/WorkshopComparisonEngine.swift', import.meta.url), 'utf8');
+const packetEvent = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagPacketEvent.swift', import.meta.url), 'utf8');
 
 test('professional workshop flow can run a one-touch diagnostic and save a report', () => {
   assert.match(diagnostics, /Atölye Hızlı İşlemler/);
@@ -34,6 +36,21 @@ test('coding backups persist by VIN and favorites improve workshop speed', () =>
   assert.match(favorites, /UserDefaults/);
   assert.match(diagnostics, /Özellik ara: ayna, kilit, ışık/);
   assert.match(diagnostics, /star\.fill/);
+});
+
+test('workshop history highlights new resolved and persistent DTCs', () => {
+  assert.match(comparison, /newCodes/);
+  assert.match(comparison, /resolvedCodes/);
+  assert.match(comparison, /persistentCodes/);
+  assert.match(diagnostics, /Önceki taramayla karşılaştır/);
+});
+
+test('ThinkDiag transport logs timestamped RX TX packets and write limits', () => {
+  assert.match(packetEvent, /ThinkDiagPacketDirection/);
+  assert.match(bluetooth, /packetEvents/);
+  assert.match(bluetooth, /maxWriteWithResponse/);
+  assert.match(bluetooth, /writeCharacteristicScore/);
+  assert.match(bluetooth, /notifyCharacteristicScore/);
 });
 
 test('ThinkDiag remembers the last adapter and reconnects automatically', () => {
