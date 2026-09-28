@@ -82,6 +82,7 @@ final class VehicleCodingCoordinator: ObservableObject {
     @Published private(set) var state: CodingExecutionState = .idle
     @Published private(set) var pendingFeature: CodingFeatureDescriptor?
     @Published private(set) var backup: CodingBackupRecord?
+    @Published private(set) var executionLog: [String] = []
 
     func prepare(
         _ feature: CodingFeatureDescriptor,
@@ -103,6 +104,100 @@ final class VehicleCodingCoordinator: ObservableObject {
         }
         pendingFeature = feature
         state = .ready(feature.title)
+    }
+
+    func prepareAndBackup(
+        _ feature: CodingFeatureDescriptor,
+        vin: String?,
+        transportReady: Bool,
+        send: @escaping (UInt16, Data, Data?) async -> Data?
+    ) async {
+        prepare(feature, vin: vin, transportReady: transportReady)
+        guard case .ready = state,
+              let recipe = CodingRecipeRegistry.shared.recipe(for: feature.id),
+              let module = ManufacturerDiagnosticRegistry.shared.moduleRecipe(
+                brand: feature.brand,
+                moduleName: recipe.module
+              ) else {
+            if case .ready = state {
+                state = .unsupported("Kodlama reçetesi için modül taşıma yolu bulunamadı")
+            }
+            return
+        }
+
+        state = .backingUp
+        executionLog.removeAll()
+        var backupBytes = Data()
+
+        for step in recipe.readCurrentValueSteps {
+            guard let request = Data(hexString: step.requestHex) else {
+                state = .failed("Geçersiz backup komutu")
+                return
+            }
+            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+                state = .failed("Mevcut değer okunamadı: \(step.description)")
+                return
+            }
+            executionLog.append("READ \(step.description): " + response.map { String(format: "%02X", $0) }.joined())
+            backupBytes.append(response)
+        }
+
+        guard !backupBytes.isEmpty || recipe.readCurrentValueSteps.isEmpty else {
+            state = .failed("Yedek alınamadı")
+            return
+        }
+
+        stageBackup(vin: vin, originalValue: backupBytes)
+    }
+
+    func executeConfirmed(
+        send: @escaping (UInt16, Data, Data?) async -> Data?
+    ) async {
+        guard case .awaitingConfirmation = state,
+              let feature = pendingFeature,
+              let recipe = CodingRecipeRegistry.shared.recipe(for: feature.id),
+              let module = ManufacturerDiagnosticRegistry.shared.moduleRecipe(
+                brand: feature.brand,
+                moduleName: recipe.module
+              ) else {
+            state = .failed("Kodlama başlatılamadı")
+            return
+        }
+
+        state = .writing
+        for step in recipe.writeSteps {
+            guard let request = Data(hexString: step.requestHex) else {
+                state = .failed("Geçersiz yazma komutu")
+                return
+            }
+            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+                state = .failed("Yazma yanıtı alınamadı: \(step.description)")
+                return
+            }
+            if let negative = UDSCodec.parseNegative(response) {
+                state = .failed(negative.message)
+                return
+            }
+            executionLog.append("WRITE \(step.description): " + response.map { String(format: "%02X", $0) }.joined())
+        }
+
+        state = .verifying
+        for step in recipe.verifySteps {
+            guard let request = Data(hexString: step.requestHex) else {
+                state = .failed("Geçersiz doğrulama komutu")
+                return
+            }
+            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+                state = .failed("Doğrulama yanıtı alınamadı: \(step.description)")
+                return
+            }
+            executionLog.append("VERIFY \(step.description): " + response.map { String(format: "%02X", $0) }.joined())
+        }
+
+        state = .completed
     }
 
     func stageBackup(vin: String?, originalValue: Data) {
