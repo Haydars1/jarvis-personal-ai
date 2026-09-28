@@ -32,6 +32,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var liveSamples: [ThinkDiagLiveSample] = []
     @Published private(set) var freezeFrameValues: [ThinkDiagFreezeFrameValue] = []
     @Published private(set) var readiness: GenericObdReadiness?
+    @Published private(set) var verifiedReadCapabilities: Set<ThinkDiagReadCapability> = []
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -387,6 +388,21 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         guard frame.checksumValid else { return }
         let bytes = [UInt8](frame.payload)
 
+        var newlyVerified = Set<ThinkDiagReadCapability>()
+        if bytes.contains(0x41) { newlyVerified.insert(.currentData) }
+        if bytes.contains(0x42) { newlyVerified.insert(.freezeFrame) }
+        if bytes.contains(0x43) { newlyVerified.insert(.storedDtcs) }
+        if bytes.contains(0x47) { newlyVerified.insert(.pendingDtcs) }
+        if bytes.contains(0x49) { newlyVerified.insert(.vehicleInfo) }
+        if bytes.contains(0x4A) { newlyVerified.insert(.permanentDtcs) }
+
+        if !newlyVerified.isEmpty {
+            verifiedReadCapabilities.formUnion(newlyVerified)
+            if let id = active?.identifier {
+                ThinkDiagCapabilityStore.save(verifiedReadCapabilities, for: id)
+            }
+        }
+
         for start in bytes.indices {
             let suffix = Array(bytes[start...])
             guard let first = suffix.first else { continue }
@@ -463,6 +479,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             state = .connected(peripheral.name ?? "ThinkDiag")
             UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: lastPeripheralKey)
             protocolProfile = ThinkDiagProtocolProfileStore.load(for: peripheral.identifier)
+            verifiedReadCapabilities = ThinkDiagCapabilityStore.load(for: peripheral.identifier)
             discoveredServices.removeAll()
             notificationFrames.removeAll()
             decodedFrames.removeAll()
