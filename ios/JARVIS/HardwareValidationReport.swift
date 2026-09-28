@@ -32,6 +32,7 @@ struct HardwareValidationReport: Codable, Hashable {
     let liveSampleCount: Int
     let freezeFrameCount: Int
     let readinessSummary: String?
+    let verifiedReadCapabilities: [String]
     let modules: [HardwareValidationModule]
     let packetTimeline: [HardwareValidationPacket]
 }
@@ -87,6 +88,7 @@ enum HardwareValidationReportBuilder {
             liveSampleCount: bluetooth.liveSamples.count,
             freezeFrameCount: bluetooth.freezeFrameValues.count,
             readinessSummary: bluetooth.readiness?.summary,
+            verifiedReadCapabilities: bluetooth.verifiedReadCapabilities.map(\.rawValue).sorted(),
             modules: moduleRows,
             packetTimeline: Array(packets)
         )
