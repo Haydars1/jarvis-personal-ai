@@ -13,6 +13,11 @@ final class VehicleCodingResearchStore: ObservableObject {
 
     func sync(brand: VehicleBrand, pages: Int = 3) async {
         guard brand != .generic, !loading else { return }
+        let cached = OfflineVehicleDataStore.loadCodingResearch(brand: brand)
+        if !cached.isEmpty {
+            candidates = cached
+            lastSyncBrand = brand.rawValue
+        }
         loading = true
         lastError = nil
         defer { loading = false }
@@ -27,8 +32,15 @@ final class VehicleCodingResearchStore: ObservableObject {
                     if lhs.confidence != rhs.confidence { return lhs.confidence > rhs.confidence }
                     return lhs.observedAt > rhs.observedAt
                 }
+            OfflineVehicleDataStore.saveCodingResearch(candidates, brand: brand)
         } catch {
-            lastError = error.localizedDescription
+            lastError = nil
+            let cached = OfflineVehicleDataStore.loadCodingResearch(brand: brand)
+            if !cached.isEmpty {
+                candidates = cached
+                lastSyncBrand = brand.rawValue
+                return
+            }
             do {
                 let catalog = try await api.vehicleCodingResearchCatalog(brand: brand.rawValue)
                 candidates = catalog.candidates
@@ -42,14 +54,26 @@ final class VehicleCodingResearchStore: ObservableObject {
             candidates = []
             return
         }
+
+        let cached = OfflineVehicleDataStore.loadCodingResearch(brand: brand)
+        if !cached.isEmpty {
+            candidates = cached
+            lastSyncBrand = brand.rawValue
+        }
+
         do {
             let catalog = try await api.vehicleCodingResearchCatalog(brand: brand.rawValue)
             candidates = catalog.candidates
             lastSyncBrand = brand.rawValue
+            OfflineVehicleDataStore.saveCodingResearch(candidates, brand: brand)
             let status = try await api.vehicleCodingResearchStatus()
             totalCandidates = status.totalCandidates
         } catch {
-            lastError = error.localizedDescription
+            if candidates.isEmpty {
+                lastError = "Çevrimdışı: daha önce indirilen kodlama araştırması bulunamadı."
+            } else {
+                lastError = nil
+            }
         }
     }
 
