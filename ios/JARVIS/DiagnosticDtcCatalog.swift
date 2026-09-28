@@ -77,7 +77,13 @@ enum DiagnosticDtcCatalog {
         default: family = "Araç sistemi"
         }
 
-        let generic = normalized.count >= 2 && normalized[normalized.index(after: normalized.startIndex)] == "0"
+        let generic: Bool
+        if normalized.count >= 2 {
+            let second = normalized.index(after: normalized.startIndex)
+            generic = normalized[second] == "0"
+        } else {
+            generic = false
+        }
         return .init(
             code: normalized,
             title: generic ? "Standart OBD-II arıza kodu" : "Üreticiye özel arıza kodu",
