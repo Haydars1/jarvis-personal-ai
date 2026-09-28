@@ -43,6 +43,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     private let autoReconnectKey = "jarvis.thinkdiag.autoReconnect"
     private var writeCharacteristicScore = Int.min
     private var notifyCharacteristicScore = Int.min
+    private var exclusiveRequestDepth = 0
 
     override init() {
         super.init()
@@ -228,6 +229,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         livePollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { break }
+                if self.exclusiveRequestDepth > 0 {
+                    try? await Task.sleep(nanoseconds: 120_000_000)
+                    continue
+                }
                 for pid in pids {
                     if Task.isCancelled { break }
                     _ = self.sendReadOnlyPid(pid)
@@ -333,17 +338,25 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         timeoutNanoseconds: UInt64 = 1_500_000_000
     ) async -> Data? {
         guard protocolProfile != nil, canWrite else { return nil }
+
+        exclusiveRequestDepth += 1
+        defer { exclusiveRequestDepth = max(0, exclusiveRequestDepth - 1) }
+
+        // Give any in-flight generic PID notification a short window to settle so
+        // a manufacturer/coding request is not correlated to stale traffic.
+        try? await Task.sleep(nanoseconds: 90_000_000)
+
         let startIndex = decodedFrames.count
         guard sendVCIFrame(opcode: opcode, payload: payload) else { return nil }
 
-        let step: UInt64 = 80_000_000
+        let step: UInt64 = 60_000_000
         var waited: UInt64 = 0
         while waited < timeoutNanoseconds {
             try? await Task.sleep(nanoseconds: step)
             waited += step
 
             let newFrames = Array(decodedFrames.dropFirst(min(startIndex, decodedFrames.count)))
-            for frame in newFrames.reversed() {
+            for frame in newFrames.reversed() where frame.checksumValid {
                 if let prefix = expectedPayloadPrefix {
                     if frame.payload.starts(with: prefix) { return frame.payload }
                 } else if !frame.payload.isEmpty {
