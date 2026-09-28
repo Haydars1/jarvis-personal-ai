@@ -24,6 +24,8 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var active: CBPeripheral?
+    private var writeCBCharacteristic: CBCharacteristic?
+    private var notifyCBCharacteristic: CBCharacteristic?
     private var assembler = ThinkDiagFrameAssembler()
 
     override init() {
@@ -71,6 +73,19 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     var isThinkDiagTransportReady: Bool {
         guard case .connected = state else { return false }
         return !discoveredServices.isEmpty
+    }
+
+    var canWrite: Bool {
+        active != nil && writeCBCharacteristic != nil
+    }
+
+    @discardableResult
+    func sendReadOnlyDtcProbe() -> Bool {
+        guard let peripheral = active, let characteristic = writeCBCharacteristic else { return false }
+        let data = ThinkDiagVciFrame.build(opcode: 0x0103)
+        let type: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
+        peripheral.writeValue(data, for: characteristic, type: type)
+        return true
     }
 
     var protocolFingerprint: ThinkDiagProtocolFingerprint {
@@ -121,6 +136,8 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             preferredServiceDetected = false
             writableCharacteristic = nil
             notifyCharacteristic = nil
+            writeCBCharacteristic = nil
+            notifyCBCharacteristic = nil
             passiveObservations.removeAll()
             assembler.reset()
             streamStats = assembler.stats
@@ -165,11 +182,16 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
                 if !discoveredServices.contains(marker) { discoveredServices.append(marker) }
 
                 let props = characteristic.properties
-                if writableCharacteristic == nil && (props.contains(.write) || props.contains(.writeWithoutResponse)) {
+                let preferred = ThinkDiagKnownBle.isPreferredService(service.uuid.uuidString)
+                if (props.contains(.write) || props.contains(.writeWithoutResponse)),
+                   writeCBCharacteristic == nil || preferred {
                     writableCharacteristic = marker
+                    writeCBCharacteristic = characteristic
                 }
-                if notifyCharacteristic == nil && (props.contains(.notify) || props.contains(.indicate)) {
+                if (props.contains(.notify) || props.contains(.indicate)),
+                   notifyCBCharacteristic == nil || preferred {
                     notifyCharacteristic = marker
+                    notifyCBCharacteristic = characteristic
                 }
                 if props.contains(.notify) || props.contains(.indicate) {
                     peripheral.setNotifyValue(true, for: characteristic)
