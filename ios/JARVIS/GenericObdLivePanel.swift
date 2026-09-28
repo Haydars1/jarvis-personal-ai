@@ -29,16 +29,32 @@ struct GenericObdLivePanel: View {
                     }
                 }
 
-                if chartSamples.count >= 3 {
-                    Chart(chartSamples) { sample in
-                        LineMark(
-                            x: .value("Zaman", sample.timestamp),
-                            y: .value(sample.label, sample.value),
-                            series: .value("PID", sample.label)
-                        )
+                if mapSamples.count >= 3 {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Manifold basıncı")
+                            .font(.caption.weight(.semibold))
+                        Chart(mapSamples) { sample in
+                            LineMark(
+                                x: .value("Zaman", sample.timestamp),
+                                y: .value("MAP kPa", sample.value)
+                            )
+                        }
+                        .frame(height: 140)
                     }
-                    .frame(height: 180)
-                    .chartLegend(position: .bottom)
+                }
+
+                if rpmSamples.count >= 3 {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Motor devri")
+                            .font(.caption.weight(.semibold))
+                        Chart(rpmSamples) { sample in
+                            LineMark(
+                                x: .value("Zaman", sample.timestamp),
+                                y: .value("RPM", sample.value)
+                            )
+                        }
+                        .frame(height: 120)
+                    }
                 }
 
                 if p0299Active, let assessment = GenericBoostAnalyzer.assess(samples: samples) {
@@ -77,9 +93,12 @@ struct GenericObdLivePanel: View {
         }
     }
 
-    private var chartSamples: [ThinkDiagLiveSample] {
-        let chartPids: Set<UInt8> = [0x0B,0x10,0x0C]
-        return Array(samples.filter { chartPids.contains($0.pid) }.suffix(240))
+    private var mapSamples: [ThinkDiagLiveSample] {
+        Array(samples.filter { $0.pid == 0x0B }.suffix(160))
+    }
+
+    private var rpmSamples: [ThinkDiagLiveSample] {
+        Array(samples.filter { $0.pid == 0x0C }.suffix(160))
     }
 
     private func render(_ value: Double, unit: String) -> String {
