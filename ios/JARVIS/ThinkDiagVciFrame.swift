@@ -10,6 +10,20 @@ struct ThinkDiagVciFrame: Identifiable, Hashable {
 
     static let minimumSize = 7
 
+    static func build(header: [UInt8] = [0x55, 0xAA], opcode: UInt16, payload: Data = Data()) -> Data {
+        precondition(header.count == 2)
+        var bytes: [UInt8] = [
+            header[0], header[1],
+            UInt8((opcode >> 8) & 0xFF), UInt8(opcode & 0xFF),
+            UInt8((payload.count >> 8) & 0xFF), UInt8(payload.count & 0xFF)
+        ]
+        bytes.append(contentsOf: payload)
+        var checksum: UInt8 = 0
+        for byte in bytes[2...] { checksum ^= byte }
+        bytes.append(checksum)
+        return Data(bytes)
+    }
+
     static func decode(_ data: Data) -> ThinkDiagVciFrame? {
         let bytes = [UInt8](data)
         guard bytes.count >= minimumSize else { return nil }
