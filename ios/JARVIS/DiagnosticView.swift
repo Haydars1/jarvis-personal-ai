@@ -1304,7 +1304,7 @@ struct DiagnosticView: View {
                 if networkMonitor.isOnline {
                     await offlinePrefetch.refreshIfNeeded()
                 } else {
-                    await offlinePrefetch.refreshIfNeeded(force: false)
+                    offlinePrefetch.refreshCacheCount()
                 }
             }
             .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
