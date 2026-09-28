@@ -5,6 +5,10 @@ on:
     paths:
       - 'ios/**'
       - '.github/workflows/ios-native-check.yml'
+  pull_request:
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-native-check.yml'
   workflow_dispatch:
 
 jobs:
@@ -26,9 +30,7 @@ jobs:
       - name: Build iPhone Release app without signing
         working-directory: ios
         run: |
-          IPA_BASENAME="JARVIS-Run${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}-unsigned"
-          echo "IPA_BASENAME=$IPA_BASENAME" >> "$GITHUB_ENV"
-          rm -rf build-device Payload "$IPA_BASENAME.ipa" JARVIS-unsigned.ipa
+          rm -rf build-device
           xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Release -derivedDataPath build-device CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
           APP_PATH="build-device/Build/Products/Release-iphoneos/JARVIS.app"
           test -d "$APP_PATH"
@@ -39,13 +41,8 @@ jobs:
           EXT_PLIST="$APP_PATH/PlugIns/JARVISShare.appex/Info.plist"
           test -f "$EXT_PLIST"
           /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$EXT_PLIST" | grep -qx 'com.apple.share-services'
-          mkdir Payload
-          cp -R "$APP_PATH" Payload/JARVIS.app
-          ditto -c -k --sequesterRsrc --keepParent Payload "$IPA_BASENAME.ipa"
-      - name: Upload unsigned IPA
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.IPA_BASENAME }}-artifact
-          path: ios/${{ env.IPA_BASENAME }}.ipa
-          if-no-files-found: error
-          retention-days: 14
+
+      - name: Summary
+        run: |
+          echo "iOS source validated. No IPA artifact is uploaded from normal development builds." >> "$GITHUB_STEP_SUMMARY"
+          echo "Use the 'Build JARVIS Workshop Beta IPA' workflow only when a consolidated test build is wanted." >> "$GITHUB_STEP_SUMMARY"
