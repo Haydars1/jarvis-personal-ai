@@ -16,15 +16,19 @@ final class OfflineCatalogPrefetcher: ObservableObject {
         lastRefresh = defaults.object(forKey: refreshKey) as? Date
     }
 
+    func refreshCacheCount() {
+        cachedBrands = VehicleBrand.allCases
+            .filter { $0 != .generic && OfflineVehicleDataStore.hasCodingResearch(brand: $0) }
+            .count
+    }
+
     func refreshIfNeeded(force: Bool = false) async {
         guard !running else { return }
 
         if !force,
            let lastRefresh,
            Date().timeIntervalSince(lastRefresh) < interval {
-            cachedBrands = VehicleBrand.allCases
-                .filter { $0 != .generic && OfflineVehicleDataStore.hasCodingResearch(brand: $0) }
-                .count
+            refreshCacheCount()
             return
         }
 
