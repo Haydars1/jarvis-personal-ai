@@ -58,7 +58,85 @@ final class VehicleCodingResearchStore: ObservableObject {
             !$0.feature.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             (
                 !$0.channel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                !$0.value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                !($0.operations ?? []).isEmpty
+            )
+        }
+    }
+
+    var trustedEvidenceFeatures: [EvidenceBackedCodingFeature] {
+        candidates.compactMap { candidate in
+            guard candidate.status == "trusted_catalog",
+                  !candidate.feature.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  let operations = candidate.operations,
+                  !operations.isEmpty else {
+                return nil
+            }
+
+            let semantic: [SemanticCodingOperation] = operations.compactMap { op in
+                switch op.kind {
+                case "longCodingBit":
+                    guard let byte = op.byte,
+                          let bit = op.bit,
+                          let enabled = op.enabled else { return nil }
+                    return .longCodingBit(
+                        module: candidate.module,
+                        byte: byte,
+                        bit: bit,
+                        enabled: enabled
+                    )
+
+                case "adaptation":
+                    guard let channel = op.channel,
+                          let value = op.value else { return nil }
+                    return .adaptation(
+                        module: candidate.module,
+                        channel: channel,
+                        value: value,
+                        securityAccess: nil
+                    )
+
+                default:
+                    return nil
+                }
+            }
+
+            guard !semantic.isEmpty else { return nil }
+
+            return EvidenceBackedCodingFeature(
+                id: candidate.id,
+                title: candidate.feature,
+                description: candidate.coding ?? candidate.title,
+                category: "Topluluk / doğrulanmış katalog",
+                risk: .low,
+                applicability: .init(
+                    brands: candidate.brands.compactMap { brandName in
+                        VehicleBrand.allCases.first {
+                            $0.rawValue.caseInsensitiveCompare(brandName) == .orderedSame
+                        }
+                    },
+                    modelContains: candidate.applicability.isEmpty ? [] : [candidate.applicability],
+                    platformContains: [],
+                    yearMin: nil,
+                    yearMax: nil,
+                    requiredModules: candidate.module.isEmpty ? [] : [candidate.module],
+                    requiredPartPrefixes: [],
+                    requiredSoftwareContains: [],
+                    requiredEquipmentTokens: []
+                ),
+                operations: semantic,
+                evidence: [
+                    .init(
+                        id: candidate.id + "-source",
+                        kind: candidate.sourceKind.lowercased().contains("github") ? .github : .forum,
+                        title: candidate.sourceTitle,
+                        url: candidate.sourceUrl,
+                        note: "Trusted catalog import",
+                        confidence: candidate.confidence
+                    )
+                ],
+                rollbackRequired: true,
+                notes: ["Kaynak katalog: \(candidate.status)"]
             )
         }
     }
