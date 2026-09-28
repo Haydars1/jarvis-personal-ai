@@ -5,6 +5,7 @@ struct DiagnosticView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var bluetooth = ThinkDiagBluetooth()
     @StateObject private var codingCoordinator = VehicleCodingCoordinator()
+    @StateObject private var diagnosticAI = VehicleDiagnosticAI()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -234,6 +235,20 @@ struct DiagnosticView: View {
                                 }
                             }
                         }
+
+                        if diagnosticAI.loading {
+                            HStack {
+                                ProgressView()
+                                Text("JARVIS hata kodlarını yorumluyor…")
+                                    .font(.caption)
+                            }
+                        } else if !diagnosticAI.explanation.isEmpty {
+                            DisclosureGroup("JARVIS teşhis yorumu") {
+                                Text(diagnosticAI.explanation)
+                                    .font(.caption)
+                                    .textSelection(.enabled)
+                            }
+                        }
                     }
                 }
 
@@ -344,6 +359,18 @@ struct DiagnosticView: View {
                 .ignoresSafeArea()
             }
         }
+    }
+
+    private var effectiveBrand: VehicleBrand {
+        if selectedBrand != .generic { return selectedBrand }
+        if let vin = detectedVIN {
+            return VehicleBrand.detect(fromVIN: vin)
+        }
+        return .generic
+    }
+
+    private var dtcCodeKey: String {
+        currentDtcExplanations.map(\.code).sorted().joined(separator: "|")
     }
 
     private var detectedVIN: String? {
