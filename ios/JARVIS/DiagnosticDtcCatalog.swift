@@ -68,6 +68,26 @@ enum DiagnosticDtcCatalog {
         let normalized = code.uppercased()
         if let known = known[normalized] { return known }
 
+        if let offline = OfflineDtcDatabase.shared.lookup(normalized) {
+            let family: String
+            switch normalized.first {
+            case "P": family = "Güç aktarma / motor"
+            case "C": family = "Şasi"
+            case "B": family = "Gövde"
+            case "U": family = "Haberleşme / ağ"
+            default: family = "Araç sistemi"
+            }
+
+            return .init(
+                code: normalized,
+                title: OfflineDtcTurkish.title(for: offline),
+                meaning: "\(family) • Çevrimdışı DTC veritabanı: \(offline.description)",
+                likelyCauses: ["Kesin neden için freeze frame ve canlı veriler birlikte değerlendirilmelidir."],
+                checks: ["Freeze frame oku", "İlgili canlı verileri kaydet", "Aynı anda oluşan diğer DTC'leri kontrol et"],
+                severity: "Kontrol gerekli"
+            )
+        }
+
         let family: String
         switch normalized.first {
         case "P": family = "Güç aktarma / motor"
