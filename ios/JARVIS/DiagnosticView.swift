@@ -67,6 +67,11 @@ struct DiagnosticView: View {
 
                     if bluetooth.isThinkDiagTransportReady {
                         if bluetooth.canWrite {
+                            if let profile = bluetooth.protocolProfile {
+                                LabeledContent("Doğrulanmış header", value: profile.headerHex)
+                                    .font(.caption)
+                            }
+
                             Button {
                                 let sent = bluetooth.sendReadOnlyDtcProbe()
                                 message = sent
@@ -74,6 +79,35 @@ struct DiagnosticView: View {
                                     : "DTC probu gönderilemedi."
                             } label: {
                                 Label("DTC oku — deneysel salt-okuma", systemImage: "stethoscope")
+                            }
+
+                            Button {
+                                Task {
+                                    message = "Salt-okuma protokol taraması çalışıyor…"
+                                    await bluetooth.runReadOnlyHeaderSweep()
+                                    if let profile = bluetooth.protocolProfile {
+                                        message = "ThinkDiag header doğrulandı: \(profile.headerHex)"
+                                    } else {
+                                        message = "Header taraması tamamlandı; doğrulanmış Mode 03 cevabı bulunamadı."
+                                    }
+                                }
+                            } label: {
+                                Label(bluetooth.probeRunning ? "Protokol taranıyor…" : "Salt-okuma protokol taraması", systemImage: "waveform.badge.magnifyingglass")
+                            }
+                            .disabled(bluetooth.probeRunning)
+
+                            if !bluetooth.probeAttempts.isEmpty {
+                                DisclosureGroup("Protokol testleri") {
+                                    ForEach(bluetooth.probeAttempts) { attempt in
+                                        HStack {
+                                            Text(attempt.headerHex).font(.caption.monospaced())
+                                            Spacer()
+                                            Text(attempt.success ? "OK" : attempt.detail)
+                                                .font(.caption2)
+                                                .foregroundStyle(attempt.success ? .green : .secondary)
+                                        }
+                                    }
+                                }
                             }
                         }
 
@@ -216,6 +250,8 @@ struct DiagnosticView: View {
         lines.append("checksumValid=\(bluetooth.streamStats.checksumValid)")
         lines.append("discardedBytes=\(bluetooth.streamStats.discardedBytes)")
         lines.append("fingerprint=\(bluetooth.protocolFingerprint.summary)")
+        lines.append("protocolProfile=\(bluetooth.protocolProfile?.headerHex ?? "-")")
+        lines.append(contentsOf: bluetooth.probeAttempts.map { "probe|\($0.headerHex)|\($0.success)|\($0.detail)" })
         lines.append("--- services ---")
         lines.append(contentsOf: bluetooth.discoveredServices)
         lines.append("--- passive observations ---")
