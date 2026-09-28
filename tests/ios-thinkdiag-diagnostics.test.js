@@ -21,6 +21,8 @@ const moduleCatalog = fs.readFileSync(new URL('../ios/JARVIS/VehicleModuleCatalo
 const uds = fs.readFileSync(new URL('../ios/JARVIS/UDSCodec.swift', import.meta.url), 'utf8');
 const manufacturerPack = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerDiagnosticPack.swift', import.meta.url), 'utf8');
 const moduleScanner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerModuleScanner.swift', import.meta.url), 'utf8');
+const transportCodec = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerTransportCodec.swift', import.meta.url), 'utf8');
+const manufacturerLive = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerLiveDataController.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -178,6 +180,28 @@ test('coding execution requires backup confirmation write and verify phases', ()
   assert.match(codingCoordinator, /state = \.writing/);
   assert.match(codingCoordinator, /state = \.verifying/);
   assert.match(diagnostics, /confirmationDialog/);
+});
+
+test('manufacturer transport prefixes are data-driven by pack routes', () => {
+  assert.match(transportCodec, /wrapRequest/);
+  assert.match(transportCodec, /unwrapResponse/);
+  assert.match(transportCodec, /requestPrefixHex/);
+  assert.match(transportCodec, /responsePrefixHex/);
+  assert.match(moduleScanner, /ManufacturerTransportCodec\.wrapRequest/);
+  assert.match(codingCoordinator, /ManufacturerTransportCodec\.wrapRequest/);
+});
+
+test('manufacturer live data polls configured DIDs through direct ThinkDiag', () => {
+  assert.match(manufacturerLive, /liveDataDIDs/);
+  assert.match(manufacturerLive, /UDSCodec\.readDID/);
+  assert.match(manufacturerLive, /decodeNumeric/);
+  assert.match(diagnostics, /Üretici Canlı Verileri/);
+  assert.match(diagnostics, /Üretici canlı verilerini başlat/);
+});
+
+test('coding workspace exposes an execution audit trail', () => {
+  assert.match(codingCoordinator, /executionLog/);
+  assert.match(diagnostics, /Kodlama işlem kaydı/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {

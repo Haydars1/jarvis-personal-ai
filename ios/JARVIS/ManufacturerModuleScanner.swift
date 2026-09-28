@@ -49,30 +49,39 @@ final class ManufacturerModuleScanner: ObservableObject {
 
             if let sessionHex = module.enterSessionHex,
                let session = Data(hexString: sessionHex) {
-                _ = await send(module.transport.vciOpcode, session)
+                let wrapped = ManufacturerTransportCodec.wrapRequest(session, route: module.transport)
+                _ = await send(module.transport.vciOpcode, wrapped)
             }
 
             var identification: [String:String] = [:]
             for did in module.identificationDIDs {
-                let request = UDSCodec.readDID(did.did)
-                if let response = await send(module.transport.vciOpcode, request),
-                   let parsed = UDSCodec.parseReadDID(response),
-                   parsed.did == did.did {
-                    identification[did.label] = decodeDisplay(parsed.payload)
+                let rawRequest = UDSCodec.readDID(did.did)
+                let request = ManufacturerTransportCodec.wrapRequest(rawRequest, route: module.transport)
+                if let rawResponse = await send(module.transport.vciOpcode, request) {
+                    let response = ManufacturerTransportCodec.unwrapResponse(rawResponse, route: module.transport)
+                    if let parsed = UDSCodec.parseReadDID(response),
+                       parsed.did == did.did {
+                        identification[did.label] = decodeDisplay(parsed.payload)
+                    }
                 }
             }
 
             var dtcs: [UDSDTCRecord] = []
             var scanError: String?
-            if let dtcRequest = Data(hexString: module.readDtcHex),
-               let response = await send(module.transport.vciOpcode, dtcRequest) {
-                if let negative = UDSCodec.parseNegative(response) {
-                    scanError = negative.message
+            if let rawDtcRequest = Data(hexString: module.readDtcHex) {
+                let dtcRequest = ManufacturerTransportCodec.wrapRequest(rawDtcRequest, route: module.transport)
+                if let rawResponse = await send(module.transport.vciOpcode, dtcRequest) {
+                    let response = ManufacturerTransportCodec.unwrapResponse(rawResponse, route: module.transport)
+                    if let negative = UDSCodec.parseNegative(response) {
+                        scanError = negative.message
+                    } else {
+                        dtcs = UDSCodec.parseDTCResponse(response)
+                    }
                 } else {
-                    dtcs = UDSCodec.parseDTCResponse(response)
+                    scanError = "Modül yanıt vermedi"
                 }
             } else {
-                scanError = "Modül yanıt vermedi"
+                scanError = "DTC komutu geçersiz"
             }
 
             results.append(.init(
