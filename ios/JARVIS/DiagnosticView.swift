@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 struct DiagnosticView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var bluetooth = ThinkDiagBluetooth()
+    @StateObject private var codingCoordinator = VehicleCodingCoordinator()
+    @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
     @State private var message = ""
@@ -173,6 +175,107 @@ struct DiagnosticView: View {
                     }
                 }
 
+                Section("Araç") {
+                    Picker("Marka", selection: $selectedBrand) {
+                        ForEach(VehicleBrand.allCases) { brand in
+                            Text(brand.rawValue).tag(brand)
+                        }
+                    }
+
+                    if let vin = detectedVIN {
+                        LabeledContent("VIN", value: vin)
+                        if selectedBrand == .generic {
+                            let detected = VehicleBrand.detect(fromVIN: vin)
+                            if detected != .generic {
+                                Button("Markayı VIN'den seç: \(detected.rawValue)") {
+                                    selectedBrand = detected
+                                }
+                            }
+                        }
+                    }
+
+                    ForEach([VehicleCapability.readDtcs, .liveData, .moduleScan, .coding, .adaptations, .hiddenFeatures]) { capability in
+                        LabeledContent(
+                            capability.rawValue,
+                            value: VehicleCapabilityMatrix.support(
+                                for: capability,
+                                brand: selectedBrand,
+                                protocolConfirmed: bluetooth.protocolProfile != nil
+                            ).rawValue
+                        )
+                        .font(.caption)
+                    }
+                }
+
+                let dtcExplanations = currentDtcExplanations
+                if !dtcExplanations.isEmpty {
+                    Section("Hata Kodları ve Açıklamalar") {
+                        ForEach(dtcExplanations) { item in
+                            DisclosureGroup {
+                                Text(item.meaning)
+                                    .font(.caption)
+                                if !item.likelyCauses.isEmpty {
+                                    Text("Olası nedenler: " + item.likelyCauses.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if !item.checks.isEmpty {
+                                    Text("Kontroller: " + item.checks.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text("\(item.code) — \(item.title)")
+                                        .font(.headline)
+                                    Text("Önem: \(item.severity)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Section("Kodlama / Adaptasyon / Gizli Özellikler") {
+                    let pack = CodingFeatureCatalog.pack(for: selectedBrand)
+                    if selectedBrand == .generic {
+                        Text("Önce marka seç veya VIN okununca JARVIS markayı belirlesin.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if pack.features.isEmpty {
+                        Text("\(selectedBrand.rawValue) için üretici özellik paketi altyapısı hazır; doğrulanmış modül/reçeteler eklendikçe burada açılacak.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(pack.features) { feature in
+                            Button {
+                                codingCoordinator.prepare(
+                                    feature,
+                                    vin: detectedVIN,
+                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                )
+                                message = codingCoordinator.state.label
+                            } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(feature.title)
+                                    Text("\(feature.module) • \(feature.kind.rawValue) • Risk: \(feature.risk.rawValue)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    Text(feature.description)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
+                    }
+
+                    Text("Kodlama işlemleri yalnızca araç/modül için doğrulanmış üretici reçetesi bulunduğunda açılır; mevcut değer önce yedeklenir ve yazma öncesi ayrıca onay gerekir.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("ThinkDiag Kayıt / Rapor") {
                     Button {
                         showImporter = true
@@ -241,6 +344,27 @@ struct DiagnosticView: View {
                 .ignoresSafeArea()
             }
         }
+    }
+
+    private var detectedVIN: String? {
+        bluetooth.passiveObservations
+            .last(where: { $0.kind == "VIN" })?
+            .detail
+    }
+
+    private var currentDtcExplanations: [DtcExplanation] {
+        var codes = Set<String>()
+
+        for observation in bluetooth.passiveObservations
+            where observation.kind == "DTC" || observation.kind == "PENDING_DTC" {
+            codes.insert(observation.title.uppercased())
+        }
+
+        for dtc in snapshot?.dtcs ?? [] {
+            codes.insert(dtc.code.uppercased())
+        }
+
+        return codes.sorted().map(DiagnosticDtcCatalog.explain)
     }
 
     private func load(_ url: URL) {
