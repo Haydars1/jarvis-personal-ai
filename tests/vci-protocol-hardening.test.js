@@ -11,6 +11,7 @@ const triage = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticTriageEngine.swi
 const prefs = fs.readFileSync(new URL('../ios/JARVIS/WorkshopPreferences.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
 const drive = fs.readFileSync(new URL('../ios/JARVIS/DriveLogRecorder.swift', import.meta.url), 'utf8');
+const validation = fs.readFileSync(new URL('../ios/JARVIS/HardwareValidationReport.swift', import.meta.url), 'utf8');
 
 test('manufacturer requests pause generic polling and only accept checksum-valid frames', () => {
   assert.match(bluetooth, /exclusiveRequestDepth/);
@@ -42,6 +43,15 @@ test('offline triage prioritizes voltage communications boost misfire and emissi
   assert.match(triage, /P0299/);
   assert.match(triage, /P030/);
   assert.match(triage, /P0401/);
+});
+
+test('single hardware-validation session exports protocol PID DTC module and packet evidence', () => {
+  assert.match(validation, /HardwareValidationReport/);
+  assert.match(validation, /packetTimeline/);
+  assert.match(validation, /supportedPids/);
+  assert.match(diagnostics, /Tek seferlik donanım doğrulaması/);
+  assert.match(diagnostics, /runHardwareValidationSession/);
+  assert.match(diagnostics, /3_000_000_000/);
 });
 
 test('drive logger emits valid CSV with quoted labels and Swift interpolation', () => {
