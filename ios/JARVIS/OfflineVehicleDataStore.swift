@@ -73,6 +73,10 @@ enum OfflineVehicleDataStore {
         try? data.write(to: url, options: .atomic)
     }
 
+    static func hasCodingResearch(brand: VehicleBrand) -> Bool {
+        !loadCodingResearch(brand: brand).isEmpty
+    }
+
     static func loadCodingResearch(brand: VehicleBrand) -> [VehicleCodingResearchCandidate] {
         guard let root else { return [] }
         let url = root
