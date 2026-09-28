@@ -1515,6 +1515,8 @@ struct DiagnosticView: View {
         lines.append("discardedBytes=\(bluetooth.streamStats.discardedBytes)")
         lines.append("fingerprint=\(bluetooth.protocolFingerprint.summary)")
         lines.append("protocolProfile=\(bluetooth.protocolProfile?.headerHex ?? "-")")
+        lines.append("maxWriteWithResponse=\(bluetooth.maxWriteWithResponse)")
+        lines.append("maxWriteWithoutResponse=\(bluetooth.maxWriteWithoutResponse)")
         lines.append(contentsOf: bluetooth.probeAttempts.map { "probe|\($0.headerHex)|\($0.success)|\($0.detail)" })
         lines.append("--- services ---")
         lines.append(contentsOf: bluetooth.discoveredServices)
