@@ -20,7 +20,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var notifyCharacteristic: String?
     @Published private(set) var passiveObservations: [ThinkDiagPassiveObservation] = []
     @Published private(set) var streamStats = ThinkDiagStreamStats()
-    @Published private(set) var protocolProfile: ThinkDiagProtocolProfile? = ThinkDiagProtocolProfileStore.load()
+    @Published private(set) var protocolProfile: ThinkDiagProtocolProfile?
     @Published private(set) var probeAttempts: [ThinkDiagProbeAttempt] = []
     @Published private(set) var probeRunning = false
     @Published private(set) var livePolling = false
@@ -297,7 +297,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
                     evidence: detail
                 )
                 protocolProfile = profile
-                ThinkDiagProtocolProfileStore.save(profile)
+                ThinkDiagProtocolProfileStore.save(profile, for: active?.identifier)
                 break
             }
         }
@@ -356,7 +356,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
 
     func clearProtocolProfile() {
         protocolProfile = nil
-        ThinkDiagProtocolProfileStore.clear()
+        ThinkDiagProtocolProfileStore.clear(for: active?.identifier)
     }
 
     var protocolFingerprint: ThinkDiagProtocolFingerprint {
@@ -439,6 +439,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
         Task { @MainActor in
             state = .connected(peripheral.name ?? "ThinkDiag")
             UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: lastPeripheralKey)
+            protocolProfile = ThinkDiagProtocolProfileStore.load(for: peripheral.identifier)
             discoveredServices.removeAll()
             notificationFrames.removeAll()
             decodedFrames.removeAll()
@@ -544,7 +545,10 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
                 data: data
             ))
             trimPacketEvents()
-            let frames = assembler.append(data, preferredHeader: protocolProfile?.header)
+            let frames = assembler.append(
+                data,
+                preferredHeader: probeRunning ? nil : protocolProfile?.header
+            )
             streamStats = assembler.stats
             for frame in frames {
                 decodedFrames.append(frame)
