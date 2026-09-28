@@ -12,6 +12,7 @@ struct DiagnosticView: View {
     @StateObject private var oneTapCoordinator = OneTapCodingCoordinator()
     @StateObject private var dynamicCodingCoordinator = DynamicOneTapCoordinator()
     @StateObject private var codingResearch = VehicleCodingResearchStore()
+    @StateObject private var networkMonitor = VehicleNetworkMonitor()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -200,6 +201,36 @@ struct DiagnosticView: View {
                             }
                         }
                     }
+                }
+
+                Section("Çalışma Modu") {
+                    HStack {
+                        Label(
+                            networkMonitor.isOnline ? "İnternet var" : "İnternet yok",
+                            systemImage: networkMonitor.isOnline ? "wifi" : "wifi.slash"
+                        )
+                        Spacer()
+                        Text(networkMonitor.interfaceName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(vehicleRuntimeCapabilities) { capability in
+                        HStack(alignment: .top) {
+                            Image(systemName: capability.available ? "checkmark.circle.fill" : "minus.circle")
+                                .foregroundStyle(capability.available ? .green : .secondary)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(capability.name)
+                                Text("\(capability.tier.rawValue) • \(capability.detail)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    Text("JARVIS internet varsa verileri arka planda günceller; bağlantı kesilirse mevcut yerel teşhis ve telefona indirilmiş marka/kodlama paketleriyle devam eder.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Araç") {
@@ -405,22 +436,11 @@ struct DiagnosticView: View {
                 if effectiveBrand != .generic {
                     Section("Kodlama Araştırması") {
                         HStack {
-                            Button {
-                                Task {
-                                    await codingResearch.sync(brand: effectiveBrand, pages: 3)
-                                    if let error = codingResearch.lastError {
-                                        message = "Kodlama araştırması: \(error)"
-                                    } else {
-                                        message = "\(effectiveBrand.rawValue) için araştırma güncellendi • \(codingResearch.candidates.count) aday"
-                                    }
-                                }
-                            } label: {
-                                Label(
-                                    codingResearch.loading ? "Araştırılıyor…" : "İnternetten araştır / güncelle",
-                                    systemImage: "globe.badge.chevron.backward"
-                                )
-                            }
-                            .disabled(codingResearch.loading)
+                            Label(
+                                networkMonitor.isOnline ? "Katalog otomatik güncellenir" : "Yerel katalog kullanılıyor",
+                                systemImage: networkMonitor.isOnline ? "arrow.triangle.2.circlepath" : "internaldrive"
+                            )
+                            .font(.caption)
 
                             Spacer()
 
@@ -932,9 +952,15 @@ struct DiagnosticView: View {
                 guard newBrand != .generic else { return }
                 Task {
                     await codingResearch.refresh(brand: newBrand)
-                    if codingResearch.candidates.isEmpty {
+                    if networkMonitor.isOnline {
                         await codingResearch.sync(brand: newBrand, pages: 2)
                     }
+                }
+            }
+            .onChange(of: networkMonitor.isOnline) { _, isOnline in
+                guard isOnline, effectiveBrand != .generic else { return }
+                Task {
+                    await codingResearch.sync(brand: effectiveBrand, pages: 2)
                 }
             }
             .onChange(of: detectedVIN) { _, newVIN in
@@ -943,6 +969,15 @@ struct DiagnosticView: View {
                 if detected != .generic { selectedBrand = detected }
             }
         }
+    }
+
+    private var vehicleRuntimeCapabilities: [VehicleRuntimeCapability] {
+        VehicleRuntimeCapabilities.list(
+            online: networkMonitor.isOnline,
+            brand: effectiveBrand,
+            hasManufacturerPack: ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil,
+            hasCodingCache: OfflineVehicleDataStore.hasCodingResearch(brand: effectiveBrand)
+        )
     }
 
     private var connectedInventory: ConnectedVehicleInventory {
