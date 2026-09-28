@@ -280,6 +280,7 @@ struct DiagnosticView: View {
                     samples: bluetooth.liveSamples,
                     supportedPids: bluetooth.supportedPids,
                     freezeFrame: bluetooth.freezeFrameValues,
+                    readiness: bluetooth.readiness,
                     p0299Active: currentDtcExplanations.contains { $0.code == "P0299" }
                 )
 
