@@ -795,11 +795,17 @@ struct DiagnosticView: View {
         }
 
         var equipment = Set<String>()
-        let names = identities.map { $0.name.lowercased() }
-        if names.contains(where: { $0.contains("door") || $0.contains("tür") }) {
+        let combinedIdentification = moduleScanner.results
+            .flatMap { $0.identification.values }
+            .joined(separator: " ")
+            .lowercased()
+        if combinedIdentification.contains("folding mirror") || combinedIdentification.contains("spiegelanklapp") {
+            equipment.insert("folding_mirrors")
+        }
+        if combinedIdentification.contains("mirror") || combinedIdentification.contains("spiegel") {
             equipment.insert("electric_mirror")
         }
-        if names.contains(where: { $0.contains("camera") || $0.contains("a5") }) {
+        if combinedIdentification.contains("front camera") || combinedIdentification.contains("a5") {
             equipment.insert("front_camera")
         }
 
@@ -829,9 +835,6 @@ struct DiagnosticView: View {
             ) {
                 return value
             }
-        }
-        if effectiveBrand == .volkswagen, detectedVIN?.hasPrefix("WVW") == true {
-            return "Passat"
         }
         return nil
     }
