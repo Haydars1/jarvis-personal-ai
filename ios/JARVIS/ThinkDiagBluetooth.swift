@@ -31,6 +31,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var supportedPids: Set<UInt8> = []
     @Published private(set) var liveSamples: [ThinkDiagLiveSample] = []
     @Published private(set) var freezeFrameValues: [ThinkDiagFreezeFrameValue] = []
+    @Published private(set) var readiness: GenericObdReadiness?
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -190,6 +191,9 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
             }
         }
 
+        _ = sendReadOnlyPid(0x01)
+        try? await Task.sleep(nanoseconds: 320_000_000)
+
         _ = sendReadOnlyVinProbe()
         try? await Task.sleep(nanoseconds: 500_000_000)
 
@@ -222,7 +226,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     func startLivePolling() {
         guard protocolProfile != nil, canWrite, livePollTask == nil else { return }
         livePolling = true
-        let preferred: [UInt8] = [0x0C,0x04,0x0B,0x10,0x05,0x0F,0x0D,0x23,0x33,0x42,0x46,0x5C]
+        let preferred: [UInt8] = [
+            0x0C,0x04,0x0B,0x10,0x05,0x0F,0x0D,0x23,0x33,0x42,
+            0x06,0x07,0x2C,0x2D,0x46,0x5C,0x5E
+        ]
         let pids = supportedPids.isEmpty
             ? preferred
             : preferred.filter { supportedPids.contains($0) }
@@ -388,6 +395,9 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
                 if let supported = GenericObdDecoder.supportedPids(suffix) {
                     supportedPids.formUnion(supported)
                 }
+                if let status = GenericObdReadinessDecoder.decode(suffix) {
+                    readiness = status
+                }
                 if let sample = GenericObdDecoder.decodeMode01(suffix) {
                     liveSamples.append(sample)
                 }
@@ -470,6 +480,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             supportedPids.removeAll()
             liveSamples.removeAll()
             freezeFrameValues.removeAll()
+            readiness = nil
             assembler.reset()
             streamStats = assembler.stats
             peripheral.discoverServices(nil)
