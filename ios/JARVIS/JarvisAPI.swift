@@ -197,6 +197,8 @@ struct VehicleCodingResearchCandidate: Decodable, Identifiable, Hashable {
     let channel: String
     let value: String
     let applicability: String
+    let vehicle: String?
+    let platform: String?
     let sourceUrl: String
     let sourceTitle: String
     let sourceKind: String
