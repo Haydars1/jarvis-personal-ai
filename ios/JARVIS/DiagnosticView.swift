@@ -96,6 +96,23 @@ struct DiagnosticView: View {
                             }
                             .disabled(bluetooth.probeRunning)
 
+                            if bluetooth.protocolProfile != nil {
+                                Button {
+                                    if bluetooth.livePolling {
+                                        bluetooth.stopLivePolling()
+                                        message = "Canlı veri okuma durduruldu."
+                                    } else {
+                                        bluetooth.startLivePolling()
+                                        message = "RPM, MAP, MAF, sıcaklık, hız ve modül voltajı okunuyor…"
+                                    }
+                                } label: {
+                                    Label(
+                                        bluetooth.livePolling ? "Canlı veriyi durdur" : "Canlı veriyi başlat",
+                                        systemImage: bluetooth.livePolling ? "stop.circle" : "waveform.path.ecg"
+                                    )
+                                }
+                            }
+
                             if !bluetooth.probeAttempts.isEmpty {
                                 DisclosureGroup("Protokol testleri") {
                                     ForEach(bluetooth.probeAttempts) { attempt in
