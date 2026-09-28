@@ -23,6 +23,8 @@ const manufacturerPack = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerDiag
 const moduleScanner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerModuleScanner.swift', import.meta.url), 'utf8');
 const transportCodec = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerTransportCodec.swift', import.meta.url), 'utf8');
 const manufacturerLive = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerLiveDataController.swift', import.meta.url), 'utf8');
+const protocolLearner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerProtocolLearner.swift', import.meta.url), 'utf8');
+const packCandidate = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerPackCandidateGenerator.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -202,6 +204,21 @@ test('manufacturer live data polls configured DIDs through direct ThinkDiag', ()
 test('coding workspace exposes an execution audit trail', () => {
   assert.match(codingCoordinator, /executionLog/);
   assert.match(diagnostics, /Kodlama işlem kaydı/);
+});
+
+test('protocol learner observes UDS services and DIDs from ThinkDiag traffic', () => {
+  assert.match(protocolLearner, /case 0x59/);
+  assert.match(protocolLearner, /case 0x62/);
+  assert.match(protocolLearner, /case 0x67/);
+  assert.match(protocolLearner, /case 0x6E/);
+  assert.match(protocolLearner, /case 0x7F/);
+  assert.match(diagnostics, /Protokol Öğrenme/);
+});
+
+test('protocol learning can export a candidate manufacturer pack without guessed writes', () => {
+  assert.match(packCandidate, /makeCandidate/);
+  assert.match(packCandidate, /codingRecipes: \[\]/);
+  assert.match(diagnostics, /Aday üretici paketi oluştur/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
