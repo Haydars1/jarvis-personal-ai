@@ -177,6 +177,15 @@ struct GoogleConnectInfo: Decodable {
 }
 
 
+struct VehicleCodingResearchOperation: Decodable, Hashable {
+    let kind: String
+    let byte: Int?
+    let bit: Int?
+    let enabled: Bool?
+    let channel: String?
+    let value: String?
+}
+
 struct VehicleCodingResearchCandidate: Decodable, Identifiable, Hashable {
     let id: String
     let target: String
@@ -194,6 +203,8 @@ struct VehicleCodingResearchCandidate: Decodable, Identifiable, Hashable {
     let confidence: Double
     let status: String
     let observedAt: Double
+    let coding: String?
+    let operations: [VehicleCodingResearchOperation]?
 }
 
 struct VehicleCodingResearchCatalogResponse: Decodable {
