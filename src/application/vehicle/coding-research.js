@@ -332,6 +332,8 @@ async function researchTarget(env, target, { pages = 3, maxQueries = 3 } = {}) {
         channel:row.operations.find(op => op.kind === 'adaptation')?.channel || '',
         value:row.operations.find(op => op.kind === 'adaptation')?.value || '',
         applicability:[row.vehicle,row.platform,row.compat].filter(Boolean).join(' • '),
+        vehicle:row.vehicle,
+        platform:row.platform,
         sourceUrl:row.sourceUrl,
         sourceTitle:row.sourceTitle,
         sourceKind:row.sourceKind,
