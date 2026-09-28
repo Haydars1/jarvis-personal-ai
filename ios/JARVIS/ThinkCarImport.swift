@@ -6,6 +6,9 @@ enum ThinkCarImport {
         if lower.hasSuffix(".json"), let snapshot = parseJSON(data: data, filename: filename) {
             return snapshot
         }
+        if lower.hasSuffix(".tc"), let snapshot = parseTC(data: data, filename: filename) {
+            return snapshot
+        }
         if let text = String(data: data, encoding: .utf8) {
             return parseText(text, filename: filename)
         }
@@ -14,11 +17,138 @@ enum ThinkCarImport {
             capturedAt: Date(),
             dtcs: [],
             metrics: [],
+            notes: ["Dosya biçimi henüz tanınmıyor."]
+        )
+    }
+
+    // ThinkCar .TC live-data container (LSX8/LSX9). This decoder follows
+    // descriptor pointers instead of assuming fixed record widths.
+    private static func parseTC(data: Data, filename: String) -> DiagnosticSnapshot? {
+        guard data.count > 0x138 else { return nil }
+        guard let magic = String(data: data.prefix(4), encoding: .ascii),
+              magic == "LSX8" || magic == "LSX9" else { return nil }
+
+        guard let stringTableOffset = u32(data, 0x0C),
+              let descriptorOffset = u32(data, 0x118) else { return nil }
+        let stringOffset = Int(stringTableOffset)
+        let desc = Int(descriptorOffset)
+        guard stringOffset + 16 <= data.count, desc + 16 <= data.count else { return nil }
+
+        guard let strings = parseTCStrings(data, offset: stringOffset),
+              let dataBlockRaw = u32(data, desc + 4),
+              let recordSizeRaw = u32(data, desc + 12) else { return nil }
+
+        let dataBlock = Int(dataBlockRaw)
+        let recordSize = Int(recordSizeRaw)
+        guard recordSize >= 4, recordSize % 4 == 0,
+              dataBlock + 16 <= data.count,
+              let dataSizeRaw = u32(data, dataBlock + 8),
+              let blockRecordSizeRaw = u32(data, dataBlock + 12) else { return nil }
+
+        let blockRecordSize = Int(blockRecordSizeRaw)
+        guard blockRecordSize == recordSize else { return nil }
+        let dataSize = Int(dataSizeRaw)
+        let rowCount = dataSize / recordSize
+        let columnCount = recordSize / 4
+        let namesOffset = desc + 16
+        let unitsOffset = namesOffset + recordSize
+        guard unitsOffset + recordSize <= data.count else { return nil }
+
+        var names: [String] = []
+        var units: [String] = []
+        for column in 0..<columnCount {
+            let nameIndex = Int(u16(data, namesOffset + column * 4) ?? 0)
+            let unitIndex = Int(u16(data, unitsOffset + column * 4) ?? 0)
+            names.append(tcString(strings, nameIndex).trimmingCharacters(in: .whitespacesAndNewlines))
+            units.append(normalizeUnit(tcString(strings, unitIndex)))
+        }
+
+        let recordsOffset = dataBlock + 16
+        guard rowCount > 0, recordsOffset + rowCount * recordSize <= data.count else {
+            return DiagnosticSnapshot(
+                sourceName: filename,
+                capturedAt: Date(),
+                dtcs: [],
+                metrics: [],
+                notes: ["ThinkCar .TC bulundu fakat canlı veri kaydı yok."]
+            )
+        }
+
+        // Use the newest numeric sample for the dashboard. The file still keeps all
+        // rows; time-series graphing can be layered on top without changing format parsing.
+        let lastRow = recordsOffset + (rowCount - 1) * recordSize
+        var metrics: [DiagnosticLiveMetric] = []
+        for column in 0..<columnCount {
+            let valueIndex = Int(u32(data, lastRow + column * 4) ?? 0)
+            guard valueIndex > 0 else { continue }
+            let raw = tcString(strings, valueIndex).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let numeric = Double(raw.replacingOccurrences(of: ",", with: ".")) else { continue }
+            let name = names[column].isEmpty ? "PID \(column + 1)" : names[column]
+            let key = "tc_\(column)_\(name.lowercased().replacingOccurrences(of: " ", with: "_"))"
+            metrics.append(.init(
+                key: key,
+                label: name,
+                value: numeric,
+                unit: units[column],
+                source: filename
+            ))
+        }
+
+        return DiagnosticSnapshot(
+            sourceName: filename,
+            capturedAt: Date(),
+            dtcs: [],
+            metrics: metrics,
             notes: [
-                "Dosya ikili (binary) biçimde. ThinkCar .TC kayıtları için ham dosya saklandı fakat bu sürümde tam binary decoder yok.",
-                "ThinkDiag uygulamasından CSV/JSON veya paylaşılabilir teşhis raporu dışa aktarılırsa JARVIS DTC ve canlı değerleri doğrudan ayrıştırabilir."
+                "ThinkCar \(magic) kaydı çözüldü: \(rowCount) örnek, \(columnCount) parametre.",
+                "Gösterilen değerler kaydın son örneğidir."
             ]
         )
+    }
+
+    private static func parseTCStrings(_ data: Data, offset: Int) -> [String]? {
+        guard let countRaw = u32(data, offset + 12) else { return nil }
+        let count = Int(countRaw)
+        guard count >= 0, count < 200_000 else { return nil }
+        var strings = [""]
+        var cursor = offset + 16
+        for _ in 0..<count {
+            guard let lengthRaw = u16(data, cursor) else { return nil }
+            let length = Int(lengthRaw)
+            guard length >= 3, cursor + length <= data.count else { return nil }
+            var bytes = Data(data[(cursor + 2)..<(cursor + length)])
+            while bytes.last == 0 { bytes.removeLast() }
+            strings.append(String(data: bytes, encoding: .utf8) ?? String(data: bytes, encoding: .ascii) ?? "")
+            cursor += length
+        }
+        return strings
+    }
+
+    private static func tcString(_ strings: [String], _ index: Int) -> String {
+        guard index > 0, index < strings.count else { return "" }
+        return strings[index]
+    }
+
+    private static func normalizeUnit(_ raw: String) -> String {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch value.lowercased() {
+        case "degree c", "deg c", "celsius": return "°C"
+        case "degree f", "deg f", "fahrenheit": return "°F"
+        default: return value
+        }
+    }
+
+    private static func u16(_ data: Data, _ offset: Int) -> UInt16? {
+        guard offset >= 0, offset + 2 <= data.count else { return nil }
+        return UInt16(data[offset]) | (UInt16(data[offset + 1]) << 8)
+    }
+
+    private static func u32(_ data: Data, _ offset: Int) -> UInt32? {
+        guard offset >= 0, offset + 4 <= data.count else { return nil }
+        return UInt32(data[offset])
+            | (UInt32(data[offset + 1]) << 8)
+            | (UInt32(data[offset + 2]) << 16)
+            | (UInt32(data[offset + 3]) << 24)
     }
 
     private static func parseJSON(data: Data, filename: String) -> DiagnosticSnapshot? {
