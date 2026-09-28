@@ -13,6 +13,9 @@ struct DiagnosticView: View {
     @StateObject private var dynamicCodingCoordinator = DynamicOneTapCoordinator()
     @StateObject private var codingResearch = VehicleCodingResearchStore()
     @StateObject private var networkMonitor = VehicleNetworkMonitor()
+    @StateObject private var workshopStore = WorkshopSessionStore()
+    @StateObject private var codingBackupVault = CodingBackupVault()
+    @StateObject private var codingFavorites = CodingFavoritesStore()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -26,6 +29,11 @@ struct DiagnosticView: View {
     @State private var captureURL: URL?
     @State private var learnedPackURL: URL?
     @State private var offlineDtcCount = 0
+    @State private var workshopRunning = false
+    @State private var workshopStep = ""
+    @State private var latestWorkshopReportURL: URL?
+    @State private var codingSearchText = ""
+    @State private var latestWorkshopSession: WorkshopSessionRecord?
 
     var body: some View {
         NavigationStack {
@@ -265,6 +273,130 @@ struct DiagnosticView: View {
                     }
                 }
 
+                Section("Atölye Hızlı İşlemler") {
+                    Button {
+                        Task { await runWorkshopAutoDiagnosis() }
+                    } label: {
+                        Label(
+                            workshopRunning ? "Otomatik teşhis çalışıyor…" : "Tek tuş tam teşhis",
+                            systemImage: "wrench.and.screwdriver.fill"
+                        )
+                    }
+                    .disabled(workshopRunning || !bluetooth.isThinkDiagTransportReady)
+
+                    if workshopRunning {
+                        HStack {
+                            ProgressView()
+                            Text(workshopStep)
+                                .font(.caption)
+                        }
+                    }
+
+                    HStack {
+                        Button {
+                            Task {
+                                _ = bluetooth.sendReadOnlyPid(0x42)
+                                try? await Task.sleep(nanoseconds: 500_000_000)
+                                message = vehicleWriteSafety.message
+                            }
+                        } label: {
+                            Label("Voltaj", systemImage: "bolt")
+                        }
+                        .disabled(bluetooth.protocolProfile == nil)
+
+                        Button {
+                            Task {
+                                message = "Hata kodları taranıyor…"
+                                await bluetooth.scanGenericDtcStates()
+                                message = "Hata kodu taraması tamamlandı."
+                            }
+                        } label: {
+                            Label("DTC", systemImage: "exclamationmark.triangle")
+                        }
+                        .disabled(bluetooth.genericDtcScanRunning || !bluetooth.canWrite)
+
+                        Button {
+                            if bluetooth.livePolling {
+                                bluetooth.stopLivePolling()
+                            } else {
+                                bluetooth.startLivePolling()
+                            }
+                        } label: {
+                            Label("Canlı veri", systemImage: "waveform.path.ecg")
+                        }
+                        .disabled(bluetooth.protocolProfile == nil)
+
+                        Button {
+                            latestWorkshopReportURL = makeCurrentWorkshopReport()
+                        } label: {
+                            Label("Rapor", systemImage: "doc.text")
+                        }
+                    }
+
+                    if let latestWorkshopReportURL {
+                        ShareLink(item: latestWorkshopReportURL) {
+                            Label("Son teşhis raporunu paylaş", systemImage: "square.and.arrow.up")
+                        }
+                    }
+
+                    let safety = vehicleWriteSafety
+                    HStack(alignment: .top) {
+                        Image(systemName: safety.canWrite ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                            .foregroundStyle(safety.canWrite ? .green : .orange)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Kodlama ön kontrolü: \(safety.level.rawValue)")
+                            Text(safety.message)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let latestWorkshopSession,
+                       let previous = workshopStore.previousSession(for: latestWorkshopSession) {
+                        let comparison = WorkshopComparisonEngine.compare(
+                            current: latestWorkshopSession,
+                            previous: previous
+                        )
+                        DisclosureGroup("Önceki taramayla karşılaştır") {
+                            if !comparison.newCodes.isEmpty {
+                                Text("Yeni: " + comparison.newCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
+                            if !comparison.resolvedCodes.isEmpty {
+                                Text("Artık görünmüyor: " + comparison.resolvedCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
+                            if !comparison.persistentCodes.isEmpty {
+                                Text("Devam eden: " + comparison.persistentCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
+                        }
+                    }
+
+                    if !workshopStore.sessions.isEmpty {
+                        DisclosureGroup("Son araç geçmişi") {
+                            ForEach(workshopStore.sessions.prefix(5)) { session in
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(session.vin ?? session.brand.rawValue)
+                                            .font(.caption.weight(.semibold))
+                                        Text(session.finishedAt.formatted(date: .numeric, time: .shortened))
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Text("\(session.genericDtcs.count + session.modules.reduce(0) { $0 + $1.dtcs.count }) DTC")
+                                        .font(.caption2.monospaced())
+                                }
+                            }
+                        }
+                    }
+
+                    Text("Tek tuş teşhis; protokolü hazırlar, genel DTC'leri okur, üretici paketi varsa tüm modülleri tarar, mevcut canlı verileri toplar ve VIN bazlı geçmişe kaydeder.")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("Kontrol Üniteleri") {
                     if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
                         Button {
@@ -501,15 +633,34 @@ struct DiagnosticView: View {
                     }
                 }
 
-                let recommendedFeatures = evidenceFeatureAvailability.filter {
-                    switch $0.state {
-                    case .available, .maybeAvailable: return true
-                    case .unavailable: return false
+                let recommendedFeatures = evidenceFeatureAvailability
+                    .filter {
+                        switch $0.state {
+                        case .available, .maybeAvailable: return true
+                        case .unavailable: return false
+                        }
                     }
-                }
+                    .filter { availability in
+                        let needle = codingSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !needle.isEmpty else { return true }
+                        let feature = availability.feature
+                        return feature.title.localizedCaseInsensitiveContains(needle)
+                            || feature.description.localizedCaseInsensitiveContains(needle)
+                            || feature.category.localizedCaseInsensitiveContains(needle)
+                    }
+                    .sorted { lhs, rhs in
+                        let leftFavorite = codingFavorites.contains(lhs.feature.id)
+                        let rightFavorite = codingFavorites.contains(rhs.feature.id)
+                        if leftFavorite != rightFavorite { return leftFavorite && !rightFavorite }
+                        return lhs.score > rhs.score
+                    }
 
                 if !recommendedFeatures.isEmpty {
                     Section("Araç İçin Tek-Tık Kodlamalar") {
+                        TextField("Özellik ara: ayna, kilit, ışık…", text: $codingSearchText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
                         ForEach(recommendedFeatures) { availability in
                             let plan = OneTapCodingResolver.resolve(
                                 feature: availability.feature,
@@ -531,6 +682,12 @@ struct DiagnosticView: View {
                                             .foregroundStyle(.secondary)
                                     }
                                     Spacer()
+                                    Button {
+                                        codingFavorites.toggle(availability.feature.id)
+                                    } label: {
+                                        Image(systemName: codingFavorites.contains(availability.feature.id) ? "star.fill" : "star")
+                                    }
+                                    .buttonStyle(.plain)
                                     Text(availability.state.label)
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
@@ -548,7 +705,9 @@ struct DiagnosticView: View {
                                                 await oneTapCoordinator.prepare(
                                                     feature: availability.feature,
                                                     inventory: connectedInventory,
-                                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                                    transportReady: bluetooth.canWrite
+                                            && bluetooth.protocolProfile != nil
+                                            && vehicleWriteSafety.canWrite
                                                 ) { opcode, request, expected in
                                                     await bluetooth.requestVCI(
                                                         opcode: opcode,
@@ -558,13 +717,23 @@ struct DiagnosticView: View {
                                                 }
                                                 message = oneTapCoordinator.state.label
                                                 if case .awaitingConfirmation = oneTapCoordinator.state {
+                                                    for item in oneTapCoordinator.backups {
+                                                        codingBackupVault.record(
+                                                            vin: detectedVIN,
+                                                            brand: effectiveBrand,
+                                                            feature: availability.feature.title,
+                                                            module: item.module,
+                                                            originalHex: item.responseHex,
+                                                            source: "OneTap"
+                                                        )
+                                                    }
                                                     showOneTapConfirmation = true
                                                 }
                                             }
                                         } label: {
                                             Label("Tek tıkla uygula", systemImage: "bolt.circle.fill")
                                         }
-                                        .disabled(bluetooth.protocolProfile == nil)
+                                        .disabled(bluetooth.protocolProfile == nil || !vehicleWriteSafety.canWrite)
                                     } else if dynamicPlan.executable {
                                         Button {
                                             Task {
@@ -579,13 +748,22 @@ struct DiagnosticView: View {
                                                 }
                                                 message = dynamicCodingCoordinator.state.label
                                                 if case .awaitingConfirmation = dynamicCodingCoordinator.state {
+                                                    codingBackupVault.record(
+                                                        vin: detectedVIN,
+                                                        brand: effectiveBrand,
+                                                        feature: availability.feature.title,
+                                                        module: dynamicPlan.modules.map(\.name).joined(separator: ", "),
+                                                        originalHex: dynamicCodingCoordinator.backupHex,
+                                                        plannedHex: dynamicCodingCoordinator.modifiedHex,
+                                                        source: "DynamicLongCoding"
+                                                    )
                                                     showDynamicCodingConfirmation = true
                                                 }
                                             }
                                         } label: {
                                             Label("Tek tıkla uygula — dinamik reçete", systemImage: "bolt.horizontal.circle.fill")
                                         }
-                                        .disabled(bluetooth.protocolProfile == nil)
+                                        .disabled(bluetooth.protocolProfile == nil || !vehicleWriteSafety.canWrite)
                                     } else {
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text("Araç bu özellik için uygun görünüyor; fakat exact yazma reçetesi veya long-coding taşıma bilgisi henüz tamamlanmadı.")
@@ -646,6 +824,32 @@ struct DiagnosticView: View {
                     }
                 }
 
+                if !codingBackupVault.backups(for: detectedVIN).isEmpty {
+                    Section("Kodlama Yedekleri") {
+                        ForEach(codingBackupVault.backups(for: detectedVIN).prefix(10)) { backup in
+                            DisclosureGroup {
+                                Text("Önce: \(backup.originalHex)")
+                                    .font(.caption2.monospaced())
+                                    .textSelection(.enabled)
+                                if let planned = backup.plannedHex {
+                                    Text("Planlanan: \(planned)")
+                                        .font(.caption2.monospaced())
+                                        .textSelection(.enabled)
+                                }
+                                Text("Kaynak: \(backup.source)")
+                                    .font(.caption2)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(backup.feature)
+                                    Text("\(backup.module) • \(backup.createdAt.formatted(date: .numeric, time: .shortened))")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Section("Kodlama / Adaptasyon / Gizli Özellikler") {
                     let pack = CodingFeatureCatalog.pack(for: selectedBrand)
                     if selectedBrand == .generic {
@@ -663,7 +867,9 @@ struct DiagnosticView: View {
                                     await codingCoordinator.prepareAndBackup(
                                         feature,
                                         vin: detectedVIN,
-                                        transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                        transportReady: bluetooth.canWrite
+                                            && bluetooth.protocolProfile != nil
+                                            && vehicleWriteSafety.canWrite
                                     ) { opcode, request, expected in
                                         await bluetooth.requestVCI(
                                             opcode: opcode,
@@ -673,6 +879,16 @@ struct DiagnosticView: View {
                                     }
                                     message = codingCoordinator.state.label
                                     if case .awaitingConfirmation = codingCoordinator.state {
+                                        if let backup = codingCoordinator.backup {
+                                            codingBackupVault.record(
+                                                vin: detectedVIN,
+                                                brand: effectiveBrand,
+                                                feature: feature.title,
+                                                module: backup.module,
+                                                originalHex: backup.originalValueHex,
+                                                source: "VerifiedRecipe"
+                                            )
+                                        }
                                         showCodingConfirmation = true
                                     }
                                 }
@@ -688,6 +904,7 @@ struct DiagnosticView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .disabled(!vehicleWriteSafety.canWrite)
                         }
                     }
 
@@ -971,6 +1188,124 @@ struct DiagnosticView: View {
         }
     }
 
+    private var vehicleWriteSafety: VehicleWriteSafetyResult {
+        VehicleWriteSafetyGate.evaluate(observations: bluetooth.passiveObservations)
+    }
+
+    private func runWorkshopAutoDiagnosis() async {
+        guard bluetooth.isThinkDiagTransportReady else {
+            message = "Önce ThinkDiag bağlantısını kur."
+            return
+        }
+
+        workshopRunning = true
+        let startedAt = Date()
+        defer {
+            workshopRunning = false
+            workshopStep = ""
+        }
+
+        if bluetooth.protocolProfile == nil {
+            workshopStep = "ThinkDiag protokolü doğrulanıyor…"
+            await bluetooth.runReadOnlyHeaderSweep()
+        }
+
+        guard bluetooth.protocolProfile != nil else {
+            message = "Protokol doğrulanamadı; otomatik teşhis durdu."
+            return
+        }
+
+        workshopStep = "Kayıtlı / bekleyen / kalıcı DTC taranıyor…"
+        await bluetooth.scanGenericDtcStates()
+
+        if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
+            workshopStep = "Tüm üretici kontrol üniteleri taranıyor…"
+            await moduleScanner.scan(brand: effectiveBrand) { opcode, request in
+                await bluetooth.requestVCI(opcode: opcode, payload: request)
+            }
+        }
+
+        workshopStep = "Canlı veri örneği alınıyor…"
+        if !bluetooth.livePolling {
+            bluetooth.startLivePolling()
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            bluetooth.stopLivePolling()
+        }
+
+        let record = makeWorkshopSession(startedAt: startedAt)
+        workshopStore.save(record)
+        latestWorkshopSession = record
+        latestWorkshopReportURL = workshopStore.reportURL(for: record)
+
+        await diagnosticAI.explainIfNeeded(
+            codes: currentDtcExplanations.map(\.code),
+            brand: effectiveBrand,
+            vin: detectedVIN,
+            observations: bluetooth.passiveObservations
+        )
+
+        message = "Tam teşhis tamamlandı • \(record.genericDtcs.count + record.modules.reduce(0) { $0 + $1.dtcs.count }) DTC • rapor hazır."
+    }
+
+    private func makeWorkshopSession(startedAt: Date = Date()) -> WorkshopSessionRecord {
+        let generic = bluetooth.passiveObservations.compactMap { observation -> WorkshopDtcRecord? in
+            guard ["DTC", "PENDING_DTC", "PERMANENT_DTC"].contains(observation.kind) else { return nil }
+            let explanation = DiagnosticDtcCatalog.explain(observation.title)
+            return .init(
+                module: "OBD-II",
+                code: observation.title,
+                status: observation.kind,
+                description: explanation.title
+            )
+        }
+
+        let modules = moduleScanner.results.map { result in
+            WorkshopModuleRecord(
+                address: result.address,
+                name: result.moduleName,
+                identification: result.identification,
+                dtcs: result.dtcs.map {
+                    .init(
+                        module: result.moduleName,
+                        code: $0.hexCode,
+                        status: String(format: "0x%02X", $0.status),
+                        description: DiagnosticDtcCatalog.explain($0.hexCode).title
+                    )
+                },
+                error: result.error
+            )
+        }
+
+        let live = bluetooth.passiveObservations
+            .filter { $0.kind == "PID" }
+            .suffix(30)
+            .map { WorkshopLiveRecord(name: $0.title, value: $0.detail) }
+
+        return .init(
+            id: UUID(),
+            startedAt: startedAt,
+            finishedAt: Date(),
+            vin: detectedVIN,
+            brand: effectiveBrand,
+            connectionName: bluetooth.state.label,
+            protocolHeader: bluetooth.protocolProfile?.headerHex,
+            genericDtcs: Array(Set(generic)),
+            modules: modules,
+            liveData: live,
+            notes: [
+                networkMonitor.isOnline ? "İnternet bağlantısı mevcut." : "Çevrimdışı teşhis kullanıldı.",
+                vehicleWriteSafety.message
+            ]
+        )
+    }
+
+    private func makeCurrentWorkshopReport() -> URL? {
+        let record = makeWorkshopSession()
+        workshopStore.save(record)
+        latestWorkshopSession = record
+        return workshopStore.reportURL(for: record)
+    }
+
     private var vehicleRuntimeCapabilities: [VehicleRuntimeCapability] {
         VehicleRuntimeCapabilities.list(
             online: networkMonitor.isOnline,
@@ -1195,6 +1530,8 @@ struct DiagnosticView: View {
         lines.append("discardedBytes=\(bluetooth.streamStats.discardedBytes)")
         lines.append("fingerprint=\(bluetooth.protocolFingerprint.summary)")
         lines.append("protocolProfile=\(bluetooth.protocolProfile?.headerHex ?? "-")")
+        lines.append("maxWriteWithResponse=\(bluetooth.maxWriteWithResponse)")
+        lines.append("maxWriteWithoutResponse=\(bluetooth.maxWriteWithoutResponse)")
         lines.append(contentsOf: bluetooth.probeAttempts.map { "probe|\($0.headerHex)|\($0.success)|\($0.detail)" })
         lines.append("--- services ---")
         lines.append(contentsOf: bluetooth.discoveredServices)
