@@ -294,6 +294,17 @@ struct DiagnosticView: View {
                     HStack {
                         Button {
                             Task {
+                                _ = bluetooth.sendReadOnlyPid(0x42)
+                                try? await Task.sleep(nanoseconds: 500_000_000)
+                                message = vehicleWriteSafety.message
+                            }
+                        } label: {
+                            Label("Voltaj", systemImage: "bolt")
+                        }
+                        .disabled(bluetooth.protocolProfile == nil)
+
+                        Button {
+                            Task {
                                 message = "Hata kodları taranıyor…"
                                 await bluetooth.scanGenericDtcStates()
                                 message = "Hata kodu taraması tamamlandı."
