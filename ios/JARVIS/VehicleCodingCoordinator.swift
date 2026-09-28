@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 struct CodingRecipeStep: Codable, Hashable {
     enum Operation: String, Codable {
