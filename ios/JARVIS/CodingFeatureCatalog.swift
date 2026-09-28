@@ -55,7 +55,12 @@ enum CodingFeatureCatalog {
                 feature("bmw.startStopMemory", brand, "FEM/BDC", "Start/Stop hafızası", "Uyumlu araçlarda son seçimin hatırlanmasını yapılandırır.", .coding, .medium)
             ])
         default:
-            return .init(brand: brand, features: [])
+            return .init(brand: brand, features: [
+                feature("common.autoLock.\(brand.rawValue)", brand, "Body Control", "Otomatik kapı kilitleme", "Uyumlu araçlarda sürüş sırasında otomatik kapı kilitleme davranışını yapılandırır.", .hiddenFeature, .low),
+                feature("common.mirrorFold.\(brand.rawValue)", brand, "Door/Body", "Kilitlerken aynaları katla", "Donanım ve modül destekliyorsa otomatik ayna katlama seçeneğini yapılandırır.", .hiddenFeature, .low),
+                feature("common.welcomeLight.\(brand.rawValue)", brand, "Body/Lighting", "Karşılama aydınlatması", "Uyumlu araçlarda coming-home / welcome-light seçeneklerini yapılandırır.", .hiddenFeature, .low),
+                feature("common.clusterDisplay.\(brand.rawValue)", brand, "Instrument Cluster", "Gösterge seçenekleri", "Uyumlu gösterge panelindeki üreticiye özel görüntüleme seçeneklerini açar veya yapılandırır.", .coding, .medium)
+            ])
         }
     }
 
