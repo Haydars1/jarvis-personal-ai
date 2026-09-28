@@ -32,6 +32,7 @@ struct DiagnosticView: View {
     @State private var workshopRunning = false
     @State private var workshopStep = ""
     @State private var latestWorkshopReportURL: URL?
+    @State private var codingSearchText = ""
 
     var body: some View {
         NavigationStack {
@@ -598,15 +599,34 @@ struct DiagnosticView: View {
                     }
                 }
 
-                let recommendedFeatures = evidenceFeatureAvailability.filter {
-                    switch $0.state {
-                    case .available, .maybeAvailable: return true
-                    case .unavailable: return false
+                let recommendedFeatures = evidenceFeatureAvailability
+                    .filter {
+                        switch $0.state {
+                        case .available, .maybeAvailable: return true
+                        case .unavailable: return false
+                        }
                     }
-                }
+                    .filter { availability in
+                        let needle = codingSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !needle.isEmpty else { return true }
+                        let feature = availability.feature
+                        return feature.title.localizedCaseInsensitiveContains(needle)
+                            || feature.description.localizedCaseInsensitiveContains(needle)
+                            || feature.category.localizedCaseInsensitiveContains(needle)
+                    }
+                    .sorted { lhs, rhs in
+                        let leftFavorite = codingFavorites.contains(lhs.feature.id)
+                        let rightFavorite = codingFavorites.contains(rhs.feature.id)
+                        if leftFavorite != rightFavorite { return leftFavorite && !rightFavorite }
+                        return lhs.score > rhs.score
+                    }
 
                 if !recommendedFeatures.isEmpty {
                     Section("Araç İçin Tek-Tık Kodlamalar") {
+                        TextField("Özellik ara: ayna, kilit, ışık…", text: $codingSearchText)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
                         ForEach(recommendedFeatures) { availability in
                             let plan = OneTapCodingResolver.resolve(
                                 feature: availability.feature,
