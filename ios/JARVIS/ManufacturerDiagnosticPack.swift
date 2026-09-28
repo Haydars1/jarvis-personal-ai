@@ -96,6 +96,7 @@ enum ManufacturerDiagnosticPackLoader {
             )
         }
 
+        try VehiclePackValidator.validate(manifest)
         ManufacturerDiagnosticRegistry.shared.register(manifest)
         return manifest
     }
