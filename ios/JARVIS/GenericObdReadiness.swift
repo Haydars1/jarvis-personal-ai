@@ -12,7 +12,7 @@ struct GenericObdReadiness: Hashable {
         let incomplete = incompleteMonitors.isEmpty
             ? "readiness tamam"
             : "(incompleteMonitors.count) monitor tamamlanmamış"
-        return "(mil) • ECU sayacı (storedDtcCount) DTC • (incomplete)"
+        return "\(mil) • ECU sayacı \(storedDtcCount) DTC • \(incomplete)"
     }
 }
 
