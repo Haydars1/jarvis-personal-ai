@@ -43,13 +43,41 @@ struct DiagnosticView: View {
                         }
                     }
                     if bluetooth.isThinkDiagTransportReady {
-                        Text("\(bluetooth.discoveredServices.count) servis/karakteristik keşfedildi • \(bluetooth.notificationFrames.count) ham bildirim")
+                        Text("\(bluetooth.discoveredServices.count) servis/karakteristik • \(bluetooth.notificationFrames.count) ham paket • \(bluetooth.decodedFrames.count) VCI frame")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        if bluetooth.preferredServiceDetected {
+                            Label("ThinkDiag/Launch BLE imzası bulundu", systemImage: "checkmark.seal.fill")
+                                .font(.caption)
+                        }
+                        if let write = bluetooth.writableCharacteristic {
+                            Text("WRITE: \(write)").font(.caption2.monospaced()).textSelection(.enabled)
+                        }
+                        if let notify = bluetooth.notifyCharacteristic {
+                            Text("NOTIFY: \(notify)").font(.caption2.monospaced()).textSelection(.enabled)
+                        }
                     }
                     Text(bluetooth.transportNotice)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+
+                    if !bluetooth.decodedFrames.isEmpty {
+                        DisclosureGroup("Çözülen VCI çerçeveleri") {
+                            ForEach(bluetooth.decodedFrames.suffix(20)) { frame in
+                                Text(frame.hex)
+                                    .font(.caption2.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                        }
+                    }
+
+                    if !bluetooth.discoveredServices.isEmpty {
+                        DisclosureGroup("Bluetooth servisleri") {
+                            ForEach(bluetooth.discoveredServices, id: \.self) { item in
+                                Text(item).font(.caption2.monospaced()).textSelection(.enabled)
+                            }
+                        }
+                    }
                 }
 
                 Section("ThinkDiag Kayıt / Rapor") {
