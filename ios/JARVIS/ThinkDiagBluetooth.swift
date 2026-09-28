@@ -33,6 +33,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var freezeFrameValues: [ThinkDiagFreezeFrameValue] = []
     @Published private(set) var readiness: GenericObdReadiness?
     @Published private(set) var verifiedReadCapabilities: Set<ThinkDiagReadCapability> = []
+    @Published private(set) var genericDtcCycleStartedAt: Date?
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -180,10 +181,17 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         guard protocolProfile != nil, canWrite else { return }
 
         supportedPids.removeAll()
+        freezeFrameValues.removeAll()
+        readiness = nil
+
         let bases: [UInt8] = [0x00,0x20,0x40,0x60,0x80,0xA0,0xC0]
         for (index, base) in bases.enumerated() {
-            _ = sendReadOnlySupportedPidBlock(base)
-            try? await Task.sleep(nanoseconds: 280_000_000)
+            _ = await requestGenericRead(
+                opcode: 0x0101,
+                payload: Data([base]),
+                responseMode: 0x41,
+                responsePid: base
+            )
 
             guard index + 1 < bases.count else { break }
             let nextBase = bases[index + 1]
@@ -192,30 +200,108 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
             }
         }
 
-        _ = sendReadOnlyPid(0x01)
-        try? await Task.sleep(nanoseconds: 320_000_000)
+        _ = await requestGenericRead(
+            opcode: 0x0101,
+            payload: Data([0x01]),
+            responseMode: 0x41,
+            responsePid: 0x01
+        )
 
-        _ = sendReadOnlyVinProbe()
-        try? await Task.sleep(nanoseconds: 500_000_000)
+        _ = await requestGenericRead(
+            opcode: 0x0109,
+            payload: Data([0x02]),
+            responseMode: 0x49,
+            responsePid: 0x02,
+            timeoutNanoseconds: 1_300_000_000
+        )
 
         let freezeCandidates: [UInt8] = [0x04,0x05,0x0B,0x0C,0x0D,0x0F,0x10,0x11,0x23,0x33,0x42]
         for pid in freezeCandidates where supportedPids.isEmpty || supportedPids.contains(pid) {
-            _ = sendReadOnlyFreezeFramePid(pid)
-            try? await Task.sleep(nanoseconds: 140_000_000)
+            _ = await requestGenericRead(
+                opcode: 0x0102,
+                payload: Data([pid, 0x00]),
+                responseMode: 0x42,
+                responsePid: pid,
+                timeoutNanoseconds: 700_000_000,
+                retries: 1
+            )
         }
     }
 
     func scanGenericDtcStates() async {
         guard protocolProfile != nil, canWrite, !genericDtcScanRunning else { return }
         genericDtcScanRunning = true
+        genericDtcCycleStartedAt = Date()
+
+        // A new workshop scan must not keep stale codes from an earlier scan cycle.
+        passiveObservations.removeAll {
+            $0.kind == "DTC" || $0.kind == "PENDING_DTC" || $0.kind == "PERMANENT_DTC"
+        }
+
         defer { genericDtcScanRunning = false }
 
-        _ = sendReadOnlyDtcProbe()
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        _ = sendReadOnlyPendingDtcProbe()
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        _ = sendReadOnlyPermanentDtcProbe()
-        try? await Task.sleep(nanoseconds: 700_000_000)
+        _ = await requestGenericRead(
+            opcode: 0x0103,
+            responseMode: 0x43,
+            timeoutNanoseconds: 1_000_000_000
+        )
+        _ = await requestGenericRead(
+            opcode: 0x0107,
+            responseMode: 0x47,
+            timeoutNanoseconds: 1_000_000_000
+        )
+        _ = await requestGenericRead(
+            opcode: 0x010A,
+            responseMode: 0x4A,
+            timeoutNanoseconds: 1_000_000_000
+        )
+    }
+
+    private func requestGenericRead(
+        opcode: UInt16,
+        payload: Data = Data(),
+        responseMode: UInt8,
+        responsePid: UInt8? = nil,
+        timeoutNanoseconds: UInt64 = 900_000_000,
+        retries: Int = 2
+    ) async -> ThinkDiagVciFrame? {
+        guard let profile = protocolProfile, canWrite else { return nil }
+
+        exclusiveRequestDepth += 1
+        defer { exclusiveRequestDepth = max(0, exclusiveRequestDepth - 1) }
+
+        let attempts = max(1, retries)
+        for attempt in 0..<attempts {
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: 120_000_000)
+            }
+
+            let startIndex = decodedFrames.count
+            guard sendVCIFrame(opcode: opcode, payload: payload) else { return nil }
+
+            let step: UInt64 = 50_000_000
+            var waited: UInt64 = 0
+            while waited < timeoutNanoseconds {
+                try? await Task.sleep(nanoseconds: step)
+                waited += step
+
+                let newFrames = Array(decodedFrames.dropFirst(min(startIndex, decodedFrames.count)))
+                for frame in newFrames.reversed()
+                    where frame.checksumValid && frame.header == profile.header {
+                    let bytes = [UInt8](frame.payload)
+                    for index in bytes.indices where bytes[index] == responseMode {
+                        if let responsePid {
+                            guard index + 1 < bytes.count, bytes[index + 1] == responsePid else {
+                                continue
+                            }
+                        }
+                        return frame
+                    }
+                }
+            }
+        }
+
+        return nil
     }
 
     @discardableResult
@@ -494,6 +580,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             maxWriteWithResponse = peripheral.maximumWriteValueLength(for: .withResponse)
             maxWriteWithoutResponse = peripheral.maximumWriteValueLength(for: .withoutResponse)
             passiveObservations.removeAll()
+            genericDtcCycleStartedAt = nil
             supportedPids.removeAll()
             liveSamples.removeAll()
             freezeFrameValues.removeAll()
