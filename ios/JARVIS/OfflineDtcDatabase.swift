@@ -47,8 +47,9 @@ final class OfflineDtcDatabase {
         for line in text.split(whereSeparator: \.isNewline) {
             let raw = String(line)
             guard let comma = raw.firstIndex(of: ",") else { continue }
-            let left = raw[..<comma].trimmingCharacters(in: CharacterSet(charactersIn: "\""))
-            let right = raw[raw.index(after: comma)...]
+            let left = String(raw[..<comma])
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            let right = String(raw[raw.index(after: comma)...])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
                 .replacingOccurrences(of: "\"\"", with: "\"")
