@@ -115,8 +115,8 @@ final class VehicleCodingResearchStore: ObservableObject {
                             $0.rawValue.caseInsensitiveCompare(brandName) == .orderedSame
                         }
                     },
-                    modelContains: candidate.applicability.isEmpty ? [] : [candidate.applicability],
-                    platformContains: [],
+                    modelContains: candidate.vehicle.map { [$0] } ?? [],
+                    platformContains: candidate.platform.map { [$0] } ?? [],
                     yearMin: nil,
                     yearMax: nil,
                     requiredModules: candidate.module.isEmpty ? [] : [candidate.module],
