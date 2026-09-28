@@ -33,7 +33,8 @@ test('MIT VAG CODER catalog is ingested with attribution and semantic operations
   assert.match(trusted, /longCodingBit/);
   assert.match(trusted, /adaptation/);
   assert.match(research, /fetchVagCoderCatalog/);
-  assert.match(research, /trusted_catalog/);
+  assert.match(trusted, /status:'trusted_catalog'/);
+  assert.match(research, /status:row\.status/);
 });
 
 test('trusted catalog operations become evidence-backed one-tap candidates', () => {
