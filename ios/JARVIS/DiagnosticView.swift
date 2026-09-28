@@ -7,6 +7,7 @@ struct DiagnosticView: View {
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
     @State private var message = ""
+    @State private var captureURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -60,6 +61,20 @@ struct DiagnosticView: View {
                     Text(bluetooth.transportNotice)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+
+                    if bluetooth.isThinkDiagTransportReady {
+                        Button {
+                            captureURL = makeCaptureFile()
+                        } label: {
+                            Label("ThinkDiag bağlantı kaydını hazırla", systemImage: "square.and.arrow.up")
+                        }
+                    }
+
+                    if let captureURL {
+                        ShareLink(item: captureURL) {
+                            Label("Bağlantı kaydını paylaş / kaydet", systemImage: "doc.text")
+                        }
+                    }
 
                     if !bluetooth.decodedFrames.isEmpty {
                         DisclosureGroup("Çözülen VCI çerçeveleri") {
@@ -159,6 +174,33 @@ struct DiagnosticView: View {
             message = "Dosya analiz edildi"
         } catch {
             message = "Dosya açılamadı: \(error.localizedDescription)"
+        }
+    }
+
+    private func makeCaptureFile() -> URL? {
+        var lines: [String] = []
+        lines.append("JARVIS ThinkDiag capture")
+        lines.append("state=\(bluetooth.state.label)")
+        lines.append("preferredServiceDetected=\(bluetooth.preferredServiceDetected)")
+        lines.append("write=\(bluetooth.writableCharacteristic ?? "-")")
+        lines.append("notify=\(bluetooth.notifyCharacteristic ?? "-")")
+        lines.append("--- services ---")
+        lines.append(contentsOf: bluetooth.discoveredServices)
+        lines.append("--- decoded frames ---")
+        lines.append(contentsOf: bluetooth.decodedFrames.map(\.hex))
+        lines.append("--- raw notifications ---")
+        lines.append(contentsOf: bluetooth.notificationFrames.map { data in
+            data.map { String(format: "%02X", $0) }.joined()
+        })
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("JARVIS-ThinkDiag-\(Int(Date().timeIntervalSince1970)).txt")
+        do {
+            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            message = "ThinkDiag bağlantı kaydı hazır"
+            return url
+        } catch {
+            message = "Kayıt hazırlanamadı: \(error.localizedDescription)"
+            return nil
         }
     }
 
