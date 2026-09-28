@@ -17,6 +17,7 @@ struct DiagnosticView: View {
     @StateObject private var codingBackupVault = CodingBackupVault()
     @StateObject private var codingFavorites = CodingFavoritesStore()
     @StateObject private var driveLogger = DriveLogRecorder()
+    @StateObject private var workshopPreferences = WorkshopPreferences()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -36,6 +37,8 @@ struct DiagnosticView: View {
     @State private var codingSearchText = ""
     @State private var latestWorkshopSession: WorkshopSessionRecord?
     @State private var latestDriveLogURL: URL?
+    @State private var hardwareValidationRunning = false
+    @State private var hardwareValidationURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -98,6 +101,18 @@ struct DiagnosticView: View {
                             if let profile = bluetooth.protocolProfile {
                                 LabeledContent("Doğrulanmış header", value: profile.headerHex)
                                     .font(.caption)
+                            }
+
+                            if !bluetooth.verifiedReadCapabilities.isEmpty {
+                                DisclosureGroup("Bu adaptörde doğrulanan okuma modları") {
+                                    ForEach(
+                                        bluetooth.verifiedReadCapabilities.sorted { $0.rawValue < $1.rawValue },
+                                        id: \.self
+                                    ) { capability in
+                                        Label(capability.rawValue, systemImage: "checkmark.circle.fill")
+                                            .font(.caption2)
+                                    }
+                                }
                             }
 
                             Label(
@@ -279,10 +294,29 @@ struct DiagnosticView: View {
                     samples: bluetooth.liveSamples,
                     supportedPids: bluetooth.supportedPids,
                     freezeFrame: bluetooth.freezeFrameValues,
+                    readiness: bluetooth.readiness,
                     p0299Active: currentDtcExplanations.contains { $0.code == "P0299" }
                 )
 
                 Section("Atölye Hızlı İşlemler") {
+                    Toggle("ThinkDiag bağlanınca otomatik tam teşhis", isOn: $workshopPreferences.autoDiagnoseOnConnect)
+                    Toggle("Bağlantıda protokol öğrenmeyi otomatik başlat", isOn: $workshopPreferences.autoStartProtocolLearning)
+
+                    Button {
+                        Task { await runHardwareValidationSession() }
+                    } label: {
+                        Label(
+                            hardwareValidationRunning ? "Donanım doğrulanıyor…" : "Tek seferlik donanım doğrulaması",
+                            systemImage: "checkmark.shield"
+                        )
+                    }
+                    .disabled(hardwareValidationRunning || !bluetooth.isThinkDiagTransportReady)
+
+                    if let hardwareValidationURL {
+                        ShareLink(item: hardwareValidationURL) {
+                            Label("Donanım doğrulama paketini paylaş", systemImage: "square.and.arrow.up")
+                        }
+                    }
                     Button {
                         Task { await runWorkshopAutoDiagnosis() }
                     } label: {
@@ -353,9 +387,9 @@ struct DiagnosticView: View {
                                 if let record = driveLogger.stop(vin: detectedVIN, brand: effectiveBrand) {
                                     latestDriveLogURL = driveLogger.csvURL(for: record)
                                     if let assessment = driveLogger.p0299Assessment(for: record) {
-                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek • (assessment.summary)"
+                                        message = "Sürüş kaydı tamamlandı • \\(record.samples.count) örnek • \\(assessment.summary)"
                                     } else {
-                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek"
+                                        message = "Sürüş kaydı tamamlandı • \\(record.samples.count) örnek"
                                     }
                                 }
                             } else {
@@ -376,7 +410,7 @@ struct DiagnosticView: View {
                     .disabled(bluetooth.protocolProfile == nil)
 
                     if driveLogger.recording {
-                        Text("Kaydedilen canlı veri: (driveLogger.currentSamples.count) örnek")
+                        Text("Kaydedilen canlı veri: \\(driveLogger.currentSamples.count) örnek")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -393,7 +427,7 @@ struct DiagnosticView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(log.vin ?? log.brand.rawValue)
                                         .font(.caption.weight(.semibold))
-                                    Text("(log.samples.count) örnek • (log.finishedAt.formatted(date: .numeric, time: .shortened))")
+                                    Text("\\(log.samples.count) örnek • \\(log.finishedAt.formatted(date: .numeric, time: .shortened))")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                     if let assessment = driveLogger.p0299Assessment(for: log) {
@@ -585,6 +619,35 @@ struct DiagnosticView: View {
                                 Spacer()
                                 Text(item.unit.map { "\(item.textValue) \($0)" } ?? item.textValue)
                                     .font(.caption.monospaced())
+                            }
+                        }
+                    }
+                }
+
+                let triageFindings = DiagnosticTriageEngine.analyze(
+                    codes: currentDtcExplanations.map(\.code),
+                    observations: bluetooth.passiveObservations
+                )
+
+                if !triageFindings.isEmpty {
+                    Section("Arıza Öncelik Sırası") {
+                        ForEach(triageFindings) { finding in
+                            DisclosureGroup {
+                                Text(finding.detail)
+                                    .font(.caption)
+                                if !finding.relatedCodes.isEmpty {
+                                    Text("İlgili kodlar: " + finding.relatedCodes.joined(separator: ", "))
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(finding.title)
+                                    Spacer()
+                                    Text("P\(finding.priority)")
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -1220,6 +1283,22 @@ struct DiagnosticView: View {
                     await codingResearch.refresh(brand: effectiveBrand)
                 }
             }
+            .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
+                guard ready else { return }
+
+                if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
+                    protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+                }
+
+                if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
+                    Task {
+                        try? await Task.sleep(nanoseconds: 650_000_000)
+                        if bluetooth.isThinkDiagTransportReady && !workshopRunning {
+                            await runWorkshopAutoDiagnosis()
+                        }
+                    }
+                }
+            }
             .onChange(of: bluetooth.decodedFrames.count) { _, _ in
                 protocolLearner.ingest(bluetooth.decodedFrames)
             }
@@ -1260,6 +1339,60 @@ struct DiagnosticView: View {
                 let detected = VehicleBrand.detect(fromVIN: newVIN)
                 if detected != .generic { selectedBrand = detected }
             }
+        }
+    }
+
+    private func runHardwareValidationSession() async {
+        guard bluetooth.isThinkDiagTransportReady else {
+            message = "Önce ThinkDiag bağlantısını kur."
+            return
+        }
+
+        hardwareValidationRunning = true
+        defer { hardwareValidationRunning = false }
+
+        if !protocolLearner.active {
+            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+        }
+
+        if bluetooth.protocolProfile == nil {
+            message = "1/5 • ThinkDiag protokolü doğrulanıyor…"
+            await bluetooth.runReadOnlyHeaderSweep()
+        }
+
+        guard bluetooth.protocolProfile != nil else {
+            message = "Donanım doğrulaması durdu: geçerli VCI header bulunamadı."
+            return
+        }
+
+        message = "2/5 • VIN, PID ve freeze frame okunuyor…"
+        await bluetooth.discoverGenericCapabilities()
+
+        message = "3/5 • Stored / pending / permanent DTC taranıyor…"
+        await bluetooth.scanGenericDtcStates()
+
+        message = "4/5 • Canlı veri örnekleniyor…"
+        bluetooth.startLivePolling()
+        try? await Task.sleep(nanoseconds: 3_000_000_000)
+        bluetooth.stopLivePolling()
+
+        if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
+            message = "5/5 • Üretici modülleri taranıyor…"
+            await moduleScanner.scan(brand: effectiveBrand) { opcode, request in
+                await bluetooth.requestVCI(opcode: opcode, payload: request)
+            }
+        }
+
+        let report = HardwareValidationReportBuilder.make(
+            bluetooth: bluetooth,
+            modules: moduleScanner.results
+        )
+        hardwareValidationURL = HardwareValidationReportBuilder.export(report)
+
+        if hardwareValidationURL != nil {
+            message = "Donanım doğrulaması tamamlandı. Tek JSON paketi hazır."
+        } else {
+            message = "Donanım doğrulaması tamamlandı ancak rapor dosyası oluşturulamadı."
         }
     }
 

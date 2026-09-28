@@ -57,6 +57,7 @@ final class ManufacturerProtocolLearner: ObservableObject {
     }
 
     private func analyze(_ frame: ThinkDiagVciFrame) {
+        guard frame.checksumValid else { return }
         let bytes = [UInt8](frame.payload)
         guard !bytes.isEmpty else { return }
 

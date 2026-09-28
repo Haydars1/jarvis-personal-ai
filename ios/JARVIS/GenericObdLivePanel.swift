@@ -5,13 +5,30 @@ struct GenericObdLivePanel: View {
     let samples: [ThinkDiagLiveSample]
     let supportedPids: Set<UInt8>
     let freezeFrame: [ThinkDiagFreezeFrameValue]
+    let readiness: GenericObdReadiness?
     let p0299Active: Bool
 
     var body: some View {
-        if !samples.isEmpty || !supportedPids.isEmpty || !freezeFrame.isEmpty {
+        if !samples.isEmpty || !supportedPids.isEmpty || !freezeFrame.isEmpty || readiness != nil {
             Section("Genel OBD Canlı Teşhis") {
+                if let readiness {
+                    DisclosureGroup(readiness.summary) {
+                        LabeledContent("Ateşleme tipi", value: readiness.ignitionType)
+                            .font(.caption2)
+                        if !readiness.supportedMonitors.isEmpty {
+                            Text("Desteklenen monitorler: " + readiness.supportedMonitors.joined(separator: ", "))
+                                .font(.caption2)
+                        }
+                        if !readiness.incompleteMonitors.isEmpty {
+                            Text("Tamamlanmamış: " + readiness.incompleteMonitors.joined(separator: ", "))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
                 if !supportedPids.isEmpty {
-                    DisclosureGroup("Desteklenen PID'ler • (supportedPids.count)") {
+                    DisclosureGroup("Desteklenen PID'ler • \(supportedPids.count)") {
                         Text(supportedPids.sorted().map { String(format: "0x%02X", $0) }.joined(separator: ", "))
                             .font(.caption2.monospaced())
                             .textSelection(.enabled)
@@ -61,11 +78,11 @@ struct GenericObdLivePanel: View {
                     DisclosureGroup("P0299 sürüş verisi analizi") {
                         Text(assessment.summary)
                             .font(.caption.weight(.semibold))
-                        ForEach(assessment.findings, id: .self) { finding in
+                        ForEach(assessment.findings, id: \.self) { finding in
                             Text("• " + finding)
                                 .font(.caption2)
                         }
-                        Text("Güven: (Int(assessment.confidence * 100))%")
+                        Text("Güven: \(Int(assessment.confidence * 100))%")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }

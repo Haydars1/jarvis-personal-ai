@@ -10,6 +10,9 @@ const backups = fs.readFileSync(new URL('../ios/JARVIS/CodingBackupVault.swift',
 const favorites = fs.readFileSync(new URL('../ios/JARVIS/CodingFavoritesStore.swift', import.meta.url), 'utf8');
 const comparison = fs.readFileSync(new URL('../ios/JARVIS/WorkshopComparisonEngine.swift', import.meta.url), 'utf8');
 const packetEvent = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagPacketEvent.swift', import.meta.url), 'utf8');
+const triage = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticTriageEngine.swift', import.meta.url), 'utf8');
+const prefs = fs.readFileSync(new URL('../ios/JARVIS/WorkshopPreferences.swift', import.meta.url), 'utf8');
+const learner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerProtocolLearner.swift', import.meta.url), 'utf8');
 
 test('professional workshop flow can run a one-touch diagnostic and save a report', () => {
   assert.match(diagnostics, /Atölye Hızlı İşlemler/);
@@ -51,6 +54,22 @@ test('ThinkDiag transport logs timestamped RX TX packets and write limits', () =
   assert.match(bluetooth, /maxWriteWithResponse/);
   assert.match(bluetooth, /writeCharacteristicScore/);
   assert.match(bluetooth, /notifyCharacteristicScore/);
+});
+
+test('workshop can auto-run on adapter connect and prioritize likely root causes offline', () => {
+  assert.match(prefs, /autoDiagnoseOnConnect/);
+  assert.match(prefs, /autoStartProtocolLearning/);
+  assert.match(diagnostics, /ThinkDiag bağlanınca otomatik tam teşhis/);
+  assert.match(diagnostics, /Arıza Öncelik Sırası/);
+  assert.match(triage, /P0299/);
+  assert.match(triage, /P0401/);
+  assert.match(triage, /P030/);
+});
+
+test('manufacturer learning ignores checksum-invalid traffic and request path pauses generic polling', () => {
+  assert.match(learner, /guard frame\.checksumValid/);
+  assert.match(bluetooth, /exclusiveRequestDepth/);
+  assert.match(bluetooth, /stale traffic/);
 });
 
 test('ThinkDiag remembers the last adapter and reconnects automatically', () => {
