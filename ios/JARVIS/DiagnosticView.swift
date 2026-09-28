@@ -867,7 +867,9 @@ struct DiagnosticView: View {
                                     await codingCoordinator.prepareAndBackup(
                                         feature,
                                         vin: detectedVIN,
-                                        transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                        transportReady: bluetooth.canWrite
+                                            && bluetooth.protocolProfile != nil
+                                            && vehicleWriteSafety.canWrite
                                     ) { opcode, request, expected in
                                         await bluetooth.requestVCI(
                                             opcode: opcode,
