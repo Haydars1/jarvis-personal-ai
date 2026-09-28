@@ -37,6 +37,8 @@ struct DiagnosticView: View {
     @State private var codingSearchText = ""
     @State private var latestWorkshopSession: WorkshopSessionRecord?
     @State private var latestDriveLogURL: URL?
+    @State private var hardwareValidationRunning = false
+    @State private var hardwareValidationURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -287,6 +289,22 @@ struct DiagnosticView: View {
                 Section("Atölye Hızlı İşlemler") {
                     Toggle("ThinkDiag bağlanınca otomatik tam teşhis", isOn: $workshopPreferences.autoDiagnoseOnConnect)
                     Toggle("Bağlantıda protokol öğrenmeyi otomatik başlat", isOn: $workshopPreferences.autoStartProtocolLearning)
+
+                    Button {
+                        Task { await runHardwareValidationSession() }
+                    } label: {
+                        Label(
+                            hardwareValidationRunning ? "Donanım doğrulanıyor…" : "Tek seferlik donanım doğrulaması",
+                            systemImage: "checkmark.shield"
+                        )
+                    }
+                    .disabled(hardwareValidationRunning || !bluetooth.isThinkDiagTransportReady)
+
+                    if let hardwareValidationURL {
+                        ShareLink(item: hardwareValidationURL) {
+                            Label("Donanım doğrulama paketini paylaş", systemImage: "square.and.arrow.up")
+                        }
+                    }
                     Button {
                         Task { await runWorkshopAutoDiagnosis() }
                     } label: {
@@ -1309,6 +1327,60 @@ struct DiagnosticView: View {
                 let detected = VehicleBrand.detect(fromVIN: newVIN)
                 if detected != .generic { selectedBrand = detected }
             }
+        }
+    }
+
+    private func runHardwareValidationSession() async {
+        guard bluetooth.isThinkDiagTransportReady else {
+            message = "Önce ThinkDiag bağlantısını kur."
+            return
+        }
+
+        hardwareValidationRunning = true
+        defer { hardwareValidationRunning = false }
+
+        if !protocolLearner.active {
+            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+        }
+
+        if bluetooth.protocolProfile == nil {
+            message = "1/5 • ThinkDiag protokolü doğrulanıyor…"
+            await bluetooth.runReadOnlyHeaderSweep()
+        }
+
+        guard bluetooth.protocolProfile != nil else {
+            message = "Donanım doğrulaması durdu: geçerli VCI header bulunamadı."
+            return
+        }
+
+        message = "2/5 • VIN, PID ve freeze frame okunuyor…"
+        await bluetooth.discoverGenericCapabilities()
+
+        message = "3/5 • Stored / pending / permanent DTC taranıyor…"
+        await bluetooth.scanGenericDtcStates()
+
+        message = "4/5 • Canlı veri örnekleniyor…"
+        bluetooth.startLivePolling()
+        try? await Task.sleep(nanoseconds: 3_000_000_000)
+        bluetooth.stopLivePolling()
+
+        if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
+            message = "5/5 • Üretici modülleri taranıyor…"
+            await moduleScanner.scan(brand: effectiveBrand) { opcode, request in
+                await bluetooth.requestVCI(opcode: opcode, payload: request)
+            }
+        }
+
+        let report = HardwareValidationReportBuilder.make(
+            bluetooth: bluetooth,
+            modules: moduleScanner.results
+        )
+        hardwareValidationURL = HardwareValidationReportBuilder.export(report)
+
+        if hardwareValidationURL != nil {
+            message = "Donanım doğrulaması tamamlandı. Tek JSON paketi hazır."
+        } else {
+            message = "Donanım doğrulaması tamamlandı ancak rapor dosyası oluşturulamadı."
         }
     }
 
