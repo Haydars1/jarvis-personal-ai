@@ -12,6 +12,12 @@ const assembler = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagFrameAssembler
 const passive = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagPassiveDecoder.swift', import.meta.url), 'utf8');
 const analyzer = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagProtocolAnalyzer.swift', import.meta.url), 'utf8');
 const profile = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagProtocolProfile.swift', import.meta.url), 'utf8');
+const vehicleSupport = fs.readFileSync(new URL('../ios/JARVIS/VehicleSupport.swift', import.meta.url), 'utf8');
+const dtcCatalog = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticDtcCatalog.swift', import.meta.url), 'utf8');
+const codingCatalog = fs.readFileSync(new URL('../ios/JARVIS/CodingFeatureCatalog.swift', import.meta.url), 'utf8');
+const codingCoordinator = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingCoordinator.swift', import.meta.url), 'utf8');
+const diagnosticAI = fs.readFileSync(new URL('../ios/JARVIS/VehicleDiagnosticAI.swift', import.meta.url), 'utf8');
+const moduleCatalog = fs.readFileSync(new URL('../ios/JARVIS/VehicleModuleCatalog.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -88,6 +94,42 @@ test('confirmed ThinkDiag profile unlocks read-only live PID polling', () => {
   assert.match(bluetooth, /startLivePolling/);
   assert.match(bluetooth, /0x0C, 0x0B, 0x10, 0x05, 0x0D, 0x42/);
   assert.match(diagnostics, /Canlı veriyi başlat/);
+});
+
+test('cross-brand diagnostics model covers major vehicle brands and VIN detection', () => {
+  assert.match(vehicleSupport, /case volkswagen/);
+  assert.match(vehicleSupport, /case mercedes/);
+  assert.match(vehicleSupport, /case bmw/);
+  assert.match(vehicleSupport, /case toyota/);
+  assert.match(vehicleSupport, /case hyundai/);
+  assert.match(vehicleSupport, /detect\(fromVIN/);
+  assert.match(diagnostics, /Picker\("Marka"/);
+});
+
+test('DTC results are explained locally and can be interpreted by JARVIS AI', () => {
+  assert.match(dtcCatalog, /"P0299"/);
+  assert.match(dtcCatalog, /"P0401"/);
+  assert.match(dtcCatalog, /"P2002"/);
+  assert.match(diagnosticAI, /vehicle-diagnostics/);
+  assert.match(diagnostics, /JARVIS teşhis yorumu/);
+});
+
+test('coding workspace is recipe-driven with backup and confirmation gates', () => {
+  assert.match(codingCatalog, /CodingFeatureDescriptor/);
+  assert.match(codingCatalog, /Konfor sinyal sayısı/);
+  assert.match(codingCatalog, /Kilitlerken aynaları katla/);
+  assert.match(codingCoordinator, /stageBackup/);
+  assert.match(codingCoordinator, /awaitingConfirmation/);
+  assert.match(codingCoordinator, /CodingRecipeRegistry/);
+  assert.match(diagnostics, /Kodlama \/ Adaptasyon \/ Gizli Özellikler/);
+});
+
+test('cross-brand module catalog includes engine transmission ABS SRS and body systems', () => {
+  assert.match(moduleCatalog, /case engine/);
+  assert.match(moduleCatalog, /case transmission/);
+  assert.match(moduleCatalog, /case abs/);
+  assert.match(moduleCatalog, /case airbag/);
+  assert.match(moduleCatalog, /case body/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
