@@ -33,10 +33,37 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     private var notifyCBCharacteristic: CBCharacteristic?
     private var assembler = ThinkDiagFrameAssembler()
     private var livePollTask: Task<Void, Never>?
+    private let lastPeripheralKey = "jarvis.thinkdiag.lastPeripheral"
+    private let autoReconnectKey = "jarvis.thinkdiag.autoReconnect"
 
     override init() {
         super.init()
         central = CBCentralManager(delegate: self, queue: nil)
+    }
+
+    var autoReconnectEnabled: Bool {
+        get {
+            if UserDefaults.standard.object(forKey: autoReconnectKey) == nil { return true }
+            return UserDefaults.standard.bool(forKey: autoReconnectKey)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: autoReconnectKey)
+        }
+    }
+
+    func reconnectLastDevice() {
+        guard central.state == .poweredOn,
+              autoReconnectEnabled,
+              let raw = UserDefaults.standard.string(forKey: lastPeripheralKey),
+              let id = UUID(uuidString: raw) else { return }
+
+        let matches = central.retrievePeripherals(withIdentifiers: [id])
+        guard let peripheral = matches.first else { return }
+        active = peripheral
+        peripherals[id] = peripheral
+        peripheral.delegate = self
+        state = .connecting(peripheral.name ?? "Son ThinkDiag")
+        central.connect(peripheral, options: nil)
     }
 
     func scan() {
@@ -173,25 +200,31 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         ]
 
         for header in candidates {
-            let startFrameCount = decodedFrames.count
-            let startObservationCount = passiveObservations.count
-            let sent = sendReadOnlyDtcProbe(header: header)
-            guard sent else {
-                probeAttempts.append(.init(header: header, success: false, detail: "WRITE yok"))
-                continue
+            var confirmations = 0
+
+            for _ in 0..<2 {
+                let startFrameCount = decodedFrames.count
+                guard sendReadOnlyDtcProbe(header: header) else { break }
+                try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+
+                let newFrames = Array(decodedFrames.dropFirst(min(startFrameCount, decodedFrames.count)))
+                let valid = newFrames.contains { frame in
+                    frame.checksumValid
+                        && frame.header == header
+                        && Self.isStructurallyValidMode03(frame)
+                }
+                if valid {
+                    confirmations += 1
+                } else {
+                    break
+                }
             }
 
-            try? await Task.sleep(nanoseconds: timeoutNanoseconds)
-            let newFrames = Array(decodedFrames.dropFirst(min(startFrameCount, decodedFrames.count)))
-            let newObservations = Array(passiveObservations.dropFirst(min(startObservationCount, passiveObservations.count)))
-            let mode03 = newFrames.contains { frame in
-                frame.opcode == 0x0143 || frame.payload.contains(0x43)
-            }
-            let dtcObservation = newObservations.contains { $0.kind == "DTC" || $0.kind == "PENDING_DTC" }
-            let success = mode03 || dtcObservation
+            let success = confirmations >= 2
             let detail = success
-                ? "Mode 03 cevabı bulundu"
-                : "Cevap yok / Mode 03 tanınmadı"
+                ? "2/2 checksum-geçerli Mode 03 cevabı"
+                : "\(confirmations)/2 doğrulama; header kaydedilmedi"
+
             probeAttempts.append(.init(header: header, success: success, detail: detail))
 
             if success {
@@ -206,6 +239,29 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
                 break
             }
         }
+    }
+
+    private static func isStructurallyValidMode03(_ frame: ThinkDiagVciFrame) -> Bool {
+        let bytes = [UInt8](frame.payload)
+
+        if frame.opcode == 0x0143 {
+            return true
+        }
+
+        guard let index = bytes.firstIndex(of: 0x43) else { return false }
+        let suffix = Array(bytes.dropFirst(index + 1))
+
+        // Empty positive response is valid when the ECU has no stored DTC.
+        if suffix.isEmpty { return true }
+
+        // Some responses include a DTC-count byte after 0x43.
+        if suffix.count >= 1, suffix.count % 2 == 1 {
+            let count = Int(suffix[0])
+            let dtcBytes = suffix.count - 1
+            return count * 2 <= dtcBytes && dtcBytes % 2 == 0
+        }
+
+        return suffix.count % 2 == 0
     }
 
     func requestVCI(
@@ -258,8 +314,9 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
         Task { @MainActor in
             if central.state != .poweredOn {
                 state = .failed("Bluetooth kullanılamıyor")
-            } else if case .failed = state {
-                state = .idle
+            } else {
+                if case .failed = state { state = .idle }
+                reconnectLastDevice()
             }
         }
     }
@@ -283,6 +340,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
     nonisolated func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         Task { @MainActor in
             state = .connected(peripheral.name ?? "ThinkDiag")
+            UserDefaults.standard.set(peripheral.identifier.uuidString, forKey: lastPeripheralKey)
             discoveredServices.removeAll()
             notificationFrames.removeAll()
             decodedFrames.removeAll()
