@@ -18,10 +18,13 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var preferredServiceDetected = false
     @Published private(set) var writableCharacteristic: String?
     @Published private(set) var notifyCharacteristic: String?
+    @Published private(set) var passiveObservations: [ThinkDiagPassiveObservation] = []
+    @Published private(set) var streamStats = ThinkDiagStreamStats()
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var active: CBPeripheral?
+    private var assembler = ThinkDiagFrameAssembler()
 
     override init() {
         super.init()
@@ -70,6 +73,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         return !discoveredServices.isEmpty
     }
 
+    var protocolFingerprint: ThinkDiagProtocolFingerprint {
+        ThinkDiagProtocolAnalyzer.fingerprint(decodedFrames)
+    }
+
     var transportNotice: String {
         if preferredServiceDetected {
             return "Launch/ThinkDiag BLE servis imzası bulundu. JARVIS bildirimleri dinliyor ve bilinen VCI çerçeve yapısını pasif olarak çözüyor."
@@ -114,6 +121,9 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             preferredServiceDetected = false
             writableCharacteristic = nil
             notifyCharacteristic = nil
+            passiveObservations.removeAll()
+            assembler.reset()
+            streamStats = assembler.stats
             peripheral.discoverServices(nil)
         }
     }
@@ -175,11 +185,17 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
         Task { @MainActor in
             guard error == nil, let data = characteristic.value, !data.isEmpty else { return }
             notificationFrames.append(data)
-            if let frame = ThinkDiagVciFrame.decode(data) {
+            let frames = assembler.append(data)
+            streamStats = assembler.stats
+            for frame in frames {
                 decodedFrames.append(frame)
-                if decodedFrames.count > 200 {
-                    decodedFrames.removeFirst(decodedFrames.count - 200)
-                }
+                passiveObservations.append(contentsOf: ThinkDiagPassiveDecoder.observations(from: frame))
+            }
+            if decodedFrames.count > 500 {
+                decodedFrames.removeFirst(decodedFrames.count - 500)
+            }
+            if passiveObservations.count > 300 {
+                passiveObservations.removeFirst(passiveObservations.count - 300)
             }
             if notificationFrames.count > 200 {
                 notificationFrames.removeFirst(notificationFrames.count - 200)
