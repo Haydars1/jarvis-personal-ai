@@ -20,6 +20,9 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var notifyCharacteristic: String?
     @Published private(set) var passiveObservations: [ThinkDiagPassiveObservation] = []
     @Published private(set) var streamStats = ThinkDiagStreamStats()
+    @Published private(set) var protocolProfile: ThinkDiagProtocolProfile? = ThinkDiagProtocolProfileStore.load()
+    @Published private(set) var probeAttempts: [ThinkDiagProbeAttempt] = []
+    @Published private(set) var probeRunning = false
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -80,12 +83,67 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     }
 
     @discardableResult
-    func sendReadOnlyDtcProbe() -> Bool {
+    func sendReadOnlyDtcProbe(header: [UInt8]? = nil) -> Bool {
         guard let peripheral = active, let characteristic = writeCBCharacteristic else { return false }
-        let data = ThinkDiagVciFrame.build(opcode: 0x0103)
+        let selectedHeader = header ?? protocolProfile?.header ?? [0x55, 0xAA]
+        let data = ThinkDiagVciFrame.build(header: selectedHeader, opcode: 0x0103)
         let type: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
         peripheral.writeValue(data, for: characteristic, type: type)
         return true
+    }
+
+    func runReadOnlyHeaderSweep(timeoutNanoseconds: UInt64 = 1_200_000_000) async {
+        guard canWrite, !probeRunning else { return }
+        probeRunning = true
+        probeAttempts.removeAll()
+        defer { probeRunning = false }
+
+        let candidates: [[UInt8]] = [
+            [0x55, 0xAA],
+            [0xAA, 0x55],
+            [0xFE, 0x01],
+            [0x40, 0xC8],
+        ]
+
+        for header in candidates {
+            let startFrameCount = decodedFrames.count
+            let startObservationCount = passiveObservations.count
+            let sent = sendReadOnlyDtcProbe(header: header)
+            guard sent else {
+                probeAttempts.append(.init(header: header, success: false, detail: "WRITE yok"))
+                continue
+            }
+
+            try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+            let newFrames = Array(decodedFrames.dropFirst(min(startFrameCount, decodedFrames.count)))
+            let newObservations = Array(passiveObservations.dropFirst(min(startObservationCount, passiveObservations.count)))
+            let mode03 = newFrames.contains { frame in
+                frame.opcode == 0x0143 || frame.payload.contains(0x43)
+            }
+            let dtcObservation = newObservations.contains { $0.kind == "DTC" || $0.kind == "PENDING_DTC" }
+            let success = mode03 || dtcObservation
+            let detail = success
+                ? "Mode 03 cevabı bulundu"
+                : "Cevap yok / Mode 03 tanınmadı"
+            probeAttempts.append(.init(header: header, success: success, detail: detail))
+
+            if success {
+                let profile = ThinkDiagProtocolProfile(
+                    header0: header[0],
+                    header1: header[1],
+                    confirmedAt: Date(),
+                    evidence: detail
+                )
+                protocolProfile = profile
+                ThinkDiagProtocolProfileStore.save(profile)
+                break
+            }
+        }
+    }
+
+    func clearProtocolProfile() {
+        protocolProfile = nil
+        ThinkDiagProtocolProfileStore.clear()
     }
 
     var protocolFingerprint: ThinkDiagProtocolFingerprint {
