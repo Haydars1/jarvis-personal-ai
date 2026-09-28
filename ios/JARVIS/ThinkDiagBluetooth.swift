@@ -28,6 +28,9 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var packetEvents: [ThinkDiagPacketEvent] = []
     @Published private(set) var maxWriteWithResponse = 0
     @Published private(set) var maxWriteWithoutResponse = 0
+    @Published private(set) var supportedPids: Set<UInt8> = []
+    @Published private(set) var liveSamples: [ThinkDiagLiveSample] = []
+    @Published private(set) var freezeFrameValues: [ThinkDiagFreezeFrameValue] = []
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -152,6 +155,48 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         return sendVCIFrame(opcode: 0x010A)
     }
 
+    @discardableResult
+    func sendReadOnlySupportedPidBlock(_ base: UInt8) -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendVCIFrame(opcode: 0x0101, payload: Data([base]))
+    }
+
+    @discardableResult
+    func sendReadOnlyVinProbe() -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendVCIFrame(opcode: 0x0109, payload: Data([0x02]))
+    }
+
+    @discardableResult
+    func sendReadOnlyFreezeFramePid(_ pid: UInt8, frameIndex: UInt8 = 0x00) -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendVCIFrame(opcode: 0x0102, payload: Data([pid, frameIndex]))
+    }
+
+    func discoverGenericCapabilities() async {
+        guard protocolProfile != nil, canWrite else { return }
+
+        supportedPids.removeAll()
+        for base in [UInt8(0x00),0x20,0x40,0x60,0x80,0xA0,0xC0] {
+            _ = sendReadOnlySupportedPidBlock(base)
+            try? await Task.sleep(nanoseconds: 280_000_000)
+
+            // Continue into the next PID range only if the current bitmap advertises it.
+            if base != 0x00 && !supportedPids.contains(base) {
+                break
+            }
+        }
+
+        _ = sendReadOnlyVinProbe()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        let freezeCandidates: [UInt8] = [0x04,0x05,0x0B,0x0C,0x0D,0x0F,0x10,0x11,0x23,0x33,0x42]
+        for pid in freezeCandidates where supportedPids.isEmpty || supportedPids.contains(pid) {
+            _ = sendReadOnlyFreezeFramePid(pid)
+            try? await Task.sleep(nanoseconds: 140_000_000)
+        }
+    }
+
     func scanGenericDtcStates() async {
         guard protocolProfile != nil, canWrite, !genericDtcScanRunning else { return }
         genericDtcScanRunning = true
@@ -174,7 +219,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     func startLivePolling() {
         guard protocolProfile != nil, canWrite, livePollTask == nil else { return }
         livePolling = true
-        let pids: [UInt8] = [0x0C, 0x0B, 0x10, 0x05, 0x0D, 0x42]
+        let preferred: [UInt8] = [0x0C,0x04,0x0B,0x10,0x05,0x0F,0x0D,0x23,0x33,0x42,0x46,0x5C]
+        let pids = supportedPids.isEmpty
+            ? preferred
+            : preferred.filter { supportedPids.contains($0) }
         livePollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { break }
@@ -313,6 +361,36 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         ThinkDiagProtocolAnalyzer.fingerprint(decodedFrames)
     }
 
+    private func ingestGenericObd(_ frame: ThinkDiagVciFrame) {
+        guard frame.checksumValid else { return }
+        let bytes = [UInt8](frame.payload)
+
+        for start in bytes.indices {
+            let suffix = Array(bytes[start...])
+            guard let first = suffix.first else { continue }
+
+            if first == 0x41 {
+                if let supported = GenericObdDecoder.supportedPids(suffix) {
+                    supportedPids.formUnion(supported)
+                }
+                if let sample = GenericObdDecoder.decodeMode01(suffix) {
+                    liveSamples.append(sample)
+                }
+            } else if first == 0x42,
+                      let freeze = GenericObdDecoder.decodeMode02(suffix) {
+                if let index = freezeFrameValues.firstIndex(where: { $0.pid == freeze.pid }) {
+                    freezeFrameValues[index] = freeze
+                } else {
+                    freezeFrameValues.append(freeze)
+                }
+            }
+        }
+
+        if liveSamples.count > 1200 {
+            liveSamples.removeFirst(liveSamples.count - 1200)
+        }
+    }
+
     private func trimPacketEvents() {
         if packetEvents.count > 1000 {
             packetEvents.removeFirst(packetEvents.count - 1000)
@@ -373,6 +451,9 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             maxWriteWithResponse = peripheral.maximumWriteValueLength(for: .withResponse)
             maxWriteWithoutResponse = peripheral.maximumWriteValueLength(for: .withoutResponse)
             passiveObservations.removeAll()
+            supportedPids.removeAll()
+            liveSamples.removeAll()
+            freezeFrameValues.removeAll()
             assembler.reset()
             streamStats = assembler.stats
             peripheral.discoverServices(nil)
@@ -461,11 +542,12 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
                 data: data
             ))
             trimPacketEvents()
-            let frames = assembler.append(data)
+            let frames = assembler.append(data, preferredHeader: protocolProfile?.header)
             streamStats = assembler.stats
             for frame in frames {
                 decodedFrames.append(frame)
                 passiveObservations.append(contentsOf: ThinkDiagPassiveDecoder.observations(from: frame))
+                ingestGenericObd(frame)
             }
             if decodedFrames.count > 500 {
                 decodedFrames.removeFirst(decodedFrames.count - 500)
