@@ -11,6 +11,7 @@ const vciFrame = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagVciFrame.swift'
 const assembler = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagFrameAssembler.swift', import.meta.url), 'utf8');
 const passive = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagPassiveDecoder.swift', import.meta.url), 'utf8');
 const analyzer = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagProtocolAnalyzer.swift', import.meta.url), 'utf8');
+const profile = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagProtocolProfile.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -69,6 +70,24 @@ test('direct ThinkDiag path exposes a read-only DTC probe', () => {
   assert.match(bluetooth, /sendReadOnlyDtcProbe/);
   assert.match(bluetooth, /opcode: 0x0103/);
   assert.match(diagnostics, /DTC oku — deneysel salt-okuma/);
+});
+
+test('ThinkDiag protocol profile is learned and persisted from read-only sweep', () => {
+  assert.match(profile, /ThinkDiagProtocolProfileStore/);
+  assert.match(bluetooth, /runReadOnlyHeaderSweep/);
+  assert.match(bluetooth, /\[0x55, 0xAA\]/);
+  assert.match(bluetooth, /\[0xAA, 0x55\]/);
+  assert.match(bluetooth, /\[0xFE, 0x01\]/);
+  assert.match(bluetooth, /\[0x40, 0xC8\]/);
+  assert.match(diagnostics, /Salt-okuma protokol taraması/);
+});
+
+test('confirmed ThinkDiag profile unlocks read-only live PID polling', () => {
+  assert.match(bluetooth, /sendReadOnlyPid/);
+  assert.match(bluetooth, /opcode: 0x0101/);
+  assert.match(bluetooth, /startLivePolling/);
+  assert.match(bluetooth, /0x0C, 0x0B, 0x10, 0x05, 0x0D, 0x42/);
+  assert.match(diagnostics, /Canlı veriyi başlat/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {

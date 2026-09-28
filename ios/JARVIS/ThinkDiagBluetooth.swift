@@ -20,6 +20,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var notifyCharacteristic: String?
     @Published private(set) var passiveObservations: [ThinkDiagPassiveObservation] = []
     @Published private(set) var streamStats = ThinkDiagStreamStats()
+    @Published private(set) var protocolProfile: ThinkDiagProtocolProfile? = ThinkDiagProtocolProfileStore.load()
+    @Published private(set) var probeAttempts: [ThinkDiagProbeAttempt] = []
+    @Published private(set) var probeRunning = false
+    @Published private(set) var livePolling = false
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -27,6 +31,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     private var writeCBCharacteristic: CBCharacteristic?
     private var notifyCBCharacteristic: CBCharacteristic?
     private var assembler = ThinkDiagFrameAssembler()
+    private var livePollTask: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -66,6 +71,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     }
 
     func disconnect() {
+        stopLivePolling()
         guard let active else { return }
         central.cancelPeripheralConnection(active)
     }
@@ -79,13 +85,105 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         active != nil && writeCBCharacteristic != nil
     }
 
-    @discardableResult
-    func sendReadOnlyDtcProbe() -> Bool {
+    private func sendReadOnlyFrame(opcode: UInt16, payload: Data = Data(), header: [UInt8]? = nil) -> Bool {
         guard let peripheral = active, let characteristic = writeCBCharacteristic else { return false }
-        let data = ThinkDiagVciFrame.build(opcode: 0x0103)
+        let selectedHeader = header ?? protocolProfile?.header ?? [0x55, 0xAA]
+        let data = ThinkDiagVciFrame.build(header: selectedHeader, opcode: opcode, payload: payload)
         let type: CBCharacteristicWriteType = characteristic.properties.contains(.writeWithoutResponse) ? .withoutResponse : .withResponse
         peripheral.writeValue(data, for: characteristic, type: type)
         return true
+    }
+
+    @discardableResult
+    func sendReadOnlyDtcProbe(header: [UInt8]? = nil) -> Bool {
+        sendReadOnlyFrame(opcode: 0x0103, header: header)
+    }
+
+    @discardableResult
+    func sendReadOnlyPid(_ pid: UInt8) -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendReadOnlyFrame(opcode: 0x0101, payload: Data([pid]))
+    }
+
+    func startLivePolling() {
+        guard protocolProfile != nil, canWrite, livePollTask == nil else { return }
+        livePolling = true
+        let pids: [UInt8] = [0x0C, 0x0B, 0x10, 0x05, 0x0D, 0x42]
+        livePollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { break }
+                for pid in pids {
+                    if Task.isCancelled { break }
+                    _ = self.sendReadOnlyPid(pid)
+                    try? await Task.sleep(nanoseconds: 180_000_000)
+                }
+                try? await Task.sleep(nanoseconds: 350_000_000)
+            }
+            await MainActor.run {
+                self?.livePolling = false
+                self?.livePollTask = nil
+            }
+        }
+    }
+
+    func stopLivePolling() {
+        livePollTask?.cancel()
+        livePollTask = nil
+        livePolling = false
+    }
+
+    func runReadOnlyHeaderSweep(timeoutNanoseconds: UInt64 = 1_200_000_000) async {
+        guard canWrite, !probeRunning else { return }
+        probeRunning = true
+        probeAttempts.removeAll()
+        defer { probeRunning = false }
+
+        let candidates: [[UInt8]] = [
+            [0x55, 0xAA],
+            [0xAA, 0x55],
+            [0xFE, 0x01],
+            [0x40, 0xC8],
+        ]
+
+        for header in candidates {
+            let startFrameCount = decodedFrames.count
+            let startObservationCount = passiveObservations.count
+            let sent = sendReadOnlyDtcProbe(header: header)
+            guard sent else {
+                probeAttempts.append(.init(header: header, success: false, detail: "WRITE yok"))
+                continue
+            }
+
+            try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+            let newFrames = Array(decodedFrames.dropFirst(min(startFrameCount, decodedFrames.count)))
+            let newObservations = Array(passiveObservations.dropFirst(min(startObservationCount, passiveObservations.count)))
+            let mode03 = newFrames.contains { frame in
+                frame.opcode == 0x0143 || frame.payload.contains(0x43)
+            }
+            let dtcObservation = newObservations.contains { $0.kind == "DTC" || $0.kind == "PENDING_DTC" }
+            let success = mode03 || dtcObservation
+            let detail = success
+                ? "Mode 03 cevabı bulundu"
+                : "Cevap yok / Mode 03 tanınmadı"
+            probeAttempts.append(.init(header: header, success: success, detail: detail))
+
+            if success {
+                let profile = ThinkDiagProtocolProfile(
+                    header0: header[0],
+                    header1: header[1],
+                    confirmedAt: Date(),
+                    evidence: detail
+                )
+                protocolProfile = profile
+                ThinkDiagProtocolProfileStore.save(profile)
+                break
+            }
+        }
+    }
+
+    func clearProtocolProfile() {
+        protocolProfile = nil
+        ThinkDiagProtocolProfileStore.clear()
     }
 
     var protocolFingerprint: ThinkDiagProtocolFingerprint {
@@ -153,6 +251,7 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
 
     nonisolated func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         Task { @MainActor in
+            stopLivePolling()
             state = error == nil ? .disconnected : .failed(error!.localizedDescription)
         }
     }
