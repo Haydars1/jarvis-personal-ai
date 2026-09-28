@@ -18,6 +18,8 @@ const codingCatalog = fs.readFileSync(new URL('../ios/JARVIS/CodingFeatureCatalo
 const codingCoordinator = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingCoordinator.swift', import.meta.url), 'utf8');
 const diagnosticAI = fs.readFileSync(new URL('../ios/JARVIS/VehicleDiagnosticAI.swift', import.meta.url), 'utf8');
 const moduleCatalog = fs.readFileSync(new URL('../ios/JARVIS/VehicleModuleCatalog.swift', import.meta.url), 'utf8');
+const capabilityResolver = fs.readFileSync(new URL('../ios/JARVIS/VehicleCapabilityResolver.swift', import.meta.url), 'utf8');
+const packValidator = fs.readFileSync(new URL('../ios/JARVIS/VehiclePackValidator.swift', import.meta.url), 'utf8');
 const uds = fs.readFileSync(new URL('../ios/JARVIS/UDSCodec.swift', import.meta.url), 'utf8');
 const manufacturerPack = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerDiagnosticPack.swift', import.meta.url), 'utf8');
 const moduleScanner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerModuleScanner.swift', import.meta.url), 'utf8');
@@ -178,6 +180,20 @@ test('coding execution requires backup confirmation write and verify phases', ()
   assert.match(codingCoordinator, /state = \.writing/);
   assert.match(codingCoordinator, /state = \.verifying/);
   assert.match(diagnostics, /confirmationDialog/);
+});
+
+test('vehicle capabilities are resolved from verified manufacturer recipes', () => {
+  assert.match(capabilityResolver, /ManufacturerDiagnosticRegistry\.shared\.pack/);
+  assert.match(capabilityResolver, /CodingRecipeRegistry\.shared\.registeredFeatureIDs/);
+  assert.match(capabilityResolver, /verifiedCodingCount/);
+  assert.match(diagnostics, /capabilityResolver\.capabilities/);
+});
+
+test('manufacturer packs are validated before registration', () => {
+  assert.match(packValidator, /duplicateModuleID/);
+  assert.match(packValidator, /missingCodingModule/);
+  assert.match(packValidator, /CodingSafetyPolicy\.isAllowed/);
+  assert.match(manufacturerPack, /VehiclePackValidator\.validate/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
