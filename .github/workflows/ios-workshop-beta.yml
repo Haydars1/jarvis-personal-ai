@@ -1,0 +1,117 @@
+name: Build JARVIS Workshop Beta IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_note:
+        description: 'Short note for this consolidated test build'
+        required: false
+        default: 'Workshop diagnostics consolidated beta'
+      retention_days:
+        description: 'Artifact retention days'
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: jarvis-workshop-beta-ipa
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/learning-engine
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Full repository validation
+        run: npm run check
+
+  build:
+    needs: validate
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/learning-engine
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate app icon
+        working-directory: ios
+        run: python3 scripts/generate_app_icon.py
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Simulator compile gate
+        working-directory: ios
+        run: xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+
+      - name: Build consolidated unsigned IPA
+        working-directory: ios
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA::7}"
+          IPA_BASENAME="JARVIS-WorkshopBeta-Run${GITHUB_RUN_NUMBER}-${SHORT_SHA}-unsigned"
+          echo "IPA_BASENAME=$IPA_BASENAME" >> "$GITHUB_ENV"
+
+          rm -rf build-device Payload "$IPA_BASENAME.ipa"
+          xcodebuild \
+            -project JARVIS.xcodeproj \
+            -scheme JARVIS \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build-device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+          APP_PATH="build-device/Build/Products/Release-iphoneos/JARVIS.app"
+          test -d "$APP_PATH"
+
+          /usr/libexec/PlistBuddy -c "Print :NSBluetoothAlwaysUsageDescription" "$APP_PATH/Info.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP_PATH/Info.plist" >/dev/null
+          test -n "$(find "$APP_PATH" -name 'AppIcon*.png' -print -quit)"
+
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/JARVIS.app
+          ditto -c -k --sequesterRsrc --keepParent Payload "$IPA_BASENAME.ipa"
+
+          printf '%s\n' \
+            "JARVIS Workshop Beta" \
+            "Branch: feature/learning-engine" \
+            "Commit: ${GITHUB_SHA}" \
+            "Run: ${GITHUB_RUN_NUMBER}" \
+            "Note: ${{ inputs.release_note }}" \
+            > BUILD-INFO.txt
+
+      - name: Upload one consolidated IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IPA_BASENAME }}
+          path: |
+            ios/${{ env.IPA_BASENAME }}.ipa
+            ios/BUILD-INFO.txt
+          if-no-files-found: error
+          retention-days: ${{ fromJSON(inputs.retention_days) }}
+
+      - name: Build summary
+        run: |
+          echo "### Consolidated JARVIS Workshop Beta" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Source: feature/learning-engine" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Full npm validation: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- iOS simulator compile: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- iPhone Release compile: passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Artifact: ${{ env.IPA_BASENAME }}" >> "$GITHUB_STEP_SUMMARY"
