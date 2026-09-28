@@ -6,6 +6,7 @@ struct DiagnosticView: View {
     @StateObject private var bluetooth = ThinkDiagBluetooth()
     @StateObject private var codingCoordinator = VehicleCodingCoordinator()
     @StateObject private var diagnosticAI = VehicleDiagnosticAI()
+    @StateObject private var capabilityResolver = VehicleCapabilityResolver()
     @StateObject private var moduleScanner = ManufacturerModuleScanner()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
@@ -205,16 +206,14 @@ struct DiagnosticView: View {
                         }
                     }
 
-                    ForEach([VehicleCapability.readDtcs, .liveData, .moduleScan, .coding, .adaptations, .hiddenFeatures]) { capability in
-                        LabeledContent(
-                            capability.rawValue,
-                            value: VehicleCapabilityMatrix.support(
-                                for: capability,
-                                brand: selectedBrand,
-                                protocolConfirmed: bluetooth.protocolProfile != nil
-                            ).rawValue
-                        )
-                        .font(.caption)
+                    ForEach(capabilityResolver.capabilities) { resolved in
+                        VStack(alignment: .leading, spacing: 2) {
+                            LabeledContent(resolved.capability.rawValue, value: resolved.support.rawValue)
+                                .font(.caption)
+                            Text(resolved.detail)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -514,11 +513,30 @@ struct DiagnosticView: View {
                 }
             }
             .onChange(of: detectedVIN) { _, newVIN in
-                guard selectedBrand == .generic, let newVIN else { return }
+                guard selectedBrand == .generic, let newVIN else {
+                    refreshCapabilities()
+                    return
+                }
                 let detected = VehicleBrand.detect(fromVIN: newVIN)
                 if detected != .generic { selectedBrand = detected }
+                refreshCapabilities()
             }
+            .onChange(of: selectedBrand) { _, _ in refreshCapabilities() }
+            .onChange(of: bluetooth.protocolProfile?.headerHex) { _, _ in refreshCapabilities() }
+            .task { refreshCapabilities() }
         }
+    }
+
+    private func refreshCapabilities() {
+        capabilityResolver.resolve(
+            identity: .init(
+                brand: effectiveBrand,
+                vin: detectedVIN,
+                model: nil,
+                modelYear: nil
+            ),
+            transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+        )
     }
 
     private var effectiveBrand: VehicleBrand {
@@ -563,6 +581,7 @@ struct DiagnosticView: View {
         do {
             let data = try Data(contentsOf: url)
             let manifest = try ManufacturerDiagnosticPackLoader.load(data: data)
+            refreshCapabilities()
             featurePackStatus = "\(manifest.brand.rawValue) teşhis paketi \(manifest.packVersion) yüklendi • \(manifest.modules.count) modül • \(manifest.codingRecipes.count) kodlama reçetesi"
             if selectedBrand == .generic {
                 selectedBrand = manifest.brand
@@ -579,6 +598,7 @@ struct DiagnosticView: View {
         do {
             let data = try Data(contentsOf: url)
             let manifest = try ManufacturerFeaturePackLoader.load(data: data)
+            refreshCapabilities()
             featurePackStatus = "\(manifest.brand.rawValue) özellik paketi \(manifest.packVersion) yüklendi • \(manifest.recipes.count) reçete"
             if selectedBrand == .generic {
                 selectedBrand = manifest.brand
