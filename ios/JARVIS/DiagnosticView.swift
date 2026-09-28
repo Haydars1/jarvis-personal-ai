@@ -6,10 +6,13 @@ struct DiagnosticView: View {
     @StateObject private var bluetooth = ThinkDiagBluetooth()
     @StateObject private var codingCoordinator = VehicleCodingCoordinator()
     @StateObject private var diagnosticAI = VehicleDiagnosticAI()
+    @StateObject private var moduleScanner = ManufacturerModuleScanner()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
     @State private var showFeaturePackImporter = false
+    @State private var showManufacturerPackImporter = false
+    @State private var showCodingConfirmation = false
     @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
@@ -216,6 +219,64 @@ struct DiagnosticView: View {
                 }
 
                 Section("Kontrol Üniteleri") {
+                    if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
+                        Button {
+                            Task {
+                                message = "Tüm üretici modülleri taranıyor…"
+                                await moduleScanner.scan(brand: effectiveBrand) { opcode, request in
+                                    await bluetooth.requestVCI(opcode: opcode, payload: request)
+                                }
+                                message = "Üretici modül taraması tamamlandı."
+                            }
+                        } label: {
+                            Label(
+                                moduleScanner.running ? "Modüller taranıyor…" : "Tüm modülleri tara",
+                                systemImage: "square.grid.3x3.square"
+                            )
+                        }
+                        .disabled(moduleScanner.running || bluetooth.protocolProfile == nil)
+
+                        if moduleScanner.running && !moduleScanner.currentModule.isEmpty {
+                            HStack {
+                                ProgressView()
+                                Text(moduleScanner.currentModule)
+                                    .font(.caption)
+                            }
+                        }
+
+                        ForEach(moduleScanner.results) { result in
+                            DisclosureGroup {
+                                if let error = result.error {
+                                    Text(error)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                ForEach(result.identification.keys.sorted(), id: \.self) { key in
+                                    LabeledContent(key, value: result.identification[key] ?? "")
+                                        .font(.caption2)
+                                }
+                                if result.dtcs.isEmpty && result.error == nil {
+                                    Text("DTC yok")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach(result.dtcs) { dtc in
+                                        Text("\(dtc.hexCode) • status 0x\(String(format: "%02X", dtc.status))")
+                                            .font(.caption2.monospaced())
+                                    }
+                                }
+                            } label: {
+                                Text("\(result.moduleName) • \(result.address)")
+                            }
+                        }
+                    } else if effectiveBrand != .generic {
+                        Button {
+                            showManufacturerPackImporter = true
+                        } label: {
+                            Label("\(effectiveBrand.rawValue) teşhis paketi yükle", systemImage: "shippingbox")
+                        }
+                    }
+
                     ForEach(VehicleModuleCatalog.modules(for: effectiveBrand)) { module in
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
@@ -289,12 +350,23 @@ struct DiagnosticView: View {
                     } else {
                         ForEach(pack.features) { feature in
                             Button {
-                                codingCoordinator.prepare(
-                                    feature,
-                                    vin: detectedVIN,
-                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
-                                )
-                                message = codingCoordinator.state.label
+                                Task {
+                                    await codingCoordinator.prepareAndBackup(
+                                        feature,
+                                        vin: detectedVIN,
+                                        transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                    ) { opcode, request, expected in
+                                        await bluetooth.requestVCI(
+                                            opcode: opcode,
+                                            payload: request,
+                                            expectedPayloadPrefix: expected
+                                        )
+                                    }
+                                    message = codingCoordinator.state.label
+                                    if case .awaitingConfirmation = codingCoordinator.state {
+                                        showCodingConfirmation = true
+                                    }
+                                }
                             } label: {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(feature.title)
@@ -310,10 +382,18 @@ struct DiagnosticView: View {
                         }
                     }
 
-                    Button {
-                        showFeaturePackImporter = true
-                    } label: {
-                        Label("Üretici özellik paketi yükle", systemImage: "shippingbox.and.arrow.backward")
+                    HStack {
+                        Button {
+                            showFeaturePackImporter = true
+                        } label: {
+                            Label("Kodlama paketi", systemImage: "slider.horizontal.3")
+                        }
+
+                        Button {
+                            showManufacturerPackImporter = true
+                        } label: {
+                            Label("Teşhis paketi", systemImage: "shippingbox.and.arrow.backward")
+                        }
                     }
 
                     if !featurePackStatus.isEmpty {
@@ -390,6 +470,39 @@ struct DiagnosticView: View {
                 }
                 .ignoresSafeArea()
             }
+            .sheet(isPresented: $showManufacturerPackImporter) {
+                UniversalDocumentPicker(allowsMultipleSelection: false) { urls in
+                    showManufacturerPackImporter = false
+                    guard let url = urls.first else { return }
+                    loadManufacturerPack(url)
+                } onCancel: {
+                    showManufacturerPackImporter = false
+                }
+                .ignoresSafeArea()
+            }
+            .confirmationDialog(
+                "Kodlama işlemini uygula?",
+                isPresented: $showCodingConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Uygula") {
+                    Task {
+                        await codingCoordinator.executeConfirmed { opcode, request, expected in
+                            await bluetooth.requestVCI(
+                                opcode: opcode,
+                                payload: request,
+                                expectedPayloadPrefix: expected
+                            )
+                        }
+                        message = codingCoordinator.state.label
+                    }
+                }
+                Button("İptal", role: .cancel) {
+                    codingCoordinator.cancel()
+                }
+            } message: {
+                Text("Mevcut değer yedeklendi. Doğrulanmış reçete araca yazılacak ve ardından tekrar okunarak kontrol edilecek.")
+            }
             .onChange(of: dtcCodeKey) { _, _ in
                 Task {
                     await diagnosticAI.explainIfNeeded(
@@ -441,6 +554,22 @@ struct DiagnosticView: View {
         }
 
         return codes.sorted().map(DiagnosticDtcCatalog.explain)
+    }
+
+    private func loadManufacturerPack(_ url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let manifest = try ManufacturerDiagnosticPackLoader.load(data: data)
+            featurePackStatus = "\(manifest.brand.rawValue) teşhis paketi \(manifest.packVersion) yüklendi • \(manifest.modules.count) modül • \(manifest.codingRecipes.count) kodlama reçetesi"
+            if selectedBrand == .generic {
+                selectedBrand = manifest.brand
+            }
+        } catch {
+            featurePackStatus = "Teşhis paketi yüklenemedi: \(error.localizedDescription)"
+        }
     }
 
     private func loadFeaturePack(_ url: URL) {
