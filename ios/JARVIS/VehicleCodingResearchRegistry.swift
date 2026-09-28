@@ -48,6 +48,42 @@ enum VehicleCodingResearchRegistry {
             license: nil,
             allowedForDataImport: false,
             note: "Use as evidence/citation; store normalized factual procedure rather than copied page text."
+        ),
+        .init(
+            id: "forscan-forum-asbuilt",
+            kind: .forum,
+            title: "FORScan As-Built configuration research",
+            url: "https://forum.forscan.org/",
+            license: nil,
+            allowedForDataImport: false,
+            note: "Ford/Mazda module configuration, As-Built block formats, spreadsheets and empirical warnings."
+        ),
+        .init(
+            id: "mbworld-variant-coding",
+            kind: .forum,
+            title: "MBWorld Vediamo / DTS Monaco variant-coding discussions",
+            url: "https://mbworld.org/forums/mercedes-tech-talk/",
+            license: nil,
+            allowedForDataImport: false,
+            note: "Mercedes variant-coding evidence; exact ECU/CBF/SMR-D identity must be verified before writes."
+        ),
+        .init(
+            id: "clublexus-techstream",
+            kind: .forum,
+            title: "ClubLexus Techstream customization discussions",
+            url: "https://www.clublexus.com/forums/",
+            license: nil,
+            allowedForDataImport: false,
+            note: "Toyota/Lexus customization discovery; exact Customize Parameters must be tied to model/year/ECU."
+        ),
+        .init(
+            id: "reddit-bmw-bimmercode",
+            kind: .reddit,
+            title: "BMW/MINI BimmerCode community reports",
+            url: "https://www.reddit.com/r/BMW/",
+            license: nil,
+            allowedForDataImport: false,
+            note: "Useful for feature discovery only; exact CAFD/FDL mapping requires stronger corroboration."
         )
     ]
 }
