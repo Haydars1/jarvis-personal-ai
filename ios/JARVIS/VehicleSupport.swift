@@ -1,6 +1,6 @@
 import Foundation
 
-enum VehicleBrand: String, CaseIterable, Codable, Identifiable {
+enum VehicleBrand: String, CaseIterable, Codable, Identifiable, Hashable {
     case generic = "Genel OBD-II"
     case volkswagen = "Volkswagen"
     case audi = "Audi"
@@ -74,7 +74,7 @@ enum VehicleBrand: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-enum VehicleProtocolFamily: String, Codable, CaseIterable {
+enum VehicleProtocolFamily: String, Codable, CaseIterable, Hashable {
     case obd2 = "OBD-II"
     case uds = "UDS / ISO 14229"
     case kwp2000 = "KWP2000"
