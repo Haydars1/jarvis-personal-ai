@@ -47,6 +47,9 @@ struct DiagnosticView: View {
                         Text("\(bluetooth.discoveredServices.count) servis/karakteristik • \(bluetooth.notificationFrames.count) ham paket • \(bluetooth.decodedFrames.count) VCI frame")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                        Text(bluetooth.protocolFingerprint.summary)
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.secondary)
                         if bluetooth.preferredServiceDetected {
                             Label("ThinkDiag/Launch BLE imzası bulundu", systemImage: "checkmark.seal.fill")
                                 .font(.caption)
@@ -73,6 +76,19 @@ struct DiagnosticView: View {
                     if let captureURL {
                         ShareLink(item: captureURL) {
                             Label("Bağlantı kaydını paylaş / kaydet", systemImage: "doc.text")
+                        }
+                    }
+
+                    if !bluetooth.passiveObservations.isEmpty {
+                        DisclosureGroup("Araçtan algılanan veriler") {
+                            ForEach(bluetooth.passiveObservations.suffix(30)) { observation in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(observation.title).font(.caption.weight(.semibold))
+                                    Text("\(observation.kind) • \(observation.detail) • op \(String(format: "%04X", observation.sourceOpcode))")
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
 
@@ -184,8 +200,17 @@ struct DiagnosticView: View {
         lines.append("preferredServiceDetected=\(bluetooth.preferredServiceDetected)")
         lines.append("write=\(bluetooth.writableCharacteristic ?? "-")")
         lines.append("notify=\(bluetooth.notifyCharacteristic ?? "-")")
+        lines.append("bytesSeen=\(bluetooth.streamStats.bytesSeen)")
+        lines.append("framesDecoded=\(bluetooth.streamStats.framesDecoded)")
+        lines.append("checksumValid=\(bluetooth.streamStats.checksumValid)")
+        lines.append("discardedBytes=\(bluetooth.streamStats.discardedBytes)")
+        lines.append("fingerprint=\(bluetooth.protocolFingerprint.summary)")
         lines.append("--- services ---")
         lines.append(contentsOf: bluetooth.discoveredServices)
+        lines.append("--- passive observations ---")
+        lines.append(contentsOf: bluetooth.passiveObservations.map {
+            "\($0.kind)|\($0.title)|\($0.detail)|op=\(String(format: "%04X", $0.sourceOpcode))"
+        })
         lines.append("--- decoded frames ---")
         lines.append(contentsOf: bluetooth.decodedFrames.map(\.hex))
         lines.append("--- raw notifications ---")
