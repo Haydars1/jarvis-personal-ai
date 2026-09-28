@@ -24,6 +24,7 @@ struct DiagnosticView: View {
     @State private var message = ""
     @State private var captureURL: URL?
     @State private var learnedPackURL: URL?
+    @State private var offlineDtcCount = 0
 
     var body: some View {
         NavigationStack {
@@ -87,6 +88,13 @@ struct DiagnosticView: View {
                                 LabeledContent("Doğrulanmış header", value: profile.headerHex)
                                     .font(.caption)
                             }
+
+                            Label(
+                                "Çevrimdışı teşhis hazır • \(offlineDtcCount) yerel DTC kaydı",
+                                systemImage: "iphone.and.arrow.forward"
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
 
                             Button {
                                 Task {
@@ -375,17 +383,20 @@ struct DiagnosticView: View {
                             }
                         }
 
-                        if diagnosticAI.loading {
-                            HStack {
-                                ProgressView()
-                                Text("JARVIS hata kodlarını yorumluyor…")
-                                    .font(.caption)
-                            }
-                        } else if !diagnosticAI.explanation.isEmpty {
+                        if !diagnosticAI.explanation.isEmpty {
                             DisclosureGroup("JARVIS teşhis yorumu") {
                                 Text(diagnosticAI.explanation)
                                     .font(.caption)
                                     .textSelection(.enabled)
+
+                                if diagnosticAI.loading {
+                                    HStack {
+                                        ProgressView()
+                                        Text("İnternet varsa ek AI yorumu güncelleniyor…")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
@@ -892,6 +903,13 @@ struct DiagnosticView: View {
                 }
             } message: {
                 Text("Mevcut değer yedeklendi. Doğrulanmış reçete araca yazılacak ve ardından tekrar okunarak kontrol edilecek.")
+            }
+            .task {
+                OfflineVehicleDataStore.bootstrap()
+                offlineDtcCount = OfflineDtcDatabase.shared.count
+                if effectiveBrand != .generic {
+                    await codingResearch.refresh(brand: effectiveBrand)
+                }
             }
             .onChange(of: bluetooth.decodedFrames.count) { _, _ in
                 protocolLearner.ingest(bluetooth.decodedFrames)
