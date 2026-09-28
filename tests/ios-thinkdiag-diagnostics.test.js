@@ -37,6 +37,7 @@ const researchPaging = fs.readFileSync(new URL('../ios/JARVIS/ResearchPagination
 const genericObd = fs.readFileSync(new URL('../ios/JARVIS/GenericObdLiveData.swift', import.meta.url), 'utf8');
 const genericPanel = fs.readFileSync(new URL('../ios/JARVIS/GenericObdLivePanel.swift', import.meta.url), 'utf8');
 const boostAnalyzer = fs.readFileSync(new URL('../ios/JARVIS/GenericBoostAnalyzer.swift', import.meta.url), 'utf8');
+const driveLogger = fs.readFileSync(new URL('../ios/JARVIS/DriveLogRecorder.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -322,6 +323,15 @@ test('VCI stream rejects bad checksum alignment instead of consuming whole frame
   assert.match(assembler, /guard frame\.checksumValid else/);
   assert.match(assembler, /buffer\.removeFirst\(\)/);
   assert.match(assembler, /frame\.header != preferredHeader/);
+});
+
+test('workshop drive logger persists VIN-aware live data and exports CSV', () => {
+  assert.match(driveLogger, /DriveLogRecord/);
+  assert.match(driveLogger, /drive-logs\.json/);
+  assert.match(driveLogger, /csvURL/);
+  assert.match(driveLogger, /p0299Assessment/);
+  assert.match(diagnostics, /Sürüş kaydı başlat/);
+  assert.match(diagnostics, /Son sürüş kaydını paylaş/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
