@@ -10,7 +10,8 @@ struct ResolvedOneTapPlan: Hashable {
 enum OneTapCodingResolver {
     static func resolve(
         feature: EvidenceBackedCodingFeature,
-        brand: VehicleBrand
+        brand: VehicleBrand,
+        inventory: ConnectedVehicleInventory
     ) -> ResolvedOneTapPlan {
         var reasons: [String] = []
         var recipeIDs: [String] = []
@@ -28,10 +29,15 @@ enum OneTapCodingResolver {
 
             recipeIDs.append(candidateID)
 
-            // Semantic recipes become executable only when a loaded manufacturer pack
-            // contains an exact verified recipe generated for this semantic key.
-            if CodingRecipeRegistry.shared.recipe(for: candidateID) == nil {
-                reasons.append("Doğrulanmış araç/modül reçetesi eksik: \(candidateID)")
+            // Semantic recipes become executable only when an exact vehicle/module
+            // mapping exists for the connected ECU part/software identity.
+            let mapping = SemanticCodingRegistry.shared.mapping(
+                for: candidateID,
+                brand: brand,
+                inventory: inventory
+            )
+            if mapping == nil {
+                reasons.append("Doğrulanmış araç/modül eşlemesi eksik: \(candidateID)")
             }
         }
 
