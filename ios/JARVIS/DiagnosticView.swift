@@ -7,6 +7,7 @@ struct DiagnosticView: View {
     @StateObject private var codingCoordinator = VehicleCodingCoordinator()
     @StateObject private var diagnosticAI = VehicleDiagnosticAI()
     @StateObject private var moduleScanner = ManufacturerModuleScanner()
+    @StateObject private var manufacturerLive = ManufacturerLiveDataController()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -293,6 +294,52 @@ struct DiagnosticView: View {
                     }
                 }
 
+                if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
+                    Section("Üretici Canlı Verileri") {
+                        Button {
+                            if manufacturerLive.running {
+                                manufacturerLive.stop()
+                                message = "Üretici canlı verileri durduruldu."
+                            } else {
+                                manufacturerLive.start(brand: effectiveBrand) { opcode, request, expected in
+                                    await bluetooth.requestVCI(
+                                        opcode: opcode,
+                                        payload: request,
+                                        expectedPayloadPrefix: expected
+                                    )
+                                }
+                                message = "Üretici canlı verileri okunuyor…"
+                            }
+                        } label: {
+                            Label(
+                                manufacturerLive.running ? "Üretici canlı verilerini durdur" : "Üretici canlı verilerini başlat",
+                                systemImage: manufacturerLive.running ? "stop.circle" : "waveform.path.ecg"
+                            )
+                        }
+                        .disabled(bluetooth.protocolProfile == nil)
+
+                        if let error = manufacturerLive.error {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        ForEach(manufacturerLive.values) { item in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.label)
+                                    Text("\(item.moduleName) • DID 0x\(String(format: "%04X", item.did))")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(item.unit.map { "\(item.textValue) \($0)" } ?? item.textValue)
+                                    .font(.caption.monospaced())
+                            }
+                        }
+                    }
+                }
+
                 let dtcExplanations = currentDtcExplanations
                 if !dtcExplanations.isEmpty {
                     Section("Hata Kodları ve Açıklamalar") {
@@ -400,6 +447,20 @@ struct DiagnosticView: View {
                         Text(featurePackStatus)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                    }
+
+                    Text(codingCoordinator.state.label)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    if !codingCoordinator.executionLog.isEmpty {
+                        DisclosureGroup("Kodlama işlem kaydı") {
+                            ForEach(Array(codingCoordinator.executionLog.enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                                    .font(.caption2.monospaced())
+                                    .textSelection(.enabled)
+                            }
+                        }
                     }
 
                     Text("Kodlama işlemleri yalnızca araç/modül için doğrulanmış üretici reçetesi bulunduğunda açılır; mevcut değer önce yedeklenir ve yazma öncesi ayrıca onay gerekir.")
@@ -512,6 +573,10 @@ struct DiagnosticView: View {
                         observations: bluetooth.passiveObservations
                     )
                 }
+            }
+            .onDisappear {
+                bluetooth.stopLivePolling()
+                manufacturerLive.stop()
             }
             .onChange(of: detectedVIN) { _, newVIN in
                 guard selectedBrand == .generic, let newVIN else { return }
