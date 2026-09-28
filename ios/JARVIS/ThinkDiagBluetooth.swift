@@ -86,7 +86,8 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         active != nil && writeCBCharacteristic != nil
     }
 
-    private func sendReadOnlyFrame(opcode: UInt16, payload: Data = Data(), header: [UInt8]? = nil) -> Bool {
+    @discardableResult
+    func sendVCIFrame(opcode: UInt16, payload: Data = Data(), header: [UInt8]? = nil) -> Bool {
         guard let peripheral = active, let characteristic = writeCBCharacteristic else { return false }
         let selectedHeader = header ?? protocolProfile?.header ?? [0x55, 0xAA]
         let data = ThinkDiagVciFrame.build(header: selectedHeader, opcode: opcode, payload: payload)
@@ -97,19 +98,19 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
 
     @discardableResult
     func sendReadOnlyDtcProbe(header: [UInt8]? = nil) -> Bool {
-        sendReadOnlyFrame(opcode: 0x0103, header: header)
+        sendVCIFrame(opcode: 0x0103, header: header)
     }
 
     @discardableResult
     func sendReadOnlyPendingDtcProbe() -> Bool {
         guard protocolProfile != nil else { return false }
-        return sendReadOnlyFrame(opcode: 0x0107)
+        return sendVCIFrame(opcode: 0x0107)
     }
 
     @discardableResult
     func sendReadOnlyPermanentDtcProbe() -> Bool {
         guard protocolProfile != nil else { return false }
-        return sendReadOnlyFrame(opcode: 0x010A)
+        return sendVCIFrame(opcode: 0x010A)
     }
 
     func scanGenericDtcStates() async {
@@ -128,7 +129,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @discardableResult
     func sendReadOnlyPid(_ pid: UInt8) -> Bool {
         guard protocolProfile != nil else { return false }
-        return sendReadOnlyFrame(opcode: 0x0101, payload: Data([pid]))
+        return sendVCIFrame(opcode: 0x0101, payload: Data([pid]))
     }
 
     func startLivePolling() {
@@ -205,6 +206,34 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
                 break
             }
         }
+    }
+
+    func requestVCI(
+        opcode: UInt16,
+        payload: Data,
+        expectedPayloadPrefix: Data? = nil,
+        timeoutNanoseconds: UInt64 = 1_500_000_000
+    ) async -> Data? {
+        guard protocolProfile != nil, canWrite else { return nil }
+        let startIndex = decodedFrames.count
+        guard sendVCIFrame(opcode: opcode, payload: payload) else { return nil }
+
+        let step: UInt64 = 80_000_000
+        var waited: UInt64 = 0
+        while waited < timeoutNanoseconds {
+            try? await Task.sleep(nanoseconds: step)
+            waited += step
+
+            let newFrames = Array(decodedFrames.dropFirst(min(startIndex, decodedFrames.count)))
+            for frame in newFrames.reversed() {
+                if let prefix = expectedPayloadPrefix {
+                    if frame.payload.starts(with: prefix) { return frame.payload }
+                } else if !frame.payload.isEmpty {
+                    return frame.payload
+                }
+            }
+        }
+        return nil
     }
 
     func clearProtocolProfile() {
