@@ -10,6 +10,7 @@ struct DiagnosticView: View {
     @StateObject private var manufacturerLive = ManufacturerLiveDataController()
     @StateObject private var protocolLearner = ManufacturerProtocolLearner()
     @StateObject private var oneTapCoordinator = OneTapCodingCoordinator()
+    @StateObject private var dynamicCodingCoordinator = DynamicOneTapCoordinator()
     @StateObject private var codingResearch = VehicleCodingResearchStore()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
@@ -18,6 +19,7 @@ struct DiagnosticView: View {
     @State private var showManufacturerPackImporter = false
     @State private var showCodingConfirmation = false
     @State private var showOneTapConfirmation = false
+    @State private var showDynamicCodingConfirmation = false
     @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
@@ -483,6 +485,10 @@ struct DiagnosticView: View {
                                 brand: effectiveBrand,
                                 inventory: connectedInventory
                             )
+                            let dynamicPlan = DynamicCodingResolver.resolve(
+                                feature: availability.feature,
+                                brand: effectiveBrand
+                            )
 
                             VStack(alignment: .leading, spacing: 7) {
                                 HStack {
@@ -528,10 +534,38 @@ struct DiagnosticView: View {
                                             Label("Tek tıkla uygula", systemImage: "bolt.circle.fill")
                                         }
                                         .disabled(bluetooth.protocolProfile == nil)
+                                    } else if dynamicPlan.executable {
+                                        Button {
+                                            Task {
+                                                await dynamicCodingCoordinator.prepare(
+                                                    resolution: dynamicPlan
+                                                ) { opcode, request, expected in
+                                                    await bluetooth.requestVCI(
+                                                        opcode: opcode,
+                                                        payload: request,
+                                                        expectedPayloadPrefix: expected
+                                                    )
+                                                }
+                                                message = dynamicCodingCoordinator.state.label
+                                                if case .awaitingConfirmation = dynamicCodingCoordinator.state {
+                                                    showDynamicCodingConfirmation = true
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Tek tıkla uygula — dinamik reçete", systemImage: "bolt.horizontal.circle.fill")
+                                        }
+                                        .disabled(bluetooth.protocolProfile == nil)
                                     } else {
-                                        Text("Araç bu özellik için uygun görünüyor; fakat bağlı ECU parça/yazılım sürümü için exact yazma reçetesi henüz doğrulanmadı.")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text("Araç bu özellik için uygun görünüyor; fakat exact yazma reçetesi veya long-coding taşıma bilgisi henüz tamamlanmadı.")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                            if !dynamicPlan.blockers.isEmpty {
+                                                Text(dynamicPlan.blockers.joined(separator: " • "))
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
                                     }
                                 case .maybeAvailable(let reasons):
                                     Text(reasons.joined(separator: " • "))
@@ -563,6 +597,11 @@ struct DiagnosticView: View {
                         Text(oneTapCoordinator.state.label)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        if dynamicCodingCoordinator.state != .idle {
+                            Text(dynamicCodingCoordinator.state.label)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
 
                         if !oneTapCoordinator.log.isEmpty {
                             DisclosureGroup("Tek-tık işlem kaydı") {
@@ -784,6 +823,29 @@ struct DiagnosticView: View {
                     showManufacturerPackImporter = false
                 }
                 .ignoresSafeArea()
+            }
+            .confirmationDialog(
+                "Dinamik long-coding işlemini uygula?",
+                isPresented: $showDynamicCodingConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Uygula") {
+                    Task {
+                        await dynamicCodingCoordinator.execute { opcode, request, expected in
+                            await bluetooth.requestVCI(
+                                opcode: opcode,
+                                payload: request,
+                                expectedPayloadPrefix: expected
+                            )
+                        }
+                        message = dynamicCodingCoordinator.state.label
+                    }
+                }
+                Button("İptal", role: .cancel) {
+                    dynamicCodingCoordinator.cancel()
+                }
+            } message: {
+                Text("JARVIS mevcut long-coding bloğunu okudu ve yedekledi. Yalnız gerekli byte/bit değiştirilecek; tüm diğer byte'lar aynen korunacak ve yazma sonrası blok tekrar okunarak doğrulanacak.")
             }
             .confirmationDialog(
                 "Tek-tık kodlamayı uygula?",
