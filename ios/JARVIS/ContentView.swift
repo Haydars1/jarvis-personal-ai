@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showSidebar = false
     @State private var showEcu = false
+    @State private var showDiagnostics = false
     @State private var showYouTube = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
@@ -49,6 +50,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showEcu) {
             EcuChatView().presentationDetents([.large])
+        }
+        .sheet(isPresented: $showDiagnostics) {
+            DiagnosticView().presentationDetents([.large])
         }
         .sheet(isPresented: $showYouTube) {
             YouTubeStudioView().presentationDetents([.large])
@@ -148,6 +152,16 @@ struct ContentView: View {
                         showEcu = true
                     } label: {
                         Label("ECU Brain", systemImage: "waveform.path.ecg.rectangle")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+
+                    Button {
+                        showSidebar = false
+                        showDiagnostics = true
+                    } label: {
+                        Label("Araç Teşhis", systemImage: "car.front.waves.up")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)

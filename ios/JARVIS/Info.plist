@@ -7,6 +7,8 @@
 <key>NSSpeechRecognitionUsageDescription</key><string>JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır.</string>
 <key>NSCameraUsageDescription</key><string>JARVIS'e fotoğraf göstermek için kamera kullanılır.</string>
 <key>NSPhotoLibraryUsageDescription</key><string>JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>JARVIS ThinkDiag ve diğer OBD teşhis cihazlarını bulmak ve bağlanmak için Bluetooth kullanır.</string>
+<key>NSBluetoothPeripheralUsageDescription</key><string>JARVIS OBD teşhis cihazlarıyla Bluetooth üzerinden haberleşmek için erişim kullanır.</string>
 <key>UIBackgroundModes</key><array><string>remote-notification</string></array>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 <key>LSSupportsGameMode</key><false/>
