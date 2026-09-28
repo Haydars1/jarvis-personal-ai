@@ -1,5 +1,6 @@
 import Foundation
 import CoreBluetooth
+import Combine
 
 @MainActor
 final class ThinkDiagBluetooth: NSObject, ObservableObject {
