@@ -705,7 +705,9 @@ struct DiagnosticView: View {
                                                 await oneTapCoordinator.prepare(
                                                     feature: availability.feature,
                                                     inventory: connectedInventory,
-                                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                                    transportReady: bluetooth.canWrite
+                                            && bluetooth.protocolProfile != nil
+                                            && vehicleWriteSafety.canWrite
                                                 ) { opcode, request, expected in
                                                     await bluetooth.requestVCI(
                                                         opcode: opcode,
@@ -875,6 +877,16 @@ struct DiagnosticView: View {
                                     }
                                     message = codingCoordinator.state.label
                                     if case .awaitingConfirmation = codingCoordinator.state {
+                                        if let backup = codingCoordinator.backup {
+                                            codingBackupVault.record(
+                                                vin: detectedVIN,
+                                                brand: effectiveBrand,
+                                                feature: feature.title,
+                                                module: backup.module,
+                                                originalHex: backup.originalValueHex,
+                                                source: "VerifiedRecipe"
+                                            )
+                                        }
                                         showCodingConfirmation = true
                                     }
                                 }
@@ -890,6 +902,7 @@ struct DiagnosticView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .disabled(!vehicleWriteSafety.canWrite)
                         }
                     }
 
