@@ -12,6 +12,7 @@ const prefs = fs.readFileSync(new URL('../ios/JARVIS/WorkshopPreferences.swift',
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
 const drive = fs.readFileSync(new URL('../ios/JARVIS/DriveLogRecorder.swift', import.meta.url), 'utf8');
 const validation = fs.readFileSync(new URL('../ios/JARVIS/HardwareValidationReport.swift', import.meta.url), 'utf8');
+const capabilities = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagCapabilityStore.swift', import.meta.url), 'utf8');
 
 test('manufacturer requests pause generic polling and only accept checksum-valid frames', () => {
   assert.match(bluetooth, /exclusiveRequestDepth/);
@@ -43,6 +44,15 @@ test('offline triage prioritizes voltage communications boost misfire and emissi
   assert.match(triage, /P0299/);
   assert.match(triage, /P030/);
   assert.match(triage, /P0401/);
+});
+
+test('real adapter responses promote per-adapter verified read capabilities', () => {
+  assert.match(capabilities, /ThinkDiagReadCapability/);
+  assert.match(capabilities, /vehicleInfo/);
+  assert.match(capabilities, /permanentDtcs/);
+  assert.match(bluetooth, /verifiedReadCapabilities/);
+  assert.match(bluetooth, /ThinkDiagCapabilityStore\.save/);
+  assert.match(diagnostics, /Bu adaptörde doğrulanan okuma modları/);
 });
 
 test('single hardware-validation session exports protocol PID DTC module and packet evidence', () => {
