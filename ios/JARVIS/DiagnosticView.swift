@@ -16,6 +16,7 @@ struct DiagnosticView: View {
     @StateObject private var workshopStore = WorkshopSessionStore()
     @StateObject private var codingBackupVault = CodingBackupVault()
     @StateObject private var codingFavorites = CodingFavoritesStore()
+    @StateObject private var driveLogger = DriveLogRecorder()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -34,6 +35,7 @@ struct DiagnosticView: View {
     @State private var latestWorkshopReportURL: URL?
     @State private var codingSearchText = ""
     @State private var latestWorkshopSession: WorkshopSessionRecord?
+    @State private var latestDriveLogURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -273,6 +275,13 @@ struct DiagnosticView: View {
                     }
                 }
 
+                GenericObdLivePanel(
+                    samples: bluetooth.liveSamples,
+                    supportedPids: bluetooth.supportedPids,
+                    freezeFrame: bluetooth.freezeFrameValues,
+                    p0299Active: currentDtcExplanations.contains { $0.code == "P0299" }
+                )
+
                 Section("Atölye Hızlı İşlemler") {
                     Button {
                         Task { await runWorkshopAutoDiagnosis() }
@@ -319,7 +328,12 @@ struct DiagnosticView: View {
                             if bluetooth.livePolling {
                                 bluetooth.stopLivePolling()
                             } else {
-                                bluetooth.startLivePolling()
+                                Task {
+                                    if bluetooth.supportedPids.isEmpty {
+                                        await bluetooth.discoverGenericCapabilities()
+                                    }
+                                    bluetooth.startLivePolling()
+                                }
                             }
                         } label: {
                             Label("Canlı veri", systemImage: "waveform.path.ecg")
@@ -330,6 +344,64 @@ struct DiagnosticView: View {
                             latestWorkshopReportURL = makeCurrentWorkshopReport()
                         } label: {
                             Label("Rapor", systemImage: "doc.text")
+                        }
+                    }
+
+                    Button {
+                        Task {
+                            if driveLogger.recording {
+                                if let record = driveLogger.stop(vin: detectedVIN, brand: effectiveBrand) {
+                                    latestDriveLogURL = driveLogger.csvURL(for: record)
+                                    if let assessment = driveLogger.p0299Assessment(for: record) {
+                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek • (assessment.summary)"
+                                    } else {
+                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek"
+                                    }
+                                }
+                            } else {
+                                if bluetooth.supportedPids.isEmpty {
+                                    await bluetooth.discoverGenericCapabilities()
+                                }
+                                bluetooth.startLivePolling()
+                                driveLogger.start()
+                                message = "Sürüş kaydı başladı."
+                            }
+                        }
+                    } label: {
+                        Label(
+                            driveLogger.recording ? "Sürüş kaydını bitir" : "Sürüş kaydı başlat",
+                            systemImage: driveLogger.recording ? "stop.circle.fill" : "record.circle"
+                        )
+                    }
+                    .disabled(bluetooth.protocolProfile == nil)
+
+                    if driveLogger.recording {
+                        Text("Kaydedilen canlı veri: (driveLogger.currentSamples.count) örnek")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let latestDriveLogURL {
+                        ShareLink(item: latestDriveLogURL) {
+                            Label("Son sürüş kaydını paylaş", systemImage: "square.and.arrow.up")
+                        }
+                    }
+
+                    if !driveLogger.savedLogs.isEmpty {
+                        DisclosureGroup("Sürüş kayıtları") {
+                            ForEach(driveLogger.savedLogs.prefix(5)) { log in
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(log.vin ?? log.brand.rawValue)
+                                        .font(.caption.weight(.semibold))
+                                    Text("(log.samples.count) örnek • (log.finishedAt.formatted(date: .numeric, time: .shortened))")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    if let assessment = driveLogger.p0299Assessment(for: log) {
+                                        Text(assessment.summary)
+                                            .font(.caption2)
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -1151,6 +1223,9 @@ struct DiagnosticView: View {
             .onChange(of: bluetooth.decodedFrames.count) { _, _ in
                 protocolLearner.ingest(bluetooth.decodedFrames)
             }
+            .onChange(of: bluetooth.liveSamples.count) { _, _ in
+                driveLogger.ingest(bluetooth.liveSamples.last)
+            }
             .onChange(of: dtcCodeKey) { _, _ in
                 Task {
                     await diagnosticAI.explainIfNeeded(
@@ -1214,6 +1289,9 @@ struct DiagnosticView: View {
             message = "Protokol doğrulanamadı; otomatik teşhis durdu."
             return
         }
+
+        workshopStep = "VIN, desteklenen PID'ler ve freeze frame hazırlanıyor…"
+        await bluetooth.discoverGenericCapabilities()
 
         workshopStep = "Kayıtlı / bekleyen / kalıcı DTC taranıyor…"
         await bluetooth.scanGenericDtcStates()
@@ -1294,7 +1372,11 @@ struct DiagnosticView: View {
             liveData: live,
             notes: [
                 networkMonitor.isOnline ? "İnternet bağlantısı mevcut." : "Çevrimdışı teşhis kullanıldı.",
-                vehicleWriteSafety.message
+                vehicleWriteSafety.message,
+                "Desteklenen generic PID sayısı: \(bluetooth.supportedPids.count)",
+                bluetooth.freezeFrameValues.isEmpty
+                    ? "Freeze frame verisi alınmadı."
+                    : "Freeze frame: \(bluetooth.freezeFrameValues.count) parametre."
             ]
         )
     }

@@ -10,6 +10,7 @@ struct ThinkDiagPassiveObservation: Identifiable, Hashable {
 
 enum ThinkDiagPassiveDecoder {
     static func observations(from frame: ThinkDiagVciFrame) -> [ThinkDiagPassiveObservation] {
+        guard frame.checksumValid else { return [] }
         let bytes = [UInt8](frame.payload)
         guard !bytes.isEmpty else { return [] }
 
@@ -21,8 +22,28 @@ enum ThinkDiagPassiveDecoder {
         for start in bytes.indices {
             switch bytes[start] {
             case 0x41:
-                if let obs = decodeMode01(Array(bytes[start...]), opcode: frame.opcode) {
+                let suffix = Array(bytes[start...])
+                if let supported = GenericObdDecoder.supportedPids(suffix), suffix.count >= 2 {
+                    let base = suffix[1]
+                    let list = supported.sorted().map { String(format: "%02X", $0) }.joined(separator: ",")
+                    result.append(.init(
+                        kind: "SUPPORTED_PIDS",
+                        title: String(format: "PID bloğu 0x%02X", base),
+                        detail: list,
+                        sourceOpcode: frame.opcode
+                    ))
+                }
+                if let obs = decodeMode01(suffix, opcode: frame.opcode) {
                     result.append(obs)
+                }
+            case 0x42:
+                if let freeze = GenericObdDecoder.decodeMode02(Array(bytes[start...])) {
+                    result.append(.init(
+                        kind: "FREEZE_FRAME",
+                        title: freeze.label,
+                        detail: String(format: "PID 0x%02X • %.2f %@", freeze.pid, freeze.value, freeze.unit),
+                        sourceOpcode: frame.opcode
+                    ))
                 }
             case 0x43:
                 result.append(contentsOf: decodeDtcs(Array(bytes[start...]), status: "DTC", responseMode: 0x43, opcode: frame.opcode))
@@ -42,39 +63,20 @@ enum ThinkDiagPassiveDecoder {
     }
 
     private static func decodeMode01(_ bytes: [UInt8], opcode: UInt16) -> ThinkDiagPassiveObservation? {
-        guard bytes.count >= 3, bytes[0] == 0x41 else { return nil }
-        let pid = bytes[1]
-        let data = Array(bytes.dropFirst(2))
-        let decoded: (String, String)?
-        switch pid {
-        case 0x05 where data.count >= 1:
-            decoded = ("Soğutma suyu", "\(Int(data[0]) - 40) °C")
-        case 0x0B where data.count >= 1:
-            decoded = ("Manifold basıncı", "\(data[0]) kPa")
-        case 0x0C where data.count >= 2:
-            let rpm = (Double(Int(data[0]) * 256 + Int(data[1])) / 4.0)
-            decoded = ("Motor devri", String(format: "%.0f rpm", rpm))
-        case 0x0D where data.count >= 1:
-            decoded = ("Araç hızı", "\(data[0]) km/h")
-        case 0x10 where data.count >= 2:
-            let maf = Double(Int(data[0]) * 256 + Int(data[1])) / 100.0
-            decoded = ("MAF", String(format: "%.2f g/s", maf))
-        case 0x11 where data.count >= 1:
-            let throttle = Double(data[0]) * 100.0 / 255.0
-            decoded = ("Gaz kelebeği", String(format: "%.1f %%", throttle))
-        case 0x33 where data.count >= 1:
-            decoded = ("Barometrik basınç", "\(data[0]) kPa")
-        case 0x42 where data.count >= 2:
-            let volts = Double(Int(data[0]) * 256 + Int(data[1])) / 1000.0
-            decoded = ("Kontrol modülü voltajı", String(format: "%.3f V", volts))
-        default:
-            decoded = nil
+        guard let sample = GenericObdDecoder.decodeMode01(bytes) else { return nil }
+        let rendered: String
+        if sample.unit == "rpm" || sample.unit == "km/h" || sample.unit == "kPa" || sample.unit == "s" {
+            rendered = String(format: "%.0f %@", sample.value, sample.unit)
+        } else if sample.unit == "V" {
+            rendered = String(format: "%.3f %@", sample.value, sample.unit)
+        } else {
+            rendered = String(format: "%.2f %@", sample.value, sample.unit)
         }
-        guard let decoded else { return nil }
+
         return .init(
             kind: "PID",
-            title: decoded.0,
-            detail: "PID 0x\(String(format: "%02X", pid)) • \(decoded.1)",
+            title: sample.label,
+            detail: "PID 0x\(String(format: "%02X", sample.pid)) • \(rendered)",
             sourceOpcode: opcode
         )
     }

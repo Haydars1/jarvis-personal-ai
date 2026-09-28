@@ -11,20 +11,42 @@ struct ThinkDiagProtocolProfile: Codable, Equatable {
 }
 
 enum ThinkDiagProtocolProfileStore {
-    private static let key = "jarvis.thinkdiag.protocol.profile"
+    private static let legacyKey = "jarvis.thinkdiag.protocol.profile"
+    private static let prefix = "jarvis.thinkdiag.protocol.profile."
 
     static func load() -> ThinkDiagProtocolProfile? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        guard let data = UserDefaults.standard.data(forKey: legacyKey) else { return nil }
         return try? JSONDecoder().decode(ThinkDiagProtocolProfile.self, from: data)
     }
 
-    static func save(_ profile: ThinkDiagProtocolProfile) {
-        guard let data = try? JSONEncoder().encode(profile) else { return }
-        UserDefaults.standard.set(data, forKey: key)
+    static func load(for peripheralID: UUID) -> ThinkDiagProtocolProfile? {
+        let key = prefix + peripheralID.uuidString.lowercased()
+        if let data = UserDefaults.standard.data(forKey: key),
+           let profile = try? JSONDecoder().decode(ThinkDiagProtocolProfile.self, from: data) {
+            return profile
+        }
+        return load()
     }
 
-    static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
+    static func save(_ profile: ThinkDiagProtocolProfile, for peripheralID: UUID? = nil) {
+        guard let data = try? JSONEncoder().encode(profile) else { return }
+        UserDefaults.standard.set(data, forKey: legacyKey)
+        if let peripheralID {
+            UserDefaults.standard.set(
+                data,
+                forKey: prefix + peripheralID.uuidString.lowercased()
+            )
+        }
+    }
+
+    static func clear(for peripheralID: UUID? = nil) {
+        if let peripheralID {
+            UserDefaults.standard.removeObject(
+                forKey: prefix + peripheralID.uuidString.lowercased()
+            )
+        } else {
+            UserDefaults.standard.removeObject(forKey: legacyKey)
+        }
     }
 }
 
