@@ -21,6 +21,30 @@ enum OfflineVehicleDataStore {
         try? data.write(to: url, options: .atomic)
     }
 
+    static func saveFeaturePack(_ data: Data, brand: VehicleBrand) {
+        guard let root else { return }
+        let url = root
+            .appendingPathComponent("feature-packs", isDirectory: true)
+            .appendingPathComponent(safeName(brand.rawValue) + ".json")
+        try? fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? data.write(to: url, options: .atomic)
+    }
+
+    static func loadFeaturePacks() {
+        guard let root else { return }
+        let dir = root.appendingPathComponent("feature-packs", isDirectory: true)
+        guard let urls = try? fm.contentsOfDirectory(
+            at: dir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        for url in urls where url.pathExtension.lowercased() == "json" {
+            guard let data = try? Data(contentsOf: url) else { continue }
+            _ = try? ManufacturerFeaturePackLoader.load(data: data, persistOffline: false)
+        }
+    }
+
     static func loadManufacturerPacks() {
         guard let root else { return }
         let dir = root.appendingPathComponent("manufacturer-packs", isDirectory: true)
@@ -60,6 +84,7 @@ enum OfflineVehicleDataStore {
 
     static func bootstrap() {
         loadManufacturerPacks()
+        loadFeaturePacks()
         _ = OfflineDtcDatabase.shared.count
     }
 
