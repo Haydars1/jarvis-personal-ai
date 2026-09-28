@@ -55,7 +55,8 @@ enum ManufacturerPackCandidateGenerator {
             packVersion: "learned-candidate",
             supportedVINPrefixes: nil,
             modules: modules,
-            codingRecipes: []
+            codingRecipes: [],
+            semanticMappings: []
         )
     }
 

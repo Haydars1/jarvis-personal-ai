@@ -9,12 +9,14 @@ struct DiagnosticView: View {
     @StateObject private var moduleScanner = ManufacturerModuleScanner()
     @StateObject private var manufacturerLive = ManufacturerLiveDataController()
     @StateObject private var protocolLearner = ManufacturerProtocolLearner()
+    @StateObject private var oneTapCoordinator = OneTapCodingCoordinator()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
     @State private var showFeaturePackImporter = false
     @State private var showManufacturerPackImporter = false
     @State private var showCodingConfirmation = false
+    @State private var showOneTapConfirmation = false
     @State private var featurePackStatus = ""
     @State private var message = ""
     @State private var captureURL: URL?
@@ -386,6 +388,114 @@ struct DiagnosticView: View {
                     }
                 }
 
+                let recommendedFeatures = evidenceFeatureAvailability.filter {
+                    switch $0.state {
+                    case .available, .maybeAvailable: return true
+                    case .unavailable: return false
+                    }
+                }
+
+                if !recommendedFeatures.isEmpty {
+                    Section("Araç İçin Tek-Tık Kodlamalar") {
+                        ForEach(recommendedFeatures) { availability in
+                            let plan = OneTapCodingResolver.resolve(
+                                feature: availability.feature,
+                                brand: effectiveBrand,
+                                inventory: connectedInventory
+                            )
+
+                            VStack(alignment: .leading, spacing: 7) {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(availability.feature.title)
+                                            .font(.headline)
+                                        Text(availability.feature.description)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Text(availability.state.label)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Text("Risk: \(availability.feature.risk.rawValue) • Kanıt: \(availability.matchedEvidenceCount) kaynak • Eşleşme: \(Int(availability.score * 100))%")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+
+                                switch availability.state {
+                                case .available:
+                                    if plan.executable {
+                                        Button {
+                                            Task {
+                                                await oneTapCoordinator.prepare(
+                                                    feature: availability.feature,
+                                                    inventory: connectedInventory,
+                                                    transportReady: bluetooth.canWrite && bluetooth.protocolProfile != nil
+                                                ) { opcode, request, expected in
+                                                    await bluetooth.requestVCI(
+                                                        opcode: opcode,
+                                                        payload: request,
+                                                        expectedPayloadPrefix: expected
+                                                    )
+                                                }
+                                                message = oneTapCoordinator.state.label
+                                                if case .awaitingConfirmation = oneTapCoordinator.state {
+                                                    showOneTapConfirmation = true
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Tek tıkla uygula", systemImage: "bolt.circle.fill")
+                                        }
+                                        .disabled(bluetooth.protocolProfile == nil)
+                                    } else {
+                                        Text("Araç bu özellik için uygun görünüyor; fakat bağlı ECU parça/yazılım sürümü için exact yazma reçetesi henüz doğrulanmadı.")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                case .maybeAvailable(let reasons):
+                                    Text(reasons.joined(separator: " • "))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                case .unavailable:
+                                    EmptyView()
+                                }
+
+                                DisclosureGroup("Kaynaklar ve doğrulama") {
+                                    ForEach(availability.feature.evidence) { source in
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            if let url = URL(string: source.url) {
+                                                Link(source.title, destination: url)
+                                                    .font(.caption)
+                                            } else {
+                                                Text(source.title).font(.caption)
+                                            }
+                                            Text("\(source.kind.rawValue) • güven \(Int(source.confidence * 100))%")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        Text(oneTapCoordinator.state.label)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        if !oneTapCoordinator.log.isEmpty {
+                            DisclosureGroup("Tek-tık işlem kaydı") {
+                                ForEach(Array(oneTapCoordinator.log.enumerated()), id: \.offset) { _, line in
+                                    Text(line)
+                                        .font(.caption2.monospaced())
+                                        .textSelection(.enabled)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Section("Kodlama / Adaptasyon / Gizli Özellikler") {
                     let pack = CodingFeatureCatalog.pack(for: selectedBrand)
                     if selectedBrand == .generic {
@@ -596,6 +706,29 @@ struct DiagnosticView: View {
                 .ignoresSafeArea()
             }
             .confirmationDialog(
+                "Tek-tık kodlamayı uygula?",
+                isPresented: $showOneTapConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Uygula") {
+                    Task {
+                        await oneTapCoordinator.execute { opcode, request, expected in
+                            await bluetooth.requestVCI(
+                                opcode: opcode,
+                                payload: request,
+                                expectedPayloadPrefix: expected
+                            )
+                        }
+                        message = oneTapCoordinator.state.label
+                    }
+                }
+                Button("İptal", role: .cancel) {
+                    oneTapCoordinator.cancel()
+                }
+            } message: {
+                Text("JARVIS araçtaki mevcut değerleri yedekledi. Yalnızca bu ECU parça/yazılım sürümüyle eşleşen doğrulanmış reçete uygulanacak ve sonuç tekrar okunarak kontrol edilecek.")
+            }
+            .confirmationDialog(
                 "Kodlama işlemini uygula?",
                 isPresented: $showCodingConfirmation,
                 titleVisibility: .visible
@@ -641,6 +774,111 @@ struct DiagnosticView: View {
                 if detected != .generic { selectedBrand = detected }
             }
         }
+    }
+
+    private var connectedInventory: ConnectedVehicleInventory {
+        let identities = moduleScanner.results.map { result in
+            let part = firstIdentificationValue(
+                result.identification,
+                matching: ["part", "teil", "hardware", "hw", "spare"]
+            )
+            let software = firstIdentificationValue(
+                result.identification,
+                matching: ["software", "sw", "version"]
+            )
+            return ConnectedModuleIdentity(
+                address: result.address,
+                name: result.moduleName,
+                partNumber: part,
+                softwareVersion: software
+            )
+        }
+
+        var equipment = Set<String>()
+        let combinedIdentification = moduleScanner.results
+            .flatMap { $0.identification.values }
+            .joined(separator: " ")
+            .lowercased()
+        if combinedIdentification.contains("folding mirror") || combinedIdentification.contains("spiegelanklapp") {
+            equipment.insert("folding_mirrors")
+        }
+        if combinedIdentification.contains("mirror") || combinedIdentification.contains("spiegel") {
+            equipment.insert("electric_mirror")
+        }
+        if combinedIdentification.contains("front camera") || combinedIdentification.contains("a5") {
+            equipment.insert("front_camera")
+        }
+
+        return ConnectedVehicleInventory(
+            vin: detectedVIN,
+            brand: effectiveBrand,
+            modelName: inferredModelName,
+            platform: inferredPlatform,
+            modelYear: vinModelYear(detectedVIN),
+            modules: identities,
+            equipmentTokens: equipment
+        )
+    }
+
+    private var evidenceFeatureAvailability: [FeatureAvailability] {
+        FeatureApplicabilityEngine.availableFeatures(
+            catalog: EvidenceBackedFeatureCatalog.all,
+            inventory: connectedInventory
+        )
+    }
+
+    private var inferredModelName: String? {
+        for result in moduleScanner.results {
+            if let value = firstIdentificationValue(
+                result.identification,
+                matching: ["model", "vehicle", "fahrzeug", "type"]
+            ) {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private var inferredPlatform: String? {
+        for result in moduleScanner.results {
+            if let value = firstIdentificationValue(
+                result.identification,
+                matching: ["platform", "odx", "ev_", "mqb", "mlb", "meb"]
+            ) {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private func firstIdentificationValue(
+        _ values: [String:String],
+        matching needles: [String]
+    ) -> String? {
+        for key in values.keys.sorted() {
+            let lower = key.lowercased()
+            if needles.contains(where: { lower.contains($0.lowercased()) }),
+               let value = values[key],
+               !value.isEmpty {
+                return value
+            }
+        }
+        return nil
+    }
+
+    private func vinModelYear(_ vin: String?) -> Int? {
+        guard let vin, vin.count == 17 else { return nil }
+        let index = vin.index(vin.startIndex, offsetBy: 9)
+        let code = vin[index]
+        let table: [Character:Int] = [
+            "A": 2010, "B": 2011, "C": 2012, "D": 2013, "E": 2014,
+            "F": 2015, "G": 2016, "H": 2017, "J": 2018, "K": 2019,
+            "L": 2020, "M": 2021, "N": 2022, "P": 2023, "R": 2024,
+            "S": 2025, "T": 2026, "V": 2027, "W": 2028, "X": 2029,
+            "Y": 2030, "1": 2031, "2": 2032, "3": 2033, "4": 2034,
+            "5": 2035, "6": 2036, "7": 2037, "8": 2038, "9": 2039
+        ]
+        return table[code]
     }
 
     private var effectiveBrand: VehicleBrand {

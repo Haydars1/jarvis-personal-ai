@@ -37,6 +37,7 @@ struct ManufacturerDiagnosticPackManifest: Codable {
     let supportedVINPrefixes: [String]?
     let modules: [ManufacturerModuleRecipe]
     let codingRecipes: [CodingRecipe]
+    let semanticMappings: [SemanticCodingMapping]?
 }
 
 final class ManufacturerDiagnosticRegistry {
@@ -50,6 +51,9 @@ final class ManufacturerDiagnosticRegistry {
         packs[manifest.brand] = manifest
         for recipe in manifest.codingRecipes {
             CodingRecipeRegistry.shared.register(recipe)
+        }
+        for mapping in manifest.semanticMappings ?? [] {
+            SemanticCodingRegistry.shared.register(mapping)
         }
     }
 
@@ -72,7 +76,7 @@ final class ManufacturerDiagnosticRegistry {
 enum ManufacturerDiagnosticPackLoader {
     static func load(data: Data) throws -> ManufacturerDiagnosticPackManifest {
         let manifest = try JSONDecoder().decode(ManufacturerDiagnosticPackManifest.self, from: data)
-        guard manifest.schemaVersion == 2 else {
+        guard manifest.schemaVersion == 2 || manifest.schemaVersion == 3 else {
             throw NSError(
                 domain: "JARVIS.ManufacturerDiagnosticPack",
                 code: 1,
@@ -93,6 +97,14 @@ enum ManufacturerDiagnosticPackLoader {
                 domain: "JARVIS.ManufacturerDiagnosticPack",
                 code: 3,
                 userInfo: [NSLocalizedDescriptionKey: "Kodlama reçetesi marka bilgisi uyuşmuyor"]
+            )
+        }
+
+        guard (manifest.semanticMappings ?? []).allSatisfy({ $0.brand == manifest.brand }) else {
+            throw NSError(
+                domain: "JARVIS.ManufacturerDiagnosticPack",
+                code: 4,
+                userInfo: [NSLocalizedDescriptionKey: "Semantik kodlama eşlemesi marka bilgisi uyuşmuyor"]
             )
         }
 

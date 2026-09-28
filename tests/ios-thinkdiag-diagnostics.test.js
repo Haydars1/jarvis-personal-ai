@@ -25,6 +25,13 @@ const transportCodec = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerTransp
 const manufacturerLive = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerLiveDataController.swift', import.meta.url), 'utf8');
 const protocolLearner = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerProtocolLearner.swift', import.meta.url), 'utf8');
 const packCandidate = fs.readFileSync(new URL('../ios/JARVIS/ManufacturerPackCandidateGenerator.swift', import.meta.url), 'utf8');
+const evidenceModels = fs.readFileSync(new URL('../ios/JARVIS/EvidenceCodingModels.swift', import.meta.url), 'utf8');
+const applicability = fs.readFileSync(new URL('../ios/JARVIS/FeatureApplicabilityEngine.swift', import.meta.url), 'utf8');
+const evidenceCatalog = fs.readFileSync(new URL('../ios/JARVIS/EvidenceBackedFeatureCatalog.swift', import.meta.url), 'utf8');
+const oneTapResolver = fs.readFileSync(new URL('../ios/JARVIS/OneTapCodingResolver.swift', import.meta.url), 'utf8');
+const oneTapCoordinator = fs.readFileSync(new URL('../ios/JARVIS/OneTapCodingCoordinator.swift', import.meta.url), 'utf8');
+const semanticRegistry = fs.readFileSync(new URL('../ios/JARVIS/SemanticCodingRegistry.swift', import.meta.url), 'utf8');
+const researchRegistry = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingResearchRegistry.swift', import.meta.url), 'utf8');
 
 test('native sidebar exposes vehicle diagnostics workspace', () => {
   assert.match(contentView, /Label\("Araç Teşhis"/);
@@ -219,6 +226,43 @@ test('protocol learning can export a candidate manufacturer pack without guessed
   assert.match(packCandidate, /makeCandidate/);
   assert.match(packCandidate, /codingRecipes: \[\]/);
   assert.match(diagnostics, /Aday üretici paketi oluştur/);
+});
+
+test('evidence-backed feature model stores applicability operations and provenance', () => {
+  assert.match(evidenceModels, /CodingEvidenceSource/);
+  assert.match(evidenceModels, /VehicleApplicabilityRule/);
+  assert.match(evidenceModels, /SemanticCodingOperation/);
+  assert.match(evidenceModels, /ConnectedVehicleInventory/);
+  assert.match(evidenceCatalog, /vw\.passat-b8\.comfort-turn-signals/);
+  assert.match(evidenceCatalog, /Spiegelabsenkung bei Rueckwaertsfahrt/);
+});
+
+test('feature applicability uses brand model platform modules part software and equipment', () => {
+  assert.match(applicability, /brands\.contains/);
+  assert.match(applicability, /modelContains/);
+  assert.match(applicability, /platformContains/);
+  assert.match(applicability, /requiredModules/);
+  assert.match(applicability, /requiredPartPrefixes/);
+  assert.match(applicability, /requiredSoftwareContains/);
+  assert.match(applicability, /requiredEquipmentTokens/);
+});
+
+test('one-tap coding only executes exact semantic mappings for connected ECU identity', () => {
+  assert.match(semanticRegistry, /supportedPartPrefixes/);
+  assert.match(semanticRegistry, /supportedSoftwareContains/);
+  assert.match(oneTapResolver, /SemanticCodingRegistry\.shared\.mapping/);
+  assert.match(oneTapCoordinator, /BACKUP/);
+  assert.match(oneTapCoordinator, /WRITE/);
+  assert.match(oneTapCoordinator, /VERIFY/);
+  assert.match(diagnostics, /Araç İçin Tek-Tık Kodlamalar/);
+  assert.match(diagnostics, /Tek tıkla uygula/);
+});
+
+test('research registry tracks public sources without blindly bulk-copying datasets', () => {
+  assert.match(researchRegistry, /github-delphi-obd/);
+  assert.match(researchRegistry, /github-vagcan/);
+  assert.match(researchRegistry, /ross-tech-wiki/);
+  assert.match(researchRegistry, /allowedForDataImport: false/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
