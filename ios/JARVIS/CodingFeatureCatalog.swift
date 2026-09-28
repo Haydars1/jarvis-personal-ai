@@ -1,12 +1,12 @@
 import Foundation
 
-enum CodingRisk: String, Codable, CaseIterable {
+enum CodingRisk: String, Codable, CaseIterable, Hashable {
     case low = "Düşük"
     case medium = "Orta"
     case high = "Yüksek"
 }
 
-enum CodingOperationKind: String, Codable {
+enum CodingOperationKind: String, Codable, Hashable {
     case coding = "Kodlama"
     case adaptation = "Adaptasyon"
     case hiddenFeature = "Gizli özellik"
