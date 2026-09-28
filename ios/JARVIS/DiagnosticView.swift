@@ -66,6 +66,17 @@ struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
 
                     if bluetooth.isThinkDiagTransportReady {
+                        if bluetooth.canWrite {
+                            Button {
+                                let sent = bluetooth.sendReadOnlyDtcProbe()
+                                message = sent
+                                    ? "Salt-okuma DTC probu gönderildi; gelen cevaplar aşağıda otomatik çözülecek."
+                                    : "DTC probu gönderilemedi."
+                            } label: {
+                                Label("DTC oku — deneysel salt-okuma", systemImage: "stethoscope")
+                            }
+                        }
+
                         Button {
                             captureURL = makeCaptureFile()
                         } label: {
