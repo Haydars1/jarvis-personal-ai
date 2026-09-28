@@ -24,6 +24,7 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var probeAttempts: [ThinkDiagProbeAttempt] = []
     @Published private(set) var probeRunning = false
     @Published private(set) var livePolling = false
+    @Published private(set) var genericDtcScanRunning = false
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -97,6 +98,31 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @discardableResult
     func sendReadOnlyDtcProbe(header: [UInt8]? = nil) -> Bool {
         sendReadOnlyFrame(opcode: 0x0103, header: header)
+    }
+
+    @discardableResult
+    func sendReadOnlyPendingDtcProbe() -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendReadOnlyFrame(opcode: 0x0107)
+    }
+
+    @discardableResult
+    func sendReadOnlyPermanentDtcProbe() -> Bool {
+        guard protocolProfile != nil else { return false }
+        return sendReadOnlyFrame(opcode: 0x010A)
+    }
+
+    func scanGenericDtcStates() async {
+        guard protocolProfile != nil, canWrite, !genericDtcScanRunning else { return }
+        genericDtcScanRunning = true
+        defer { genericDtcScanRunning = false }
+
+        _ = sendReadOnlyDtcProbe()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        _ = sendReadOnlyPendingDtcProbe()
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        _ = sendReadOnlyPermanentDtcProbe()
+        try? await Task.sleep(nanoseconds: 700_000_000)
     }
 
     @discardableResult
