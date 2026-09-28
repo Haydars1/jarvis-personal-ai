@@ -75,7 +75,10 @@ final class ManufacturerDiagnosticRegistry {
 }
 
 enum ManufacturerDiagnosticPackLoader {
-    static func load(data: Data) throws -> ManufacturerDiagnosticPackManifest {
+    static func load(
+        data: Data,
+        persistOffline: Bool = true
+    ) throws -> ManufacturerDiagnosticPackManifest {
         let manifest = try JSONDecoder().decode(ManufacturerDiagnosticPackManifest.self, from: data)
         guard manifest.schemaVersion == 2 || manifest.schemaVersion == 3 else {
             throw NSError(
@@ -110,6 +113,9 @@ enum ManufacturerDiagnosticPackLoader {
         }
 
         ManufacturerDiagnosticRegistry.shared.register(manifest)
+        if persistOffline {
+            OfflineVehicleDataStore.saveManufacturerPack(data, brand: manifest.brand)
+        }
         return manifest
     }
 }
