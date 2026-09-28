@@ -58,7 +58,7 @@ struct DiagnosticView: View {
                     } label: {
                         Label("Rapor veya canlı veri dosyası içe aktar", systemImage: "doc.badge.plus")
                     }
-                    Text("CSV, JSON ve metin raporlarından DTC kodlarını ve yaygın canlı değerleri çıkarır. Binary .TC dosyası tanınır fakat tam decoder daha sonra eklenecek.")
+                    Text("CSV, JSON ve metin raporlarından DTC kodlarını; ThinkCar .TC kayıtlarından parametre adları, birimler ve son canlı değerleri çıkarır.")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
