@@ -14,6 +14,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     @Published private(set) var devices: [Device] = []
     @Published private(set) var discoveredServices: [String] = []
     @Published private(set) var notificationFrames: [Data] = []
+    @Published private(set) var decodedFrames: [ThinkDiagVciFrame] = []
+    @Published private(set) var preferredServiceDetected = false
+    @Published private(set) var writableCharacteristic: String?
+    @Published private(set) var notifyCharacteristic: String?
 
     private var central: CBCentralManager!
     private var peripherals: [UUID: CBPeripheral] = [:]
@@ -67,7 +71,10 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     }
 
     var transportNotice: String {
-        "ThinkDiag/DBScar teşhis protokolü üreticiye özeldir. JARVIS şu anda Bluetooth cihazını bulur, bağlanır ve GATT servislerini/ham bildirimleri keşfeder; araçtan canlı PID/DTC okumak için protokol köprüsü ayrıca doğrulanmalıdır."
+        if preferredServiceDetected {
+            return "Launch/ThinkDiag BLE servis imzası bulundu. JARVIS bildirimleri dinliyor ve bilinen VCI çerçeve yapısını pasif olarak çözüyor."
+        }
+        return "Bluetooth bağlantısı kuruldu. JARVIS servis/karakteristikleri keşfediyor; FFF0 veya ISSC imzası bulunursa ThinkDiag VCI modu otomatik seçilir."
     }
 }
 
@@ -103,6 +110,10 @@ extension ThinkDiagBluetooth: CBCentralManagerDelegate {
             state = .connected(peripheral.name ?? "ThinkDiag")
             discoveredServices.removeAll()
             notificationFrames.removeAll()
+            decodedFrames.removeAll()
+            preferredServiceDetected = false
+            writableCharacteristic = nil
+            notifyCharacteristic = nil
             peripheral.discoverServices(nil)
         }
     }
@@ -130,6 +141,7 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
             for service in peripheral.services ?? [] {
                 let uuid = service.uuid.uuidString
                 if !discoveredServices.contains(uuid) { discoveredServices.append(uuid) }
+                if ThinkDiagKnownBle.isPreferredService(uuid) { preferredServiceDetected = true }
                 peripheral.discoverCharacteristics(nil, for: service)
             }
         }
@@ -141,8 +153,19 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
             for characteristic in service.characteristics ?? [] {
                 let marker = "\(service.uuid.uuidString)/\(characteristic.uuid.uuidString)"
                 if !discoveredServices.contains(marker) { discoveredServices.append(marker) }
-                if characteristic.properties.contains(.notify) || characteristic.properties.contains(.indicate) {
+
+                let props = characteristic.properties
+                if writableCharacteristic == nil && (props.contains(.write) || props.contains(.writeWithoutResponse)) {
+                    writableCharacteristic = marker
+                }
+                if notifyCharacteristic == nil && (props.contains(.notify) || props.contains(.indicate)) {
+                    notifyCharacteristic = marker
+                }
+                if props.contains(.notify) || props.contains(.indicate) {
                     peripheral.setNotifyValue(true, for: characteristic)
+                }
+                if props.contains(.read) {
+                    peripheral.readValue(for: characteristic)
                 }
             }
         }
@@ -152,6 +175,12 @@ extension ThinkDiagBluetooth: CBPeripheralDelegate {
         Task { @MainActor in
             guard error == nil, let data = characteristic.value, !data.isEmpty else { return }
             notificationFrames.append(data)
+            if let frame = ThinkDiagVciFrame.decode(data) {
+                decodedFrames.append(frame)
+                if decodedFrames.count > 200 {
+                    decodedFrames.removeFirst(decodedFrames.count - 200)
+                }
+            }
             if notificationFrames.count > 200 {
                 notificationFrames.removeFirst(notificationFrames.count - 200)
             }
