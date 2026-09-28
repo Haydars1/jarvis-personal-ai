@@ -106,7 +106,7 @@ enum GenericObdDecoder {
             return ("Barometrik basınç", Double(data[0]), "kPa")
         case 0x3C...0x3F where data.count >= 2:
             let bankSensor = Int(pid - 0x3C) + 1
-            return ("Katalizör sıcaklığı (bankSensor)", Double(Int(data[0]) * 256 + Int(data[1])) / 10.0 - 40.0, "°C")
+            return ("Katalizör sıcaklığı \(bankSensor)", Double(Int(data[0]) * 256 + Int(data[1])) / 10.0 - 40.0, "°C")
         case 0x42 where data.count >= 2:
             return ("Kontrol modülü voltajı", Double(Int(data[0]) * 256 + Int(data[1])) / 1000.0, "V")
         case 0x44 where data.count >= 2:
