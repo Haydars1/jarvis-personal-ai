@@ -11,7 +11,7 @@ struct GenericObdLivePanel: View {
         if !samples.isEmpty || !supportedPids.isEmpty || !freezeFrame.isEmpty {
             Section("Genel OBD Canlı Teşhis") {
                 if !supportedPids.isEmpty {
-                    DisclosureGroup("Desteklenen PID'ler • (supportedPids.count)") {
+                    DisclosureGroup("Desteklenen PID'ler • \(supportedPids.count)") {
                         Text(supportedPids.sorted().map { String(format: "0x%02X", $0) }.joined(separator: ", "))
                             .font(.caption2.monospaced())
                             .textSelection(.enabled)
@@ -61,11 +61,11 @@ struct GenericObdLivePanel: View {
                     DisclosureGroup("P0299 sürüş verisi analizi") {
                         Text(assessment.summary)
                             .font(.caption.weight(.semibold))
-                        ForEach(assessment.findings, id: .self) { finding in
+                        ForEach(assessment.findings, id: \.self) { finding in
                             Text("• " + finding)
                                 .font(.caption2)
                         }
-                        Text("Güven: (Int(assessment.confidence * 100))%")
+                        Text("Güven: \(Int(assessment.confidence * 100))%")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
