@@ -33,6 +33,7 @@ struct DiagnosticView: View {
     @State private var workshopStep = ""
     @State private var latestWorkshopReportURL: URL?
     @State private var codingSearchText = ""
+    @State private var latestWorkshopSession: WorkshopSessionRecord?
 
     var body: some View {
         NavigationStack {
@@ -347,6 +348,28 @@ struct DiagnosticView: View {
                             Text(safety.message)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let latestWorkshopSession,
+                       let previous = workshopStore.previousSession(for: latestWorkshopSession) {
+                        let comparison = WorkshopComparisonEngine.compare(
+                            current: latestWorkshopSession,
+                            previous: previous
+                        )
+                        DisclosureGroup("Önceki taramayla karşılaştır") {
+                            if !comparison.newCodes.isEmpty {
+                                Text("Yeni: " + comparison.newCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
+                            if !comparison.resolvedCodes.isEmpty {
+                                Text("Artık görünmüyor: " + comparison.resolvedCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
+                            if !comparison.persistentCodes.isEmpty {
+                                Text("Devam eden: " + comparison.persistentCodes.joined(separator: ", "))
+                                    .font(.caption)
+                            }
                         }
                     }
 
@@ -1196,6 +1219,7 @@ struct DiagnosticView: View {
 
         let record = makeWorkshopSession(startedAt: startedAt)
         workshopStore.save(record)
+        latestWorkshopSession = record
         latestWorkshopReportURL = workshopStore.reportURL(for: record)
 
         await diagnosticAI.explainIfNeeded(
@@ -1263,6 +1287,7 @@ struct DiagnosticView: View {
     private func makeCurrentWorkshopReport() -> URL? {
         let record = makeWorkshopSession()
         workshopStore.save(record)
+        latestWorkshopSession = record
         return workshopStore.reportURL(for: record)
     }
 
