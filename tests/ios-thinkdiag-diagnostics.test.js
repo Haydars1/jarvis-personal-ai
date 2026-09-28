@@ -25,6 +25,8 @@ test('ThinkCar exports can be imported for DTC and live-data extraction', () => 
   assert.match(importer, /\\b\[PCBU\]/);
   assert.match(importer, /Turbo basıncı/);
   assert.match(importer, /DPF diferansiyel basınç/);
+  assert.match(importer, /LSX8/);
+  assert.match(importer, /parseTCStrings/);
 });
 
 test('iOS declares Bluetooth privacy usage descriptions', () => {
