@@ -45,7 +45,8 @@ enum ManufacturerPackCandidateGenerator {
                 readDtcHex: "1902FF",
                 clearDtcHex: nil,
                 identificationDIDs: dids,
-                liveDataDIDs: dids
+                liveDataDIDs: dids,
+                codingDID: nil
             ))
         }
 
