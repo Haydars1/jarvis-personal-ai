@@ -60,6 +60,13 @@ final class ManufacturerDiagnosticRegistry {
     func moduleRecipe(brand: VehicleBrand, moduleID: String) -> ManufacturerModuleRecipe? {
         packs[brand]?.modules.first(where: { $0.id == moduleID })
     }
+
+    func moduleRecipe(brand: VehicleBrand, moduleName: String) -> ManufacturerModuleRecipe? {
+        packs[brand]?.modules.first(where: {
+            $0.name.caseInsensitiveCompare(moduleName) == .orderedSame
+                || $0.id.caseInsensitiveCompare(moduleName) == .orderedSame
+        })
+    }
 }
 
 enum ManufacturerDiagnosticPackLoader {
