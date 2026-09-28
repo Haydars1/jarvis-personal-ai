@@ -2,6 +2,7 @@ import Foundation
 
 struct ThinkDiagPassiveObservation: Identifiable, Hashable {
     let id = UUID()
+    let timestamp = Date()
     let kind: String
     let title: String
     let detail: String
