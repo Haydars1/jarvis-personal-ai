@@ -28,6 +28,7 @@ struct ManufacturerModuleRecipe: Codable, Identifiable, Hashable {
     let clearDtcHex: String?
     let identificationDIDs: [ManufacturerDIDDefinition]
     let liveDataDIDs: [ManufacturerDIDDefinition]
+    let codingDID: UInt16?
 }
 
 struct ManufacturerDiagnosticPackManifest: Codable {
