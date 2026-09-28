@@ -177,12 +177,14 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         guard protocolProfile != nil, canWrite else { return }
 
         supportedPids.removeAll()
-        for base in [UInt8(0x00),0x20,0x40,0x60,0x80,0xA0,0xC0] {
+        let bases: [UInt8] = [0x00,0x20,0x40,0x60,0x80,0xA0,0xC0]
+        for (index, base) in bases.enumerated() {
             _ = sendReadOnlySupportedPidBlock(base)
             try? await Task.sleep(nanoseconds: 280_000_000)
 
-            // Continue into the next PID range only if the current bitmap advertises it.
-            if base != 0x00 && !supportedPids.contains(base) {
+            guard index + 1 < bases.count else { break }
+            let nextBase = bases[index + 1]
+            if !supportedPids.contains(nextBase) {
                 break
             }
         }
