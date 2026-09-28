@@ -177,7 +177,7 @@ struct GoogleConnectInfo: Decodable {
 }
 
 
-struct VehicleCodingResearchOperation: Decodable, Hashable {
+struct VehicleCodingResearchOperation: Codable, Hashable {
     let kind: String
     let byte: Int?
     let bit: Int?
@@ -186,7 +186,7 @@ struct VehicleCodingResearchOperation: Decodable, Hashable {
     let value: String?
 }
 
-struct VehicleCodingResearchCandidate: Decodable, Identifiable, Hashable {
+struct VehicleCodingResearchCandidate: Codable, Identifiable, Hashable {
     let id: String
     let target: String
     let brands: [String]
