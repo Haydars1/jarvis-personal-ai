@@ -1,3 +1,4 @@
+import { fetchVagCoderCatalog } from './trusted-coding-catalogs.js';
 import {
   decryptCredential,
   execute,
@@ -295,7 +296,7 @@ async function saveTarget(env, target, candidates) {
   const byKey = new Map();
   for (const row of merged) {
     const fingerprint = [
-      row.feature,row.module,row.channel,row.value,row.sourceUrl
+      row.feature,row.module,row.channel,row.value,row.coding,row.sourceUrl
     ].map(x => String(x || '').trim().toLowerCase()).join('|');
     if (!fingerprint.replaceAll('|','')) continue;
     const old = byKey.get(fingerprint);
@@ -316,6 +317,37 @@ async function saveTarget(env, target, candidates) {
 async function researchTarget(env, target, { pages = 3, maxQueries = 3 } = {}) {
   let added = 0;
   const errors = [];
+
+  if (target.id === 'vag') {
+    try {
+      const trusted = await fetchVagCoderCatalog();
+      const normalized = trusted.map(row => ({
+        id:row.id,
+        target:'vag',
+        brands:['Audi'],
+        query:'trusted:VAG-CODER',
+        title:row.sourceTitle,
+        feature:row.feature,
+        module:row.module,
+        channel:row.operations.find(op => op.kind === 'adaptation')?.channel || '',
+        value:row.operations.find(op => op.kind === 'adaptation')?.value || '',
+        applicability:[row.vehicle,row.platform,row.compat].filter(Boolean).join(' • '),
+        sourceUrl:row.sourceUrl,
+        sourceTitle:row.sourceTitle,
+        sourceKind:row.sourceKind,
+        confidence:row.confidence,
+        status:row.status,
+        observedAt:now(),
+        operations:row.operations,
+        coding:row.coding,
+        attribution:row.attribution
+      }));
+      await saveTarget(env, target, normalized);
+      added += normalized.length;
+    } catch (error) {
+      errors.push(`trusted-vag:${error.message}`);
+    }
+  }
   for (const query of target.queries.slice(0, Math.max(1, maxQueries))) {
     const [google, github] = await Promise.all([
       googleSearch(env, query, pages).catch(error => { errors.push(`google:${error.message}`); return []; }),
