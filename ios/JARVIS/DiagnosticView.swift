@@ -18,6 +18,8 @@ struct DiagnosticView: View {
     @StateObject private var codingFavorites = CodingFavoritesStore()
     @StateObject private var driveLogger = DriveLogRecorder()
     @StateObject private var workshopPreferences = WorkshopPreferences()
+    @StateObject private var vehicleProfiles = VehicleProfileCache()
+    @StateObject private var offlinePrefetch = OfflineCatalogPrefetcher()
     @State private var selectedBrand: VehicleBrand = .generic
     @State private var snapshot: DiagnosticSnapshot?
     @State private var showImporter = false
@@ -237,6 +239,23 @@ struct DiagnosticView: View {
                         Spacer()
                         Text(networkMonitor.interfaceName)
                             .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        Label(
+                            offlinePrefetch.running ? "Offline katalog hazırlanıyor…" : "Offline katalog",
+                            systemImage: offlinePrefetch.running ? "arrow.triangle.2.circlepath" : "internaldrive.fill"
+                        )
+                        Spacer()
+                        Text("\(offlinePrefetch.cachedBrands) marka")
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let lastRefresh = offlinePrefetch.lastRefresh {
+                        Text("Son offline katalog güncellemesi: \(lastRefresh.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
 
@@ -1282,6 +1301,11 @@ struct DiagnosticView: View {
                 if effectiveBrand != .generic {
                     await codingResearch.refresh(brand: effectiveBrand)
                 }
+                if networkMonitor.isOnline {
+                    await offlinePrefetch.refreshIfNeeded()
+                } else {
+                    offlinePrefetch.refreshCacheCount()
+                }
             }
             .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
                 guard ready else { return }
@@ -1329,15 +1353,24 @@ struct DiagnosticView: View {
                 }
             }
             .onChange(of: networkMonitor.isOnline) { _, isOnline in
-                guard isOnline, effectiveBrand != .generic else { return }
+                guard isOnline else { return }
                 Task {
-                    await codingResearch.sync(brand: effectiveBrand, pages: 2)
+                    if effectiveBrand != .generic {
+                        await codingResearch.sync(brand: effectiveBrand, pages: 2)
+                    }
+                    await offlinePrefetch.refreshIfNeeded()
                 }
             }
             .onChange(of: detectedVIN) { _, newVIN in
-                guard selectedBrand == .generic, let newVIN else { return }
-                let detected = VehicleBrand.detect(fromVIN: newVIN)
-                if detected != .generic { selectedBrand = detected }
+                guard let newVIN else { return }
+                if selectedBrand == .generic {
+                    let detected = VehicleBrand.detect(fromVIN: newVIN)
+                    if detected != .generic { selectedBrand = detected }
+                }
+                saveCurrentVehicleProfile()
+            }
+            .onChange(of: moduleScanner.results.count) { _, _ in
+                saveCurrentVehicleProfile()
             }
         }
     }
@@ -1382,6 +1415,8 @@ struct DiagnosticView: View {
                 await bluetooth.requestVCI(opcode: opcode, payload: request)
             }
         }
+
+        saveCurrentVehicleProfile()
 
         let report = HardwareValidationReportBuilder.make(
             bluetooth: bluetooth,
@@ -1442,6 +1477,8 @@ struct DiagnosticView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             bluetooth.stopLivePolling()
         }
+
+        saveCurrentVehicleProfile()
 
         let record = makeWorkshopSession(startedAt: startedAt)
         workshopStore.save(record)
@@ -1531,7 +1568,41 @@ struct DiagnosticView: View {
     }
 
     private var connectedInventory: ConnectedVehicleInventory {
-        let identities = moduleScanner.results.map { result in
+        let liveIdentities = currentLiveModuleIdentities
+        let cached = vehicleProfiles.profile(for: detectedVIN)
+
+        let identities: [ConnectedModuleIdentity]
+        if liveIdentities.isEmpty, let cached {
+            identities = cached.modules.map {
+                ConnectedModuleIdentity(
+                    address: $0.address,
+                    name: $0.name,
+                    partNumber: $0.partNumber,
+                    softwareVersion: $0.softwareVersion
+                )
+            }
+        } else {
+            identities = liveIdentities
+        }
+
+        let liveEquipment = currentLiveEquipmentTokens
+        let equipment = liveEquipment.isEmpty
+            ? (cached?.equipmentTokens ?? [])
+            : liveEquipment
+
+        return ConnectedVehicleInventory(
+            vin: detectedVIN,
+            brand: effectiveBrand != .generic ? effectiveBrand : (cached?.brand ?? .generic),
+            modelName: inferredModelName ?? cached?.modelName,
+            platform: inferredPlatform ?? cached?.platform,
+            modelYear: vinModelYear(detectedVIN) ?? cached?.modelYear,
+            modules: identities,
+            equipmentTokens: equipment
+        )
+    }
+
+    private var currentLiveModuleIdentities: [ConnectedModuleIdentity] {
+        moduleScanner.results.map { result in
             let part = firstIdentificationValue(
                 result.identification,
                 matching: ["part", "teil", "hardware", "hw", "spare"]
@@ -1547,12 +1618,15 @@ struct DiagnosticView: View {
                 softwareVersion: software
             )
         }
+    }
 
+    private var currentLiveEquipmentTokens: Set<String> {
         var equipment = Set<String>()
         let combinedIdentification = moduleScanner.results
             .flatMap { $0.identification.values }
             .joined(separator: " ")
             .lowercased()
+
         if combinedIdentification.contains("folding mirror") || combinedIdentification.contains("spiegelanklapp") {
             equipment.insert("folding_mirrors")
         }
@@ -1562,15 +1636,35 @@ struct DiagnosticView: View {
         if combinedIdentification.contains("front camera") || combinedIdentification.contains("a5") {
             equipment.insert("front_camera")
         }
+        return equipment
+    }
 
-        return ConnectedVehicleInventory(
-            vin: detectedVIN,
-            brand: effectiveBrand,
-            modelName: inferredModelName,
-            platform: inferredPlatform,
-            modelYear: vinModelYear(detectedVIN),
-            modules: identities,
-            equipmentTokens: equipment
+    private func saveCurrentVehicleProfile() {
+        guard let vin = detectedVIN, vin.count == 17 else { return }
+
+        let liveModules = currentLiveModuleIdentities
+        let liveEquipment = currentLiveEquipmentTokens
+        let old = vehicleProfiles.profile(for: vin)
+
+        vehicleProfiles.update(
+            vin: vin,
+            brand: effectiveBrand != .generic ? effectiveBrand : (old?.brand ?? .generic),
+            modelName: inferredModelName ?? old?.modelName,
+            platform: inferredPlatform ?? old?.platform,
+            modelYear: vinModelYear(vin) ?? old?.modelYear,
+            modules: liveModules.isEmpty
+                ? (old?.modules.map {
+                    ConnectedModuleIdentity(
+                        address: $0.address,
+                        name: $0.name,
+                        partNumber: $0.partNumber,
+                        softwareVersion: $0.softwareVersion
+                    )
+                } ?? [])
+                : liveModules,
+            equipmentTokens: liveEquipment.isEmpty
+                ? (old?.equipmentTokens ?? [])
+                : liveEquipment
         )
     }
 
