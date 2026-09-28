@@ -973,7 +973,7 @@ struct DiagnosticView: View {
 
     private var evidenceFeatureAvailability: [FeatureAvailability] {
         FeatureApplicabilityEngine.availableFeatures(
-            catalog: EvidenceBackedFeatureCatalog.all,
+            catalog: EvidenceBackedFeatureCatalog.all + codingResearch.trustedEvidenceFeatures,
             inventory: connectedInventory
         )
     }
