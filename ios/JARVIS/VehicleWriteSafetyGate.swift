@@ -27,6 +27,15 @@ enum VehicleWriteSafetyGate {
             )
         }
 
+        if voltage > 15.5 {
+            return .init(
+                level: .blocked,
+                voltage: voltage,
+                canWrite: false,
+                message: String(format: "Voltaj %.2f V. Şarj voltajı olağandışı yüksek; ECU yazması başlatılmaz.", voltage)
+            )
+        }
+
         if voltage < 11.8 {
             return .init(
                 level: .blocked,
