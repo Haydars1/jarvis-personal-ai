@@ -127,10 +127,9 @@ final class ManufacturerLiveDataController: ObservableObject {
     }
 
     private static func decodeText(_ data: Data) -> String? {
-        guard let string = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .controlCharacters.union(.whitespacesAndNewlines)),
-              !string.isEmpty else { return nil }
-        return string
+        guard let decoded = String(data: data, encoding: .utf8) else { return nil }
+        let string = decoded.trimmingCharacters(in: .controlCharacters.union(.whitespacesAndNewlines))
+        return string.isEmpty ? nil : string
     }
 
     private static func format(_ value: Double) -> String {
