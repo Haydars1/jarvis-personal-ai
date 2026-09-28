@@ -353,9 +353,9 @@ struct DiagnosticView: View {
                                 if let record = driveLogger.stop(vin: detectedVIN, brand: effectiveBrand) {
                                     latestDriveLogURL = driveLogger.csvURL(for: record)
                                     if let assessment = driveLogger.p0299Assessment(for: record) {
-                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek • (assessment.summary)"
+                                        message = "Sürüş kaydı tamamlandı • \\(record.samples.count) örnek • \\(assessment.summary)"
                                     } else {
-                                        message = "Sürüş kaydı tamamlandı • (record.samples.count) örnek"
+                                        message = "Sürüş kaydı tamamlandı • \\(record.samples.count) örnek"
                                     }
                                 }
                             } else {
@@ -376,7 +376,7 @@ struct DiagnosticView: View {
                     .disabled(bluetooth.protocolProfile == nil)
 
                     if driveLogger.recording {
-                        Text("Kaydedilen canlı veri: (driveLogger.currentSamples.count) örnek")
+                        Text("Kaydedilen canlı veri: \\(driveLogger.currentSamples.count) örnek")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -393,7 +393,7 @@ struct DiagnosticView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(log.vin ?? log.brand.rawValue)
                                         .font(.caption.weight(.semibold))
-                                    Text("(log.samples.count) örnek • (log.finishedAt.formatted(date: .numeric, time: .shortened))")
+                                    Text("\\(log.samples.count) örnek • \\(log.finishedAt.formatted(date: .numeric, time: .shortened))")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                     if let assessment = driveLogger.p0299Assessment(for: log) {
