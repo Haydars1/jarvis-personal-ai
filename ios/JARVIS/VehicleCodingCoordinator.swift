@@ -2,7 +2,7 @@ import Foundation
 import Combine
 
 struct CodingRecipeStep: Codable, Hashable {
-    enum Operation: String, Codable {
+    enum Operation: String, Codable, Hashable {
         case readDataByIdentifier
         case writeDataByIdentifier
         case routineControl
@@ -15,7 +15,7 @@ struct CodingRecipeStep: Codable, Hashable {
     let description: String
 }
 
-struct CodingRecipe: Codable, Identifiable {
+struct CodingRecipe: Codable, Identifiable, Hashable {
     let id: String
     let featureID: String
     let brand: VehicleBrand
