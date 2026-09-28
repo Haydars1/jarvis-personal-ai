@@ -64,6 +64,14 @@ enum GenericObdDecoder {
             return ("Motor yükü", Double(data[0]) * 100.0 / 255.0, "%")
         case 0x05 where data.count >= 1:
             return ("Soğutma suyu", Double(Int(data[0]) - 40), "°C")
+        case 0x06 where data.count >= 1:
+            return ("Kısa dönem yakıt düzeltmesi B1", (Double(data[0]) - 128.0) * 100.0 / 128.0, "%")
+        case 0x07 where data.count >= 1:
+            return ("Uzun dönem yakıt düzeltmesi B1", (Double(data[0]) - 128.0) * 100.0 / 128.0, "%")
+        case 0x08 where data.count >= 1:
+            return ("Kısa dönem yakıt düzeltmesi B2", (Double(data[0]) - 128.0) * 100.0 / 128.0, "%")
+        case 0x09 where data.count >= 1:
+            return ("Uzun dönem yakıt düzeltmesi B2", (Double(data[0]) - 128.0) * 100.0 / 128.0, "%")
         case 0x0A where data.count >= 1:
             return ("Yakıt basıncı", Double(data[0]) * 3.0, "kPa")
         case 0x0B where data.count >= 1:
@@ -72,6 +80,8 @@ enum GenericObdDecoder {
             return ("Motor devri", Double(Int(data[0]) * 256 + Int(data[1])) / 4.0, "rpm")
         case 0x0D where data.count >= 1:
             return ("Araç hızı", Double(data[0]), "km/h")
+        case 0x0E where data.count >= 1:
+            return ("Ateşleme avansı", Double(data[0]) / 2.0 - 64.0, "°")
         case 0x0F where data.count >= 1:
             return ("Emme havası", Double(Int(data[0]) - 40), "°C")
         case 0x10 where data.count >= 2:
@@ -82,16 +92,41 @@ enum GenericObdDecoder {
             return ("Motor çalışma süresi", Double(Int(data[0]) * 256 + Int(data[1])), "s")
         case 0x23 where data.count >= 2:
             return ("Yakıt ray basıncı", Double(Int(data[0]) * 256 + Int(data[1])) * 10.0, "kPa")
+        case 0x2C where data.count >= 1:
+            return ("Komut edilen EGR", Double(data[0]) * 100.0 / 255.0, "%")
+        case 0x2D where data.count >= 1:
+            return ("EGR hatası", (Double(data[0]) - 128.0) * 100.0 / 128.0, "%")
+        case 0x2E where data.count >= 1:
+            return ("EVAP purge komutu", Double(data[0]) * 100.0 / 255.0, "%")
         case 0x2F where data.count >= 1:
             return ("Yakıt seviyesi", Double(data[0]) * 100.0 / 255.0, "%")
+        case 0x31 where data.count >= 2:
+            return ("DTC silmeden beri mesafe", Double(Int(data[0]) * 256 + Int(data[1])), "km")
         case 0x33 where data.count >= 1:
             return ("Barometrik basınç", Double(data[0]), "kPa")
+        case 0x3C...0x3F where data.count >= 2:
+            let bankSensor = Int(pid - 0x3C) + 1
+            return ("Katalizör sıcaklığı (bankSensor)", Double(Int(data[0]) * 256 + Int(data[1])) / 10.0 - 40.0, "°C")
         case 0x42 where data.count >= 2:
             return ("Kontrol modülü voltajı", Double(Int(data[0]) * 256 + Int(data[1])) / 1000.0, "V")
+        case 0x44 where data.count >= 2:
+            return ("Komut edilen lambda", Double(Int(data[0]) * 256 + Int(data[1])) / 32768.0, "λ")
+        case 0x45 where data.count >= 1:
+            return ("Göreli gaz kelebeği", Double(data[0]) * 100.0 / 255.0, "%")
         case 0x46 where data.count >= 1:
             return ("Ortam sıcaklığı", Double(Int(data[0]) - 40), "°C")
+        case 0x4C where data.count >= 1:
+            return ("Gaz kelebeği aktüatör komutu", Double(data[0]) * 100.0 / 255.0, "%")
+        case 0x4D where data.count >= 2:
+            return ("MIL açık çalışma süresi", Double(Int(data[0]) * 256 + Int(data[1])), "dk")
+        case 0x4E where data.count >= 2:
+            return ("DTC silmeden beri süre", Double(Int(data[0]) * 256 + Int(data[1])), "dk")
+        case 0x5A where data.count >= 1:
+            return ("Göreli gaz pedalı", Double(data[0]) * 100.0 / 255.0, "%")
         case 0x5C where data.count >= 1:
             return ("Motor yağı sıcaklığı", Double(Int(data[0]) - 40), "°C")
+        case 0x5E where data.count >= 2:
+            return ("Motor yakıt tüketim hızı", Double(Int(data[0]) * 256 + Int(data[1])) / 20.0, "L/h")
         default:
             return nil
         }
