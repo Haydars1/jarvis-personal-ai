@@ -134,11 +134,14 @@ final class VehicleCodingCoordinator: ObservableObject {
                 state = .failed("Geçersiz backup komutu")
                 return
             }
-            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
-            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+            let routedRequest = ManufacturerTransportCodec.wrapRequest(request, route: module.transport)
+            let rawExpected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            let expected = ManufacturerTransportCodec.expectedWrappedPrefix(rawExpected, route: module.transport)
+            guard let rawResponse = await send(module.transport.vciOpcode, routedRequest, expected) else {
                 state = .failed("Mevcut değer okunamadı: \(step.description)")
                 return
             }
+            let response = ManufacturerTransportCodec.unwrapResponse(rawResponse, route: module.transport)
             executionLog.append("READ \(step.description): " + response.map { String(format: "%02X", $0) }.joined())
             backupBytes.append(response)
         }
@@ -171,11 +174,14 @@ final class VehicleCodingCoordinator: ObservableObject {
                 state = .failed("Geçersiz yazma komutu")
                 return
             }
-            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
-            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+            let routedRequest = ManufacturerTransportCodec.wrapRequest(request, route: module.transport)
+            let rawExpected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            let expected = ManufacturerTransportCodec.expectedWrappedPrefix(rawExpected, route: module.transport)
+            guard let rawResponse = await send(module.transport.vciOpcode, routedRequest, expected) else {
                 state = .failed("Yazma yanıtı alınamadı: \(step.description)")
                 return
             }
+            let response = ManufacturerTransportCodec.unwrapResponse(rawResponse, route: module.transport)
             if let negative = UDSCodec.parseNegative(response) {
                 state = .failed(negative.message)
                 return
@@ -189,11 +195,14 @@ final class VehicleCodingCoordinator: ObservableObject {
                 state = .failed("Geçersiz doğrulama komutu")
                 return
             }
-            let expected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
-            guard let response = await send(module.transport.vciOpcode, request, expected) else {
+            let routedRequest = ManufacturerTransportCodec.wrapRequest(request, route: module.transport)
+            let rawExpected = step.expectedPositivePrefixHex.flatMap(Data.init(hexString:))
+            let expected = ManufacturerTransportCodec.expectedWrappedPrefix(rawExpected, route: module.transport)
+            guard let rawResponse = await send(module.transport.vciOpcode, routedRequest, expected) else {
                 state = .failed("Doğrulama yanıtı alınamadı: \(step.description)")
                 return
             }
+            let response = ManufacturerTransportCodec.unwrapResponse(rawResponse, route: module.transport)
             executionLog.append("VERIFY \(step.description): " + response.map { String(format: "%02X", $0) }.joined())
         }
 
