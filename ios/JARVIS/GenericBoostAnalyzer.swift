@@ -18,9 +18,13 @@ enum GenericBoostAnalyzer {
         let peakRpm = rpm.map(\.value).max() ?? 0
         let peakMap = map.map(\.value).max() ?? 0
         let peakGauge = peakMap - baro
-        let peakMaf: Double? = maf.reduce(nil) { current, sample in
-            guard let current else { return sample.value }
-            return max(current, sample.value)
+        var peakMaf: Double?
+        for sample in maf {
+            if let current = peakMaf {
+                peakMaf = max(current, sample.value)
+            } else {
+                peakMaf = sample.value
+            }
         }
 
         var findings: [String] = []
