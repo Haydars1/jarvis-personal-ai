@@ -62,7 +62,7 @@ test('ThinkCar exports can be imported for DTC and live-data extraction', () => 
 
 test('ThinkDiag transport fingerprints Launch BLE services and decodes VCI frames', () => {
   assert.match(bluetooth, /preferredServiceDetected/);
-  assert.match(bluetooth, /ThinkDiagVciFrame\.decode/);
+  assert.match(assembler, /ThinkDiagVciFrame\.decode/);
   assert.match(vciFrame, /0000FFF0-0000-1000-8000-00805F9B34FB/);
   assert.match(vciFrame, /49535343-FE7D-4AE5-8FA9-9FAFD205E455/);
   assert.match(vciFrame, /checksumValid/);
@@ -73,7 +73,7 @@ test('ThinkDiag stream assembler handles fragmented notifications', () => {
   assert.match(assembler, /preferredHeader/);
   assert.match(assembler, /payloadLength/);
   assert.match(assembler, /checksumValid/);
-  assert.match(bluetooth, /assembler\.append\(data, preferredHeader: protocolProfile\?\.header\)/);
+  assert.match(bluetooth, /assembler\.append\([\s\S]*preferredHeader: probeRunning \? nil : protocolProfile\?\.header/);
 });
 
 test('passive decoder recognizes standard read-only OBD responses', () => {
@@ -81,8 +81,8 @@ test('passive decoder recognizes standard read-only OBD responses', () => {
   assert.match(passive, /case 0x43/);
   assert.match(passive, /case 0x47/);
   assert.match(passive, /case 0x49/);
-  assert.match(passive, /Motor devri/);
-  assert.match(passive, /Manifold basıncı/);
+  assert.match(genericObd, /Motor devri/);
+  assert.match(genericObd, /Manifold basıncı/);
   assert.match(bluetooth, /passiveObservations/);
   assert.match(passive, /case 0x42/);
 });
@@ -311,12 +311,13 @@ test('generic OBD capability discovery reads supported PIDs VIN and freeze frame
   assert.match(genericObd, /freezeFrame/);
 });
 
-test('generic live data is stored and shown with charts plus P0299 analysis', () => {
+test('generic live data is stored and shown with charts while diagnosis is handled by family engine', () => {
   assert.match(bluetooth, /liveSamples/);
   assert.match(genericPanel, /import Charts/);
-  assert.match(genericPanel, /P0299 sürüş verisi analizi/);
+  assert.doesNotMatch(genericPanel, /P0299 sürüş verisi analizi/);
   assert.match(boostAnalyzer, /Generic OBD MAP gerçek manifold basıncıdır/);
   assert.match(diagnostics, /GenericObdLivePanel/);
+  assert.match(diagnostics, /DtcFamilyDiagnosticPanel/);
 });
 
 test('VCI stream rejects bad checksum alignment instead of consuming whole frames', () => {
