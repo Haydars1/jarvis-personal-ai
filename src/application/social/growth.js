@@ -48,6 +48,20 @@ function platformsFrom(text = '') {
 }
 function extractTopic(text = '') { return String(text).replace(/\s+/g, ' ').trim().slice(0, 700); }
 
+export function cadencePlan(text = '', timestamp = Date.now()) {
+  const value = String(text).toLocaleLowerCase('tr-TR');
+  const day = 24 * 60 * 60 * 1000;
+  const everyNWeeks = value.match(/(?:her\s*)?(\d+)\s*haftada\s*(?:bir|1)?/i);
+  if (everyNWeeks) {
+    const weeks = Math.max(1, Number(everyNWeeks[1] || 1));
+    return { id:`every_${weeks}_weeks`, interval_ms:weeks * 7 * day, first_at:timestamp + weeks * 7 * day };
+  }
+  if (/haftada\s*bir|haftalık|her\s*hafta/i.test(value)) return { id:'weekly', interval_ms:7 * day, first_at:timestamp + 7 * day };
+  if (/iki\s*günde\s*bir|2\s*günde\s*bir/i.test(value)) return { id:'every_2_days', interval_ms:2 * day, first_at:timestamp + 2 * day };
+  if (/her\s*gün|günlük|günde\s*bir/i.test(value)) return { id:'daily', interval_ms:day, first_at:timestamp + day };
+  return { id:'daily', interval_ms:day, first_at:timestamp + day };
+}
+
 async function googleIdeas(core, req, env, ctx, topic) {
   try {
     const url = new URL('/api/google-search', req.url);
@@ -92,16 +106,17 @@ async function aiContentPlan(env, topic, platforms, research = []) {
 async function createCampaign(core, req, env, ctx, text, options = {}) {
   const platforms = options.platforms || platformsFrom(text), topic = options.topic || extractTopic(text), id = uid(), timestamp = now();
   const objective = /para kazan|satış|müşteri|reklam|gelir/i.test(text) ? 'monetization' : 'growth';
-  await execute(env, 'INSERT INTO social_campaigns(id,name,objective,platforms,topic,audience,cadence,enabled,approval_mode,config,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, (options.name || topic).slice(0,100), objective, JSON.stringify(platforms), topic, String(options.audience || ''), 'daily', 1, 'auto_owned_accounts', JSON.stringify({ source:'chat', group_policy:'authorized_targets_only' }), timestamp, timestamp);
+  const cadence = options.cadence || cadencePlan(text, timestamp);
+  await execute(env, 'INSERT INTO social_campaigns(id,name,objective,platforms,topic,audience,cadence,enabled,approval_mode,config,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)', id, (options.name || topic).slice(0,100), objective, JSON.stringify(platforms), topic, String(options.audience || ''), cadence.id, 1, 'auto_owned_accounts', JSON.stringify({ source:'chat', cadence, group_policy:'authorized_targets_only' }), timestamp, timestamp);
   const research = await googleIdeas(core, req, env, ctx, topic), plan = await aiContentPlan(env, topic, platforms, research);
   for (let index = 0; index < plan.length; index++) {
     for (const platform of platforms) {
-      const item = plan[index] || {}, queueId = uid(), scheduled = timestamp + ((index + 1) * 24 * 60 * 60 * 1000);
+      const item = plan[index] || {}, queueId = uid(), scheduled = cadence.first_at + (index * cadence.interval_ms);
       await execute(env, 'INSERT INTO social_content_queue(id,campaign_id,platform,content_type,topic,hook,caption,hashtags,media_prompt,status,scheduled_at,meta,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', queueId, id, platform, 'reel', String(item.topic || topic), String(item.hook || ''), String(item.caption || topic), JSON.stringify(item.hashtags || []), String(item.media_prompt || topic), 'planned', scheduled, JSON.stringify({ research:research.slice(0,3).map(row => ({ title:row.title, url:row.url })) }), timestamp, timestamp);
     }
   }
   await notify(env, 'social', 'Sosyal medya kampanyası oluşturuldu', topic, { campaign_id:id, platforms });
-  return { id, platforms, topic, items:plan.length * platforms.length, group_policy:'Facebook gruplarında otomatik üyelik/insan gibi davranma yok; sadece açıkça yetkilendirilmiş hedefler ve platformun izin verdiği resmi API akışları.' };
+  return { id, platforms, topic, cadence, items:plan.length * platforms.length, group_policy:'Facebook gruplarında otomatik üyelik/insan gibi davranma yok; sadece açıkça yetkilendirilmiş hedefler ve platformun izin verdiği resmi API akışları.' };
 }
 
 let hfSpec = { ts:0, spec:null };

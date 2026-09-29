@@ -266,3 +266,38 @@ CREATE TABLE IF NOT EXISTS ecu_chat_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_chat_messages_channel ON ecu_chat_messages(channel_id, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_ecu_chat_messages_created ON ecu_chat_messages(created_at DESC);
+
+
+-- ECU local device bridge registry and job queue.
+-- The Cloudflare Worker never pretends to access USB/OBD directly; a trusted local bridge polls these jobs.
+CREATE TABLE IF NOT EXISTS ecu_device_bridges (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL DEFAULT 'Local ECU Bridge',
+  token_sha256 TEXT NOT NULL UNIQUE,
+  transport TEXT NOT NULL DEFAULT 'local-agent',
+  capabilities TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'offline',
+  last_seen_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_device_bridges_seen ON ecu_device_bridges(status, last_seen_at DESC);
+
+CREATE TABLE IF NOT EXISTS ecu_device_jobs (
+  id TEXT PRIMARY KEY,
+  bridge_id TEXT NOT NULL,
+  action TEXT NOT NULL,
+  module TEXT NOT NULL DEFAULT '',
+  request_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending',
+  requires_confirmation INTEGER NOT NULL DEFAULT 0,
+  confirmed_at INTEGER,
+  claimed_at INTEGER,
+  finished_at INTEGER,
+  result_json TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY(bridge_id) REFERENCES ecu_device_bridges(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_ecu_device_jobs_queue ON ecu_device_jobs(bridge_id, status, created_at ASC);

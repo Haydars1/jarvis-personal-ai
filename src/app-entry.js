@@ -6,6 +6,7 @@ import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
 import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from './application/ecu/channels.js';
+import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
@@ -41,7 +42,7 @@ const mediaCore = {
   }
 };
 
-const ecuCore = createEcuChannelStore(createEcuBinaryInspector(mediaCore));
+const ecuCore = createEcuDeviceBridge(createEcuChannelStore(createEcuBinaryInspector(mediaCore)));
 const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
 const handlePush = createPushApi(capabilityCore);
 
@@ -52,7 +53,7 @@ function shouldFlushPush(req, response) {
 
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
-  if (url.pathname.startsWith('/api/ecu/channels')) return ecuCore.fetch(req, env, ctx);
+  if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/')) return ecuCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/mobile/push/')) {
     const response = await handlePush(req, env, ctx);
     if (response) return response;
