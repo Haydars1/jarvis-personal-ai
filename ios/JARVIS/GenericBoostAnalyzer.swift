@@ -8,25 +8,37 @@ struct P0299Assessment: Hashable {
 
 enum GenericBoostAnalyzer {
     static func assess(samples: [ThinkDiagLiveSample]) -> P0299Assessment? {
-        let rpm = samples.filter { $0.pid == 0x0C }
-        let map = samples.filter { $0.pid == 0x0B }
-        guard !rpm.isEmpty, !map.isEmpty else { return nil }
-
-        let baro = samples.last(where: { $0.pid == 0x33 })?.value ?? 100.0
-        let maf = samples.filter { $0.pid == 0x10 }
-
-        let peakRpm = rpm.map(\.value).max() ?? 0
-        let peakMap = map.map(\.value).max() ?? 0
-        let peakGauge = peakMap - baro
+        var peakRpm = 0.0
+        var peakMap = 0.0
+        var baro = 100.0
         var peakMaf: Double?
-        for sample in maf {
-            if let current = peakMaf {
-                peakMaf = max(current, sample.value)
-            } else {
-                peakMaf = sample.value
+        var hasRpm = false
+        var hasMap = false
+
+        for sample in samples {
+            switch sample.pid {
+            case 0x0C:
+                hasRpm = true
+                if sample.value > peakRpm { peakRpm = sample.value }
+            case 0x0B:
+                hasMap = true
+                if sample.value > peakMap { peakMap = sample.value }
+            case 0x33:
+                baro = sample.value
+            case 0x10:
+                if let current = peakMaf {
+                    if sample.value > current { peakMaf = sample.value }
+                } else {
+                    peakMaf = sample.value
+                }
+            default:
+                break
             }
         }
 
+        guard hasRpm, hasMap else { return nil }
+
+        let peakGauge = peakMap - baro
         var findings: [String] = []
         var confidence = 0.35
 
