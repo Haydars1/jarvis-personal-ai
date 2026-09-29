@@ -2,8 +2,11 @@ name: JARVIS Codex Development Agent
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/learning-engine
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7,22,37,52 * * * *'
 
 permissions:
   contents: write
@@ -15,7 +18,7 @@ concurrency:
 
 jobs:
   develop:
-    if: github.event_name == 'schedule' || github.ref == 'refs/heads/feature/learning-engine'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/feature/learning-engine' && github.actor != 'github-actions[bot]')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
