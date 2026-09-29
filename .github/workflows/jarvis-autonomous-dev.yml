@@ -1,9 +1,7 @@
-name: JARVIS Autonomous Dev Agent
+name: JARVIS Autonomous Dev Manual Backup
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '7 * * * *'
 
 permissions:
   contents: write
