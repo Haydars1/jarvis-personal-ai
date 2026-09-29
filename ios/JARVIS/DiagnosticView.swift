@@ -494,20 +494,7 @@ struct DiagnosticView: View {
                             current: latestWorkshopSession,
                             previous: previous
                         )
-                        DisclosureGroup("Önceki taramayla karşılaştır") {
-                            if !comparison.newCodes.isEmpty {
-                                Text("Yeni: " + comparison.newCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                            if !comparison.resolvedCodes.isEmpty {
-                                Text("Artık görünmüyor: " + comparison.resolvedCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                            if !comparison.persistentCodes.isEmpty {
-                                Text("Devam eden: " + comparison.persistentCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                        }
+                        WorkshopComparisonView(comparison: comparison)
                     }
 
                     if !workshopStore.sessions.isEmpty {
