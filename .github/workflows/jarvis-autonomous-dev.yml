@@ -19,16 +19,36 @@ jobs:
     timeout-minutes: 50
     steps:
       - name: Checkout development branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: feature/learning-engine
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Detect Gemini fallback
+        id: fallback
+        shell: bash
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [ -n "${GEMINI_API_KEY:-}" ]; then
+            echo "gemini=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "gemini=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Codex development loop
-        uses: openai/codex-action@main
+        id: codex
+        continue-on-error: true
+        uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
@@ -48,11 +68,53 @@ jobs:
             Keep all repository changes suitable for feature/learning-engine. Finish by running npm run check.
             Leave the validated changes in the working tree; the workflow will commit them.
 
+      - name: Reset unverified Codex changes before fallback
+        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
+        shell: bash
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Install Gemini CLI fallback
+        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
+        run: npm install -g @google/gemini-cli
+
+      - name: Run Gemini development fallback
+        id: gemini
+        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
+        continue-on-error: true
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: bash
+        run: |
+          PROMPT=$(cat <<'EOF'
+          Work only in this checked-out repository on branch feature/learning-engine.
+          The primary Codex agent was unavailable, so you are the fallback coding agent.
+          Inspect the repository and make one or more small, safe, reversible improvements.
+          Prioritize conversation/task continuity, persistent learning-context integration,
+          provider failover, reliability, observability, regression coverage, performance,
+          UX, and maintainability. Do not modify credentials, secrets, GitHub workflows,
+          deployment configuration, branch protections, or security gates. Do not commit,
+          push, deploy, delete data, or spend money. Use repository read/edit tools only;
+          the workflow will run tests after you finish. Leave source changes in the working tree.
+          EOF
+          )
+          gemini --model gemini-3.7-flash --skip-trust --approval-mode auto_edit -p "$PROMPT"
+
+      - name: Require a coding agent to succeed
+        if: ${{ steps.codex.outcome != 'success' && steps.gemini.outcome != 'success' }}
+        shell: bash
+        run: |
+          echo "::error::No coding agent completed successfully. Codex failed and Gemini fallback was unavailable or failed."
+          exit 1
+
       - name: Verify full test suite
         run: npm run check
 
       - name: Commit validated changes to feature branch
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if git diff --quiet && git diff --cached --quiet; then
@@ -63,4 +125,5 @@ jobs:
           git config user.email "jarvis-dev-agent@users.noreply.github.com"
           git add -A
           git commit -m "chore(agent): autonomous JARVIS development"
+          gh auth setup-git
           git push origin HEAD:feature/learning-engine
