@@ -1,34 +1,21 @@
+import { classifyCapability, providerPreference } from './capability-policy.js';
 const RESEARCH_RE = /(araştır|bak|bul|karşılaştır|güncel|son durum|kaynak|google|internette|webde|web'de|hangi|nereden|nasıl yapılır|video|foto|fotoğraf|şema|örnek|fiyat|haber|canlı|skor|maç|fikstür)/i;
 const TOOLS_RE = /(araç|tool|ai bul|yapay zeka bul|bunu yapacak|entegre et|sisteme ekle|otomasyon|üret|oluştur|görsel üret|resim üret|video üret|ses üret|müzik üret|tts|speech)/i;
 const SUPPORTED_PROVIDERS = new Set(['gemini', 'nvidia', 'deepseek', 'mistral', 'xai', 'together', 'fireworks', 'groq', 'openrouter', 'openai', 'anthropic', 'perplexity', 'cohere', 'cerebras', 'sambanova', 'ollama', 'openai-compatible']);
-
-const PROVIDER_BIAS = {
-  coding: { anthropic: 30, openai: 29, deepseek: 27, nvidia: 25, xai: 22, gemini: 22, mistral: 19, openrouter: 18, together: 16, fireworks: 16, groq: 15, ollama: 12 },
-  reasoning: { openai: 30, anthropic: 29, deepseek: 28, nvidia: 25, xai: 24, gemini: 23, mistral: 19, openrouter: 18, together: 16, fireworks: 16, cerebras: 15 },
-  research: { perplexity: 31, gemini: 27, xai: 26, openai: 24, anthropic: 22, openrouter: 21, nvidia: 18, deepseek: 17, mistral: 16 },
-  vision: { openai: 30, gemini: 29, anthropic: 27, nvidia: 24, xai: 20, openrouter: 19 },
-  video: { openai: 20, gemini: 20, openrouter: 18 },
-  image: { openai: 22, gemini: 20, openrouter: 18 },
-  audio: { openai: 24, gemini: 18, openrouter: 16 },
-  translation: { openai: 26, anthropic: 25, gemini: 24, mistral: 21, deepseek: 18, openrouter: 17 },
-  creative: { anthropic: 28, openai: 27, gemini: 25, mistral: 22, xai: 21, openrouter: 20, nvidia: 17 },
-  chat: { openai: 28, anthropic: 27, gemini: 25, nvidia: 23, groq: 22, xai: 21, mistral: 20, deepseek: 19, openrouter: 18, ollama: 14 }
-};
 
 export function wantsResearch(text = '') { return RESEARCH_RE.test(String(text)); }
 export function wantsTools(text = '') { return TOOLS_RE.test(String(text)); }
 
 export function taskKind(text = '') {
-  const value = String(text).toLowerCase();
-  if (/(kod|code|javascript|typescript|python|sql|github|debug|hata|refactor|api|worker|cloudflare|repo|commit)/i.test(value)) return 'coding';
-  if (/(hesapla|analiz|neden|karşılaştır|strateji|plan|mantık|teşhis|diagnose|karar|kanıtla|çıkarım)/i.test(value)) return 'reasoning';
+  const classified=classifyCapability(text);
+  if (classified!=='chat') return classified;
+  const value=String(text).toLowerCase();
+  if (/(hesapla|analiz|neden|strateji|plan|mantık|karar|kanıtla|çıkarım)/i.test(value)) return 'reasoning';
   if (/(çevir|tercüme|ne demek|almanca|ingilizce|türkçesi|translation)/i.test(value)) return 'translation';
   if (/(foto|fotoğraf|resim|görsel|image|ekran görüntüsü|şema|diagram)/i.test(value) && !/(üret|oluştur|çiz|generate)/i.test(value)) return 'vision';
-  if (/(video üret|video oluştur|animasyon üret|text.?to.?video|image.?to.?video|higgsfield|sora|veo)/i.test(value)) return 'video';
   if (/(görsel üret|resim üret|fotoğraf üret|image generate|çiz|midjourney|dall.?e)/i.test(value)) return 'image';
   if (/(ses üret|seslendir|tts|text.?to.?speech|voice|müzik üret|audio)/i.test(value)) return 'audio';
-  if (/(metin yaz|caption|açıklama|başlık|senaryo|script|reklam metni|yaratıcı|creative)/i.test(value)) return 'creative';
-  if (wantsResearch(value)) return 'research';
+  if (/(metin yaz|açıklama|başlık|senaryo|script|reklam metni|yaratıcı|creative)/i.test(value)) return 'creative';
   return 'chat';
 }
 
@@ -50,9 +37,9 @@ export function parseCapabilities(row) { try { return JSON.parse(row?.capabiliti
 export function scoreProvider(row, kind) {
   const provider = String(row?.provider || '').toLowerCase();
   if (!SUPPORTED_PROVIDERS.has(provider)) return null;
-  const need = ['coding','reasoning','vision','video','image','audio','translation','research'].includes(kind) ? kind : 'chat';
+  const need = ['coding','reasoning','vision','video_creation','image','audio','translation','research','reporting','social_strategy','ecu_diagnostics','ecu_file_analysis','vehicle_coding','service_procedure','performance_calibration','emissions_modification'].includes(kind) ? kind : 'chat';
   const capabilities = parseCapabilities(row);
-  let score = PROVIDER_BIAS[kind]?.[provider] || 10;
+  let score = providerPreference(kind, provider);
   if (capabilities.includes(need)) score += 36;
   else if (capabilities.includes('reasoning') && ['coding','research'].includes(need)) score += 14;
   else if (capabilities.includes('vision') && need === 'image') score += 8;
