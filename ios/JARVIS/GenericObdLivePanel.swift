@@ -6,7 +6,6 @@ struct GenericObdLivePanel: View {
     let supportedPids: Set<UInt8>
     let freezeFrame: [ThinkDiagFreezeFrameValue]
     let readiness: GenericObdReadiness?
-    let p0299Active: Bool
 
     var body: some View {
         if !samples.isEmpty || !supportedPids.isEmpty || !freezeFrame.isEmpty || readiness != nil {
@@ -71,20 +70,6 @@ struct GenericObdLivePanel: View {
                             )
                         }
                         .frame(height: 120)
-                    }
-                }
-
-                if p0299Active, let assessment = GenericBoostAnalyzer.assess(samples: samples) {
-                    DisclosureGroup("P0299 sürüş verisi analizi") {
-                        Text(assessment.summary)
-                            .font(.caption.weight(.semibold))
-                        ForEach(assessment.findings, id: \.self) { finding in
-                            Text("• " + finding)
-                                .font(.caption2)
-                        }
-                        Text("Güven: \(Int(assessment.confidence * 100))%")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
                     }
                 }
 
