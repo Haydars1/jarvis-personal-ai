@@ -33,13 +33,14 @@ test('research API exposes status catalog brand sync and sync-all routes', () =>
   assert.match(appEntry, /createVehicleCodingResearch/);
 });
 
-test('iOS automatically syncs coding research for the connected brand', () => {
+test('iOS automatically syncs and caches coding research for the connected brand', () => {
   assert.match(api, /syncVehicleCodingResearch/);
   assert.match(api, /vehicleCodingResearchCatalog/);
   assert.match(store, /func sync\(brand: VehicleBrand/);
   assert.match(diagnostics, /Kodlama Araştırması/);
-  assert.match(diagnostics, /İnternetten araştır \/ güncelle/);
+  assert.match(diagnostics, /Katalog otomatik güncellenir|Yerel katalog kullanılıyor/);
   assert.match(diagnostics, /onChange\(of: effectiveBrand\)/);
+  assert.doesNotMatch(diagnostics, /İnternetten araştır \/ güncelle/);
 });
 
 test('research candidates are not directly treated as executable writes', () => {
