@@ -8,6 +8,7 @@ import {
   queryOne,
   readJson
 } from '../../lib/runtime.js';
+import { callVaultProvider, rankedVaultRows } from '../chat/smart-router.js';
 
 const GRAPH = 'https://graph.facebook.com/v24.0';
 const HF_API = 'https://api.higgsfield.ai';
@@ -60,14 +61,27 @@ async function googleIdeas(core, req, env, ctx, topic) {
 
 async function aiContentPlan(env, topic, platforms, research = []) {
   const sources = research.slice(0, 5).map(item => `${item.title}: ${item.snippet}`).join('\n');
+  const system = 'Bir sosyal medya growth editörüsün. Spam veya aldatıcı taktik kullanma. Sadece JSON dizi üret.';
+  const user = `Konu/hedef: ${topic}\nPlatformlar: ${platforms.join(', ')}\nGüncel araştırma notları:\n${sources}\n\n3 adet yüksek kaliteli içerik fikri üret. Her fikir için hook, caption, 5-10 hashtag ve 9:16 kısa video üretim promptu yaz. Şema: [{"topic":"...","hook":"...","caption":"...","hashtags":["#..."],"media_prompt":"..."}]`;
+  try {
+    const rows = await rankedVaultRows(env, 'social_strategy');
+    for (const credential of rows.slice(0, 5)) {
+      try {
+        const result = await callVaultProvider(env, credential, [{ role:'system', content:system }, { role:'user', content:user }], 8000, 'social_strategy');
+        const raw = String(result?.text || '').trim().replace(/^\`\`\`json/i, '').replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) return parsed.slice(0, 3);
+      } catch {}
+    }
+  } catch {}
   if (env.AI) {
     try {
       const result = await env.AI.run('@cf/zai-org/glm-4.7-flash', {
-        prompt: `Bir sosyal medya growth editörüsün. Konu/hedef: ${topic}\nPlatformlar: ${platforms.join(', ')}\nGüncel araştırma notları:\n${sources}\n\n3 adet yüksek kaliteli ama spam/deceptive olmayan içerik fikri üret. Her fikir için hook, caption, 5-10 hashtag ve 9:16 kısa video üretim promptu yaz. Yanıltıcı vaat, sahte etkileşim veya taklit insan davranışı kullanma. Sadece JSON dizi döndür: [{"topic":"...","hook":"...","caption":"...","hashtags":["#..."],"media_prompt":"..."}]`,
+        prompt: `${system}\n\n${user}`,
         max_tokens: 1200,
         temperature: 0.45
       });
-      let text = String(result?.response || result?.result?.response || result?.text || '').trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+      let text = String(result?.response || result?.result?.response || result?.text || '').trim().replace(/^\`\`\`json/i, '').replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
       const parsed = JSON.parse(text);
       if (Array.isArray(parsed) && parsed.length) return parsed.slice(0, 3);
     } catch {}
