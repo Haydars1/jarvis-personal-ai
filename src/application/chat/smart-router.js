@@ -69,7 +69,7 @@ async function cfText(env, messages) {
   return { provider: 'Cloudflare AI · GLM 4.7 Flash', text };
 }
 
-async function vaultRows(env, capability) {
+export async function rankedVaultRows(env, capability) {
   const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
   const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible'];
   return rows
@@ -133,7 +133,7 @@ async function nvidiaCall(env, credential, messages, capability, timeoutMs = 650
   throw new Error(lastError);
 }
 
-async function callVault(env, credential, messages, timeoutMs = 8500, capability = 'chat') {
+export async function callVaultProvider(env, credential, messages, timeoutMs = 8500, capability = 'chat') {
   const provider = String(credential.provider || '').toLowerCase();
   if (provider === 'nvidia') return nvidiaCall(env, credential, messages, capability, Math.min(timeoutMs, 7000));
   const secret = await decryptCredential(env, credential.encrypted_secret);
@@ -167,7 +167,7 @@ async function callVault(env, credential, messages, timeoutMs = 8500, capability
 }
 
 async function fastText(env, capability, messages, preferred = 'auto') {
-  let rows = await vaultRows(env, capability);
+  let rows = await rankedVaultRows(env, capability);
   if (preferred && preferred !== 'auto' && preferred !== 'cloudflare') {
     const index = rows.findIndex(row => String(row.id) === String(preferred) || String(row.provider).toLowerCase() === String(preferred).toLowerCase() || String(row.label).toLowerCase() === String(preferred).toLowerCase());
     if (index > 0) rows = [rows[index], ...rows.slice(0,index), ...rows.slice(index + 1)];
@@ -176,7 +176,7 @@ async function fastText(env, capability, messages, preferred = 'auto') {
   if (preferred !== 'cloudflare') {
     for (const credential of rows.slice(0, 7)) {
       try {
-        const answer=await callVault(env, credential, messages, 7000, capability);
+        const answer=await callVaultProvider(env, credential, messages, 7000, capability);
         if (!limitation(answer.text)) return answer;
         errors.push(String(credential.label||credential.provider)+':LIMITATION');
       } catch (error) {
