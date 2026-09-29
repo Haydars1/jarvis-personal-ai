@@ -42,7 +42,7 @@ const mediaCore = {
   }
 };
 
-const ecuCore = createEcuDeviceBridge(createEcuChannelStore(createEcuBinaryInspector(mediaCore)));
+const ecuCore = createEcuChannelStore(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore)));
 const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
 const handlePush = createPushApi(capabilityCore);
 
