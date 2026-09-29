@@ -29,6 +29,7 @@ function bearer(req){
 function parseJson(value,fallback={}){
   try{return JSON.parse(value||'');}catch{return fallback;}
 }
+export function bridgeSupportsAction(capabilities,action){return Array.isArray(capabilities)&&capabilities.includes(String(action||''));}
 async function appAuthed(core,req,env,ctx){
   const response=await core.fetch(new Request(new URL('/api/auth/status',req.url),{headers:req.headers}),env,ctx);
   try{return !!(await response.json()).authenticated;}catch{return false;}
@@ -121,7 +122,7 @@ export function createEcuDeviceBridge(core){
         if(!bridge)return jsonResponse({error:'BRIDGE_AUTH_REQUIRED'},401);
         const caps=parseJson(bridge.capabilities,[]);
         const pending=await queryAll(env,"SELECT * FROM ecu_device_jobs WHERE bridge_id=? AND status='pending' ORDER BY created_at ASC LIMIT 20",bridge.id);
-        const job=pending.find(row=>!caps.length||caps.includes(row.action));
+        const job=pending.find(row=>bridgeSupportsAction(caps,row.action));
         if(!job)return jsonResponse({job:null});
         const ts=now();
         await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND status='pending'",ts,ts,job.id);
