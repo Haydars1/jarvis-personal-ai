@@ -10,6 +10,7 @@ const panel = fs.readFileSync(new URL('../ios/JARVIS/GenericObdLivePanel.swift',
 const triage = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticTriageEngine.swift', import.meta.url), 'utf8');
 const prefs = fs.readFileSync(new URL('../ios/JARVIS/WorkshopPreferences.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
+const lifecycle = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticLifecycleObserver.swift', import.meta.url), 'utf8');
 const drive = fs.readFileSync(new URL('../ios/JARVIS/DriveLogRecorder.swift', import.meta.url), 'utf8');
 const validation = fs.readFileSync(new URL('../ios/JARVIS/HardwareValidationReport.swift', import.meta.url), 'utf8');
 const capabilities = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagCapabilityStore.swift', import.meta.url), 'utf8');
@@ -34,7 +35,7 @@ test('generic OBD readiness and advanced PID decoding are offline', () => {
 test('workshop defaults to automatic diagnosis and protocol learning on connect', () => {
   assert.match(prefs, /autoDiagnoseOnConnect = true/);
   assert.match(prefs, /autoStartProtocolLearning = true/);
-  assert.match(diagnostics, /onChange\(of: bluetooth\.isThinkDiagTransportReady\)/);
+  assert.match(lifecycle, /onChange\(of: transportReady\)/);
   assert.match(diagnostics, /runWorkshopAutoDiagnosis/);
 });
 
