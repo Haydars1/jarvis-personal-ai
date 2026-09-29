@@ -46,6 +46,8 @@ targets:
             CFBundleURLSchemes:
               - jarvis
         NSMicrophoneUsageDescription: "JARVIS ile sesli konuşmak için mikrofon kullanılır."
+        NSBluetoothAlwaysUsageDescription: "JARVIS ThinkDiag ve uyumlu OBD cihazlarına bağlanarak araç teşhisi yapmak için Bluetooth kullanır."
+        NSBluetoothPeripheralUsageDescription: "JARVIS araç teşhis adaptörleriyle doğrudan haberleşmek için Bluetooth erişimi kullanır."
         NSSpeechRecognitionUsageDescription: "JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
         NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
         NSPhotoLibraryUsageDescription: "JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
