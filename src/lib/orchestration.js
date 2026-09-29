@@ -50,6 +50,10 @@ export function scoreProvider(row, kind) {
   if (samples >= 3) score += Math.round((successes / Math.max(1, samples)) * 14);
   if (latency && latency < 1500) score += 9; else if (latency > 5000) score -= 18;
   if (failures > successes && samples >= 3) score -= 12;
+  const metricError=String(row?.metric_last_error || '');
+  const metricAge=Date.now()-Number(row?.metric_updated_at || 0);
+  if (/quota|rate.?limit|billing|credit|insufficient|429|402/i.test(metricError) && metricAge < 6*60*60*1000) score -= 45;
+  else if (metricError && metricAge < 20*60*1000) score -= 18;
   score -= Math.min(12, Number(row?.priority || 100) / 20);
   return score;
 }
