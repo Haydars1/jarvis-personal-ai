@@ -54,30 +54,12 @@ jobs:
           Run npm run check before finishing. Leave verified changes uncommitted in the working tree.
           EOF
 
-      - name: Run Codex development agent
-        id: codex
-        continue-on-error: true
-        uses: openai/codex-action@v1
-        with:
-          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
-          permission-profile: ":workspace"
-          prompt: |
-            Work only in this repository on feature/learning-engine. Follow the capability-driven development priorities in
-            /tmp/jarvis-dev-prompt.txt, validate changes, and leave them uncommitted.
-
-      - name: Reset failed Codex work
-        if: ${{ steps.codex.outcome != 'success' }}
-        run: |
-          git reset --hard HEAD
-          git clean -fd
-
-      - name: Install OpenCode multi-provider fallback
-        if: ${{ steps.codex.outcome != 'success' }}
+      - name: Install OpenCode task-aware provider runner
         run: npm install --global @opencode/cli
 
-      - name: Run best available coding provider
+      - name: Run best available coding specialist
         id: multiprovider
-        if: ${{ steps.codex.outcome != 'success' }}
+        continue-on-error: true
         shell: bash
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -89,8 +71,32 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/jarvis-dev-prompt.txt
 
+      - name: Reset failed specialist work
+        if: ${{ steps.multiprovider.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run Codex fallback
+        id: codex
+        if: ${{ steps.multiprovider.outcome != 'success' }}
+        continue-on-error: true
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          permission-profile: ":workspace"
+          prompt: |
+            Work only in this repository on feature/learning-engine. Follow the capability-driven development priorities in
+            /tmp/jarvis-dev-prompt.txt, validate changes, and leave them uncommitted.
+
+      - name: Reset failed Codex fallback work
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
       - name: Require a coding agent to succeed
-        if: ${{ steps.codex.outcome != 'success' && steps.multiprovider.outcome != 'success' }}
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
         run: exit 1
 
       - name: Validate agent changes
