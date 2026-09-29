@@ -30,6 +30,23 @@ function parseJson(value,fallback={}){
   try{return JSON.parse(value||'');}catch{return fallback;}
 }
 export function bridgeSupportsAction(capabilities,action){return Array.isArray(capabilities)&&capabilities.includes(String(action||''));}
+export function parseEcuDeviceIntent(text=''){
+  const value=String(text||'').toLocaleLowerCase('tr-TR');
+  if(/(?:dtc|arıza\s*kod(?:u|ları)?)\s*(?:oku|tara|scan)|(?:oku|tara|scan).*?(?:dtc|arıza\s*kod)/i.test(value))return 'read_dtc';
+  if(/(?:dtc|arıza\s*kod(?:u|ları)?)\s*(?:sil|temizle)|(?:sil|temizle).*?(?:dtc|arıza\s*kod)/i.test(value))return 'clear_dtc';
+  if(/canlı\s*(?:veri|data)|live\s*data/i.test(value))return 'read_live_data';
+  if(/long\s*coding.*(?:oku|göster)|(?:oku|göster).*long\s*coding/i.test(value))return 'long_coding_read';
+  if(/long\s*coding.*(?:yaz|değiştir|uygula)/i.test(value))return 'long_coding_write';
+  if(/(?:adaptation|adaptasyon|uyarlama).*(?:oku|göster)|(?:oku|göster).*(?:adaptation|adaptasyon|uyarlama)/i.test(value))return 'adaptation_read';
+  if(/(?:adaptation|adaptasyon|uyarlama).*(?:yaz|değiştir|uygula)/i.test(value))return 'adaptation_write';
+  if(/basic\s*setting/i.test(value))return 'basic_setting';
+  if(/servis\s*(?:reset|sıfırla)|service\s*reset/i.test(value))return 'service_reset';
+  if(/dpf.*(?:rejenerasyon|regen|reinigung)|(?:rejenerasyon|regen|reinigung).*dpf/i.test(value))return 'dpf_service_regen';
+  return null;
+}
+function chatDevicePayload(text,reply,extra={}){
+  return {reply,provider:'JARVIS ECU Device Bridge',history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'JARVIS ECU Device Bridge'}],...extra};
+}
 async function appAuthed(core,req,env,ctx){
   const response=await core.fetch(new Request(new URL('/api/auth/status',req.url),{headers:req.headers}),env,ctx);
   try{return !!(await response.json()).authenticated;}catch{return false;}
@@ -68,6 +85,29 @@ export function createEcuDeviceBridge(core){
   return {
     async fetch(req,env,ctx){
       const url=new URL(req.url),path=url.pathname,method=req.method;
+
+      if(path==='/api/chat/send'&&method==='POST'){
+        const body=await readJson(req.clone());
+        if(String(body?.channel||'').toLowerCase()==='ecu'&&!(body.attachments||[]).length){
+          const text=String(body.text||'').trim(),action=parseEcuDeviceIntent(text),meta=ACTIONS[action];
+          if(action&&meta){
+            if(!(await appAuthed(core,req,env,ctx)))return core.fetch(req,env,ctx);
+            const bridge=await latestBridge(env);
+            if(!bridge){
+              return jsonResponse(chatDevicePayload(text,'Cihaz komutunu algıladım fakat kayıtlı yerel ECU/OBD bridge yok. ECU Studio → CİHAZ bölümünden bridge oluşturup bilgisayardaki local bridge ajanını bağla.',{device_action:{action,status:'blocked',reason:'NO_DEVICE_BRIDGE'}}));
+            }
+            if(meta.write&&body.deviceConfirmed!==true){
+              return jsonResponse(chatDevicePayload(text,`${meta.label} yazma/servis işlemi olarak algılandı. Gerçek araca komut göndermeden önce ECU Studio → CİHAZ bölümünden işlemi açıkça onaylaman gerekiyor.`,{device_action:{action,status:'confirmation_required',requires_confirmation:true,hazard:meta.hazard}}));
+            }
+            const ts=now(),id=uid();
+            await execute(env,'INSERT INTO ecu_device_jobs(id,bridge_id,action,module,request_json,status,requires_confirmation,confirmed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
+              id,bridge.id,action,String(body.deviceModule||'').slice(0,120),JSON.stringify({source:'ecu-chat',text,safety:{hazard:meta.hazard,write:meta.write}}),'pending',meta.write?1:0,meta.write?ts:null,ts,ts);
+            const job=publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',id));
+            const availability=bridge.status==='online'?'Bridge online; iş cihaz tarafından alınmayı bekliyor.':'Bridge şu an offline; iş kuyrukta bekleyecek.';
+            return jsonResponse(chatDevicePayload(text,`${meta.label} işi kuyruğa alındı. ${availability} Job: ${id.slice(0,8)}`,{device_action:{action,status:'queued',job}}));
+          }
+        }
+      }
 
       if(path==='/api/ecu/device/capabilities'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
