@@ -128,7 +128,11 @@ struct DiagnosticView: View {
                                 Task {
                                     message = "Kayıtlı, bekleyen ve kalıcı OBD hata kodları taranıyor…"
                                     await bluetooth.scanGenericDtcStates()
-                                    message = "Genel OBD hata kodu taraması tamamlandı."
+                                    let codes = currentDtcExplanations.map(\.code)
+                                    if !codes.isEmpty {
+                                        await bluetooth.collectDiagnosticSignals(for: codes)
+                                    }
+                                    message = "Genel OBD hata kodu taraması ve ilgili canlı veri kontrolü tamamlandı."
                                 }
                             } label: {
                                 Label(
@@ -374,7 +378,11 @@ struct DiagnosticView: View {
                             Task {
                                 message = "Hata kodları taranıyor…"
                                 await bluetooth.scanGenericDtcStates()
-                                message = "Hata kodu taraması tamamlandı."
+                                let codes = currentDtcExplanations.map(\.code)
+                                if !codes.isEmpty {
+                                    await bluetooth.collectDiagnosticSignals(for: codes)
+                                }
+                                message = "Hata kodu taraması ve ilgili canlı veri kontrolü tamamlandı."
                             }
                         } label: {
                             Label("DTC", systemImage: "exclamationmark.triangle")
