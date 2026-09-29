@@ -38,6 +38,7 @@ struct HardwareValidationReport: Codable, Hashable {
 }
 
 enum HardwareValidationReportBuilder {
+    @MainActor
     static func make(
         bluetooth: ThinkDiagBluetooth,
         modules: [ModuleScanResult]
