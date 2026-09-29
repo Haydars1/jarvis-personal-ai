@@ -7,6 +7,7 @@ const appEntry = fs.readFileSync(new URL('../src/app-entry.js', import.meta.url)
 const api = fs.readFileSync(new URL('../ios/JARVIS/JarvisAPI.swift', import.meta.url), 'utf8');
 const store = fs.readFileSync(new URL('../ios/JARVIS/VehicleCodingResearchStore.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
+const lifecycle = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticLifecycleObserver.swift', import.meta.url), 'utf8');
 
 test('all-brand research runtime covers major coding ecosystems', () => {
   for (const token of [
@@ -39,7 +40,7 @@ test('iOS automatically syncs and caches coding research for the connected brand
   assert.match(store, /func sync\(brand: VehicleBrand/);
   assert.match(diagnostics, /Kodlama Araştırması/);
   assert.match(diagnostics, /Katalog otomatik güncellenir|Yerel katalog kullanılıyor/);
-  assert.match(diagnostics, /onChange\(of: effectiveBrand\)/);
+  assert.match(lifecycle, /onChange\(of: effectiveBrand\)/);
   assert.doesNotMatch(diagnostics, /İnternetten araştır \/ güncelle/);
 });
 
