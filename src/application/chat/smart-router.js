@@ -7,6 +7,7 @@ import {
   readJson,
   settleWithin
 } from '../../lib/runtime.js';
+import { runCapabilityFailover, selectCapabilityCandidates } from '../providers/capability-router.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
 const IMAGE_CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
@@ -174,31 +175,27 @@ async function fastText(env, capability, messages, preferred = 'auto') {
   let rows = await vaultRows(env, capability);
   if (preferred && preferred !== 'auto' && preferred !== 'cloudflare') {
     const index = rows.findIndex(row => String(row.id) === String(preferred) || String(row.provider).toLowerCase() === String(preferred).toLowerCase() || String(row.label).toLowerCase() === String(preferred).toLowerCase());
-    if (index > 0) rows = [rows[index], ...rows.slice(0,index), ...rows.slice(index + 1)];
+    if (index >= 0) rows = [rows[index], ...rows.filter((_, i) => i !== index)];
+  } else if (preferred === 'auto') {
+    rows = selectCapabilityCandidates(rows, capability);
   }
-  if (preferred === 'cloudflare') rows = [];
-  let settled = false;
-  const jobs = [], external = rows.slice(0, 3);
-  if (capability === 'coding' || capability === 'reasoning') {
-    if (external[0]) jobs.push(callVault(env, external[0], messages, 7000, capability));
-    if (env.AI) jobs.push(sleep(350).then(() => { if (settled) throw new Error('SKIP'); return cfText(env, messages); }));
-    if (external[1]) jobs.push(sleep(700).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[1], messages, 6500, capability); }));
-    if (external[2]) jobs.push(sleep(1100).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[2], messages, 6000, capability); }));
-  } else {
-    if (env.AI) jobs.push(cfText(env, messages));
-    if (external[0]) jobs.push(sleep(350).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[0], messages, 6500, capability); }));
-    if (external[1]) jobs.push(sleep(750).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[1], messages, 6000, capability); }));
-  }
-  if (!jobs.length) throw new Error('NO_FAST_PROVIDER');
-  const first = await Promise.any(jobs); settled = true;
-  if (!limitation(first.text)) return first;
-  for (const credential of external) {
-    try { const alt = await callVault(env, credential, messages, 5500, capability); if (!limitation(alt.text)) return alt; }
-    catch {}
-  }
-  return first;
-}
+  if (preferred === 'cloudflare') return cfText(env, messages);
 
+  const candidates = rows.slice(0, 7);
+  if (env.AI && preferred === 'auto') {
+    candidates.push({ id:'cloudflare', provider:'cloudflare', label:'Cloudflare AI · GLM 4.7 Flash', last_status:'ok', priority:999 });
+  }
+  if (!candidates.length) throw new Error('NO_FAST_PROVIDER');
+
+  const { result, attempts } = await runCapabilityFailover(candidates, async credential => {
+    const answer = credential.provider === 'cloudflare'
+      ? await cfText(env, messages)
+      : await callVault(env, credential, messages, 7000, capability);
+    if (limitation(answer.text)) throw new Error('PROVIDER_CAPABILITY_LIMITATION');
+    return answer;
+  }, { maxAttempts:7 });
+  return { ...result, attempts };
+}
 async function imageGenerate(env, text) {
   if (!env.AI) throw new Error('CLOUDFLARE_AI_UNAVAILABLE');
   const result = await settleWithin(env.AI.run(IMAGE_CF_MODEL, { prompt: String(text).slice(0, 2048), steps: 4 }), 12000, null);
