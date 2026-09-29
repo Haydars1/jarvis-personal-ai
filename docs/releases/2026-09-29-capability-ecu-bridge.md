@@ -13,3 +13,9 @@ Included:
 - explicit bridge capability advertisement before a device job can be claimed
 
 This marker intentionally triggers the normal main-branch production deployment workflow so schema migration, build validation and production smoke checks run on the merged code.
+
+
+Additional production routing:
+- ECU chat commands such as DTC read, live data, long-coding read and adaptation read are converted to real local-bridge jobs.
+- ECU write/service intents are detected but remain confirmation-gated.
+- Device-routed replies remain persisted in the ECU channel history.
