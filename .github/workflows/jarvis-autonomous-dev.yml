@@ -31,19 +31,24 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
 
-      - name: Detect Gemini fallback
-        id: fallback
+      - name: Write autonomous coding prompt
         shell: bash
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          if [ -n "${GEMINI_API_KEY:-}" ]; then
-            echo "gemini=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "gemini=false" >> "$GITHUB_OUTPUT"
-          fi
+          cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
+          Work only in this checked-out repository and only toward branch feature/learning-engine.
+          Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree.
+          Read src/lib/capability-policy.js and prioritize concrete missing capability implementations, regressions and integrations.
+          Prioritize conversation/task continuity, persistent learning context, provider routing/failover, social/video automation,
+          ECU diagnostics/file-analysis infrastructure, safe device-bridge architecture, reliability, observability, tests, performance,
+          UX and maintainability. Do not stop after one tiny change when another independent safe improvement can be completed.
+          For each gap define an acceptance condition, make the smallest reversible fix, and add/update tests where practical.
+          Never modify secrets, credentials, production deployment configuration, branch protections or security gates.
+          Never deploy production, merge main, force-push, delete data, spend money or make irreversible external changes.
+          Do not implement emissions-control defeat patches or automated road-vehicle emissions bypasses.
+          Finish with npm run check passing and leave verified changes in the working tree. Do not commit or push.
+          EOF
 
-      - name: Run Codex development loop
+      - name: Run Codex coding agent
         id: codex
         continue-on-error: true
         uses: openai/codex-action@v1
@@ -52,59 +57,37 @@ jobs:
           permission-profile: ":workspace"
           safety-strategy: drop-sudo
           prompt: |
-            Work only in this checked-out repository and only toward branch feature/learning-engine.
-            Continue JARVIS development autonomously for this run. Do not stop after one tiny change.
-            First inspect the implementation, tests, git history, and current working tree. Run npm run check.
-            Prioritize the already-defined work: conversation/task continuity, persistent learning-context integration,
-            real video-provider execution/failover, reliability, observability, regression coverage, performance,
-            UX, and maintainability.
-            For each concrete gap, define an acceptance condition, add/update a regression test when practical,
-            implement the smallest safe reversible fix, and run relevant tests. Continue to another independent
-            useful improvement while time remains. Never modify GitHub secrets, credentials, production deployment
-            configuration, branch protections, or security gates. Never deploy production, merge to main, force-push,
-            delete data, spend money, or make irreversible external changes. Do not print or inspect secrets.
-            Keep all repository changes suitable for feature/learning-engine. Finish by running npm run check.
-            Leave the validated changes in the working tree; the workflow will commit them.
+            Follow /tmp/jarvis-dev-prompt.txt conceptually: work only in this repository on feature/learning-engine.
+            Inspect src/lib/capability-policy.js, implement useful missing capability work, test it, and leave verified changes uncommitted.
 
-      - name: Reset unverified Codex changes before fallback
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
+      - name: Reset failed Codex work
+        if: ${{ steps.codex.outcome != 'success' }}
         shell: bash
         run: |
           git reset --hard HEAD
           git clean -fd
 
-      - name: Install Gemini CLI fallback
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
-        run: npm install -g @google/gemini-cli
+      - name: Install OpenCode multi-provider fallback
+        if: ${{ steps.codex.outcome != 'success' }}
+        run: npm install --global @opencode/cli
 
-      - name: Run Gemini development fallback
-        id: gemini
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
-        continue-on-error: true
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Run best available coding provider
+        id: multiprovider
+        if: ${{ steps.codex.outcome != 'success' }}
         shell: bash
-        run: |
-          PROMPT=$(cat <<'EOF'
-          Work only in this checked-out repository on branch feature/learning-engine.
-          The primary Codex agent was unavailable, so you are the fallback coding agent.
-          Inspect the repository and make one or more small, safe, reversible improvements.
-          Prioritize conversation/task continuity, persistent learning-context integration,
-          provider failover, reliability, observability, regression coverage, performance,
-          UX, and maintainability. Do not modify credentials, secrets, GitHub workflows,
-          deployment configuration, branch protections, or security gates. Do not commit,
-          push, deploy, delete data, or spend money. Use repository read/edit tools only;
-          the workflow will run tests after you finish. Leave source changes in the working tree.
-          EOF
-          )
-          gemini --model gemini-3.7-flash --skip-trust --approval-mode auto_edit -p "$PROMPT"
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/jarvis-dev-prompt.txt
 
       - name: Require a coding agent to succeed
-        if: ${{ steps.codex.outcome != 'success' && steps.gemini.outcome != 'success' }}
-        shell: bash
-        run: |
-          echo "::error::No coding agent completed successfully. Codex failed and Gemini fallback was unavailable or failed."
-          exit 1
+        if: ${{ steps.codex.outcome != 'success' && steps.multiprovider.outcome != 'success' }}
+        run: exit 1
 
       - name: Verify full test suite
         run: npm run check
