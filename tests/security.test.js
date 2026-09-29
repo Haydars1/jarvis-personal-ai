@@ -20,3 +20,11 @@ test('Higgsfield provider uses shared encrypted credentials and bounded fetches'
   assert.match(source, /fetchWithTimeout/);
   assert.doesNotMatch(source, /async function masterKey/);
 });
+
+
+test('ECU mock adapter is read-only and visibly simulated', () => {
+  const source = readFileSync(new URL('../local-bridge/mock-adapter.mjs', import.meta.url), 'utf8');
+  assert.match(source, /simulated:true/);
+  assert.match(source, /read_dtc/);
+  assert.doesNotMatch(source, /long_coding_write|adaptation_write|service_reset|dpf_service_regen/);
+});
