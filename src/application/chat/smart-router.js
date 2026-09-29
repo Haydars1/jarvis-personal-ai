@@ -8,6 +8,7 @@ import {
   settleWithin
 } from '../../lib/runtime.js';
 import { scoreProvider, taskKind } from '../../lib/orchestration.js';
+import { capabilityProfile } from '../../lib/capability-policy.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
 const IMAGE_CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
@@ -250,6 +251,25 @@ export function createSmartRouter(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/ai/capability-plan' && req.method === 'GET') {
+        if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'AUTH_REQUIRED' }, 401);
+        const text=url.searchParams.get('q') || '';
+        const kind=taskKind(text), profile=capabilityProfile(kind), rows=await rankedVaultRows(env, kind);
+        return jsonResponse({
+          task:kind,
+          mode:profile.mode,
+          tools:profile.tools,
+          providers:rows.slice(0,7).map((row,index)=>({
+            rank:index+1,
+            id:String(row.id),
+            provider:row.provider,
+            label:row.label || row.provider,
+            model:row.model || '',
+            score:Math.round(scoreProvider(row,kind) || 0),
+            status:row.last_status
+          }))
+        });
+      }
       if (url.pathname === '/api/ai/models' && req.method === 'GET') {
         if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'AUTH_REQUIRED' }, 401);
         try { return jsonResponse(await aiCatalog(env)); }
