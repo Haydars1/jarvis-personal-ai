@@ -228,6 +228,27 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
         }
     }
 
+    func collectDiagnosticSignals(for codes: [String]) async {
+        guard protocolProfile != nil, canWrite else { return }
+
+        let plan = DtcSignalPlanner.plan(
+            codes: codes,
+            supportedPids: supportedPids
+        )
+        guard !plan.pids.isEmpty else { return }
+
+        for pid in plan.pids {
+            _ = await requestGenericRead(
+                opcode: 0x0101,
+                payload: Data([pid]),
+                responseMode: 0x41,
+                responsePid: pid,
+                timeoutNanoseconds: 750_000_000,
+                retries: 2
+            )
+        }
+    }
+
     func scanGenericDtcStates() async {
         guard protocolProfile != nil, canWrite, !genericDtcScanRunning else { return }
         genericDtcScanRunning = true
