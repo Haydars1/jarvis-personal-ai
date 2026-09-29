@@ -32,8 +32,8 @@ function parseJson(value,fallback={}){
 export function bridgeSupportsAction(capabilities,action){return Array.isArray(capabilities)&&capabilities.includes(String(action||''));}
 export function parseEcuDeviceIntent(text=''){
   const value=String(text||'').toLocaleLowerCase('tr-TR');
-  if(/(?:dtc|arıza\s*kod(?:u|ları)?)\s*(?:oku|tara|scan)|(?:oku|tara|scan).*?(?:dtc|arıza\s*kod)/i.test(value))return 'read_dtc';
-  if(/(?:dtc|arıza\s*kod(?:u|ları)?)\s*(?:sil|temizle)|(?:sil|temizle).*?(?:dtc|arıza\s*kod)/i.test(value))return 'clear_dtc';
+  if(/(?:dtc|arıza\s*kod\w*).*?(?:sil|temizle)|(?:sil|temizle).*?(?:dtc|arıza\s*kod\w*)/i.test(value))return 'clear_dtc';
+  if(/(?:dtc|arıza\s*kod\w*).*?(?:oku|tara|scan)|(?:oku|tara|scan).*?(?:dtc|arıza\s*kod\w*)/i.test(value))return 'read_dtc';
   if(/canlı\s*(?:veri|data)|live\s*data/i.test(value))return 'read_live_data';
   if(/long\s*coding.*(?:oku|göster)|(?:oku|göster).*long\s*coding/i.test(value))return 'long_coding_read';
   if(/long\s*coding.*(?:yaz|değiştir|uygula)/i.test(value))return 'long_coding_write';
