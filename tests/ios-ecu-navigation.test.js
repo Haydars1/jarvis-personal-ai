@@ -87,4 +87,4 @@ test('multi-selection creates one composite MOD job', () => {
 });
 
 
-test('ECU sidebar opens dedicated ECU chat channel',()=>{const s=fs.readFileSync(new URL('../ios/JARVIS/EcuChatView.swift',import.meta.url),'utf8');const a=fs.readFileSync(new URL('../ios/JARVIS/JarvisAPI.swift',import.meta.url),'utf8');assert.match(contentView,/EcuChatView\(\)/);assert.match(s,/ECU Brain Sohbeti/);assert.match(s,/channel:"ecu"/);assert.match(a,/payload\["channel"\] = channel/);});
+test('ECU sidebar opens dedicated ECU chat channel',()=>{const s=fs.readFileSync(new URL('../ios/JARVIS/EcuChatView.swift',import.meta.url),'utf8');const a=fs.readFileSync(new URL('../ios/JARVIS/JarvisAPI.swift',import.meta.url),'utf8');assert.match(contentView,/EcuChatView\(\)/);assert.match(s,/ECU Brain Sohbeti/);assert.match(s,/channel:\s*"ecu"/);assert.match(a,/payload\["channel"\] = channel/);});
