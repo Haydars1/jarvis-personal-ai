@@ -49,7 +49,6 @@ enum DtcFamilyDiagnosticEngine {
         appendTemperature(normalized, samples, freezeFrame, into: &results)
         appendTransmission(normalized, into: &results)
         appendChassis(normalized, into: &results)
-        appendRestraint(normalized, into: &results)
         appendBody(normalized, into: &results)
 
         let covered = Set(results.flatMap(\.codes))
