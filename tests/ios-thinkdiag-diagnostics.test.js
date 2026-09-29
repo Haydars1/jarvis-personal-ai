@@ -4,6 +4,8 @@ import fs from 'node:fs';
 
 const contentView = fs.readFileSync(new URL('../ios/JARVIS/ContentView.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
+const protocolSection = fs.readFileSync(new URL('../ios/JARVIS/ProtocolLearningSection.swift', import.meta.url), 'utf8');
+const importSections = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticImportSnapshotSections.swift', import.meta.url), 'utf8');
 const bluetooth = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagBluetooth.swift', import.meta.url), 'utf8');
 const importer = fs.readFileSync(new URL('../ios/JARVIS/ThinkCarImport.swift', import.meta.url), 'utf8');
 const project = fs.readFileSync(new URL('../ios/project.yml', import.meta.url), 'utf8');
@@ -52,7 +54,7 @@ test('diagnostics workspace can scan and connect Bluetooth OBD devices', () => {
 });
 
 test('ThinkCar exports can be imported for DTC and live-data extraction', () => {
-  assert.match(diagnostics, /Rapor veya canlı veri dosyası içe aktar/);
+  assert.match(importSections, /Rapor veya canlı veri dosyası içe aktar/);
   assert.match(importer, /\\b\[PCBU\]/);
   assert.match(importer, /Turbo basıncı/);
   assert.match(importer, /DPF diferansiyel basınç/);
@@ -227,13 +229,13 @@ test('protocol learner observes UDS services and DIDs from ThinkDiag traffic', (
   assert.match(protocolLearner, /case 0x67/);
   assert.match(protocolLearner, /case 0x6E/);
   assert.match(protocolLearner, /case 0x7F/);
-  assert.match(diagnostics, /Protokol Öğrenme/);
+  assert.match(protocolSection, /Protokol Öğrenme/);
 });
 
 test('protocol learning can export a candidate manufacturer pack without guessed writes', () => {
   assert.match(packCandidate, /makeCandidate/);
   assert.match(packCandidate, /codingRecipes: \[\]/);
-  assert.match(diagnostics, /Aday üretici paketi oluştur/);
+  assert.match(protocolSection, /Aday üretici paketi oluştur/);
 });
 
 test('evidence-backed feature model stores applicability operations and provenance', () => {
