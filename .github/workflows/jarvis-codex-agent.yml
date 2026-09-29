@@ -1,31 +1,32 @@
-name: JARVIS Codex Development Agent
+name: JARVIS Autonomous Development Agent
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - feature/learning-engine
+      - test/autonomy-runtime
   schedule:
     - cron: '7,22,37,52 * * * *'
 
 permissions:
   contents: write
+  pull-requests: write
   actions: read
 
 concurrency:
-  group: jarvis-codex-development-agent
+  group: jarvis-autonomous-development
   cancel-in-progress: false
 
 jobs:
   develop:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/feature/learning-engine' && github.actor != 'github-actions[bot]')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/test/autonomy-runtime')
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 50
     steps:
-      - name: Checkout development branch
+      - name: Checkout current main
         uses: actions/checkout@v5
         with:
-          ref: feature/learning-engine
+          ref: main
           fetch-depth: 0
           persist-credentials: false
 
@@ -42,22 +43,39 @@ jobs:
         continue-on-error: true
         run: npm run check
 
-      - name: Write coding task prompt
+      - name: Create isolated development branch
+        id: branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="jarvis/auto-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git switch -c "$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
+      - name: Write autonomous development prompt
         shell: bash
         run: |
           cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
-          Work only in this checked-out repository on branch feature/learning-engine.
-          Continue JARVIS development autonomously. Inspect implementation and tests before editing.
-          Read src/lib/capability-policy.js and choose useful missing work from the capability system rather than waiting for a user idea.
-          Prioritize continuity, persistent learning, provider routing/failover, social/video automation, ECU diagnostic/file-analysis
-          infrastructure, safe device-bridge architecture, reliability, observability, regression coverage, performance, UX and maintainability.
-          Use tests-first where practical. Keep changes small and reversible. Never change secrets, credentials, workflow security boundaries,
-          production deployment configuration, branch protections or main. Never deploy, delete data or spend money.
-          Do not implement emissions-control defeat patches or automated road-vehicle emissions bypasses.
-          Run npm run check before finishing. Leave verified changes uncommitted in the working tree.
+          Work only in this checked-out JARVIS repository on the current isolated jarvis/auto-* branch.
+          Start from the current main implementation. Inspect code, tests and architecture before editing.
+          Read src/lib/capability-policy.js and proactively choose concrete missing or broken work instead of waiting for a user idea.
+          Prioritize, in order:
+          1. broken tests, runtime defects and incomplete end-to-end paths,
+          2. task-aware provider routing, quota/failover reliability and observability,
+          3. persistent conversation/task continuity and learning context,
+          4. social/video automation using official APIs and verified provider results,
+          5. ECU file analysis, diagnostics, safe local device-bridge architecture and service workflows,
+          6. regression coverage, performance, mobile UX and maintainability.
+          Define a concrete acceptance condition for each change and add/update regression tests when practical.
+          Continue to another independent useful improvement while time remains; do not stop after a cosmetic edit.
+          Never modify or print secrets/credentials. Never weaken tests or security gates. Never deploy production, merge main,
+          force-push, delete user data, spend money, or perform irreversible external actions.
+          Do not implement automatic road-vehicle emissions-control defeat patches. Diagnostic analysis, file inspection,
+          restoration, service procedures, and test/off-road analysis tooling are allowed.
+          Run npm run check before finishing. Leave verified source changes uncommitted; the workflow will commit and open a PR.
           EOF
 
-      - name: Install OpenCode task-aware provider runner
+      - name: Install OpenCode provider runner
         run: npm install --global @opencode/cli
 
       - name: Run best available coding specialist
@@ -88,11 +106,13 @@ jobs:
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
+          safety-strategy: drop-sudo
           prompt: |
-            Work only in this repository on feature/learning-engine. Follow the capability-driven development priorities in
-            /tmp/jarvis-dev-prompt.txt, validate changes, and leave them uncommitted.
+            Work only in this repository on the current jarvis/auto-* branch.
+            Read /tmp/jarvis-dev-prompt.txt and follow it. Make useful safe improvements,
+            run npm run check, and leave verified changes uncommitted.
 
-      - name: Reset failed Codex fallback work
+      - name: Reset failed Codex work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
         run: |
           git reset --hard HEAD
@@ -100,7 +120,9 @@ jobs:
 
       - name: Require a coding agent to succeed
         if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
-        run: exit 1
+        run: |
+          echo "::error::No configured coding engine completed successfully."
+          exit 1
 
       - name: Validate agent changes
         run: npm run check
@@ -108,20 +130,33 @@ jobs:
       - name: Cloudflare build dry run
         run: npx wrangler deploy --dry-run --outdir .wrangler-dry
 
-      - name: Commit verified changes to development branch
+      - name: Commit and open tested PR
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          PRIMARY_PROVIDER: ${{ steps.multiprovider.outputs.provider }}
+          PRIMARY_MODEL: ${{ steps.multiprovider.outputs.model }}
         run: |
           set -euo pipefail
           rm -rf .wrangler-dry
           if git diff --quiet && git diff --cached --quiet; then
-            echo "No verified source changes to commit."
+            echo "No verified source changes produced; nothing to promote."
             exit 0
           fi
-          git config user.name "jarvis-codex-agent"
-          git config user.email "jarvis-codex-agent@users.noreply.github.com"
+
+          git config user.name "jarvis-autonomous-agent"
+          git config user.email "jarvis-autonomous-agent@users.noreply.github.com"
           git add -A
-          git commit -m "feat(agent): autonomous verified JARVIS improvements"
+          git commit -m "feat(agent): autonomous verified JARVIS improvement"
+
           gh auth setup-git
-          git push origin HEAD:feature/learning-engine
+          git push origin "HEAD:$BRANCH"
+
+          provider="${PRIMARY_PROVIDER:-Codex fallback}"
+          model="${PRIMARY_MODEL:-Codex}"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "JARVIS autonomous verified improvement" \
+            --body "Autonomous development run ${GITHUB_RUN_ID}. Provider: ${provider}. Model: ${model}. The run passed npm run check and Cloudflare dry-run before opening this PR. The repository self-update workflow will independently test it again before merge."
