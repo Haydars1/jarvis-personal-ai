@@ -1,6 +1,11 @@
 name: Build JARVIS Workshop Beta IPA
 
 on:
+  push:
+    branches:
+      - feature/learning-engine
+    paths:
+      - '.github/workflows/ios-workshop-beta.yml'
   workflow_dispatch:
     inputs:
       release_note:
@@ -94,7 +99,7 @@ jobs:
             "Branch: feature/learning-engine" \
             "Commit: ${GITHUB_SHA}" \
             "Run: ${GITHUB_RUN_NUMBER}" \
-            "Note: ${{ inputs.release_note }}" \
+            "Note: ${{ inputs.release_note || 'Automatic consolidated workshop beta' }}" \
             > BUILD-INFO.txt
 
       - name: Upload one consolidated IPA artifact
@@ -105,7 +110,7 @@ jobs:
             ios/${{ env.IPA_BASENAME }}.ipa
             ios/BUILD-INFO.txt
           if-no-files-found: error
-          retention-days: ${{ fromJSON(inputs.retention_days) }}
+          retention-days: ${{ inputs.retention_days || 30 }}
 
       - name: Build summary
         run: |
