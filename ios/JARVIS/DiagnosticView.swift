@@ -313,8 +313,12 @@ struct DiagnosticView: View {
                     samples: bluetooth.liveSamples,
                     supportedPids: bluetooth.supportedPids,
                     freezeFrame: bluetooth.freezeFrameValues,
-                    readiness: bluetooth.readiness,
-                    p0299Active: currentDtcExplanations.contains { $0.code == "P0299" }
+                    readiness: bluetooth.readiness
+                )
+
+                DtcFamilyDiagnosticPanel(
+                    assessments: currentFamilyAssessments,
+                    moduleAssessments: ManufacturerModuleDiagnosticEngine.analyze(moduleScanner.results)
                 )
 
                 Section("Atölye Hızlı İşlemler") {
@@ -1464,6 +1468,12 @@ struct DiagnosticView: View {
         workshopStep = "Kayıtlı / bekleyen / kalıcı DTC taranıyor…"
         await bluetooth.scanGenericDtcStates()
 
+        let activeCodes = currentDtcExplanations.map(\.code)
+        if !activeCodes.isEmpty {
+            workshopStep = "DTC ailelerine göre ilgili canlı veriler okunuyor…"
+            await bluetooth.collectDiagnosticSignals(for: activeCodes)
+        }
+
         if ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil {
             workshopStep = "Tüm üretici kontrol üniteleri taranıyor…"
             await moduleScanner.scan(brand: effectiveBrand) { opcode, request in
@@ -1546,7 +1556,10 @@ struct DiagnosticView: View {
                 "Desteklenen generic PID sayısı: \(bluetooth.supportedPids.count)",
                 bluetooth.freezeFrameValues.isEmpty
                     ? "Freeze frame verisi alınmadı."
-                    : "Freeze frame: \(bluetooth.freezeFrameValues.count) parametre."
+                    : "Freeze frame: \(bluetooth.freezeFrameValues.count) parametre.",
+                currentFamilyAssessments.isEmpty
+                    ? "DTC aile analizi üretilemedi."
+                    : "DTC aile analizi: \(currentFamilyAssessments.map { $0.domain.rawValue }.joined(separator: ", "))."
             ]
         )
     }
@@ -1735,6 +1748,15 @@ struct DiagnosticView: View {
             return VehicleBrand.detect(fromVIN: vin)
         }
         return .generic
+    }
+
+    private var currentFamilyAssessments: [DtcFamilyAssessment] {
+        DtcFamilyDiagnosticEngine.analyze(
+            codes: currentDtcExplanations.map(\.code),
+            samples: bluetooth.liveSamples,
+            freezeFrame: bluetooth.freezeFrameValues,
+            observations: bluetooth.passiveObservations
+        )
     }
 
     private var dtcCodeKey: String {
