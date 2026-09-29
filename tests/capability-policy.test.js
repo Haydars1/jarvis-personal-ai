@@ -28,3 +28,11 @@ test('provider score changes by task rather than fixed global order', () => {
   assert.ok(geminiReport > groqReport);
   assert.ok(anthropicCoding > groqCoding);
 });
+
+
+test('recent quota errors temporarily lower provider score', () => {
+  const common={capabilities:'["chat","research"]',samples:10,successes:9,failures:1,avg_latency_ms:1200,priority:10};
+  const healthy=scoreProvider({...common,provider:'gemini',metric_last_error:'',metric_updated_at:Date.now()},'reporting');
+  const quota=scoreProvider({...common,provider:'gemini',metric_last_error:'GEMINI_429 quota exceeded',metric_updated_at:Date.now()},'reporting');
+  assert.ok(healthy > quota);
+});
