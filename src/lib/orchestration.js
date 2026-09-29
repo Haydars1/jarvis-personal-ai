@@ -16,6 +16,7 @@ export function taskKind(text = '') {
   if (/(görsel üret|resim üret|fotoğraf üret|image generate|çiz|midjourney|dall.?e)/i.test(value)) return 'image';
   if (/(ses üret|seslendir|tts|text.?to.?speech|voice|müzik üret|audio)/i.test(value)) return 'audio';
   if (/(metin yaz|açıklama|başlık|senaryo|script|reklam metni|yaratıcı|creative)/i.test(value)) return 'creative';
+  if (wantsResearch(value)) return 'research';
   return 'chat';
 }
 
@@ -29,7 +30,7 @@ export function complexity(text = '') {
 
 export function needsOrchestration(text = '') {
   const kind = taskKind(text);
-  return complexity(text) === 'complex' || ['coding', 'reasoning', 'research', 'vision', 'video', 'image', 'audio'].includes(kind) || wantsTools(text);
+  return complexity(text) === 'complex' || ['coding','reasoning','research','reporting','social_strategy','ecu_diagnostics','ecu_file_analysis','vehicle_coding','service_procedure','performance_calibration','emissions_modification','vision','video_creation','image','audio'].includes(kind) || wantsTools(text);
 }
 
 export function parseCapabilities(row) { try { return JSON.parse(row?.capabilities || '[]'); } catch { return []; } }
@@ -39,9 +40,10 @@ export function scoreProvider(row, kind) {
   if (!SUPPORTED_PROVIDERS.has(provider)) return null;
   const need = ['coding','reasoning','vision','video_creation','image','audio','translation','research','reporting','social_strategy','ecu_diagnostics','ecu_file_analysis','vehicle_coding','service_procedure','performance_calibration','emissions_modification'].includes(kind) ? kind : 'chat';
   const capabilities = parseCapabilities(row);
+  const required = ({reporting:'research',social_strategy:'chat',ecu_diagnostics:'reasoning',ecu_file_analysis:'reasoning',vehicle_coding:'reasoning',service_procedure:'reasoning',performance_calibration:'reasoning',emissions_modification:'reasoning',video_creation:'chat'})[need] || need;
   let score = providerPreference(kind, provider);
-  if (capabilities.includes(need)) score += 36;
-  else if (capabilities.includes('reasoning') && ['coding','research'].includes(need)) score += 14;
+  if (capabilities.includes(need) || capabilities.includes(required)) score += 36;
+  else if (capabilities.includes('reasoning') && ['coding','research','reporting','ecu_diagnostics','ecu_file_analysis','vehicle_coding','service_procedure','performance_calibration','emissions_modification'].includes(need)) score += 14;
   else if (capabilities.includes('vision') && need === 'image') score += 8;
   else if (capabilities.includes('chat')) score += 7;
   const samples = Number(row?.samples || 0), successes = Number(row?.successes || 0), latency = Number(row?.avg_latency_ms || 0), failures = Number(row?.failures || 0);
