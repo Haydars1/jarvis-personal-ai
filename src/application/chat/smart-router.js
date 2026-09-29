@@ -7,6 +7,7 @@ import {
   readJson,
   settleWithin
 } from '../../lib/runtime.js';
+import { scoreProvider, taskKind } from '../../lib/orchestration.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
 const IMAGE_CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
@@ -26,13 +27,9 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 let nvidiaCatalogCache = { ts: 0, base: '', ids: [] };
 
 function intent(text = '') {
-  const value = String(text).toLowerCase();
-  if (/(video|reels?|klip|animasyon|hareketli|text.?to.?video|image.?to.?video)/i.test(value) && /(oluştur|yap|üret|hazırla|çiz|generate|create|göster)/i.test(value)) return 'video';
-  if (/(resim|görsel|foto|fotoğraf|logo|amblem|emblem|poster|kapak|afiş|image)/i.test(value) && /(oluştur|çiz|yap|üret|hazırla|generate|create|göster)/i.test(value)) return 'image';
-  if (/(kod|code|javascript|typescript|python|sql|debug|hata düzelt|refactor)/i.test(value)) return 'coding';
-  if (/(araştır|internette|güncel|son durum|kaynak|webde|web'de|haber)/i.test(value)) return 'research';
-  if (/(neden|analiz|karşılaştır|hesapla|mantık|planla|strateji)/i.test(value)) return 'reasoning';
-  return 'chat';
+  const kind=taskKind(text);
+  if (kind==='video_creation') return 'video';
+  return kind;
 }
 function parseCapabilities(row) { try { return JSON.parse(row.capabilities || '[]'); } catch { return []; } }
 function limitation(text = '') {
@@ -73,15 +70,14 @@ async function cfText(env, messages) {
 }
 
 async function vaultRows(env, capability) {
-  const rows = await queryAll(env, "SELECT * FROM credentials WHERE enabled=1 AND last_status='ok' ORDER BY priority ASC,created_at ASC");
+  const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
   const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible'];
-  return rows.filter(row => {
-    if (!supported.includes(String(row.provider || '').toLowerCase())) return false;
-    const caps = parseCapabilities(row);
-    if (capability === 'coding') return caps.includes('coding') || caps.includes('reasoning') || caps.includes('chat');
-    if (capability === 'reasoning') return caps.includes('reasoning') || caps.includes('chat');
-    return caps.includes('chat') || caps.length === 0;
-  });
+  return rows
+    .filter(row => supported.includes(String(row.provider || '').toLowerCase()))
+    .map(row => ({ row, score:scoreProvider(row, capability) }))
+    .filter(item => item.score !== null)
+    .sort((a,b) => b.score - a.score)
+    .map(item => item.row);
 }
 
 async function nvidiaCatalog(base, secret, timeoutMs = 1600) {
@@ -176,27 +172,25 @@ async function fastText(env, capability, messages, preferred = 'auto') {
     const index = rows.findIndex(row => String(row.id) === String(preferred) || String(row.provider).toLowerCase() === String(preferred).toLowerCase() || String(row.label).toLowerCase() === String(preferred).toLowerCase());
     if (index > 0) rows = [rows[index], ...rows.slice(0,index), ...rows.slice(index + 1)];
   }
-  if (preferred === 'cloudflare') rows = [];
-  let settled = false;
-  const jobs = [], external = rows.slice(0, 3);
-  if (capability === 'coding' || capability === 'reasoning') {
-    if (external[0]) jobs.push(callVault(env, external[0], messages, 7000, capability));
-    if (env.AI) jobs.push(sleep(350).then(() => { if (settled) throw new Error('SKIP'); return cfText(env, messages); }));
-    if (external[1]) jobs.push(sleep(700).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[1], messages, 6500, capability); }));
-    if (external[2]) jobs.push(sleep(1100).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[2], messages, 6000, capability); }));
-  } else {
-    if (env.AI) jobs.push(cfText(env, messages));
-    if (external[0]) jobs.push(sleep(350).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[0], messages, 6500, capability); }));
-    if (external[1]) jobs.push(sleep(750).then(() => { if (settled) throw new Error('SKIP'); return callVault(env, external[1], messages, 6000, capability); }));
+  const errors=[];
+  if (preferred !== 'cloudflare') {
+    for (const credential of rows.slice(0, 7)) {
+      try {
+        const answer=await callVault(env, credential, messages, 7000, capability);
+        if (!limitation(answer.text)) return answer;
+        errors.push(String(credential.label||credential.provider)+':LIMITATION');
+      } catch (error) {
+        errors.push(String(credential.label||credential.provider)+':'+String(error?.message||error));
+      }
+    }
   }
-  if (!jobs.length) throw new Error('NO_FAST_PROVIDER');
-  const first = await Promise.any(jobs); settled = true;
-  if (!limitation(first.text)) return first;
-  for (const credential of external) {
-    try { const alt = await callVault(env, credential, messages, 5500, capability); if (!limitation(alt.text)) return alt; }
-    catch {}
+  if (env.AI) {
+    try {
+      const answer=await cfText(env,messages);
+      if (!limitation(answer.text)) return answer;
+    } catch (error) { errors.push('cloudflare:'+String(error?.message||error)); }
   }
-  return first;
+  throw new Error('ALL_AI_FAILED:'+errors.slice(-8).join('|'));
 }
 
 async function imageGenerate(env, text) {
