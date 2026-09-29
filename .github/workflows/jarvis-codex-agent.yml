@@ -1,4 +1,4 @@
-name: JARVIS Codex Development Agent
+name: JARVIS Multi-Engine Development Agent
 
 on:
   workflow_dispatch:
@@ -9,17 +9,15 @@ permissions:
   contents: write
   actions: read
 
-# Scheduled runs only operate on the development branch and are serialized below.
-
 concurrency:
-  group: jarvis-codex-development-agent
+  group: jarvis-multi-engine-development-agent
   cancel-in-progress: false
 
 jobs:
   develop:
     if: github.event_name == 'schedule' || github.ref == 'refs/heads/feature/learning-engine'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 55
     steps:
       - name: Checkout development branch
         uses: actions/checkout@v5
@@ -41,95 +39,238 @@ jobs:
         continue-on-error: true
         run: npm run check
 
-      - name: Record baseline state
-        shell: bash
-        run: |
-          echo "Baseline validation outcome: ${{ steps.baseline.outcome }}"
-          if [ "${{ steps.baseline.outcome }}" != "success" ]; then
-            echo "Baseline is already failing; the coding agent should diagnose and repair it."
-          fi
-
-      - name: Detect Gemini fallback
-        id: fallback
+      - name: Detect available coding engines
+        id: engines
         shell: bash
         env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          if [ -n "${GEMINI_API_KEY:-}" ]; then
-            echo "gemini=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "gemini=false" >> "$GITHUB_OUTPUT"
-          fi
+          for name in anthropic openai mistral gemini xai openrouter groq; do
+            upper=$(echo "$name" | tr '[:lower:]' '[:upper:]')
+            key_name="${upper}_API_KEY"
+            value="${!key_name:-}"
+            if [ -n "$value" ]; then
+              echo "$name=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "$name=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
 
-      - name: Run Codex development agent
+      - name: Run Claude coding specialist
+        id: claude
+        if: ${{ steps.engines.outputs.anthropic == 'true' }}
+        continue-on-error: true
+        uses: anthropics/claude-code-base-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Work only in this checked-out repository on branch feature/learning-engine.
+            Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+            Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+            For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+            Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+            Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+            Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.
+          claude_args: '--allowedTools "Read,Edit,Write,Glob,Grep,Bash(npm:*),Bash(node:*),Bash(git diff:*),Bash(git status:*)" --max-turns 30'
+
+      - name: Validate Claude changes
+        id: claude_check
+        if: ${{ steps.claude.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
+
+      - name: Reset unverified Claude changes
+        if: ${{ steps.claude_check.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run Codex coding specialist
         id: codex
+        if: ${{ steps.claude_check.outcome != 'success' && steps.engines.outputs.openai == 'true' }}
         continue-on-error: true
         uses: openai/codex-action@v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
+          safety-strategy: drop-sudo
           prompt: |
             Work only in this checked-out repository on branch feature/learning-engine.
-            Continue the current JARVIS development autonomously for this run.
-            Inspect the implementation and tests before editing. Prioritize:
-            1. conversation and task continuity,
-            2. persistent learning-context integration,
-            3. real video-provider execution/failover,
-            4. reliability, observability, regression coverage, performance, UX, maintainability.
+            Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+            Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+            For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+            Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+            Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+            Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.
 
-            Do not stop after one tiny edit when more safe independent work can be completed.
-            Use tests-first where practical. For every change, keep it small and reversible,
-            preserve existing behavior, and run relevant tests. Never modify GitHub secrets,
-            credentials, workflow security boundaries, production deployment configuration,
-            main branch, or external accounts. Never deploy production. Do not disable or
-            weaken tests/security gates. Do not push or commit; leave verified workspace
-            changes for the workflow to validate and commit.
+      - name: Validate Codex changes
+        id: codex_check
+        if: ${{ steps.codex.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
 
-            Before finishing, run npm run check. If it fails because of your changes, fix it
-            and rerun. Finish only with a concise summary of concrete verified changes.
-
-      - name: Reset unverified Codex changes before fallback
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
-        shell: bash
+      - name: Reset unverified Codex changes
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' }}
         run: |
           git reset --hard HEAD
           git clean -fd
 
-      - name: Install Gemini CLI fallback
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
-        run: npm install -g @google/gemini-cli
+      - name: Install OpenCode fallback engine
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && (steps.engines.outputs.mistral == 'true' || steps.engines.outputs.xai == 'true' || steps.engines.outputs.openrouter == 'true' || steps.engines.outputs.groq == 'true') }}
+        run: npm install --global @opencode/cli
 
-      - name: Run Gemini development fallback
+      - name: Run Mistral coding specialist
+        id: mistral
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.engines.outputs.mistral == 'true' }}
+        continue-on-error: true
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: |
+          opencode run --standalone --agent build --model mistral/mistral-medium-latest 'Work only in this checked-out repository on branch feature/learning-engine.
+Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.'
+
+      - name: Validate Mistral changes
+        id: mistral_check
+        if: ${{ steps.mistral.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
+
+      - name: Reset unverified Mistral changes
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run Gemini coding specialist
         id: gemini
-        if: ${{ steps.codex.outcome != 'success' && steps.fallback.outputs.gemini == 'true' }}
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.engines.outputs.gemini == 'true' }}
         continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        shell: bash
         run: |
-          PROMPT=$(cat <<'EOF'
-          Work only in this checked-out repository on branch feature/learning-engine.
-          The primary Codex agent was unavailable, so you are the fallback coding agent.
-          Inspect the implementation and make safe, reversible improvements. Prioritize
-          conversation/task continuity, persistent learning-context integration, provider
-          failover, reliability, observability, regression coverage, performance, UX, and
-          maintainability. Do not modify credentials, secrets, GitHub workflows, production
-          deployment configuration, branch protections, or security gates. Do not commit,
-          push, deploy, delete data, or spend money. Use repository read/edit tools only;
-          the workflow will validate all changes after you finish. Leave changes in the working tree.
-          EOF
-          )
-          gemini --model gemini-3.7-flash --skip-trust --approval-mode auto_edit -p "$PROMPT"
+          npm install --global @google/gemini-cli
+          gemini --model gemini-3.7-flash --skip-trust --approval-mode auto_edit -p 'Work only in this checked-out repository on branch feature/learning-engine.
+Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.'
 
-      - name: Require a coding agent to succeed
-        if: ${{ steps.codex.outcome != 'success' && steps.gemini.outcome != 'success' }}
-        shell: bash
-        run: |
-          echo "::error::No coding agent completed successfully. Codex failed and Gemini fallback was unavailable or failed."
-          exit 1
-
-      - name: Validate agent changes
+      - name: Validate Gemini changes
+        id: gemini_check
+        if: ${{ steps.gemini.outcome == 'success' }}
+        continue-on-error: true
         run: npm run check
+
+      - name: Reset unverified Gemini changes
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run xAI coding specialist
+        id: xai
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' && steps.engines.outputs.xai == 'true' }}
+        continue-on-error: true
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: |
+          opencode run --standalone --agent build --model xai/grok-4.7 'Work only in this checked-out repository on branch feature/learning-engine.
+Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.'
+
+      - name: Validate xAI changes
+        id: xai_check
+        if: ${{ steps.xai.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
+
+      - name: Reset unverified xAI changes
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' && steps.xai_check.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run OpenRouter task-aware specialist
+        id: openrouter
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' && steps.xai_check.outcome != 'success' && steps.engines.outputs.openrouter == 'true' }}
+        continue-on-error: true
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          opencode run --standalone --agent build --model openrouter/openrouter/auto 'Work only in this checked-out repository on branch feature/learning-engine.
+Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.'
+
+      - name: Validate OpenRouter changes
+        id: openrouter_check
+        if: ${{ steps.openrouter.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
+
+      - name: Reset unverified OpenRouter changes
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' && steps.xai_check.outcome != 'success' && steps.openrouter_check.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Run Groq coding specialist
+        id: groq
+        if: ${{ steps.claude_check.outcome != 'success' && steps.codex_check.outcome != 'success' && steps.mistral_check.outcome != 'success' && steps.gemini_check.outcome != 'success' && steps.xai_check.outcome != 'success' && steps.openrouter_check.outcome != 'success' && steps.engines.outputs.groq == 'true' }}
+        continue-on-error: true
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          opencode run --standalone --agent build --model groq/openai/gpt-oss-120b 'Work only in this checked-out repository on branch feature/learning-engine.
+Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree first.
+Prioritize concrete safe improvements in this order: broken tests/runtime errors, continuity and persistent context, capability-aware routing and provider failover, social/video automation, ECU diagnostic/file-analysis/service workflows, observability, performance, UX and maintainability.
+For every gap define an acceptance condition, make the smallest safe reversible change, add or update regression tests when practical, and continue to another independent useful improvement while time remains.
+Do not modify secrets, credentials, production deployment configuration, branch protections or security gates. Do not deploy, merge to main, force-push, delete data, spend money or perform irreversible external actions.
+Do not implement automatic road-vehicle emissions defeat patches. Diagnostic analysis, file inspection, restoration, service procedures and test/off-road analysis tooling are allowed.
+Do not commit or push. Leave verified source changes in the working tree for this workflow to validate and commit.'
+
+      - name: Validate Groq changes
+        id: groq_check
+        if: ${{ steps.groq.outcome == 'success' }}
+        continue-on-error: true
+        run: npm run check
+
+      - name: Require one verified coding engine
+        shell: bash
+        env:
+          CLAUDE: ${{ steps.claude_check.outcome }}
+          CODEX: ${{ steps.codex_check.outcome }}
+          MISTRAL: ${{ steps.mistral_check.outcome }}
+          GEMINI: ${{ steps.gemini_check.outcome }}
+          XAI: ${{ steps.xai_check.outcome }}
+          OPENROUTER: ${{ steps.openrouter_check.outcome }}
+          GROQ: ${{ steps.groq_check.outcome }}
+        run: |
+          for value in "$CLAUDE" "$CODEX" "$MISTRAL" "$GEMINI" "$XAI" "$OPENROUTER" "$GROQ"; do
+            if [ "$value" = "success" ]; then exit 0; fi
+          done
+          echo "::error::No coding engine produced changes that passed npm run check."
+          exit 1
 
       - name: Cloudflare build dry run
         run: npx wrangler deploy --dry-run --outdir .wrangler-dry
@@ -145,8 +286,8 @@ jobs:
             echo "No verified source changes to commit."
             exit 0
           fi
-          git config user.name "jarvis-codex-agent"
-          git config user.email "jarvis-codex-agent@users.noreply.github.com"
+          git config user.name "jarvis-multi-agent"
+          git config user.email "jarvis-multi-agent@users.noreply.github.com"
           git add -A
           git commit -m "feat(agent): autonomous verified JARVIS improvements"
           gh auth setup-git
