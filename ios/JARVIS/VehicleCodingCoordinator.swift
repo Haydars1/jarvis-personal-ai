@@ -15,7 +15,7 @@ struct CodingRecipeStep: Codable, Hashable {
     let description: String
 }
 
-struct CodingRecipe: Codable, Identifiable {
+struct CodingRecipe: Codable, Identifiable, Hashable {
     let id: String
     let featureID: String
     let brand: VehicleBrand
