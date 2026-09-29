@@ -1090,94 +1090,20 @@ struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Protokol Öğrenme") {
-                    Button {
-                        if protocolLearner.active {
-                            protocolLearner.stop()
-                            message = "Protokol öğrenme durduruldu."
-                        } else {
-                            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
-                            message = "Protokol öğrenme başladı; JARVIS gelen UDS servislerini ve DID'leri kaydediyor."
-                        }
-                    } label: {
-                        Label(
-                            protocolLearner.active ? "Öğrenmeyi durdur" : "Protokol öğrenmeyi başlat",
-                            systemImage: protocolLearner.active ? "stop.circle" : "brain.head.profile"
-                        )
-                    }
+                ProtocolLearningSection(
+                    learner: protocolLearner,
+                    learnedPackURL: $learnedPackURL,
+                    decodedFrameCount: bluetooth.decodedFrames.count,
+                    onMessage: { message = $0 },
+                    onCreatePack: { makeLearnedPackFile() }
+                )
 
-                    if !protocolLearner.observations.isEmpty {
-                        Text("\(protocolLearner.observations.count) protokol gözlemi bulundu")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                DiagnosticImportSnapshotSections(
+                    showImporter: $showImporter,
+                    snapshot: snapshot,
+                    message: message
+                )
 
-                        DisclosureGroup("Bulunan servisler / DID'ler") {
-                            ForEach(protocolLearner.observations) { item in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.detail)
-                                        .font(.caption)
-                                    Text("VCI op \(String(format: "%04X", item.opcode)) • \(item.rawHex)")
-                                        .font(.caption2.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                        }
-
-                        Button {
-                            learnedPackURL = makeLearnedPackFile()
-                        } label: {
-                            Label("Aday üretici paketi oluştur", systemImage: "wand.and.stars")
-                        }
-
-                        if let learnedPackURL {
-                            ShareLink(item: learnedPackURL) {
-                                Label("Öğrenilen paketi paylaş / kaydet", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                    }
-
-                    Text("Öğrenme modu yalnızca gözlem yapar. Yakalanan opcode, UDS servisleri ve DID'lerden aday paket üretir; bilinmeyen kodlama yazma komutları otomatik oluşturulmaz.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("ThinkDiag Kayıt / Rapor") {
-                    Button {
-                        showImporter = true
-                    } label: {
-                        Label("Rapor veya canlı veri dosyası içe aktar", systemImage: "doc.badge.plus")
-                    }
-                    Text("CSV, JSON ve metin raporlarından DTC kodlarını; ThinkCar .TC kayıtlarından parametre adları, birimler ve son canlı değerleri çıkarır.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let snapshot {
-                    Section("Canlı Veriler") {
-                        if snapshot.metrics.isEmpty {
-                            Text("Tanımlanan canlı değer bulunamadı").foregroundStyle(.secondary)
-                        }
-                        ForEach(snapshot.metrics) { metric in
-                            LabeledContent(metric.label, value: format(metric))
-                        }
-                    }
-
-                    Section("Teşhis Özeti") {
-                        Text("Kaynak: \(snapshot.sourceName)")
-                        ForEach(snapshot.notes, id: \.self) { note in
-                            Text(note).font(.caption).foregroundStyle(.secondary)
-                        }
-                        if let boost = snapshot.metrics.first(where: { $0.key.contains("turbo") || $0.key.contains("manifold") }) {
-                            Text("Turbo verisi bulundu: \(format(boost)). P0299 için sonraki sürümde requested/actual basınç farkı otomatik grafiklenecek.")
-                                .font(.caption)
-                        }
-                    }
-                }
-
-                if !message.isEmpty {
-                    Section("Durum") { Text(message).font(.caption) }
-                }
             }
             .navigationTitle("Araç Teşhis")
             .toolbar {
