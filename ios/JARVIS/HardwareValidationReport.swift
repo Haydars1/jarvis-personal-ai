@@ -1,6 +1,6 @@
 import Foundation
 
-struct HardwareValidationModule: Codable, Hashable {
+struct HardwareValidationModule: Codable {
     let address: String
     let name: String
     let dtcCount: Int
@@ -15,7 +15,7 @@ struct HardwareValidationPacket: Codable, Hashable {
     let hex: String
 }
 
-struct HardwareValidationReport: Codable, Hashable {
+struct HardwareValidationReport: Codable {
     let createdAt: Date
     let adapterState: String
     let preferredServiceDetected: Bool
@@ -38,6 +38,7 @@ struct HardwareValidationReport: Codable, Hashable {
 }
 
 enum HardwareValidationReportBuilder {
+    @MainActor
     static func make(
         bluetooth: ThinkDiagBluetooth,
         modules: [ModuleScanResult]

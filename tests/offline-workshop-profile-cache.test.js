@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const profile = fs.readFileSync(new URL('../ios/JARVIS/VehicleProfileCache.swift', import.meta.url), 'utf8');
 const prefetch = fs.readFileSync(new URL('../ios/JARVIS/OfflineCatalogPrefetcher.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
+const lifecycle = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticLifecycleObserver.swift', import.meta.url), 'utf8');
 
 test('VIN profiles persist module part software platform and equipment identities', () => {
   assert.match(profile, /vehicle-profiles\.json/);
@@ -34,6 +35,6 @@ test('all-brand catalogs are prefetched online and counted locally offline', () 
 });
 
 test('catalog prefetch does not need a manual per-car update operation', () => {
-  assert.match(diagnostics, /onChange\(of: networkMonitor\.isOnline\)/);
+  assert.match(lifecycle, /onChange\(of: networkOnline\)/);
   assert.doesNotMatch(diagnostics, /İnternetten araştır \/ güncelle/);
 });

@@ -494,20 +494,7 @@ struct DiagnosticView: View {
                             current: latestWorkshopSession,
                             previous: previous
                         )
-                        DisclosureGroup("Önceki taramayla karşılaştır") {
-                            if !comparison.newCodes.isEmpty {
-                                Text("Yeni: " + comparison.newCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                            if !comparison.resolvedCodes.isEmpty {
-                                Text("Artık görünmüyor: " + comparison.resolvedCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                            if !comparison.persistentCodes.isEmpty {
-                                Text("Devam eden: " + comparison.persistentCodes.joined(separator: ", "))
-                                    .font(.caption)
-                            }
-                        }
+                        WorkshopComparisonView(comparison: comparison)
                     }
 
                     if !workshopStore.sessions.isEmpty {
@@ -640,17 +627,7 @@ struct DiagnosticView: View {
                         }
 
                         ForEach(manufacturerLive.values) { item in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.label)
-                                    Text("\(item.moduleName) • DID 0x\(String(format: "%04X", item.did))")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(item.unit.map { "\(item.textValue) \($0)" } ?? item.textValue)
-                                    .font(.caption.monospaced())
-                            }
+                            ManufacturerLiveValueRow(item: item)
                         }
                     }
                 }
@@ -1113,94 +1090,20 @@ struct DiagnosticView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Protokol Öğrenme") {
-                    Button {
-                        if protocolLearner.active {
-                            protocolLearner.stop()
-                            message = "Protokol öğrenme durduruldu."
-                        } else {
-                            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
-                            message = "Protokol öğrenme başladı; JARVIS gelen UDS servislerini ve DID'leri kaydediyor."
-                        }
-                    } label: {
-                        Label(
-                            protocolLearner.active ? "Öğrenmeyi durdur" : "Protokol öğrenmeyi başlat",
-                            systemImage: protocolLearner.active ? "stop.circle" : "brain.head.profile"
-                        )
-                    }
+                ProtocolLearningSection(
+                    learner: protocolLearner,
+                    learnedPackURL: $learnedPackURL,
+                    decodedFrameCount: bluetooth.decodedFrames.count,
+                    onMessage: { message = $0 },
+                    onCreatePack: { makeLearnedPackFile() }
+                )
 
-                    if !protocolLearner.observations.isEmpty {
-                        Text("\(protocolLearner.observations.count) protokol gözlemi bulundu")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                DiagnosticImportSnapshotSections(
+                    showImporter: $showImporter,
+                    snapshot: snapshot,
+                    message: message
+                )
 
-                        DisclosureGroup("Bulunan servisler / DID'ler") {
-                            ForEach(protocolLearner.observations) { item in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.detail)
-                                        .font(.caption)
-                                    Text("VCI op \(String(format: "%04X", item.opcode)) • \(item.rawHex)")
-                                        .font(.caption2.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
-                                }
-                            }
-                        }
-
-                        Button {
-                            learnedPackURL = makeLearnedPackFile()
-                        } label: {
-                            Label("Aday üretici paketi oluştur", systemImage: "wand.and.stars")
-                        }
-
-                        if let learnedPackURL {
-                            ShareLink(item: learnedPackURL) {
-                                Label("Öğrenilen paketi paylaş / kaydet", systemImage: "square.and.arrow.up")
-                            }
-                        }
-                    }
-
-                    Text("Öğrenme modu yalnızca gözlem yapar. Yakalanan opcode, UDS servisleri ve DID'lerden aday paket üretir; bilinmeyen kodlama yazma komutları otomatik oluşturulmaz.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("ThinkDiag Kayıt / Rapor") {
-                    Button {
-                        showImporter = true
-                    } label: {
-                        Label("Rapor veya canlı veri dosyası içe aktar", systemImage: "doc.badge.plus")
-                    }
-                    Text("CSV, JSON ve metin raporlarından DTC kodlarını; ThinkCar .TC kayıtlarından parametre adları, birimler ve son canlı değerleri çıkarır.")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                if let snapshot {
-                    Section("Canlı Veriler") {
-                        if snapshot.metrics.isEmpty {
-                            Text("Tanımlanan canlı değer bulunamadı").foregroundStyle(.secondary)
-                        }
-                        ForEach(snapshot.metrics) { metric in
-                            LabeledContent(metric.label, value: format(metric))
-                        }
-                    }
-
-                    Section("Teşhis Özeti") {
-                        Text("Kaynak: \(snapshot.sourceName)")
-                        ForEach(snapshot.notes, id: \.self) { note in
-                            Text(note).font(.caption).foregroundStyle(.secondary)
-                        }
-                        if let boost = snapshot.metrics.first(where: { $0.key.contains("turbo") || $0.key.contains("manifold") }) {
-                            Text("Turbo verisi bulundu: \(format(boost)). P0299 için sonraki sürümde requested/actual basınç farkı otomatik grafiklenecek.")
-                                .font(.caption)
-                        }
-                    }
-                }
-
-                if !message.isEmpty {
-                    Section("Durum") { Text(message).font(.caption) }
-                }
             }
             .navigationTitle("Araç Teşhis")
             .toolbar {
@@ -1307,83 +1210,95 @@ struct DiagnosticView: View {
             } message: {
                 Text("Mevcut değer yedeklendi. Doğrulanmış reçete araca yazılacak ve ardından tekrar okunarak kontrol edilecek.")
             }
-            .task {
-                OfflineVehicleDataStore.bootstrap()
-                offlineDtcCount = OfflineDtcDatabase.shared.count
-                if effectiveBrand != .generic {
-                    await codingResearch.refresh(brand: effectiveBrand)
-                }
-                if networkMonitor.isOnline {
-                    await offlinePrefetch.refreshIfNeeded()
-                } else {
-                    offlinePrefetch.refreshCacheCount()
-                }
-            }
-            .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
-                guard ready else { return }
-
-                if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
-                    protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
-                }
-
-                if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 650_000_000)
-                        if bluetooth.isThinkDiagTransportReady && !workshopRunning {
-                            await runWorkshopAutoDiagnosis()
+            .background(
+                DiagnosticLifecycleObserver(
+                    transportReady: bluetooth.isThinkDiagTransportReady,
+                    decodedFrameCount: bluetooth.decodedFrames.count,
+                    liveSampleCount: bluetooth.liveSamples.count,
+                    dtcCodeKey: dtcCodeKey,
+                    effectiveBrand: effectiveBrand,
+                    networkOnline: networkMonitor.isOnline,
+                    detectedVIN: detectedVIN,
+                    moduleResultCount: moduleScanner.results.count,
+                    onInitialTask: {
+                        OfflineVehicleDataStore.bootstrap()
+                        offlineDtcCount = OfflineDtcDatabase.shared.count
+                        if effectiveBrand != .generic {
+                            await codingResearch.refresh(brand: effectiveBrand)
                         }
+                        if networkMonitor.isOnline {
+                            await offlinePrefetch.refreshIfNeeded()
+                        } else {
+                            offlinePrefetch.refreshCacheCount()
+                        }
+                    },
+                    onTransportReadyChange: { ready in
+                        guard ready else { return }
+
+                        if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
+                            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+                        }
+
+                        if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
+                            Task {
+                                try? await Task.sleep(nanoseconds: 650_000_000)
+                                if bluetooth.isThinkDiagTransportReady && !workshopRunning {
+                                    await runWorkshopAutoDiagnosis()
+                                }
+                            }
+                        }
+                    },
+                    onDecodedFrameCountChange: {
+                        protocolLearner.ingest(bluetooth.decodedFrames)
+                    },
+                    onLiveSampleCountChange: {
+                        driveLogger.ingest(bluetooth.liveSamples.last)
+                    },
+                    onDtcCodeKeyChange: {
+                        Task {
+                            await diagnosticAI.explainIfNeeded(
+                                codes: currentDtcExplanations.map(\.code),
+                                brand: effectiveBrand,
+                                vin: detectedVIN,
+                                observations: bluetooth.passiveObservations
+                            )
+                        }
+                    },
+                    onDisappearAction: {
+                        bluetooth.stopLivePolling()
+                        manufacturerLive.stop()
+                    },
+                    onBrandChange: { newBrand in
+                        guard newBrand != .generic else { return }
+                        Task {
+                            await codingResearch.refresh(brand: newBrand)
+                            if networkMonitor.isOnline {
+                                await codingResearch.sync(brand: newBrand, pages: 2)
+                            }
+                        }
+                    },
+                    onNetworkChange: { isOnline in
+                        guard isOnline else { return }
+                        Task {
+                            if effectiveBrand != .generic {
+                                await codingResearch.sync(brand: effectiveBrand, pages: 2)
+                            }
+                            await offlinePrefetch.refreshIfNeeded()
+                        }
+                    },
+                    onVinChange: { newVIN in
+                        guard let newVIN else { return }
+                        if selectedBrand == .generic {
+                            let detected = VehicleBrand.detect(fromVIN: newVIN)
+                            if detected != .generic { selectedBrand = detected }
+                        }
+                        saveCurrentVehicleProfile()
+                    },
+                    onModuleResultCountChange: {
+                        saveCurrentVehicleProfile()
                     }
-                }
-            }
-            .onChange(of: bluetooth.decodedFrames.count) { _, _ in
-                protocolLearner.ingest(bluetooth.decodedFrames)
-            }
-            .onChange(of: bluetooth.liveSamples.count) { _, _ in
-                driveLogger.ingest(bluetooth.liveSamples.last)
-            }
-            .onChange(of: dtcCodeKey) { _, _ in
-                Task {
-                    await diagnosticAI.explainIfNeeded(
-                        codes: currentDtcExplanations.map(\.code),
-                        brand: effectiveBrand,
-                        vin: detectedVIN,
-                        observations: bluetooth.passiveObservations
-                    )
-                }
-            }
-            .onDisappear {
-                bluetooth.stopLivePolling()
-                manufacturerLive.stop()
-            }
-            .onChange(of: effectiveBrand) { _, newBrand in
-                guard newBrand != .generic else { return }
-                Task {
-                    await codingResearch.refresh(brand: newBrand)
-                    if networkMonitor.isOnline {
-                        await codingResearch.sync(brand: newBrand, pages: 2)
-                    }
-                }
-            }
-            .onChange(of: networkMonitor.isOnline) { _, isOnline in
-                guard isOnline else { return }
-                Task {
-                    if effectiveBrand != .generic {
-                        await codingResearch.sync(brand: effectiveBrand, pages: 2)
-                    }
-                    await offlinePrefetch.refreshIfNeeded()
-                }
-            }
-            .onChange(of: detectedVIN) { _, newVIN in
-                guard let newVIN else { return }
-                if selectedBrand == .generic {
-                    let detected = VehicleBrand.detect(fromVIN: newVIN)
-                    if detected != .generic { selectedBrand = detected }
-                }
-                saveCurrentVehicleProfile()
-            }
-            .onChange(of: moduleScanner.results.count) { _, _ in
-                saveCurrentVehicleProfile()
-            }
+                )
+            )
         }
     }
 

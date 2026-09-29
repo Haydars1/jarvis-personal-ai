@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const net = fs.readFileSync(new URL('../ios/JARVIS/VehicleNetworkMonitor.swift', import.meta.url), 'utf8');
 const diagnostics = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticView.swift', import.meta.url), 'utf8');
+const lifecycle = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticLifecycleObserver.swift', import.meta.url), 'utf8');
 const offline = fs.readFileSync(new URL('../ios/JARVIS/OfflineVehicleDataStore.swift', import.meta.url), 'utf8');
 
 test('vehicle runtime detects network changes without making diagnostics depend on them', () => {
@@ -16,7 +17,7 @@ test('vehicle runtime detects network changes without making diagnostics depend 
 test('diagnostics automatically switches to cached mode and refreshes when internet returns', () => {
   assert.match(diagnostics, /Çalışma Modu/);
   assert.match(diagnostics, /Yerel katalog kullanılıyor/);
-  assert.match(diagnostics, /onChange\(of: networkMonitor\.isOnline\)/);
+  assert.match(lifecycle, /onChange\(of: networkOnline\)/);
   assert.match(diagnostics, /codingResearch\.sync/);
 });
 

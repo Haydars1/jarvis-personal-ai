@@ -9,6 +9,7 @@ const sessions = fs.readFileSync(new URL('../ios/JARVIS/WorkshopSessionStore.swi
 const backups = fs.readFileSync(new URL('../ios/JARVIS/CodingBackupVault.swift', import.meta.url), 'utf8');
 const favorites = fs.readFileSync(new URL('../ios/JARVIS/CodingFavoritesStore.swift', import.meta.url), 'utf8');
 const comparison = fs.readFileSync(new URL('../ios/JARVIS/WorkshopComparisonEngine.swift', import.meta.url), 'utf8');
+const comparisonView = fs.readFileSync(new URL('../ios/JARVIS/WorkshopComparisonView.swift', import.meta.url), 'utf8');
 const packetEvent = fs.readFileSync(new URL('../ios/JARVIS/ThinkDiagPacketEvent.swift', import.meta.url), 'utf8');
 const triage = fs.readFileSync(new URL('../ios/JARVIS/DiagnosticTriageEngine.swift', import.meta.url), 'utf8');
 const prefs = fs.readFileSync(new URL('../ios/JARVIS/WorkshopPreferences.swift', import.meta.url), 'utf8');
@@ -45,7 +46,7 @@ test('workshop history highlights new resolved and persistent DTCs', () => {
   assert.match(comparison, /newCodes/);
   assert.match(comparison, /resolvedCodes/);
   assert.match(comparison, /persistentCodes/);
-  assert.match(diagnostics, /Önceki taramayla karşılaştır/);
+  assert.match(comparisonView, /Önceki taramayla karşılaştır/);
 });
 
 test('ThinkDiag transport logs timestamped RX TX packets and write limits', () => {

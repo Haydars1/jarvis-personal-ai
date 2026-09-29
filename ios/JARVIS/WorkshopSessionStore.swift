@@ -9,7 +9,7 @@ struct WorkshopDtcRecord: Codable, Hashable, Identifiable {
     let description: String
 }
 
-struct WorkshopModuleRecord: Codable, Hashable, Identifiable {
+struct WorkshopModuleRecord: Codable, Identifiable {
     var id: String { address + "|" + name }
     let address: String
     let name: String
@@ -24,7 +24,7 @@ struct WorkshopLiveRecord: Codable, Hashable, Identifiable {
     let value: String
 }
 
-struct WorkshopSessionRecord: Codable, Identifiable, Hashable {
+struct WorkshopSessionRecord: Codable, Identifiable {
     let id: UUID
     let startedAt: Date
     let finishedAt: Date
