@@ -56,9 +56,9 @@ candidates=(
   "ANTHROPIC_API_KEY|anthropic/claude-sonnet-4-5|Anthropic"
   "DEEPSEEK_API_KEY|deepseek/deepseek-v4-pro|DeepSeek"
   "MISTRAL_API_KEY|mistral/mistral-medium-latest|Mistral"
-  "GEMINI_API_KEY|google/gemini-3.5-flash|Gemini"
+  "GEMINI_API_KEY|google/gemini-3.8-flash|Gemini"
   "XAI_API_KEY|xai/grok-4.7|xAI"
-  "OPENROUTER_API_KEY|openrouter/anthropic/claude-sonnet-4|OpenRouter"
+  "OPENROUTER_API_KEY|openrouter/openrouter/auto|OpenRouter Auto"
   "GROQ_API_KEY|groq/qwen/qwen3.8-27b|Groq"
 )
 
