@@ -627,17 +627,7 @@ struct DiagnosticView: View {
                         }
 
                         ForEach(manufacturerLive.values) { item in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.label)
-                                    Text("\(item.moduleName) • DID 0x\(String(format: "%04X", item.did))")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(item.unit.map { "\(item.textValue) \($0)" } ?? item.textValue)
-                                    .font(.caption.monospaced())
-                            }
+                            ManufacturerLiveValueRow(item: item)
                         }
                     }
                 }
