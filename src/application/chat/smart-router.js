@@ -71,7 +71,7 @@ async function cfText(env, messages) {
 }
 
 export async function rankedVaultRows(env, capability) {
-  const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
+  const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures, m.last_error AS metric_last_error, m.updated_at AS metric_updated_at FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
   const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible'];
   return rows
     .filter(row => supported.includes(String(row.provider || '').toLowerCase()))
@@ -134,7 +134,7 @@ async function nvidiaCall(env, credential, messages, capability, timeoutMs = 650
   throw new Error(lastError);
 }
 
-export async function callVaultProvider(env, credential, messages, timeoutMs = 8500, capability = 'chat') {
+async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500, capability = 'chat') {
   const provider = String(credential.provider || '').toLowerCase();
   if (provider === 'nvidia') return nvidiaCall(env, credential, messages, capability, Math.min(timeoutMs, 7000));
   const secret = await decryptCredential(env, credential.encrypted_secret);
@@ -165,6 +165,31 @@ export async function callVaultProvider(env, credential, messages, timeoutMs = 8
   const payload = await response.json(), text = payload.choices?.[0]?.message?.content || '';
   if (!text) throw new Error(`${(provider || 'AI').toUpperCase()}_EMPTY`);
   return { provider: credential.label || credential.provider, text };
+}
+
+async function recordProviderMetric(env, credential, elapsed, ok, error='') {
+  const key=String(credential.label || credential.provider || 'unknown');
+  try {
+    const rows=await queryAll(env,'SELECT * FROM provider_metrics WHERE provider=? LIMIT 1',key), row=rows[0];
+    if (!row) {
+      await execute(env,'INSERT INTO provider_metrics(provider,samples,successes,failures,avg_latency_ms,last_latency_ms,last_error,updated_at) VALUES(?,?,?,?,?,?,?,?)',key,1,ok?1:0,ok?0:1,elapsed,elapsed,error||null,now());
+      return;
+    }
+    const n=Number(row.samples||0), samples=n+1, avg=((Number(row.avg_latency_ms||0)*n)+elapsed)/samples;
+    await execute(env,'UPDATE provider_metrics SET samples=?,successes=?,failures=?,avg_latency_ms=?,last_latency_ms=?,last_error=?,updated_at=? WHERE provider=?',samples,Number(row.successes||0)+(ok?1:0),Number(row.failures||0)+(ok?0:1),avg,elapsed,error||null,now(),key);
+  } catch {}
+}
+
+export async function callVaultProvider(env, credential, messages, timeoutMs = 8500, capability = 'chat') {
+  const started=now();
+  try {
+    const result=await rawCallVaultProvider(env, credential, messages, timeoutMs, capability);
+    await recordProviderMetric(env,credential,now()-started,true,'');
+    return result;
+  } catch (error) {
+    await recordProviderMetric(env,credential,now()-started,false,String(error?.message||error));
+    throw error;
+  }
 }
 
 async function fastText(env, capability, messages, preferred = 'auto') {
