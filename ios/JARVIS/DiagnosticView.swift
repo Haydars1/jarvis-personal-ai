@@ -1210,83 +1210,95 @@ struct DiagnosticView: View {
             } message: {
                 Text("Mevcut değer yedeklendi. Doğrulanmış reçete araca yazılacak ve ardından tekrar okunarak kontrol edilecek.")
             }
-            .task {
-                OfflineVehicleDataStore.bootstrap()
-                offlineDtcCount = OfflineDtcDatabase.shared.count
-                if effectiveBrand != .generic {
-                    await codingResearch.refresh(brand: effectiveBrand)
-                }
-                if networkMonitor.isOnline {
-                    await offlinePrefetch.refreshIfNeeded()
-                } else {
-                    offlinePrefetch.refreshCacheCount()
-                }
-            }
-            .onChange(of: bluetooth.isThinkDiagTransportReady) { _, ready in
-                guard ready else { return }
-
-                if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
-                    protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
-                }
-
-                if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 650_000_000)
-                        if bluetooth.isThinkDiagTransportReady && !workshopRunning {
-                            await runWorkshopAutoDiagnosis()
+            .background(
+                DiagnosticLifecycleObserver(
+                    transportReady: bluetooth.isThinkDiagTransportReady,
+                    decodedFrameCount: bluetooth.decodedFrames.count,
+                    liveSampleCount: bluetooth.liveSamples.count,
+                    dtcCodeKey: dtcCodeKey,
+                    effectiveBrand: effectiveBrand,
+                    networkOnline: networkMonitor.isOnline,
+                    detectedVIN: detectedVIN,
+                    moduleResultCount: moduleScanner.results.count,
+                    onInitialTask: {
+                        OfflineVehicleDataStore.bootstrap()
+                        offlineDtcCount = OfflineDtcDatabase.shared.count
+                        if effectiveBrand != .generic {
+                            await codingResearch.refresh(brand: effectiveBrand)
                         }
+                        if networkMonitor.isOnline {
+                            await offlinePrefetch.refreshIfNeeded()
+                        } else {
+                            offlinePrefetch.refreshCacheCount()
+                        }
+                    },
+                    onTransportReadyChange: { ready in
+                        guard ready else { return }
+
+                        if workshopPreferences.autoStartProtocolLearning && !protocolLearner.active {
+                            protocolLearner.start(currentFrameCount: bluetooth.decodedFrames.count)
+                        }
+
+                        if workshopPreferences.autoDiagnoseOnConnect && !workshopRunning {
+                            Task {
+                                try? await Task.sleep(nanoseconds: 650_000_000)
+                                if bluetooth.isThinkDiagTransportReady && !workshopRunning {
+                                    await runWorkshopAutoDiagnosis()
+                                }
+                            }
+                        }
+                    },
+                    onDecodedFrameCountChange: {
+                        protocolLearner.ingest(bluetooth.decodedFrames)
+                    },
+                    onLiveSampleCountChange: {
+                        driveLogger.ingest(bluetooth.liveSamples.last)
+                    },
+                    onDtcCodeKeyChange: {
+                        Task {
+                            await diagnosticAI.explainIfNeeded(
+                                codes: currentDtcExplanations.map(\.code),
+                                brand: effectiveBrand,
+                                vin: detectedVIN,
+                                observations: bluetooth.passiveObservations
+                            )
+                        }
+                    },
+                    onDisappearAction: {
+                        bluetooth.stopLivePolling()
+                        manufacturerLive.stop()
+                    },
+                    onBrandChange: { newBrand in
+                        guard newBrand != .generic else { return }
+                        Task {
+                            await codingResearch.refresh(brand: newBrand)
+                            if networkMonitor.isOnline {
+                                await codingResearch.sync(brand: newBrand, pages: 2)
+                            }
+                        }
+                    },
+                    onNetworkChange: { isOnline in
+                        guard isOnline else { return }
+                        Task {
+                            if effectiveBrand != .generic {
+                                await codingResearch.sync(brand: effectiveBrand, pages: 2)
+                            }
+                            await offlinePrefetch.refreshIfNeeded()
+                        }
+                    },
+                    onVinChange: { newVIN in
+                        guard let newVIN else { return }
+                        if selectedBrand == .generic {
+                            let detected = VehicleBrand.detect(fromVIN: newVIN)
+                            if detected != .generic { selectedBrand = detected }
+                        }
+                        saveCurrentVehicleProfile()
+                    },
+                    onModuleResultCountChange: {
+                        saveCurrentVehicleProfile()
                     }
-                }
-            }
-            .onChange(of: bluetooth.decodedFrames.count) { _, _ in
-                protocolLearner.ingest(bluetooth.decodedFrames)
-            }
-            .onChange(of: bluetooth.liveSamples.count) { _, _ in
-                driveLogger.ingest(bluetooth.liveSamples.last)
-            }
-            .onChange(of: dtcCodeKey) { _, _ in
-                Task {
-                    await diagnosticAI.explainIfNeeded(
-                        codes: currentDtcExplanations.map(\.code),
-                        brand: effectiveBrand,
-                        vin: detectedVIN,
-                        observations: bluetooth.passiveObservations
-                    )
-                }
-            }
-            .onDisappear {
-                bluetooth.stopLivePolling()
-                manufacturerLive.stop()
-            }
-            .onChange(of: effectiveBrand) { _, newBrand in
-                guard newBrand != .generic else { return }
-                Task {
-                    await codingResearch.refresh(brand: newBrand)
-                    if networkMonitor.isOnline {
-                        await codingResearch.sync(brand: newBrand, pages: 2)
-                    }
-                }
-            }
-            .onChange(of: networkMonitor.isOnline) { _, isOnline in
-                guard isOnline else { return }
-                Task {
-                    if effectiveBrand != .generic {
-                        await codingResearch.sync(brand: effectiveBrand, pages: 2)
-                    }
-                    await offlinePrefetch.refreshIfNeeded()
-                }
-            }
-            .onChange(of: detectedVIN) { _, newVIN in
-                guard let newVIN else { return }
-                if selectedBrand == .generic {
-                    let detected = VehicleBrand.detect(fromVIN: newVIN)
-                    if detected != .generic { selectedBrand = detected }
-                }
-                saveCurrentVehicleProfile()
-            }
-            .onChange(of: moduleScanner.results.count) { _, _ in
-                saveCurrentVehicleProfile()
-            }
+                )
+            )
         }
     }
 
