@@ -12,6 +12,7 @@ permissions:
   contents: write
   pull-requests: write
   actions: read
+  id-token: write
 
 concurrency:
   group: jarvis-autonomous-development
@@ -43,6 +44,32 @@ jobs:
         continue-on-error: true
         run: npm run check
 
+      - name: Fetch native skill backlog
+        shell: bash
+        env:
+          JARVIS_URL: https://haydojarvis.workers.dev
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const output='/tmp/jarvis-skill-backlog.json';
+          try {
+            const requestUrl=process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+            const requestToken=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+            if(!requestUrl||!requestToken)throw new Error('OIDC unavailable');
+            const sep=requestUrl.includes('?')?'&':'?';
+            const oidc=await fetch(`${requestUrl}${sep}audience=jarvis-skill-builder`,{headers:{Authorization:`bearer ${requestToken}`}});
+            if(!oidc.ok)throw new Error(`OIDC ${oidc.status}`);
+            const token=(await oidc.json()).value;
+            const response=await fetch(`${process.env.JARVIS_URL}/api/tools/skills/runner/backlog?limit=8`,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});
+            if(!response.ok)throw new Error(`BACKLOG ${response.status}`);
+            writeFileSync(output,JSON.stringify(await response.json(),null,2));
+          } catch (error) {
+            console.warn('Skill backlog unavailable:',error.message);
+            writeFileSync(output,JSON.stringify({skills:[],error:String(error.message||error)},null,2));
+          }
+          NODE
+          cat /tmp/jarvis-skill-backlog.json
+
       - name: Create isolated development branch
         id: branch
         shell: bash
@@ -58,14 +85,26 @@ jobs:
           cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
           Work only in this checked-out JARVIS repository on the current isolated jarvis/auto-* branch.
           Start from the current main implementation. Inspect code, tests and architecture before editing.
-          Read src/lib/capability-policy.js and proactively choose concrete missing or broken work instead of waiting for a user idea.
+          Read src/lib/capability-policy.js, src/lib/native-skill-adapters.js, and /tmp/jarvis-skill-backlog.json before choosing work.
+
+          Repository-skill priority:
+          - If /tmp/jarvis-skill-backlog.json contains skills, prefer one useful low/medium-risk missing skill when it can be completed safely in this run.
+          - Treat the source repository and its repo_skills manifest as a behavioral specification/reference, not as code to vendor.
+          - Use a clean-room reimplementation: understand the behavior/interface, then implement equivalent JARVIS-native behavior with our own code and tests.
+          - Do not copy third-party source code, large snippets, license headers, generated assets, model weights, or install scripts into JARVIS.
+          - Preserve attribution/source metadata in tests/docs where useful, but the implementation must stand on its own.
+          - When the native implementation is verified, add/update src/lib/native-skill-adapters.js so the learned repo skill resolves to adapter_status ready.
+          - For GPU-heavy capabilities, create a safe cloud adapter contract rather than pretending CPU Workers can run the model.
+          - For physical vehicle capabilities, keep execution on the confirmation-gated device-bridge. Never fake device success.
+
           Prioritize, in order:
           1. broken tests, runtime defects and incomplete end-to-end paths,
-          2. task-aware provider routing, quota/failover reliability and observability,
-          3. persistent conversation/task continuity and learning context,
-          4. social/video automation using official APIs and verified provider results,
-          5. ECU file analysis, diagnostics, safe local device-bridge architecture and service workflows,
-          6. regression coverage, performance, mobile UX and maintainability.
+          2. useful unadapted repo_skills that reduce dependence on paid AI/API calls,
+          3. task-aware provider routing, quota/failover reliability and observability,
+          4. persistent conversation/task continuity and learning context,
+          5. social/video automation using official APIs or verified local/open-source capabilities,
+          6. ECU file analysis, diagnostics, safe local device-bridge architecture and service workflows,
+          7. regression coverage, performance, mobile UX and maintainability.
           Define a concrete acceptance condition for each change and add/update regression tests when practical.
           Continue to another independent useful improvement while time remains; do not stop after a cosmetic edit.
           Never modify or print secrets/credentials. Never weaken tests or security gates. Never deploy production, merge main,
@@ -110,7 +149,7 @@ jobs:
           allow-bot-users: "github-actions[bot]"
           prompt: |
             Work only in this repository on the current jarvis/auto-* branch.
-            Read /tmp/jarvis-dev-prompt.txt and follow it. Make useful safe improvements,
+            Read /tmp/jarvis-dev-prompt.txt and /tmp/jarvis-skill-backlog.json and follow them. Make useful safe improvements,
             run npm run check, and leave verified changes uncommitted.
 
       - name: Reset failed Codex work
