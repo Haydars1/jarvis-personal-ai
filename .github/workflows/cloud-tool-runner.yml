@@ -41,5 +41,5 @@ jobs:
 
       - name: Run queued cloud capability batch
         env:
-          JARVIS_URL: https://haydojarvis.workers.dev
+          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
         run: node .github/scripts/cloud-tool-runner.mjs
