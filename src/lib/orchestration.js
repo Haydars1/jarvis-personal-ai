@@ -1,4 +1,5 @@
 import { classifyCapability, providerPreference } from './capability-policy.js';
+import { openSourceCandidates } from './open-source-capabilities.js';
 const RESEARCH_RE = /(araştır|bak|bul|karşılaştır|güncel|son durum|kaynak|google|internette|webde|web'de|hangi|nereden|nasıl yapılır|video|foto|fotoğraf|şema|örnek|fiyat|haber|canlı|skor|maç|fikstür)/i;
 const TOOLS_RE = /(araç|tool|ai bul|yapay zeka bul|bunu yapacak|entegre et|sisteme ekle|otomasyon|üret|oluştur|görsel üret|resim üret|video üret|ses üret|müzik üret|tts|speech)/i;
 const SUPPORTED_PROVIDERS = new Set(['gemini', 'nvidia', 'deepseek', 'mistral', 'xai', 'together', 'fireworks', 'groq', 'openrouter', 'openai', 'anthropic', 'perplexity', 'cohere', 'cerebras', 'sambanova', 'ollama', 'openai-compatible']);
@@ -56,6 +57,21 @@ export function scoreProvider(row, kind) {
   else if (metricError && metricAge < 20*60*1000) score -= 18;
   score -= Math.min(12, Number(row?.priority || 100) / 20);
   return score;
+}
+
+export function buildExecutionPlan(kind = 'chat', registry = [], runtimeContext = {}, providerRows = []) {
+  const openSource = openSourceCandidates(kind, registry, runtimeContext);
+  const providers = (Array.isArray(providerRows) ? providerRows : [])
+    .map(row => ({ ...row, routingScore: scoreProvider(row, kind) }))
+    .filter(row => Number.isFinite(row.routingScore))
+    .sort((a, b) => b.routingScore - a.routingScore || String(a.provider).localeCompare(String(b.provider)));
+  return {
+    kind,
+    preferredLane: openSource.some(candidate => candidate.runnable) ? 'open-source' : 'provider',
+    openSource,
+    providers,
+    policy: kind === 'emissions_modification' ? 'analysis-only' : 'standard'
+  };
 }
 
 export function directUrl(value = '') { try { const raw = String(value).startsWith('//') ? `https:${String(value)}` : String(value); const url = new URL(raw); if (url.hostname.includes('duckduckgo.com') && url.pathname.startsWith('/l/')) return url.searchParams.get('uddg') || raw; return raw; } catch { return String(value); } }

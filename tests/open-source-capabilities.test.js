@@ -94,3 +94,81 @@ test('missing metadata fails closed without throwing', async () => {
   assert.equal(normalized.category, 'local-llm');
   assert.equal(normalized.executionTarget, 'local-cpu');
 });
+
+const runnableRegistry = [
+  {
+    repo: 'local/video-engine',
+    category: 'video-generation', categories: ['video-generation'],
+    executionTarget: 'local-gpu', executionTargets: ['local-gpu'],
+    status: 'accepted', score: 92,
+    adapter: { status: 'ready', id: 'video-engine' }
+  },
+  {
+    repo: 'local/coder',
+    category: 'coding-agent', categories: ['coding-agent'],
+    executionTarget: 'local-cpu', executionTargets: ['local-cpu'],
+    status: 'accepted', score: 88,
+    adapter: { status: 'ready', id: 'coder' }
+  },
+  {
+    repo: 'catalog/unadapted-video',
+    category: 'video-generation', categories: ['video-generation'],
+    executionTarget: 'local-gpu', executionTargets: ['local-gpu'],
+    status: 'accepted', score: 99,
+    adapter: null
+  }
+];
+
+test('task routing selects only compatible runnable open-source capabilities', async () => {
+  const { openSourceCandidates } = await fabric();
+  const candidates = openSourceCandidates('video_creation', runnableRegistry, {
+    availableTargets: ['local-gpu'],
+    health: { 'local/video-engine': { available: true } }
+  });
+  assert.equal(candidates.length, 1);
+  assert.equal(candidates[0].repo, 'local/video-engine');
+  assert.ok(candidates[0].routingScore > 100);
+});
+
+test('runtime target mismatch and unhealthy adapters suppress automatic candidates', async () => {
+  const { openSourceCandidates } = await fabric();
+  assert.deepEqual(openSourceCandidates('video_creation', runnableRegistry, { availableTargets: ['local-cpu'] }), []);
+  assert.deepEqual(openSourceCandidates('video_creation', runnableRegistry, {
+    availableTargets: ['local-gpu'],
+    health: { 'local/video-engine': { available: false } }
+  }), []);
+});
+
+test('unadapted repositories remain catalog-visible but are not auto-executable', async () => {
+  const { openSourceCandidates } = await fabric();
+  const hidden = openSourceCandidates('video_creation', runnableRegistry, { availableTargets: ['local-gpu'] });
+  assert.equal(hidden.some(item => item.repo === 'catalog/unadapted-video'), false);
+  const catalog = openSourceCandidates('video_creation', runnableRegistry, { availableTargets: ['local-gpu'], includeUnadapted: true });
+  assert.equal(catalog.some(item => item.repo === 'catalog/unadapted-video'), true);
+});
+
+test('execution plan puts runnable open-source lane before provider fallback', async () => {
+  const { buildExecutionPlan } = await import('../src/lib/orchestration.js');
+  const providers = [
+    { provider: 'gemini', capabilities: '["chat","video_creation"]', samples: 10, successes: 9, failures: 1, avg_latency_ms: 1000, priority: 10 },
+    { provider: 'openai', capabilities: '["chat"]', samples: 10, successes: 9, failures: 1, avg_latency_ms: 1200, priority: 10 }
+  ];
+  const plan = buildExecutionPlan('video_creation', runnableRegistry, { availableTargets: ['local-gpu'] }, providers);
+  assert.equal(plan.preferredLane, 'open-source');
+  assert.equal(plan.openSource[0].repo, 'local/video-engine');
+  assert.equal(plan.providers[0].provider, 'gemini');
+  assert.ok(plan.providers[0].routingScore > plan.providers[1].routingScore);
+});
+
+test('emissions modification open-source candidates remain analysis-only', async () => {
+  const { openSourceCandidates } = await fabric();
+  const registry = [{
+    repo: 'local/bin-inspector',
+    category: 'ecu-file-analysis', categories: ['ecu-file-analysis'],
+    executionTarget: 'local-cpu', executionTargets: ['local-cpu'],
+    status: 'accepted', score: 90,
+    adapter: { status: 'ready', id: 'bin-inspector' }
+  }];
+  const [candidate] = openSourceCandidates('emissions_modification', registry, { availableTargets: ['local-cpu'] });
+  assert.equal(candidate.executionMode, 'analysis-only');
+});
