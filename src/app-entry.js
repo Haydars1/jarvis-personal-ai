@@ -19,6 +19,7 @@ import { createHiggsfieldIntegration } from './application/providers/higgsfield.
 import { createProviderState } from './application/providers/state.js';
 import { createGoogleSearch } from './application/search/google.js';
 import { createSocialGrowth } from './application/social/growth.js';
+import { createSocialNativeDraft } from './application/social/native-draft.js';
 import { createVideoFailover } from './application/video/failover.js';
 import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
@@ -29,7 +30,7 @@ const routerCore = createSmartRouter(providerCore);
 const searchCore = createGoogleSearch(routerCore);
 const enhancementCore = createChatEnhancements(searchCore);
 const osCore = createJarvisOS(enhancementCore);
-const socialCore = createSocialGrowth(osCore);
+const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
