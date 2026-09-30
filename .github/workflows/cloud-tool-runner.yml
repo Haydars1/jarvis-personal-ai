@@ -2,6 +2,16 @@ name: JARVIS Cloud Tool Runner
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/scripts/cloud-tool-runner.mjs'
+      - 'src/application/capabilities/**'
+      - 'src/lib/repo-skill-compiler.js'
+      - 'src/lib/skill-learning.js'
+      - 'src/lib/native-skill-adapters.js'
+      - 'docs/releases/**'
   schedule:
     - cron: '*/5 * * * *'
 
@@ -29,7 +39,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Run one queued cloud capability job
+      - name: Run queued cloud capability batch
         env:
           JARVIS_URL: https://haydojarvis.workers.dev
         run: node .github/scripts/cloud-tool-runner.mjs
