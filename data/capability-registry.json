@@ -278,7 +278,7 @@
       "license": "MIT",
       "reasons": [],
       "stars": 95700,
-      "forks": 16846,
+      "forks": 16847,
       "language": null,
       "pushedAt": "2026-09-27T02:12:17Z",
       "topics": [
@@ -384,7 +384,7 @@
       "license": "MIT",
       "reasons": [],
       "stars": 116784,
-      "forks": 12882,
+      "forks": 12883,
       "language": "Python",
       "pushedAt": "2026-09-30T01:29:10Z",
       "topics": [
@@ -3280,10 +3280,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 129949,
-      "forks": 23924,
+      "stars": 129950,
+      "forks": 23925,
       "language": "C++",
-      "pushedAt": "2026-09-30T10:07:26Z",
+      "pushedAt": "2026-09-30T10:23:10Z",
       "topics": [
         "ggml"
       ],
@@ -3426,7 +3426,7 @@
       "stars": 14,
       "forks": 0,
       "language": "Rust",
-      "pushedAt": "2026-09-30T09:10:14Z",
+      "pushedAt": "2026-09-30T10:29:41Z",
       "topics": [
         "ai",
         "apple-silicon",
@@ -4652,7 +4652,7 @@
       "stars": 34885,
       "forks": 2713,
       "language": "Rust",
-      "pushedAt": "2026-09-30T09:54:21Z",
+      "pushedAt": "2026-09-30T10:28:32Z",
       "topics": [
         "ai-search",
         "ai-search-engine",
@@ -5775,7 +5775,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54035,
+      "stars": 54036,
       "forks": 6200,
       "language": "C++",
       "pushedAt": "2026-09-28T18:35:46Z",
@@ -5810,7 +5810,7 @@
       "stars": 655,
       "forks": 119,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:18:35Z",
+      "pushedAt": "2026-09-30T10:29:14Z",
       "topics": [
         "ai-sdk",
         "decentralized-ai",
@@ -6851,7 +6851,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 61211,
+      "stars": 61214,
       "forks": 4724,
       "language": "TypeScript",
       "pushedAt": "2026-09-30T10:06:59Z",
@@ -7190,10 +7190,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 24802,
+      "stars": 24803,
       "forks": 4276,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:19:38Z",
+      "pushedAt": "2026-09-30T10:26:44Z",
       "topics": [
         "ai-agent",
         "ai-agent-tools",
@@ -7232,9 +7232,9 @@
         "license missing, unknown or not allowlisted"
       ],
       "stars": 206333,
-      "forks": 60946,
+      "forks": 60945,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:21:06Z",
+      "pushedAt": "2026-09-30T10:30:14Z",
       "topics": [
         "ai",
         "apis",
