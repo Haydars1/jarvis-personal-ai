@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 
 const source=readFileSync(new URL('../.github/workflows/jarvis-codex-agent.yml',import.meta.url),'utf8');
 
@@ -33,4 +33,24 @@ test('agent never pushes its work back to the stale learning branch',()=>{
 test('scheduled Codex fallback explicitly trusts only the GitHub Actions bot actor',()=>{
   assert.match(source,/allow-bot-users:\s*["']?github-actions\[bot\]["']?/);
   assert.doesNotMatch(source,/allow-users:\s*["']?\*["']?/);
+});
+
+test('autonomous workflow falls back to a keyless local coding model after hosted providers fail',()=>{
+  assert.match(source,/Run keyless local coding fallback/);
+  assert.match(source,/steps\.localcoder\.outcome/);
+  assert.match(source,/run-local-coder-fallback\.sh/);
+  assert.match(source,/actions\/cache@v4/);
+});
+
+test('keyless local coder is conservative, local and test gated',()=>{
+  const scriptUrl=new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url);
+  assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
+  const script=readFileSync(scriptUrl,'utf8');
+  assert.match(script,/Qwen\/Qwen3-1\.7B-GGUF:Q4_K_M/);
+  assert.match(script,/llama-server/);
+  assert.match(script,/127\.0\.0\.1:8080\/v1/);
+  assert.match(script,/opencode run/);
+  assert.match(script,/npm run check/);
+  assert.match(script,/git reset --hard HEAD/);
+  assert.doesNotMatch(script,/https?:\/\/api\.(openai|anthropic|mistral|groq|x\.ai)/);
 });
