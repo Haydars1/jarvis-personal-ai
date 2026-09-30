@@ -44,6 +44,7 @@ test('agent never pushes its work back to the stale learning branch',()=>{
 });
 
 test('scheduled Codex fallback explicitly trusts only the GitHub Actions bot actor',()=>{
+  assert.match(source,/allow-bots:\s*true/);
   assert.match(source,/allow-bot-users:\s*["']?github-actions\[bot\]["']?/);
   assert.doesNotMatch(source,/allow-users:\s*["']?\*["']?/);
 });
@@ -54,7 +55,8 @@ test('autonomous workflow tries keyless local coding before paid Codex fallback'
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
   assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
-  assert.match(source,/key:\s*jarvis-local-coder-v2-\$\{\{ runner\.os \}\}-qwen3-1\.7b-q8/);
+  assert.match(source,/key:\s*jarvis-local-coder-v3-\$\{\{ runner\.os \}\}-qwen2\.5-coder-1\.5b-q4/);
+  assert.match(source,/save-always:\s*true/);
 });
 
 test('autonomous workflow falls back to a keyless local coding model after hosted providers fail',()=>{
@@ -64,12 +66,15 @@ test('autonomous workflow falls back to a keyless local coding model after hoste
   assert.match(source,/actions\/cache@v4/);
 });
 
-test('keyless local coder is conservative, local and test gated',()=>{
+test('keyless local coder is coding-tuned, compact, local and test gated',()=>{
   const scriptUrl=new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url);
   assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
   const script=readFileSync(scriptUrl,'utf8');
-  assert.match(script,/Qwen\/Qwen3-1\.7B-GGUF:Q8_0/);
-  assert.doesNotMatch(script,/Qwen\/Qwen3-1\.7B-GGUF:Q4_K_M/);
+  assert.match(script,/Qwen\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF:Q4_K_M/);
+  assert.doesNotMatch(script,/Qwen\/Qwen3-1\.7B-GGUF/);
+  assert.match(script,/"context": 8192/);
+  assert.match(script,/"output": 2048/);
+  assert.match(script,/--ctx-size 8192/);
   assert.match(script,/llama-server/);
   assert.match(script,/127\.0\.0\.1:8080\/v1/);
   assert.match(script,/opencode run/);
