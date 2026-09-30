@@ -138,11 +138,12 @@ jobs:
           git clean -fd
 
       - name: Restore keyless local coder cache
+        id: localcache
         if: ${{ steps.multiprovider.outcome != 'success' }}
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v2-${{ runner.os }}-qwen3-1.7b-q8
+          key: jarvis-local-coder-v3-${{ runner.os }}-qwen2.5-coder-1.5b-q4
 
       - name: Run keyless local coding fallback
         id: localcoder
@@ -151,6 +152,13 @@ jobs:
         timeout-minutes: 15
         shell: bash
         run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
+
+      - name: Save keyless local coder cache
+        if: ${{ always() && steps.multiprovider.outcome != 'success' && steps.localcache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/jarvis-local-coder
+          key: jarvis-local-coder-v3-${{ runner.os }}-qwen2.5-coder-1.5b-q4
 
       - name: Reset failed local coding work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
@@ -167,6 +175,7 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
           safety-strategy: drop-sudo
+          allow-bots: true
           allow-bot-users: "github-actions[bot]"
           prompt: |
             Work only in this repository on the current jarvis/auto-* branch.
@@ -222,8 +231,8 @@ jobs:
             provider="$PRIMARY_PROVIDER"
             model="${PRIMARY_MODEL:-unknown}"
           elif [ "${LOCAL_OUTCOME:-}" = "success" ]; then
-            provider="${LOCAL_PROVIDER:-Local Qwen3}"
-            model="${LOCAL_MODEL:-Qwen/Qwen3-1.7B-GGUF:Q8_0}"
+            provider="${LOCAL_PROVIDER:-Local Qwen2.5 Coder}"
+            model="${LOCAL_MODEL:-Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M}"
           elif [ "${CODEX_OUTCOME:-}" = "success" ]; then
             provider="Codex fallback"
             model="OpenAI Codex"
