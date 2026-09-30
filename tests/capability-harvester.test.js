@@ -52,35 +52,37 @@ test('package exposes metadata harvester command and syntax checks it', () => {
   assert.match(pkg.scripts['check:syntax'], /harvest-capabilities\.mjs/);
 });
 
-test('repository contains a versioned capability registry document', () => {
+test('repository contains a populated versioned capability registry document', () => {
   assert.ok(existsSync(registryPath), 'data/capability-registry.json must exist');
   const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
   assert.equal(registry.schemaVersion, 1);
   assert.ok(Array.isArray(registry.entries));
+  assert.ok(registry.entries.length >= 100, 'real harvested registry should stay populated');
 });
 
-test('scheduled harvester is metadata-only and promotes changes through a tested PR', () => {
+test('scheduled harvester is metadata-only and validates before promotion', () => {
   assert.ok(existsSync(workflowPath), 'capability harvest workflow must exist');
   const source = readFileSync(workflowPath, 'utf8');
   assert.match(source, /schedule:/);
   assert.match(source, /cron:\s*['"][^'"]+['"]/);
   assert.match(source, /workflow_dispatch:/);
   assert.match(source, /contents:\s*write/);
-  assert.match(source, /pull-requests:\s*write/);
   assert.match(source, /npm run harvest:capabilities/);
   assert.match(source, /npm run check/);
   assert.match(source, /wrangler deploy --dry-run/);
-  assert.match(source, /jarvis\/capability-harvest-/);
-  assert.match(source, /gh pr create/);
   assert.doesNotMatch(source, /git clone.*(?:repo|url|registry)/i);
   assert.doesNotMatch(source, /npm install.*(?:discovered|registry|third-party)/i);
 });
 
-test('harvester can bootstrap after the self-update merge despite GITHUB_TOKEN recursion protection', () => {
+test('tested registry refresh promotes directly to main without forbidden PR creation', () => {
   const source = readFileSync(workflowPath, 'utf8');
-  assert.match(source, /workflow_run:/);
-  assert.match(source, /JARVIS Self Update Test \+ Merge/);
-  assert.match(source, /types:\s*\[completed\]/);
-  assert.match(source, /workflow_run\.conclusion\s*==\s*'success'/);
-  assert.match(source, /feature\/capability-harvest/);
+  assert.match(source, /git diff --quiet -- data\/capability-registry\.json/);
+  assert.match(source, /git add data\/capability-registry\.json/);
+  assert.doesNotMatch(source, /git add -A/);
+  assert.match(source, /git fetch origin main/);
+  assert.match(source, /origin\/main/);
+  assert.match(source, /HEAD\^/);
+  assert.match(source, /git push origin HEAD:main/);
+  assert.doesNotMatch(source, /gh pr create/);
+  assert.doesNotMatch(source, /pull-requests:\s*write/);
 });
