@@ -23,6 +23,19 @@ function sourcePriority(source = '') {
   return source === 'curated' ? 3 : source === 'awesome-catalog' ? 2 : source === 'github-search' ? 1 : 0;
 }
 
+function curatedPolicy(previous = {}, normalized = {}) {
+  const curated = [previous, normalized].filter(entry => entry?.source === 'curated');
+  const policy = curated[0] || null;
+  if (!policy) return {};
+  return {
+    autoExecute: curated.some(entry => entry.autoExecute === false) ? false : policy.autoExecute,
+    restriction: curated.map(entry => entry.restriction).find(Boolean) || null,
+    catalogSource: curated.map(entry => entry.catalogSource).find(Boolean) || null,
+    guidePage: curated.map(entry => entry.guidePage).find(value => Number.isFinite(Number(value))) ?? null,
+    requiresModelLicenseCheck: curated.some(entry => entry.requiresModelLicenseCheck === true) || Boolean(policy.requiresModelLicenseCheck)
+  };
+}
+
 export function dedupeRepositories(entries = []) {
   const byRepo = new Map();
   for (const raw of Array.isArray(entries) ? entries : []) {
@@ -47,9 +60,11 @@ export function dedupeRepositories(entries = []) {
     const source = sourcePriority(normalized.source) > sourcePriority(previous.source) ? normalized.source : previous.source;
     const mergedCategories = uniqSorted([...previous.categories, ...normalized.categories]);
     const mergedTargets = uniqSorted([...previous.executionTargets, ...normalized.executionTargets]);
+    const policy = curatedPolicy(previous, normalized);
     byRepo.set(key, {
       ...previous,
       ...best,
+      ...policy,
       repo: previous.repo || normalized.repo,
       category: mergedCategories[0] || best.category,
       categories: mergedCategories,
@@ -148,14 +163,15 @@ export async function harvestCapabilities({
     }
   }
 
+  const entries = sortRegistry(dedupeRepositories(discovered));
   return {
     schemaVersion: 1,
-    entries: sortRegistry(dedupeRepositories(discovered)),
+    entries,
     stats: {
       queries: CAPABILITY_DISCOVERY_QUERIES.length,
       curatedSeeds: CURATED_CAPABILITY_SEEDS.length,
       candidates: discovered.length,
-      uniqueRepositories: dedupeRepositories(discovered).length,
+      uniqueRepositories: entries.length,
       errors: errors.length
     }
   };
@@ -178,7 +194,10 @@ async function main() {
     acc[entry.status] = (acc[entry.status] || 0) + 1;
     return acc;
   }, {});
-  console.log(JSON.stringify({ entries: stable.entries.length, status: counts }, null, 2));
+  const repos = new Set(stable.entries.map(entry => String(entry.repo).toLowerCase()));
+  const missingCurated = CURATED_CAPABILITY_SEEDS.map(seed => seed.repo).filter(repo => !repos.has(repo.toLowerCase()));
+  if (missingCurated.length) throw new Error(`Registry missing curated seeds: ${missingCurated.join(', ')}`);
+  console.log(JSON.stringify({ entries: stable.entries.length, curatedSeeds: CURATED_CAPABILITY_SEEDS.length, missingCurated: 0, status: counts }, null, 2));
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
