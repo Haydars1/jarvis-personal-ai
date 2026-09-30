@@ -3,6 +3,7 @@ import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
+import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
@@ -46,7 +47,8 @@ const mediaCore = {
 };
 
 const ecuCore = createEcuChannelStore(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore)));
-const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
+const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
+const handleChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
 const handlePush = createPushApi(cloudToolCore);
 
 function shouldFlushPush(req, response) {
