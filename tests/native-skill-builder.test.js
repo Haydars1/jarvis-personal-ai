@@ -43,3 +43,18 @@ test('skill discovery upgrades learned skills when JARVIS already has a matching
   assert.match(source,/resolveNativeSkillAdapter/);
   assert.match(source,/adapter_status.*ready/s);
 });
+
+test('chat orchestrator attempts a ready learned skill before paid provider experts',()=>{
+  const source=read('src/application/chat/orchestrator.js');
+  assert.match(source,/readySkillCandidate/);
+  assert.match(source,/skillFirstResponse/);
+  assert.match(source,/adapter_status\s*===\s*['"]ready['"]/);
+  assert.match(source,/native_adapter/);
+  assert.match(source,/kind:\s*['"]skill['"]/);
+  const orchestrated=source.slice(source.indexOf('async function orchestratedChat'));
+  const skillIndex=orchestrated.indexOf('skillFirstResponse(');
+  const expertIndex=orchestrated.indexOf('getExperts(env,text');
+  assert.ok(skillIndex>=0&&expertIndex>skillIndex);
+  const simple=source.slice(source.indexOf('async function simpleChat'),source.indexOf('async function orchestratedChat'));
+  assert.ok(simple.indexOf('skillFirstResponse(')>=0&&simple.indexOf('getExperts(env,text')>simple.indexOf('skillFirstResponse('));
+});
