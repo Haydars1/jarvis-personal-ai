@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
 const source=readFileSync(new URL('../.github/workflows/jarvis-codex-agent.yml',import.meta.url),'utf8');
+const selfUpdate=readFileSync(new URL('../.github/workflows/jarvis-self-update.yml',import.meta.url),'utf8');
 
 test('autonomous dev workflow has off-peak quarter-hour schedule',()=>{
   assert.match(source,/cron:\s*'7,22,37,52 \* \* \* \*'/);
@@ -17,6 +18,12 @@ test('skill builder fetches backlog from the canonical production worker',()=>{
   assert.match(source,/JARVIS_URL:\s*https:\/\/jarvis-personal-ai\.haydojarvis\.workers\.dev/);
   assert.doesNotMatch(source,/JARVIS_URL:\s*https:\/\/haydojarvis\.workers\.dev/);
   assert.match(source,/\/api\/tools\/skills\/runner\/backlog\?limit=8/);
+});
+
+test('self-update CI tests fix branches as well as feature and autonomous branches',()=>{
+  assert.match(selfUpdate,/startsWith\(github\.head_ref, 'fix\/'\)/);
+  assert.match(selfUpdate,/startsWith\(github\.head_ref, 'feature\/'\)/);
+  assert.match(selfUpdate,/startsWith\(github\.head_ref, 'jarvis\/'\)/);
 });
 
 test('verified autonomous work is promoted through a fresh PR',()=>{
