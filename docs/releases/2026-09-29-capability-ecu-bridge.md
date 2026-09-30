@@ -14,11 +14,12 @@ Included:
 - persistent D1 repo_skills registry and /api/tools/discover skill discovery
 - automatic bounded learning of unlearned curated repositories
 - cloud-runner self-seeding: each 5-minute cloud runner pass can enqueue a bounded batch of unlearned repositories using GitHub OIDC, then learn them in the same pass
+- immediate main-push trigger for relevant skill/cloud-runner changes and release verification
 - native adapter resolver for JARVIS capabilities that already exist
 - OIDC-protected native-skill backlog for the autonomous developer
 - clean-room skill reimplementation workflow so missing repository capabilities can become JARVIS-native skills without blindly copying third-party source
 
-This marker intentionally triggers the normal main-branch production deployment workflow so schema migration, build validation and production smoke checks run on the merged code.
+This marker intentionally triggers the normal main-branch production deployment workflow and the GitHub-hosted cloud skill runner so schema migration, build validation, production smoke checks, and real repository-skill learning can be verified on the merged code.
 
 Additional production routing:
 - ECU chat commands such as DTC read, live data, long-coding read and adaptation read are converted to real local-bridge jobs.
