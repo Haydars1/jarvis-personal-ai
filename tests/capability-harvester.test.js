@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { CURATED_CAPABILITY_SEEDS } from '../src/lib/open-source-capabilities.js';
 
 const harvesterUrl = new URL('../.github/scripts/harvest-capabilities.mjs', import.meta.url);
 const harvesterPath = fileURLToPath(harvesterUrl);
@@ -33,6 +34,43 @@ test('harvester deduplicates repositories while preserving capability coverage',
   assert.deepEqual(entries[0].executionTargets, ['local-cpu', 'local-gpu']);
   assert.equal(entries[0].score, 91);
   assert.equal(entries[0].source, 'curated');
+});
+
+test('curated catalog restrictions survive a higher-scored search duplicate', async () => {
+  const { dedupeRepositories } = await harvester();
+  const [entry] = dedupeRepositories([
+    {
+      repo: 'restricted/video', category: 'video-generation', categories: ['video-generation'],
+      executionTarget: 'local-gpu', executionTargets: ['local-gpu'], score: 99,
+      status: 'accepted', source: 'github-search', autoExecute: true
+    },
+    {
+      repo: 'restricted/video', category: 'video-generation', categories: ['video-generation'],
+      executionTarget: 'catalog-only', executionTargets: ['catalog-only'], score: 40,
+      status: 'quarantine', source: 'curated', autoExecute: false,
+      restriction: 'region/license restriction', catalogSource: 'uploaded-pdf-2026-09-30', guidePage: 9
+    }
+  ]);
+  assert.equal(entry.autoExecute, false);
+  assert.equal(entry.restriction, 'region/license restriction');
+  assert.equal(entry.catalogSource, 'uploaded-pdf-2026-09-30');
+  assert.equal(entry.guidePage, 9);
+  assert.ok(entry.executionTargets.includes('catalog-only'));
+});
+
+test('harvest retains every curated seed even when GitHub metadata lookup fails', async () => {
+  const { harvestCapabilities } = await harvester();
+  const fetchImpl = async url => ({
+    ok: String(url).includes('/search/repositories'),
+    status: String(url).includes('/search/repositories') ? 200 : 404,
+    async json() { return { items: [] }; },
+    async text() { return ''; }
+  });
+  const registry = await harvestCapabilities({ fetchImpl, token: '', limit: 1, delayMs: 0, now: Date.parse('2026-09-30T10:00:00Z') });
+  const repos = new Set(registry.entries.map(entry => entry.repo));
+  const missing = CURATED_CAPABILITY_SEEDS.map(seed => seed.repo).filter(repo => !repos.has(repo));
+  assert.deepEqual(missing, []);
+  assert.equal(CURATED_CAPABILITY_SEEDS.length, 154);
 });
 
 test('registry sorting is deterministic by capability then score then repo', async () => {
@@ -70,6 +108,7 @@ test('scheduled harvester is metadata-only and validates before promotion', () =
   assert.match(source, /npm run harvest:capabilities/);
   assert.match(source, /npm run check/);
   assert.match(source, /wrangler deploy --dry-run/);
+  assert.match(source, /src\/lib\/pdf-guide-seeds\.js/);
   assert.doesNotMatch(source, /git clone.*(?:repo|url|registry)/i);
   assert.doesNotMatch(source, /npm install.*(?:discovered|registry|third-party)/i);
 });
