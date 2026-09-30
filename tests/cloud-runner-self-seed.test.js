@@ -5,10 +5,17 @@ import { readFileSync } from 'node:fs';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
 test('OIDC cloud runner can request a bounded skill-learning batch before claiming work',()=>{
-  const runtime=read('src/application/capabilities/cloud-execution.js');
-  assert.match(runtime,/\/api\/tools\/cloud\/runner\/seed-learning/);
-  assert.match(runtime,/queueSkillLearningBatch/);
-  assert.match(runtime,/Math\.min\(8/);
+  const seeding=read('src/application/capabilities/skill-seeding.js');
+  assert.match(seeding,/\/api\/tools\/cloud\/runner\/seed-learning/);
+  assert.match(seeding,/queueSkillLearningBatch/);
+  assert.match(seeding,/Math\.min\(8/);
+  assert.match(seeding,/verifyRunnerJwt/);
+});
+
+test('skill seeding middleware is composed into the Worker tool stack',()=>{
+  const app=read('src/app-entry.js');
+  assert.match(app,/createSkillSeeding/);
+  assert.match(app,/createSkillSeeding\(createCloudCapabilityExecution\(capabilityCore\)\)/);
 });
 
 test('cloud runner seeds learning queue before claiming jobs',()=>{
