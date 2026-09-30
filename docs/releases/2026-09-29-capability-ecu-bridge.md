@@ -18,6 +18,7 @@ Included:
 - native adapter resolver for JARVIS capabilities that already exist
 - OIDC-protected native-skill backlog for the autonomous developer
 - clean-room skill reimplementation workflow so missing repository capabilities can become JARVIS-native skills without blindly copying third-party source
+- runtime verification retry uses the canonical deployed Worker hostname `jarvis-personal-ai.haydojarvis.workers.dev`
 
 This marker intentionally triggers the normal main-branch production deployment workflow and the GitHub-hosted cloud skill runner so schema migration, build validation, production smoke checks, and real repository-skill learning can be verified on the merged code.
 
