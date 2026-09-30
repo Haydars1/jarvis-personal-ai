@@ -1,3 +1,4 @@
+import { jsonResponse } from '../../lib/runtime.js';
 import { parseEcuDeviceIntent, ECU_DEVICE_ACTIONS } from '../ecu/device-bridge.js';
 
 const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge']);
@@ -84,4 +85,24 @@ export async function executeFirstNativeSkill(core,req,env,ctx,text,rows=[]){
     if(result)return result;
   }
   return null;
+}
+
+async function discoverSkills(core,req,env,ctx,text){
+  const url=new URL('/api/tools/discover',req.url);url.searchParams.set('capability',text);
+  const response=await core.fetch(new Request(url,{headers:req.headers}),env,ctx);
+  if(!response.ok)return [];
+  try{return (await response.json())?.results||[];}catch{return [];}
+}
+
+export function createNativeSkillFirstChat(core,fallback){
+  if(!core?.fetch||typeof fallback!=='function')throw new Error('NATIVE_SKILL_GATE_REQUIRED');
+  return async function handleNativeSkillFirst(req,env,ctx){
+    let body={};try{body=await req.clone().json();}catch{}
+    const text=String(body?.text||'').trim();
+    if(!text)return fallback(req,env,ctx);
+    const rows=await discoverSkills(core,req,env,ctx,text).catch(()=>[]);
+    const payload=await executeFirstNativeSkill(core,req,env,ctx,text,rows).catch(()=>null);
+    if(payload)return jsonResponse(payload);
+    return fallback(req,env,ctx);
+  };
 }
