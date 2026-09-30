@@ -12,6 +12,7 @@ on:
       - '.github/workflows/capability-harvest.yml'
       - '.github/scripts/harvest-capabilities.mjs'
       - 'src/lib/open-source-capabilities.js'
+      - 'src/lib/pdf-guide-seeds.js'
 
 permissions:
   contents: write
