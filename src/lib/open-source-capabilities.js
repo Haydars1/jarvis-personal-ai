@@ -1,3 +1,5 @@
+import { PDF_GUIDE_ADDITIONAL_SEEDS } from './pdf-guide-seeds.js';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const PERMISSIVE_LICENSES = new Set([
@@ -16,32 +18,48 @@ const RISK_RE = /\b(malware|ransomware|keylogger|spyware|rootkit|botnet|phishing
 export const CAPABILITY_DISCOVERY_QUERIES = Object.freeze([
   { category: 'local-llm', executionTarget: 'local-cpu', query: 'local LLM inference ollama llama.cpp archived:false' },
   { category: 'coding-agent', executionTarget: 'local-cpu', query: 'coding agent CLI AI pair programming archived:false' },
+  { category: 'agent-framework', executionTarget: 'local-cpu', query: 'multi agent framework autonomous agent archived:false' },
   { category: 'browser-agent', executionTarget: 'local-cpu', query: 'browser agent playwright automation AI archived:false' },
   { category: 'computer-use', executionTarget: 'local-cpu', query: 'computer use desktop automation agent archived:false' },
   { category: 'workflow-rpa', executionTarget: 'external-service', query: 'self hosted workflow automation RPA archived:false' },
   { category: 'crawler-scraper', executionTarget: 'local-cpu', query: 'web crawler scraping browser automation archived:false' },
   { category: 'research-search', executionTarget: 'local-cpu', query: 'open source AI research search engine archived:false' },
   { category: 'image-generation', executionTarget: 'local-gpu', query: 'ComfyUI stable diffusion image generation archived:false' },
+  { category: 'image-processing', executionTarget: 'local-cpu', query: 'image upscaler background removal local archived:false' },
   { category: 'video-generation', executionTarget: 'local-gpu', query: 'video generation ComfyUI Wan LTX archived:false' },
   { category: 'video-editing-render', executionTarget: 'local-cpu', query: 'ffmpeg remotion video rendering automation archived:false' },
+  { category: 'video-capture-streaming', executionTarget: 'local-cpu', query: 'video capture streaming recording open source archived:false' },
   { category: 'speech-to-text', executionTarget: 'local-cpu', query: 'whisper speech to text local inference archived:false' },
   { category: 'text-to-speech', executionTarget: 'local-gpu', query: 'local text to speech TTS voice synthesis archived:false' },
   { category: 'ocr-document', executionTarget: 'local-cpu', query: 'OCR document parser local AI archived:false' },
   { category: 'rag-vector-memory', executionTarget: 'local-cpu', query: 'vector database RAG local memory archived:false' },
+  { category: 'fine-tuning', executionTarget: 'local-gpu', query: 'LLM fine tuning training LoRA archived:false' },
   { category: 'mcp-tooling', executionTarget: 'local-cpu', query: 'MCP server model context protocol archived:false' },
   { category: 'social-automation', executionTarget: 'external-service', query: 'social media automation instagram facebook scheduler archived:false' },
+  { category: 'smart-home', executionTarget: 'local-cpu', query: 'smart home local automation home assistant archived:false' },
+  { category: 'voice-assistant', executionTarget: 'local-cpu', query: 'offline voice assistant wake word archived:false' },
+  { category: 'iot-messaging', executionTarget: 'local-cpu', query: 'MQTT IoT messaging self hosted archived:false' },
+  { category: 'messaging-bot', executionTarget: 'external-service', query: 'telegram bot framework archived:false' },
   { category: 'devops-observability', executionTarget: 'external-service', query: 'self hosted observability devops automation archived:false' },
+  { category: 'media-download-archive', executionTarget: 'local-cpu', query: 'media downloader web archive local archived:false' },
+  { category: 'dev-tool', executionTarget: 'local-cpu', query: 'open source developer editor IDE archived:false' },
+  { category: 'cad-design', executionTarget: 'local-cpu', query: 'open source CAD parametric 3d archived:false' },
   { category: 'ecu-file-analysis', executionTarget: 'local-cpu', query: 'ECU tuning editor binary calibration archived:false' },
+  { category: 'ecu-firmware', executionTarget: 'device', query: 'open source ECU firmware engine control archived:false' },
   { category: 'ecu-diagnostics', executionTarget: 'device', query: 'automotive ECU diagnostic OBD tool archived:false' },
   { category: 'can-uds-obd', executionTarget: 'device', query: 'CAN UDS OBD ISO14229 automotive archived:false' },
   { category: 'device-bridge', executionTarget: 'device', query: 'J2534 passthru automotive diagnostic archived:false' },
+  { category: 'vehicle-dataset', executionTarget: 'local-cpu', query: 'automotive DBC CAN definitions archived:false' },
+  { category: 'vehicle-platform', executionTarget: 'device', query: 'open source vehicle platform driver assistance archived:false' },
+  { category: 'binary-analysis', executionTarget: 'local-cpu', query: 'firmware reverse engineering binary analysis archived:false' },
   { category: 'data-analysis', executionTarget: 'local-cpu', query: 'local data analysis dataframe agent archived:false' },
   { category: 'audio-processing', executionTarget: 'local-cpu', query: 'audio processing ffmpeg local AI archived:false' },
   { category: 'translation', executionTarget: 'local-cpu', query: 'local machine translation inference archived:false' },
-  { category: 'automation-catalog', executionTarget: 'external-service', query: 'awesome MCP servers local AI automation archived:false' }
+  { category: 'automation-catalog', executionTarget: 'external-service', query: 'awesome MCP servers local AI automation archived:false' },
+  { category: 'learning-resource', executionTarget: 'catalog-only', query: 'AI learning guide tutorial course archived:false' }
 ]);
 
-export const CURATED_CAPABILITY_SEEDS = Object.freeze([
+const BASE_CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'ollama/ollama', category: 'local-llm', executionTarget: 'local-cpu' },
   { repo: 'ggml-org/llama.cpp', category: 'local-llm', executionTarget: 'local-cpu' },
   { repo: 'open-webui/open-webui', category: 'local-llm', executionTarget: 'local-cpu' },
@@ -73,22 +91,27 @@ export const CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'RallyPat/LibreTune', category: 'ecu-file-analysis', executionTarget: 'local-cpu' }
 ]);
 
+export const CURATED_CAPABILITY_SEEDS = Object.freeze([
+  ...BASE_CURATED_CAPABILITY_SEEDS,
+  ...PDF_GUIDE_ADDITIONAL_SEEDS
+]);
+
 const TASK_CATEGORY_PRIORITY = Object.freeze({
-  chat: ['local-llm'],
-  coding: ['coding-agent', 'local-llm', 'mcp-tooling'],
-  research: ['research-search', 'crawler-scraper', 'browser-agent', 'rag-vector-memory', 'local-llm'],
+  chat: ['local-llm', 'voice-assistant'],
+  coding: ['coding-agent', 'agent-framework', 'dev-tool', 'local-llm', 'mcp-tooling'],
+  research: ['research-search', 'crawler-scraper', 'browser-agent', 'media-download-archive', 'rag-vector-memory', 'local-llm'],
   reporting: ['research-search', 'ocr-document', 'rag-vector-memory', 'local-llm'],
-  social_strategy: ['social-automation', 'workflow-rpa', 'video-generation', 'image-generation', 'text-to-speech'],
-  video_creation: ['video-generation', 'video-editing-render', 'image-generation', 'text-to-speech'],
-  image: ['image-generation'],
+  social_strategy: ['social-automation', 'workflow-rpa', 'video-generation', 'video-editing-render', 'image-generation', 'text-to-speech'],
+  video_creation: ['video-generation', 'video-editing-render', 'video-capture-streaming', 'image-generation', 'image-processing', 'text-to-speech'],
+  image: ['image-generation', 'image-processing'],
   audio: ['speech-to-text', 'text-to-speech', 'audio-processing'],
   translation: ['translation', 'local-llm'],
-  ecu_diagnostics: ['ecu-diagnostics', 'can-uds-obd', 'device-bridge', 'local-llm'],
-  ecu_file_analysis: ['ecu-file-analysis', 'local-llm'],
-  vehicle_coding: ['can-uds-obd', 'ecu-diagnostics', 'device-bridge'],
+  ecu_diagnostics: ['ecu-diagnostics', 'can-uds-obd', 'vehicle-dataset', 'device-bridge', 'local-llm'],
+  ecu_file_analysis: ['ecu-file-analysis', 'binary-analysis', 'vehicle-dataset', 'local-llm'],
+  vehicle_coding: ['can-uds-obd', 'ecu-diagnostics', 'vehicle-dataset', 'device-bridge'],
   service_procedure: ['can-uds-obd', 'ecu-diagnostics', 'device-bridge'],
-  performance_calibration: ['ecu-file-analysis', 'local-llm'],
-  emissions_modification: ['ecu-file-analysis']
+  performance_calibration: ['ecu-file-analysis', 'binary-analysis', 'local-llm'],
+  emissions_modification: ['ecu-file-analysis', 'binary-analysis']
 });
 
 function clamp(value, min, max) {
@@ -194,6 +217,11 @@ export function normalizeRepository(repo = {}, hints = {}, now = Date.now()) {
     pushedAt: repo?.pushed_at ? String(repo.pushed_at) : null,
     topics: safeTopics(repo).sort(),
     source: String(hints.source || 'github-search'),
+    catalogSource: hints.catalogSource ? String(hints.catalogSource) : null,
+    guidePage: Number.isFinite(Number(hints.guidePage)) ? Number(hints.guidePage) : null,
+    autoExecute: hints.autoExecute !== false,
+    restriction: hints.restriction ? String(hints.restriction) : null,
+    requiresModelLicenseCheck: ['image-generation', 'video-generation', 'text-to-speech', 'local-llm', 'fine-tuning'].includes(category),
     adapter: hints.adapter || null
   };
 }
@@ -207,6 +235,7 @@ export function openSourceCandidates(kind = 'chat', registry = [], runtimeContex
 
   for (const entry of Array.isArray(registry) ? registry : []) {
     if (!entry || !['accepted', 'external-only'].includes(String(entry.status))) continue;
+    if (entry.autoExecute === false) continue;
     const categories = listField(entry.categories, entry.category ? [entry.category] : []);
     const matchIndexes = categories.map(category => priorities.indexOf(category)).filter(index => index >= 0);
     if (!matchIndexes.length) continue;
