@@ -1,3 +1,4 @@
+# Verification marker: connector-authored push exercises the production harvest path.
 name: JARVIS GitHub Capability Harvest
 
 on:
