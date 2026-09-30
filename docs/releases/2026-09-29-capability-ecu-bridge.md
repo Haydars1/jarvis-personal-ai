@@ -19,6 +19,8 @@ Included:
 - OIDC-protected native-skill backlog for the autonomous developer
 - clean-room skill reimplementation workflow so missing repository capabilities can become JARVIS-native skills without blindly copying third-party source
 - runtime verification uses the canonical deployed Worker hostname `jarvis-personal-ai.haydojarvis.workers.dev`
+- autonomous native-skill builder now fetches its OIDC backlog from that same canonical production Worker instead of the stale legacy hostname
+- self-update CI now admits `fix/*` branches in addition to `feature/*` and `jarvis/*`, so bugfix PRs receive the same full test, Cloudflare dry-run and auto-merge gate
 - top-level skill-first chat gate: executable ready native skills are attempted before the chat orchestrator starts any hosted AI provider request
 - repository knowledge/source-search jobs go directly to the GitHub cloud runner without hosted AI API usage
 - ECU/device intents go directly to the existing device bridge; read jobs can queue natively while write/service actions remain confirmation-gated
