@@ -125,7 +125,17 @@ async function harvestSearchQuery(definition, options) {
 async function harvestCuratedSeed(seed, options) {
   const url = `https://api.github.com/repos/${seed.repo}`;
   const repo = await githubJson(url, { ...options, optional: true });
-  return repo ? normalizeRepository(repo, { ...seed, source: 'curated' }, options.now) : curatedFallback(seed, options.now);
+  if (!repo) return curatedFallback(seed, options.now);
+  const normalized = normalizeRepository(repo, { ...seed, source: 'curated' }, options.now);
+  const canonicalRepo = String(repo.full_name || '').trim();
+  const canonicalUrl = String(repo.html_url || '').trim();
+  return {
+    ...normalized,
+    repo: seed.repo,
+    url: `https://github.com/${seed.repo}`,
+    canonicalRepo: canonicalRepo && canonicalRepo.toLowerCase() !== String(seed.repo).toLowerCase() ? canonicalRepo : null,
+    canonicalUrl: canonicalRepo && canonicalRepo.toLowerCase() !== String(seed.repo).toLowerCase() ? canonicalUrl || null : null
+  };
 }
 
 async function smallDelay(ms = 225) {
