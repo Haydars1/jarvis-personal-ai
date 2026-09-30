@@ -13,8 +13,8 @@ LLAMA_ARCHIVE_NAME="llama-b11146-bin-ubuntu-x64.tar.gz"
 LLAMA_ARCHIVE_URL="https://github.com/ggml-org/llama.cpp/releases/download/$LLAMA_RELEASE/$LLAMA_ARCHIVE_NAME"
 LLAMA_ARCHIVE_SHA256="c150306eb16b5ab696f76a8bdf810c35fd98a24e82158742e6fa28f420ff8410"
 LLAMA_ROOT="$CACHE_ROOT/llama-$LLAMA_RELEASE"
-MODEL_REPO="Qwen/Qwen3-1.7B-GGUF:Q8_0"
-MODEL_ID="qwen3-1.7b-local"
+MODEL_REPO="Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M"
+MODEL_ID="qwen2.5-coder-1.5b-local"
 SERVER_LOG="/tmp/jarvis-llama-server.log"
 CONFIG_PATH="/tmp/opencode-local.json"
 LOCAL_PROMPT_PATH="/tmp/jarvis-local-dev-prompt.txt"
@@ -68,11 +68,11 @@ cat > "$CONFIG_PATH" <<'JSON'
         "baseURL": "http://127.0.0.1:8080/v1"
       },
       "models": {
-        "qwen3-1.7b-local": {
-          "name": "Qwen3 1.7B Local Emergency Coder",
+        "qwen2.5-coder-1.5b-local": {
+          "name": "Qwen2.5 Coder 1.5B Local Emergency Coder",
           "limit": {
-            "context": 16384,
-            "output": 4096
+            "context": 8192,
+            "output": 2048
           }
         }
       }
@@ -94,7 +94,7 @@ trap cleanup EXIT
   --alias "$MODEL_ID" \
   --host 127.0.0.1 \
   --port 8080 \
-  --ctx-size 16384 \
+  --ctx-size 8192 \
   --parallel 1 \
   --jinja \
   >"$SERVER_LOG" 2>&1 &
@@ -134,10 +134,12 @@ LOCAL EMERGENCY FALLBACK RULES:
 - You are the last-resort keyless local coding agent on a small CPU model.
 - Make exactly ONE small, concrete, testable improvement. Do not attempt broad refactors.
 - Modify at most 3 files total and only under src/, public/, tests/, or docs/.
-- Do not edit .github/, schema.sql, wrangler.toml, package.json, package-lock.json, secrets, credentials, deployment settings, or billing/configuration.
+- Do not edit .github/, .jarvis-runtime/, schema.sql, wrangler.toml, package.json, package-lock.json, secrets, credentials, deployment settings, or billing/configuration.
+- Before using Edit, read the exact current text of the target file and make the smallest possible replacement; if an exact edit misses, re-read that file before trying again.
 - Prefer fixing an existing bug, incomplete path, deterministic test gap, or small maintainability problem you can verify locally.
 - Do not weaken or delete tests. Do not make network calls from product code solely to satisfy this task.
-- The repository skill backlog is available at .jarvis-runtime/skill-backlog.json inside the workspace.
+- The repository skill backlog is read-only reference material at .jarvis-runtime/skill-backlog.json inside the workspace. Never edit it.
+- Once one useful change and its focused regression test are complete, run npm run check and stop; do not start a second feature.
 - Leave changes uncommitted. The workflow will inspect, test, and promote them only if every gate passes.
 EOF
 
@@ -195,6 +197,6 @@ if [ "$check_rc" -ne 0 ]; then
   exit 1
 fi
 
-echo "provider=Local Qwen3" >> "$GITHUB_OUTPUT"
+echo "provider=Local Qwen2.5 Coder" >> "$GITHUB_OUTPUT"
 echo "model=$MODEL_REPO" >> "$GITHUB_OUTPUT"
 echo "Local keyless coding fallback produced verified changes."
