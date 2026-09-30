@@ -13,6 +13,12 @@ test('autonomous dev starts every run from current main',()=>{
   assert.match(source,/jarvis\/auto-/);
 });
 
+test('skill builder fetches backlog from the canonical production worker',()=>{
+  assert.match(source,/JARVIS_URL:\s*https:\/\/jarvis-personal-ai\.haydojarvis\.workers\.dev/);
+  assert.doesNotMatch(source,/JARVIS_URL:\s*https:\/\/haydojarvis\.workers\.dev/);
+  assert.match(source,/\/api\/tools\/skills\/runner\/backlog\?limit=8/);
+});
+
 test('verified autonomous work is promoted through a fresh PR',()=>{
   assert.match(source,/gh pr create/);
   assert.match(source,/--base main/);
