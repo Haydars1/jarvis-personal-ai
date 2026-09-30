@@ -1,7 +1,13 @@
 import { execute, jsonResponse, queryOne } from '../../lib/runtime.js';
 
 const now=()=>Date.now();
+let schemaReady=false;
 
+async function ensureSchema(env){
+  if(schemaReady)return;
+  await execute(env,"CREATE TABLE IF NOT EXISTS source_pool_state (bridge_id TEXT PRIMARY KEY, summary_json TEXT NOT NULL DEFAULT '{}', last_seen_at INTEGER, updated_at INTEGER NOT NULL, FOREIGN KEY(bridge_id) REFERENCES ecu_device_bridges(id) ON DELETE CASCADE)");
+  schemaReady=true;
+}
 async function sha256(value=''){
   const bytes=new TextEncoder().encode(String(value));
   const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -45,6 +51,7 @@ export function createSourcePoolState(core){
           try{
             const body=await req.clone().json();
             if(body?.source_pool){
+              await ensureSchema(env);
               const summary=sanitizeSummary(body.source_pool),ts=now();
               await execute(env,'INSERT INTO source_pool_state(bridge_id,summary_json,last_seen_at,updated_at) VALUES(?,?,?,?) ON CONFLICT(bridge_id) DO UPDATE SET summary_json=excluded.summary_json,last_seen_at=excluded.last_seen_at,updated_at=excluded.updated_at',bridge.id,JSON.stringify(summary),ts,ts);
             }
@@ -54,6 +61,7 @@ export function createSourcePoolState(core){
       }
       if(path==='/api/ecu/device/source-pool'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        await ensureSchema(env);
         const row=await queryOne(env,'SELECT s.*,b.label,b.status AS bridge_status,b.last_seen_at AS bridge_last_seen_at FROM source_pool_state s JOIN ecu_device_bridges b ON b.id=s.bridge_id ORDER BY s.updated_at DESC LIMIT 1');
         if(!row)return jsonResponse({source_pool:null});
         let summary={};try{summary=JSON.parse(row.summary_json||'{}')}catch{}
