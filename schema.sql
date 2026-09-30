@@ -232,16 +232,12 @@ CREATE TABLE IF NOT EXISTS social_events (
 );
 CREATE INDEX IF NOT EXISTS idx_social_events_new ON social_events(handled, created_at DESC);
 
--- Higgsfield provider registry. Model endpoints are discovered at runtime from
--- the official OpenAPI document; no model names or generation endpoints are invented here.
 INSERT OR IGNORE INTO tool_registry(id,name,capability,endpoint,auth_type,enabled,priority,meta,created_at) VALUES
  ('higgsfield-video','Higgsfield','video-generation','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
  ('higgsfield-reels','Higgsfield','reels-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"aliasOf":"video-generation","docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
  ('higgsfield-i2v','Higgsfield','image-to-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0),
  ('higgsfield-t2v','Higgsfield','text-to-video','https://api.higgsfield.ai','api_key_pair',1,15,'{"official":true,"docs":"https://docs.higgsfield.ai/docs","openapi":"https://docs.higgsfield.ai/docs/openapi.json"}',0);
 
-
--- ECU Brain file-scoped chat channels.
 CREATE TABLE IF NOT EXISTS ecu_chat_channels (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL DEFAULT '',
@@ -267,9 +263,6 @@ CREATE TABLE IF NOT EXISTS ecu_chat_messages (
 CREATE INDEX IF NOT EXISTS idx_ecu_chat_messages_channel ON ecu_chat_messages(channel_id, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_ecu_chat_messages_created ON ecu_chat_messages(created_at DESC);
 
-
--- ECU local device bridge registry and job queue.
--- The Cloudflare Worker never pretends to access USB/OBD directly; a trusted local bridge polls these jobs.
 CREATE TABLE IF NOT EXISTS ecu_device_bridges (
   id TEXT PRIMARY KEY,
   label TEXT NOT NULL DEFAULT 'Local ECU Bridge',
@@ -301,3 +294,22 @@ CREATE TABLE IF NOT EXISTS ecu_device_jobs (
   FOREIGN KEY(bridge_id) REFERENCES ecu_device_bridges(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_ecu_device_jobs_queue ON ecu_device_jobs(bridge_id, status, created_at ASC);
+
+-- Cloud capability jobs run on GitHub-hosted runners, never on the user's laptop.
+CREATE TABLE IF NOT EXISTS cloud_tool_jobs (
+  id TEXT PRIMARY KEY,
+  adapter_id TEXT NOT NULL,
+  repo TEXT NOT NULL,
+  commit_sha TEXT,
+  input_json TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'queued',
+  result_json TEXT,
+  error TEXT,
+  claimed_by TEXT,
+  created_at INTEGER NOT NULL,
+  claimed_at INTEGER,
+  finished_at INTEGER,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_cloud_tool_jobs_queue ON cloud_tool_jobs(status, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_cloud_tool_jobs_repo ON cloud_tool_jobs(repo, created_at DESC);
