@@ -14,5 +14,6 @@ test('local autonomous coder imports backlog into an ignored workspace path',()=
 
 test('local autonomous coder rewrites external backlog references before OpenCode sees the prompt',()=>{
   assert.match(script,/sed "s#\$\{SOURCE_BACKLOG_PATH\}#\$\{WORKSPACE_BACKLOG_PATH\}#g" "\$PROMPT_PATH" > "\$LOCAL_PROMPT_PATH"/);
-  assert.match(script,/The repository skill backlog is available at \.jarvis-runtime\/skill-backlog\.json/);
+  assert.match(script,/The repository skill backlog is read-only reference material at \.jarvis-runtime\/skill-backlog\.json/);
+  assert.match(script,/Never edit it\./);
 });
