@@ -48,6 +48,15 @@ test('scheduled Codex fallback explicitly trusts only the GitHub Actions bot act
   assert.doesNotMatch(source,/allow-users:\s*["']?\*["']?/);
 });
 
+test('autonomous workflow tries keyless local coding before paid Codex fallback',()=>{
+  const hosted=source.indexOf('Run best available coding specialist');
+  const local=source.indexOf('Run keyless local coding fallback');
+  const codex=source.indexOf('Run Codex fallback');
+  assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
+  assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
+  assert.match(source,/key:\s*jarvis-local-coder-v2-\$\{\{ runner\.os \}\}-qwen3-1\.7b-q8/);
+});
+
 test('autonomous workflow falls back to a keyless local coding model after hosted providers fail',()=>{
   assert.match(source,/Run keyless local coding fallback/);
   assert.match(source,/steps\.localcoder\.outcome/);
