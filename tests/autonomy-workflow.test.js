@@ -29,3 +29,8 @@ test('agent never pushes its work back to the stale learning branch',()=>{
   assert.doesNotMatch(source,/git push origin HEAD:feature\/learning-engine/);
   assert.match(source,/git push origin "HEAD:\$BRANCH"/);
 });
+
+test('scheduled Codex fallback explicitly trusts only the GitHub Actions bot actor',()=>{
+  assert.match(source,/allow-bot-users:\s*["']?github-actions\[bot\]["']?/);
+  assert.doesNotMatch(source,/allow-users:\s*["']?\*["']?/);
+});
