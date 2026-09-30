@@ -1,3 +1,4 @@
+# Bootstrap marker: connector-authored commit starts the first metadata harvest.
 name: JARVIS GitHub Capability Harvest
 
 on:
