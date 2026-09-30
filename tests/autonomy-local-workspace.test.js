@@ -2,16 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const source=readFileSync(new URL('../.github/workflows/jarvis-codex-agent.yml',import.meta.url),'utf8');
+const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
 
-test('autonomous backlog is stored inside workspace for non-interactive local coder access',()=>{
-  assert.match(source,/\.jarvis-runtime\/skill-backlog\.json/);
-  assert.doesNotMatch(source,/\/tmp\/jarvis-skill-backlog\.json/);
-  assert.match(source,/\.git\/info\/exclude/);
+test('local autonomous coder imports backlog into an ignored workspace path',()=>{
+  assert.match(script,/\.jarvis-runtime\/skill-backlog\.json/);
+  assert.match(script,/\/tmp\/jarvis-skill-backlog\.json/);
+  assert.match(script,/\.git\/info\/exclude/);
+  assert.match(script,/cp .*jarvis-skill-backlog\.json/);
 });
 
-test('autonomous prompt points agents at workspace backlog instead of external tmp path',()=>{
-  const promptSection=source.slice(source.indexOf('Write autonomous development prompt'));
-  assert.match(promptSection,/\.jarvis-runtime\/skill-backlog\.json/);
-  assert.doesNotMatch(promptSection,/\/tmp\/jarvis-skill-backlog\.json/);
+test('local autonomous coder rewrites external backlog references before OpenCode sees the prompt',()=>{
+  assert.match(script,/sed .*\/tmp\/jarvis-skill-backlog\.json.*\.jarvis-runtime\/skill-backlog\.json/);
+  assert.match(script,/LOCAL_PROMPT_PATH/);
 });
