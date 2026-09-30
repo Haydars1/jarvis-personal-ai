@@ -1,7 +1,8 @@
 import { jsonResponse } from '../../lib/runtime.js';
 import { parseEcuDeviceIntent, ECU_DEVICE_ACTIONS } from '../ecu/device-bridge.js';
+import { socialDraftIntent } from '../social/native-draft.js';
 
-const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector']);
+const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector','social-growth']);
 
 function ready(skill){return skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true;}
 function binaryAttachments(context={}){
@@ -23,6 +24,7 @@ export function canExecuteNativeSkill(skill,text='',context={}){
   if(id==='repo-cloud-tools')return !!skill.repo;
   if(id==='device-bridge')return !!parseEcuDeviceIntent(text);
   if(id==='ecu-binary-inspector')return binaryAttachments(context).length>0;
+  if(id==='social-growth')return socialDraftIntent(text);
   return false;
 }
 
@@ -93,12 +95,24 @@ async function executeBinarySkill(core,req,env,ctx,text,skill,context={}){
   };
 }
 
+async function executeSocialDraftSkill(core,req,env,ctx,text,skill){
+  const url=new URL('/api/social-growth/native-draft',req.url);
+  const body={topic:text,request:text,plan_mode:'deterministic',execution_mode:'draft',source:'native-skill'};
+  const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
+  if(!response.ok)return null;
+  let campaign={};try{campaign=await response.json();}catch{return null;}
+  if(!campaign?.id)return null;
+  const reply=`Sosyal medya için API'siz içerik taslağını oluşturdum. ${campaign.items||0} taslak içerik kaydedildi; video üretimi veya yayınlama başlatılmadı.`;
+  return skillPayload(text,skill,reply,{campaign});
+}
+
 export async function executeNativeSkill(core,req,env,ctx,text,skill,context={}){
   if(!canExecuteNativeSkill(skill,text,context))return null;
   const id=skill.native_adapter.id;
   if(id==='repo-cloud-tools')return executeRepoCloudSkill(core,req,env,ctx,text,skill);
   if(id==='device-bridge')return executeDeviceSkill(core,req,env,ctx,text,skill);
   if(id==='ecu-binary-inspector')return executeBinarySkill(core,req,env,ctx,text,skill,context);
+  if(id==='social-growth')return executeSocialDraftSkill(core,req,env,ctx,text,skill);
   return null;
 }
 
