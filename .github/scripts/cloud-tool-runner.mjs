@@ -1,12 +1,14 @@
-import { mkdtemp, readFile, readdir, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
-  'source-read':true
+  'source-read':true,
+  'skill-analyze':true
 });
 
 const BASE=String(process.env.JARVIS_URL||'https://haydojarvis.workers.dev').replace(/\/$/,'');
@@ -65,6 +67,10 @@ async function repoInspect(job,ctx){
   const extensions={};for(const file of files){const ext=path.extname(file).toLowerCase()||'(none)';extensions[ext]=(extensions[ext]||0)+1;}
   return {repo:job.repo,commit:ctx.commit,file_count:files.length,files:top,extensions,snippets};
 }
+async function skillAnalyze(job,ctx){
+  const inspection=await repoInspect(job,ctx);
+  return compileRepositorySkill(inspection,{repo:job.repo});
+}
 async function sourceSearch(job,ctx){
   const term=String(job.input?.term||'').trim();if(!term||term.length>200)throw new Error('INVALID_SEARCH_TERM');
   const lower=term.toLowerCase(),files=await trackedFiles(ctx.dest),matches=[];
@@ -87,6 +93,7 @@ async function execute(job,ctx){
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
+  if(adapter==='skill-analyze')return skillAnalyze(job,ctx);
   throw new Error('ADAPTER_NOT_IMPLEMENTED');
 }
 
