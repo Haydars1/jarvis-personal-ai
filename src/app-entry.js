@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
+import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
@@ -31,7 +32,7 @@ const socialCore = createSocialGrowth(osCore);
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const cloudToolCore = createCloudCapabilityExecution(capabilityCore);
+const cloudToolCore = createSkillSeeding(createCloudCapabilityExecution(capabilityCore));
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
   fetch(req, env, ctx) {
