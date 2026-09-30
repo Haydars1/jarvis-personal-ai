@@ -100,6 +100,12 @@ async function executeJob(job,ctx){
 
 async function main(){
   const token=await oidcToken();let processed=0,failed=0;
+  try{
+    const seeded=await api('/api/tools/cloud/runner/seed-learning',{method:'POST',body:{limit:MAX_JOBS},token});
+    console.log(`Seeded ${Number(seeded.queued||0)} repository skill jobs.`);
+  }catch(error){
+    console.warn('Skill seeding failed; continuing with existing queue:',error?.message||error);
+  }
   for(let index=0;index<MAX_JOBS;index++){
     const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
     if(!job){console.log('No more queued cloud tool jobs.');break;}
