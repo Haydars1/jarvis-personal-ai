@@ -11,7 +11,7 @@ export const ALLOWED_ADAPTERS=Object.freeze({
   'skill-analyze':true
 });
 
-const BASE=String(process.env.JARVIS_URL||'https://haydojarvis.workers.dev').replace(/\/$/,'');
+const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
 const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
 const TEXT_EXT=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1','.json','.yml','.yaml','.toml','.xml','.md','.txt','.ini','.cfg','.sql']);
 
