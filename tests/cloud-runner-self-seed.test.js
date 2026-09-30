@@ -30,3 +30,13 @@ test('self-seeding uses existing GitHub OIDC and no paid AI secret',()=>{
   assert.doesNotMatch(runner,/OPENAI_API_KEY|GEMINI_API_KEY|ANTHROPIC_API_KEY|OPENROUTER_API_KEY/);
   assert.match(runner,/oidcToken/);
 });
+
+test('cloud runner targets the canonical deployed Worker hostname',()=>{
+  const runner=read('.github/scripts/cloud-tool-runner.mjs');
+  const workflow=read('.github/workflows/cloud-tool-runner.yml');
+  const canonical='https://jarvis-personal-ai.haydojarvis.workers.dev';
+  assert.match(runner,new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.match(workflow,new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  assert.doesNotMatch(runner,/https:\/\/haydojarvis\.workers\.dev/);
+  assert.doesNotMatch(workflow,/https:\/\/haydojarvis\.workers\.dev/);
+});
