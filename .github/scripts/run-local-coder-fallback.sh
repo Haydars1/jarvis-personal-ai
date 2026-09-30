@@ -18,6 +18,9 @@ MODEL_ID="qwen3-1.7b-local"
 SERVER_LOG="/tmp/jarvis-llama-server.log"
 CONFIG_PATH="/tmp/opencode-local.json"
 LOCAL_PROMPT_PATH="/tmp/jarvis-local-dev-prompt.txt"
+SOURCE_BACKLOG_PATH="/tmp/jarvis-skill-backlog.json"
+WORKSPACE_RUNTIME_DIR=".jarvis-runtime"
+WORKSPACE_BACKLOG_PATH="$WORKSPACE_RUNTIME_DIR/skill-backlog.json"
 
 mkdir -p "$CACHE_ROOT" "$CACHE_ROOT/models"
 export LLAMA_CACHE="$CACHE_ROOT/models"
@@ -115,7 +118,16 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-cat "$PROMPT_PATH" > "$LOCAL_PROMPT_PATH"
+mkdir -p "$WORKSPACE_RUNTIME_DIR"
+if ! grep -qxF "$WORKSPACE_RUNTIME_DIR/" .git/info/exclude 2>/dev/null; then
+  echo "$WORKSPACE_RUNTIME_DIR/" >> .git/info/exclude
+fi
+if [ -f "$SOURCE_BACKLOG_PATH" ]; then
+  cp "$SOURCE_BACKLOG_PATH" "$WORKSPACE_BACKLOG_PATH"
+else
+  printf '%s\n' '{"skills":[],"error":"skill backlog unavailable"}' > "$WORKSPACE_BACKLOG_PATH"
+fi
+sed "s#${SOURCE_BACKLOG_PATH}#${WORKSPACE_BACKLOG_PATH}#g" "$PROMPT_PATH" > "$LOCAL_PROMPT_PATH"
 cat >> "$LOCAL_PROMPT_PATH" <<'EOF'
 
 LOCAL EMERGENCY FALLBACK RULES:
@@ -125,6 +137,7 @@ LOCAL EMERGENCY FALLBACK RULES:
 - Do not edit .github/, schema.sql, wrangler.toml, package.json, package-lock.json, secrets, credentials, deployment settings, or billing/configuration.
 - Prefer fixing an existing bug, incomplete path, deterministic test gap, or small maintainability problem you can verify locally.
 - Do not weaken or delete tests. Do not make network calls from product code solely to satisfy this task.
+- The repository skill backlog is available at .jarvis-runtime/skill-backlog.json inside the workspace.
 - Leave changes uncommitted. The workflow will inspect, test, and promote them only if every gate passes.
 EOF
 
