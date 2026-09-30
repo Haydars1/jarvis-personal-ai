@@ -47,7 +47,7 @@ jobs:
       - name: Fetch native skill backlog
         shell: bash
         env:
-          JARVIS_URL: https://haydojarvis.workers.dev
+          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
         run: |
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
