@@ -12,6 +12,14 @@ test('worker exposes OIDC-protected native skill backlog for the autonomous buil
   assert.match(source,/adapter_status='unverified'/);
 });
 
+test('skill-builder OIDC trusts only the exact main and isolated runtime-test workflow refs',()=>{
+  const source=read('src/application/capabilities/cloud-execution.js');
+  assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/main/);
+  assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/test\/autonomy-runtime/);
+  assert.doesNotMatch(source,/jarvis-codex-agent\.yml@refs\/heads\/\*/);
+  assert.match(source,/SKILL_BUILDER_WORKFLOWS/);
+});
+
 test('autonomous developer requests a GitHub OIDC token and fetches skill backlog before coding',()=>{
   const workflow=read('.github/workflows/jarvis-codex-agent.yml');
   assert.match(workflow,/id-token: write/);
