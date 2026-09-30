@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite } from '../src/application/capabilities/native-skill-executor.js';
 
 const skill=(adapter,extra={})=>({adapter_status:'ready',requires_paid_api:false,native_adapter:{id:adapter},repo:'example/tool',...extra});
@@ -24,4 +25,11 @@ test('device write/service intents stay confirmation gated',()=>{
 test('paid or unready learned skills are never auto executed',()=>{
   assert.equal(canExecuteNativeSkill({...skill('repo-cloud-tools'),adapter_status:'unverified'},'repo ara'),false);
   assert.equal(canExecuteNativeSkill({...skill('repo-cloud-tools'),requires_paid_api:true},'repo ara'),false);
+});
+
+test('application places native skill gate before the chat orchestrator fallback',()=>{
+  const source=readFileSync(new URL('../src/app-entry.js',import.meta.url),'utf8');
+  assert.match(source,/createNativeSkillFirstChat/);
+  assert.match(source,/const orchestratedChat = createEmergencyChatFallback\(createChatOrchestrator\(ecuCore\)\)/);
+  assert.match(source,/const handleChat = createNativeSkillFirstChat\(ecuCore, orchestratedChat\)/);
 });
