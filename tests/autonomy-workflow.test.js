@@ -39,17 +39,18 @@ test('autonomous workflow falls back to a keyless local coding model after hoste
   assert.match(source,/Run keyless local coding fallback/);
   assert.match(source,/steps\.localcoder\.outcome/);
   assert.match(source,/run-local-coder-fallback\.sh/);
+  assert.match(source,/actions\/cache@v4/);
 });
 
 test('keyless local coder is conservative, local and test gated',()=>{
   const scriptUrl=new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url);
   assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
   const script=readFileSync(scriptUrl,'utf8');
-  assert.match(script,/Qwen2\.5-Coder-1\.5B-Instruct-GGUF/);
-  assert.match(script,/Q4_K_M/);
-  assert.match(script,/llama/);
-  assert.match(script,/aider/);
-  assert.match(script,/--no-auto-commits/);
+  assert.match(script,/Qwen\/Qwen3-4B-GGUF:Q4_K_M/);
+  assert.match(script,/llama-server/);
+  assert.match(script,/127\.0\.0\.1:8080\/v1/);
+  assert.match(script,/opencode run/);
   assert.match(script,/npm run check/);
-  assert.doesNotMatch(script,/API_KEY=.*https?:\/\//);
+  assert.match(script,/git reset --hard HEAD/);
+  assert.doesNotMatch(script,/https?:\/\/api\.(openai|anthropic|mistral|groq|x\.ai)/);
 });
