@@ -119,10 +119,30 @@ jobs:
           git reset --hard HEAD
           git clean -fd
 
-      - name: Require a coding agent to succeed
+      - name: Restore keyless local coder cache
         if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/jarvis-local-coder
+          key: jarvis-local-coder-v1-${{ runner.os }}-qwen3-1.7b-q4km
+
+      - name: Run keyless local coding fallback
+        id: localcoder
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
+        continue-on-error: true
+        shell: bash
+        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
+
+      - name: Reset failed local coding work
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' && steps.localcoder.outcome != 'success' }}
         run: |
-          echo "::error::No configured coding engine completed successfully."
+          git reset --hard HEAD
+          git clean -fd
+
+      - name: Require a coding agent to succeed
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' && steps.localcoder.outcome != 'success' }}
+        run: |
+          echo "::error::Hosted providers, Codex, and the keyless local coder all failed."
           exit 1
 
       - name: Validate agent changes
@@ -138,6 +158,9 @@ jobs:
           BRANCH: ${{ steps.branch.outputs.name }}
           PRIMARY_PROVIDER: ${{ steps.multiprovider.outputs.provider }}
           PRIMARY_MODEL: ${{ steps.multiprovider.outputs.model }}
+          CODEX_OUTCOME: ${{ steps.codex.outcome }}
+          LOCAL_PROVIDER: ${{ steps.localcoder.outputs.provider }}
+          LOCAL_MODEL: ${{ steps.localcoder.outputs.model }}
         run: |
           set -euo pipefail
           rm -rf .wrangler-dry
@@ -154,8 +177,17 @@ jobs:
           gh auth setup-git
           git push origin "HEAD:$BRANCH"
 
-          provider="${PRIMARY_PROVIDER:-Codex fallback}"
-          model="${PRIMARY_MODEL:-Codex}"
+          if [ -n "${PRIMARY_PROVIDER:-}" ]; then
+            provider="$PRIMARY_PROVIDER"
+            model="${PRIMARY_MODEL:-unknown}"
+          elif [ "${CODEX_OUTCOME:-}" = "success" ]; then
+            provider="Codex fallback"
+            model="OpenAI Codex"
+          else
+            provider="${LOCAL_PROVIDER:-Local Qwen3}"
+            model="${LOCAL_MODEL:-Qwen/Qwen3-1.7B-GGUF:Q4_K_M}"
+          fi
+
           gh pr create \
             --base main \
             --head "$BRANCH" \
