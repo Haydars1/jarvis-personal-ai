@@ -143,7 +143,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v3-${{ runner.os }}-qwen2.5-coder-1.5b-q4
+          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Run keyless local coding fallback
         id: localcoder
@@ -158,7 +158,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v3-${{ runner.os }}-qwen2.5-coder-1.5b-q4
+          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Reset failed local coding work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
@@ -232,7 +232,7 @@ jobs:
             model="${PRIMARY_MODEL:-unknown}"
           elif [ "${LOCAL_OUTCOME:-}" = "success" ]; then
             provider="${LOCAL_PROVIDER:-Local Qwen2.5 Coder}"
-            model="${LOCAL_MODEL:-Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M}"
+            model="${LOCAL_MODEL:-bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M}"
           elif [ "${CODEX_OUTCOME:-}" = "success" ]; then
             provider="Codex fallback"
             model="OpenAI Codex"

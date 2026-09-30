@@ -55,7 +55,7 @@ test('autonomous workflow tries keyless local coding before paid Codex fallback'
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
   assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
-  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v3-\$\{\{ runner\.os \}\}-qwen2\.5-coder-1\.5b-q4/);
+  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v4-\$\{\{ runner\.os \}\}-bartowski-qwen2\.5-coder-1\.5b-q4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*uses:\s*actions\/cache\/save@v4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*if:\s*\$\{\{ always\(\)/);
 });
@@ -68,15 +68,20 @@ test('autonomous workflow falls back to a keyless local coding model after hoste
   assert.match(source,/actions\/cache\/save@v4/);
 });
 
-test('keyless local coder is coding-tuned, compact, local and test gated',()=>{
+test('keyless local coder uses the llama.cpp tool-bench Qwen2.5 Coder build and probes tool calling',()=>{
   const scriptUrl=new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url);
   assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
   const script=readFileSync(scriptUrl,'utf8');
-  assert.match(script,/Qwen\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF:Q4_K_M/);
-  assert.doesNotMatch(script,/Qwen\/Qwen3-1\.7B-GGUF/);
+  assert.match(script,/bartowski\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF:Q4_K_M/);
+  assert.doesNotMatch(script,/MODEL_REPO="Qwen\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF/);
   assert.match(script,/"context": 8192/);
   assert.match(script,/"output": 2048/);
   assert.match(script,/--ctx-size 8192/);
+  assert.match(script,/--temp 0/);
+  assert.match(script,/\/v1\/chat\/completions/);
+  assert.match(script,/"tool_choice":"required"/);
+  assert.match(script,/tool_calls/);
+  assert.match(script,/local llama\.cpp tool-call probe failed/);
   assert.match(script,/llama-server/);
   assert.match(script,/127\.0\.0\.1:8080\/v1/);
   assert.match(script,/opencode run/);
