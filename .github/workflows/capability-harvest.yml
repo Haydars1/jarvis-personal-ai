@@ -11,6 +11,10 @@ on:
       - '.github/workflows/capability-harvest.yml'
       - '.github/scripts/harvest-capabilities.mjs'
       - 'src/lib/open-source-capabilities.js'
+  workflow_run:
+    workflows:
+      - 'JARVIS Self Update Test + Merge'
+    types: [completed]
 
 permissions:
   contents: write
@@ -22,6 +26,7 @@ concurrency:
 
 jobs:
   harvest:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'feature/capability-harvest'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
