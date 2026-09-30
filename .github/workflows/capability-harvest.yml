@@ -1,0 +1,81 @@
+name: JARVIS GitHub Capability Harvest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 3 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/capability-harvest.yml'
+      - '.github/scripts/harvest-capabilities.mjs'
+      - 'src/lib/open-source-capabilities.js'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: jarvis-capability-harvest
+  cancel-in-progress: false
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install repository dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Harvest GitHub capability metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CAPABILITY_HARVEST_PER_QUERY: '12'
+          CAPABILITY_HARVEST_DELAY_MS: '225'
+        run: npm run harvest:capabilities
+
+      - name: Validate repository
+        run: npm run check
+
+      - name: Cloudflare dry run
+        run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+
+      - name: Open tested registry PR when changed
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf .wrangler-dry
+          if git diff --quiet -- data/capability-registry.json; then
+            echo "Capability registry unchanged."
+            exit 0
+          fi
+
+          branch="jarvis/capability-harvest-${GITHUB_RUN_ID}"
+          git config user.name "jarvis-capability-harvester"
+          git config user.email "jarvis-capability-harvester@users.noreply.github.com"
+          git switch -c "$branch"
+          git add data/capability-registry.json
+          git commit -m "chore: refresh open source capability registry"
+
+          gh auth setup-git
+          git push origin "HEAD:$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Refresh JARVIS open-source capability registry" \
+            --body "Automated metadata-only GitHub capability harvest from run ${GITHUB_RUN_ID}. Discovered repository code was not cloned, installed, or executed. The normal JARVIS self-update workflow will independently validate this registry change before merge."
