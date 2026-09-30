@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite } from '../src/application/capabilities/native-skill-executor.js';
+import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite, executeNativeSkill } from '../src/application/capabilities/native-skill-executor.js';
 
 const skill=(adapter,extra={})=>({adapter_status:'ready',requires_paid_api:false,native_adapter:{id:adapter},repo:'example/tool',...extra});
 
@@ -20,6 +20,28 @@ test('device write/service intents stay confirmation gated',()=>{
   assert.equal(deviceIntentIsWrite('DTC kodlarını temizle'),true);
   assert.equal(deviceIntentIsWrite('servis reset yap'),true);
   assert.equal(deviceIntentIsWrite('DTC arıza kodlarını oku'),false);
+});
+
+test('ECU binary inspector is executable only when a supported binary attachment exists',()=>{
+  const binarySkill=skill('ecu-binary-inspector');
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[{name:'passat.bin',base64:'AA=='}]}),true);
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[{name:'notes.txt',base64:'AA=='}]}),false);
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[]}),false);
+});
+
+test('ECU binary native executor forwards the original attachment through ECU deterministic analysis',async()=>{
+  const seen=[];
+  const core={fetch:async req=>{
+    const body=await req.json();
+    seen.push(body);
+    return new Response(JSON.stringify({reply:'byte analizi tamam',provider:'JARVIS ECU Binary Inspector',trace:[{kind:'binary'}]}),{status:200,headers:{'content-type':'application/json'}});
+  }};
+  const request=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'bu dosyayı analiz et',attachments:[{name:'passat.bin',type:'application/octet-stream',base64:'AA=='}]})});
+  const result=await executeNativeSkill(core,request,{}, {},'bu dosyayı analiz et',skill('ecu-binary-inspector'),{attachments:[{name:'passat.bin',type:'application/octet-stream',base64:'AA=='}]});
+  assert.equal(result?.provider,'JARVIS ECU Binary Inspector');
+  assert.equal(seen.length,1);
+  assert.equal(seen[0].channel,'ecu');
+  assert.equal(seen[0].attachments[0].name,'passat.bin');
 });
 
 test('paid or unready learned skills are never auto executed',()=>{

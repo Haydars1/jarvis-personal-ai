@@ -1,26 +1,33 @@
 import { jsonResponse } from '../../lib/runtime.js';
 import { parseEcuDeviceIntent, ECU_DEVICE_ACTIONS } from '../ecu/device-bridge.js';
 
-const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge']);
+const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector']);
 
 function ready(skill){return skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true;}
+function binaryAttachments(context={}){
+  return (Array.isArray(context?.attachments)?context.attachments:[]).filter(file=>{
+    const name=String(file?.name||''),type=String(file?.type||'');
+    return !!file?.base64&&(/\.(bin|ori|hex|rom)$/i.test(name)||/octet-stream|macbinary/i.test(type));
+  });
+}
 
 export function deviceIntentIsWrite(text=''){
   const action=parseEcuDeviceIntent(text),meta=action?ECU_DEVICE_ACTIONS[action]:null;
   return !!meta?.write;
 }
 
-export function canExecuteNativeSkill(skill,text=''){
+export function canExecuteNativeSkill(skill,text='',context={}){
   if(!ready(skill))return false;
   const id=String(skill.native_adapter?.id||'');
   if(!SUPPORTED_ADAPTERS.has(id))return false;
   if(id==='repo-cloud-tools')return !!skill.repo;
   if(id==='device-bridge')return !!parseEcuDeviceIntent(text);
+  if(id==='ecu-binary-inspector')return binaryAttachments(context).length>0;
   return false;
 }
 
-export function chooseExecutableSkill(rows=[],text=''){
-  return (Array.isArray(rows)?rows:[]).find(skill=>canExecuteNativeSkill(skill,text))||null;
+export function chooseExecutableSkill(rows=[],text='',context={}){
+  return (Array.isArray(rows)?rows:[]).find(skill=>canExecuteNativeSkill(skill,text,context))||null;
 }
 
 function jsonRequest(url,req,body){
@@ -70,18 +77,35 @@ async function executeDeviceSkill(core,req,env,ctx,text,skill){
   return null;
 }
 
-export async function executeNativeSkill(core,req,env,ctx,text,skill){
-  if(!canExecuteNativeSkill(skill,text))return null;
+async function executeBinarySkill(core,req,env,ctx,text,skill,context={}){
+  const attachments=binaryAttachments(context);if(!attachments.length)return null;
+  let original={};try{original=await req.clone().json();}catch{}
+  const url=new URL('/api/chat/send',req.url);
+  const body={...original,text:String(original?.text||text).trim()||text,channel:'ecu',attachments};
+  const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
+  if(!response.ok)return null;
+  let payload={};try{payload=await response.json();}catch{return null;}
+  if(!payload?.reply)return null;
+  return {
+    ...payload,
+    skill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id},
+    trace:[...(Array.isArray(payload.trace)?payload.trace:[]),{kind:'skill',label:'JARVIS native skill',value:`${skill.repo||skill.primary_capability} · ecu-binary-inspector · hosted AI API kullanılmadı`}]
+  };
+}
+
+export async function executeNativeSkill(core,req,env,ctx,text,skill,context={}){
+  if(!canExecuteNativeSkill(skill,text,context))return null;
   const id=skill.native_adapter.id;
   if(id==='repo-cloud-tools')return executeRepoCloudSkill(core,req,env,ctx,text,skill);
   if(id==='device-bridge')return executeDeviceSkill(core,req,env,ctx,text,skill);
+  if(id==='ecu-binary-inspector')return executeBinarySkill(core,req,env,ctx,text,skill,context);
   return null;
 }
 
-export async function executeFirstNativeSkill(core,req,env,ctx,text,rows=[]){
+export async function executeFirstNativeSkill(core,req,env,ctx,text,rows=[],context={}){
   for(const skill of Array.isArray(rows)?rows:[]){
-    if(!canExecuteNativeSkill(skill,text))continue;
-    const result=await executeNativeSkill(core,req,env,ctx,text,skill).catch(()=>null);
+    if(!canExecuteNativeSkill(skill,text,context))continue;
+    const result=await executeNativeSkill(core,req,env,ctx,text,skill,context).catch(()=>null);
     if(result)return result;
   }
   return null;
@@ -101,7 +125,7 @@ export function createNativeSkillFirstChat(core,fallback){
     const text=String(body?.text||'').trim();
     if(!text)return fallback(req,env,ctx);
     const rows=await discoverSkills(core,req,env,ctx,text).catch(()=>[]);
-    const payload=await executeFirstNativeSkill(core,req,env,ctx,text,rows).catch(()=>null);
+    const payload=await executeFirstNativeSkill(core,req,env,ctx,text,rows,body).catch(()=>null);
     if(payload)return jsonResponse(payload);
     return fallback(req,env,ctx);
   };
