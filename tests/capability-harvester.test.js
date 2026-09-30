@@ -75,3 +75,12 @@ test('scheduled harvester is metadata-only and promotes changes through a tested
   assert.doesNotMatch(source, /git clone.*(?:repo|url|registry)/i);
   assert.doesNotMatch(source, /npm install.*(?:discovered|registry|third-party)/i);
 });
+
+test('harvester can bootstrap after the self-update merge despite GITHUB_TOKEN recursion protection', () => {
+  const source = readFileSync(workflowPath, 'utf8');
+  assert.match(source, /workflow_run:/);
+  assert.match(source, /JARVIS Self Update Test \+ Merge/);
+  assert.match(source, /types:\s*\[completed\]/);
+  assert.match(source, /workflow_run\.conclusion\s*==\s*'success'/);
+  assert.match(source, /feature\/capability-harvest/);
+});
