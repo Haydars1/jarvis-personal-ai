@@ -54,3 +54,13 @@ test('keyless local coder is conservative, local and test gated',()=>{
   assert.match(script,/git reset --hard HEAD/);
   assert.doesNotMatch(script,/https?:\/\/api\.(openai|anthropic|mistral|groq|x\.ai)/);
 });
+
+test('local coder bootstraps from pinned verified llama.cpp binary instead of compiling it',()=>{
+  const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
+  assert.match(script,/b11146/);
+  assert.match(script,/llama-b11146-bin-ubuntu-x64\.tar\.gz/);
+  assert.match(script,/c150306eb16b5ab696f76a8bdf810c35fd98a24e82158742e6fa28f420ff8410/);
+  assert.match(script,/sha256sum/);
+  assert.doesNotMatch(script,/cmake --build/);
+  assert.doesNotMatch(script,/git clone --depth=1 --branch/);
+});
