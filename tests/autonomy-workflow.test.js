@@ -64,3 +64,8 @@ test('local coder bootstraps from pinned verified llama.cpp binary instead of co
   assert.doesNotMatch(script,/cmake --build/);
   assert.doesNotMatch(script,/git clone --depth=1 --branch/);
 });
+
+test('runtime verification pushes supersede stale runtime tests without cancelling scheduled development',()=>{
+  assert.match(source,/cancel-in-progress:\s*\$\{\{\s*github\.event_name\s*==\s*'push'\s*&&\s*github\.ref\s*==\s*'refs\/heads\/test\/autonomy-runtime'\s*\}\}/);
+  assert.doesNotMatch(source,/cancel-in-progress:\s*true/);
+});
