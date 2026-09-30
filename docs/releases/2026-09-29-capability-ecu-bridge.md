@@ -13,6 +13,7 @@ Included:
 - repository skill compiler that learns capabilities from repository structure and documentation without a paid AI API
 - persistent D1 repo_skills registry and /api/tools/discover skill discovery
 - automatic bounded learning of unlearned curated repositories
+- cloud-runner self-seeding: each 5-minute cloud runner pass can enqueue a bounded batch of unlearned repositories using GitHub OIDC, then learn them in the same pass
 - native adapter resolver for JARVIS capabilities that already exist
 - OIDC-protected native-skill backlog for the autonomous developer
 - clean-room skill reimplementation workflow so missing repository capabilities can become JARVIS-native skills without blindly copying third-party source
