@@ -8,9 +8,11 @@ if [ -z "$PROMPT_PATH" ] || [ ! -f "$PROMPT_PATH" ]; then
 fi
 
 CACHE_ROOT="${LOCAL_CODER_CACHE:-$HOME/.cache/jarvis-local-coder}"
-LLAMA_VERSION="v0.5.0"
-LLAMA_SRC="$CACHE_ROOT/llama.cpp-$LLAMA_VERSION"
-LLAMA_BIN="$LLAMA_SRC/build/bin/llama-server"
+LLAMA_RELEASE="b11146"
+LLAMA_ARCHIVE_NAME="llama-b11146-bin-ubuntu-x64.tar.gz"
+LLAMA_ARCHIVE_URL="https://github.com/ggml-org/llama.cpp/releases/download/$LLAMA_RELEASE/$LLAMA_ARCHIVE_NAME"
+LLAMA_ARCHIVE_SHA256="c150306eb16b5ab696f76a8bdf810c35fd98a24e82158742e6fa28f420ff8410"
+LLAMA_ROOT="$CACHE_ROOT/llama-$LLAMA_RELEASE"
 MODEL_REPO="Qwen/Qwen3-1.7B-GGUF:Q4_K_M"
 MODEL_ID="qwen3-1.7b-local"
 SERVER_LOG="/tmp/jarvis-llama-server.log"
@@ -20,14 +22,36 @@ LOCAL_PROMPT_PATH="/tmp/jarvis-local-dev-prompt.txt"
 mkdir -p "$CACHE_ROOT" "$CACHE_ROOT/models"
 export LLAMA_CACHE="$CACHE_ROOT/models"
 
-if [ ! -x "$LLAMA_BIN" ]; then
-  rm -rf "$LLAMA_SRC"
-  git clone --depth=1 --branch "$LLAMA_VERSION" https://github.com/ggml-org/llama.cpp.git "$LLAMA_SRC"
-  cmake -S "$LLAMA_SRC" -B "$LLAMA_SRC/build" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DGGML_NATIVE=OFF \
-    -DLLAMA_CURL=ON
-  cmake --build "$LLAMA_SRC/build" --target llama-server -j2
+find_llama_server() {
+  find "$LLAMA_ROOT" -type f -name llama-server -perm -u+x -print -quit 2>/dev/null || true
+}
+
+LLAMA_BIN="$(find_llama_server)"
+if [ -z "$LLAMA_BIN" ]; then
+  rm -rf "$LLAMA_ROOT"
+  mkdir -p "$LLAMA_ROOT"
+  archive="$(mktemp /tmp/llama-bin.XXXXXX.tar.gz)"
+  cleanup_archive() { rm -f "$archive"; }
+  trap cleanup_archive RETURN
+
+  curl --fail --location --retry 3 --retry-all-errors \
+    --connect-timeout 20 --max-time 180 \
+    --output "$archive" "$LLAMA_ARCHIVE_URL"
+  echo "$LLAMA_ARCHIVE_SHA256  $archive" | sha256sum --check --status || {
+    echo "llama.cpp binary archive checksum mismatch" >&2
+    rm -rf "$LLAMA_ROOT"
+    exit 1
+  }
+  tar -xzf "$archive" -C "$LLAMA_ROOT"
+  rm -f "$archive"
+  trap - RETURN
+
+  LLAMA_BIN="$(find_llama_server)"
+  if [ -z "$LLAMA_BIN" ]; then
+    echo "verified llama.cpp archive did not contain llama-server" >&2
+    rm -rf "$LLAMA_ROOT"
+    exit 1
+  fi
 fi
 
 cat > "$CONFIG_PATH" <<'JSON'
