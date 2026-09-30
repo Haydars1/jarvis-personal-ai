@@ -137,9 +137,30 @@ jobs:
           git reset --hard HEAD
           git clean -fd
 
+      - name: Restore keyless local coder cache
+        if: ${{ steps.multiprovider.outcome != 'success' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/jarvis-local-coder
+          key: jarvis-local-coder-v2-${{ runner.os }}-qwen3-1.7b-q8
+
+      - name: Run keyless local coding fallback
+        id: localcoder
+        if: ${{ steps.multiprovider.outcome != 'success' }}
+        continue-on-error: true
+        timeout-minutes: 15
+        shell: bash
+        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
+
+      - name: Reset failed local coding work
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
+        run: |
+          git reset --hard HEAD
+          git clean -fd
+
       - name: Run Codex fallback
         id: codex
-        if: ${{ steps.multiprovider.outcome != 'success' }}
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
         continue-on-error: true
         uses: openai/codex-action@v1
         with:
@@ -153,35 +174,15 @@ jobs:
             run npm run check, and leave verified changes uncommitted.
 
       - name: Reset failed Codex work
-        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
-        run: |
-          git reset --hard HEAD
-          git clean -fd
-
-      - name: Restore keyless local coder cache
-        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v1-${{ runner.os }}-qwen3-1.7b-q4km
-
-      - name: Run keyless local coding fallback
-        id: localcoder
-        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' }}
-        continue-on-error: true
-        shell: bash
-        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
-
-      - name: Reset failed local coding work
-        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' && steps.localcoder.outcome != 'success' }}
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' && steps.codex.outcome != 'success' }}
         run: |
           git reset --hard HEAD
           git clean -fd
 
       - name: Require a coding agent to succeed
-        if: ${{ steps.multiprovider.outcome != 'success' && steps.codex.outcome != 'success' && steps.localcoder.outcome != 'success' }}
+        if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' && steps.codex.outcome != 'success' }}
         run: |
-          echo "::error::Hosted providers, Codex, and the keyless local coder all failed."
+          echo "::error::Hosted providers, keyless local coder, and Codex all failed."
           exit 1
 
       - name: Validate agent changes
@@ -219,12 +220,15 @@ jobs:
           if [ -n "${PRIMARY_PROVIDER:-}" ]; then
             provider="$PRIMARY_PROVIDER"
             model="${PRIMARY_MODEL:-unknown}"
+          elif [ "${LOCAL_PROVIDER:-}" != "" ]; then
+            provider="$LOCAL_PROVIDER"
+            model="${LOCAL_MODEL:-Qwen/Qwen3-1.7B-GGUF:Q8_0}"
           elif [ "${CODEX_OUTCOME:-}" = "success" ]; then
             provider="Codex fallback"
             model="OpenAI Codex"
           else
-            provider="${LOCAL_PROVIDER:-Local Qwen3}"
-            model="${LOCAL_MODEL:-Qwen/Qwen3-1.7B-GGUF:Q4_K_M}"
+            provider="unknown"
+            model="unknown"
           fi
 
           gh pr create \
