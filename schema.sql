@@ -313,3 +313,24 @@ CREATE TABLE IF NOT EXISTS cloud_tool_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_cloud_tool_jobs_queue ON cloud_tool_jobs(status, created_at ASC);
 CREATE INDEX IF NOT EXISTS idx_cloud_tool_jobs_repo ON cloud_tool_jobs(repo, created_at DESC);
+
+-- Learned repository capabilities. A repo is inspected in a cloud runner and compiled into a persistent JARVIS skill manifest.
+CREATE TABLE IF NOT EXISTS repo_skills (
+  id TEXT PRIMARY KEY,
+  repo TEXT NOT NULL UNIQUE,
+  source_commit TEXT,
+  primary_capability TEXT NOT NULL DEFAULT 'repository-knowledge',
+  capabilities_json TEXT NOT NULL DEFAULT '[]',
+  execution_lane TEXT NOT NULL DEFAULT 'cloud-runner',
+  risk TEXT NOT NULL DEFAULT 'low',
+  status TEXT NOT NULL DEFAULT 'learned',
+  verification TEXT NOT NULL DEFAULT 'repository-inspection',
+  adapter_status TEXT NOT NULL DEFAULT 'unverified',
+  requires_paid_api INTEGER NOT NULL DEFAULT 0,
+  manifest_json TEXT NOT NULL DEFAULT '{}',
+  learned_at INTEGER NOT NULL,
+  last_verified_at INTEGER,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_repo_skills_status ON repo_skills(status, primary_capability, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_repo_skills_repo ON repo_skills(repo, updated_at DESC);
