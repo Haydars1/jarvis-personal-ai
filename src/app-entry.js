@@ -7,6 +7,7 @@ import { createEmergencyChatFallback } from './application/chat/emergency-fallba
 import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from './application/ecu/channels.js';
 import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
+import { createSourcePoolState } from './application/ecu/source-pool-state.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
@@ -42,7 +43,7 @@ const mediaCore = {
   }
 };
 
-const ecuCore = createEcuChannelStore(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore)));
+const ecuCore = createEcuChannelStore(createSourcePoolState(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore))));
 const handleChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
 const handlePush = createPushApi(capabilityCore);
 

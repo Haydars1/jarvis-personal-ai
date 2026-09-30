@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { CURATED_CAPABILITY_SEEDS } from '../src/lib/open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from '../src/lib/obd-pdf-seeds.js';
@@ -203,7 +204,7 @@ function parseArgs(argv = process.argv.slice(2)) {
   return options;
 }
 
-const invoked = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname);
+const invoked = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (invoked) {
   syncSourcePool(parseArgs()).then(manifest => {
     console.log(JSON.stringify({ root: manifest.root, requested: manifest.requestedRepositories, ready: manifest.ready, failed: manifest.failed, dryRun: manifest.dryRun }, null, 2));
