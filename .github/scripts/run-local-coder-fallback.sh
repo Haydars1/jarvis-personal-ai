@@ -13,7 +13,7 @@ LLAMA_ARCHIVE_NAME="llama-b11146-bin-ubuntu-x64.tar.gz"
 LLAMA_ARCHIVE_URL="https://github.com/ggml-org/llama.cpp/releases/download/$LLAMA_RELEASE/$LLAMA_ARCHIVE_NAME"
 LLAMA_ARCHIVE_SHA256="c150306eb16b5ab696f76a8bdf810c35fd98a24e82158742e6fa28f420ff8410"
 LLAMA_ROOT="$CACHE_ROOT/llama-$LLAMA_RELEASE"
-MODEL_REPO="Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M"
+MODEL_REPO="bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M"
 MODEL_ID="qwen2.5-coder-1.5b-local"
 SERVER_LOG="/tmp/jarvis-llama-server.log"
 CONFIG_PATH="/tmp/opencode-local.json"
@@ -21,6 +21,8 @@ LOCAL_PROMPT_PATH="/tmp/jarvis-local-dev-prompt.txt"
 SOURCE_BACKLOG_PATH="/tmp/jarvis-skill-backlog.json"
 WORKSPACE_RUNTIME_DIR=".jarvis-runtime"
 WORKSPACE_BACKLOG_PATH="$WORKSPACE_RUNTIME_DIR/skill-backlog.json"
+TOOL_PROBE_REQUEST="/tmp/jarvis-tool-probe-request.json"
+TOOL_PROBE_RESPONSE="/tmp/jarvis-tool-probe-response.json"
 
 mkdir -p "$CACHE_ROOT" "$CACHE_ROOT/models"
 export LLAMA_CACHE="$CACHE_ROOT/models"
@@ -96,6 +98,7 @@ trap cleanup EXIT
   --port 8080 \
   --ctx-size 8192 \
   --parallel 1 \
+  --temp 0 \
   --jinja \
   >"$SERVER_LOG" 2>&1 &
 SERVER_PID=$!
@@ -117,6 +120,38 @@ if [ "$ready" -ne 1 ]; then
   tail -n 120 "$SERVER_LOG" >&2 || true
   exit 1
 fi
+
+cat > "$TOOL_PROBE_REQUEST" <<EOF
+{"model":"$MODEL_ID","messages":[{"role":"user","content":"Call the ping tool exactly once with value ready."}],"tools":[{"type":"function","function":{"name":"ping","description":"Verify function calling.","parameters":{"type":"object","properties":{"value":{"type":"string"}},"required":["value"],"additionalProperties":false}}}],"tool_choice":"required","temperature":0,"max_tokens":128}
+EOF
+
+if ! curl -fsS \
+  -H 'Content-Type: application/json' \
+  --data-binary @"$TOOL_PROBE_REQUEST" \
+  http://127.0.0.1:8080/v1/chat/completions \
+  > "$TOOL_PROBE_RESPONSE"; then
+  echo "local llama.cpp tool-call probe failed" >&2
+  tail -n 80 "$SERVER_LOG" >&2 || true
+  exit 1
+fi
+
+if ! TOOL_PROBE_RESPONSE="$TOOL_PROBE_RESPONSE" node --input-type=module <<'NODE'
+import { readFileSync } from 'node:fs';
+const body=JSON.parse(readFileSync(process.env.TOOL_PROBE_RESPONSE,'utf8'));
+const calls=body?.choices?.[0]?.message?.tool_calls;
+if(!Array.isArray(calls)||calls.length!==1||calls[0]?.function?.name!=='ping')process.exit(1);
+let args={};
+try{args=JSON.parse(calls[0]?.function?.arguments||'{}')}catch{process.exit(1)}
+if(args.value!=='ready')process.exit(1);
+NODE
+then
+  echo "local llama.cpp tool-call probe failed" >&2
+  cat "$TOOL_PROBE_RESPONSE" >&2 || true
+  tail -n 80 "$SERVER_LOG" >&2 || true
+  exit 1
+fi
+
+echo "Local llama.cpp tool-call probe passed."
 
 mkdir -p "$WORKSPACE_RUNTIME_DIR"
 if ! grep -qxF "$WORKSPACE_RUNTIME_DIR/" .git/info/exclude 2>/dev/null; then
