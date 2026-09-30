@@ -18,8 +18,11 @@ Included:
 - native adapter resolver for JARVIS capabilities that already exist
 - OIDC-protected native-skill backlog for the autonomous developer
 - clean-room skill reimplementation workflow so missing repository capabilities can become JARVIS-native skills without blindly copying third-party source
-- runtime verification retry uses the canonical deployed Worker hostname `jarvis-personal-ai.haydojarvis.workers.dev`
-- skill-first chat routing: a ready learned native skill is attempted before paid/hosted AI providers; repository knowledge/search work is queued directly to the GitHub cloud runner without an AI API call
+- runtime verification uses the canonical deployed Worker hostname `jarvis-personal-ai.haydojarvis.workers.dev`
+- top-level skill-first chat gate: executable ready native skills are attempted before the chat orchestrator starts any hosted AI provider request
+- repository knowledge/source-search jobs go directly to the GitHub cloud runner without hosted AI API usage
+- ECU/device intents go directly to the existing device bridge; read jobs can queue natively while write/service actions remain confirmation-gated
+- unsupported ready skills are skipped so a later executable native skill can still be used before provider fallback
 
 This marker intentionally triggers the normal main-branch production deployment workflow and the GitHub-hosted cloud skill runner so schema migration, build validation, production smoke checks, and real repository-skill learning can be verified on the merged code.
 
