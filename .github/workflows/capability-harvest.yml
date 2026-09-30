@@ -1,4 +1,4 @@
-# Verification marker: connector-authored push exercises the production harvest path.
+# Verification marker: PDF guide import verified 2026-09-30; this connector-authored push exercises the production harvest path.
 name: JARVIS GitHub Capability Harvest
 
 on:
