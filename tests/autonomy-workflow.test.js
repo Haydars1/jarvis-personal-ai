@@ -55,15 +55,17 @@ test('autonomous workflow tries keyless local coding before paid Codex fallback'
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
   assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
-  assert.match(source,/key:\s*jarvis-local-coder-v3-\$\{\{ runner\.os \}\}-qwen2\.5-coder-1\.5b-q4/);
-  assert.match(source,/save-always:\s*true/);
+  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v3-\$\{\{ runner\.os \}\}-qwen2\.5-coder-1\.5b-q4/);
+  assert.match(source,/name: Save keyless local coder cache[\s\S]*uses:\s*actions\/cache\/save@v4/);
+  assert.match(source,/name: Save keyless local coder cache[\s\S]*if:\s*\$\{\{ always\(\)/);
 });
 
 test('autonomous workflow falls back to a keyless local coding model after hosted providers fail',()=>{
   assert.match(source,/Run keyless local coding fallback/);
   assert.match(source,/steps\.localcoder\.outcome/);
   assert.match(source,/run-local-coder-fallback\.sh/);
-  assert.match(source,/actions\/cache@v4/);
+  assert.match(source,/actions\/cache\/restore@v4/);
+  assert.match(source,/actions\/cache\/save@v4/);
 });
 
 test('keyless local coder is coding-tuned, compact, local and test gated',()=>{
