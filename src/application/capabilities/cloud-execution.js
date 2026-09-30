@@ -3,6 +3,7 @@ import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js'
 import { OBD_PDF_SEEDS } from '../../lib/obd-pdf-seeds.js';
 import { classifyCapability } from '../../lib/capability-policy.js';
 import { skillMatchesTask } from '../../lib/repo-skill-compiler.js';
+import { selectSkillLearningRepos } from '../../lib/skill-learning.js';
 
 const now=()=>Date.now();
 const uid=()=>crypto.randomUUID();
@@ -17,6 +18,7 @@ const ALLOWED_ADAPTERS=Object.freeze({
   'skill-analyze':{label:'Learn repository skill',mode:'read-only'}
 });
 const CURATED_REPOS=new Set([...CURATED_CAPABILITY_SEEDS,...OBD_PDF_SEEDS].map(item=>String(item.repo||'').toLowerCase()).filter(Boolean));
+const CURATED_REPO_LIST=[...CURATED_REPOS].sort((a,b)=>a.localeCompare(b));
 let oidcCache={expires:0,jwks:null};
 
 function b64url(value){
@@ -68,6 +70,16 @@ async function queueCloudJob(env,{adapterId,repo,commit=null,input={}}){
   const ts=now(),id=uid();
   await execute(env,'INSERT INTO cloud_tool_jobs(id,adapter_id,repo,commit_sha,input_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',id,adapterId,repo,commit,JSON.stringify(input||{}),'queued',ts,ts);
   return publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id));
+}
+async function queueSkillLearningBatch(env,limit=8){
+  const learnedRows=await queryAll(env,'SELECT repo FROM repo_skills');
+  const pendingRows=await queryAll(env,"SELECT repo FROM cloud_tool_jobs WHERE adapter_id='skill-analyze' AND status IN ('queued','running')");
+  const learned=new Set(learnedRows.map(row=>String(row.repo||'').toLowerCase()));
+  const pending=new Set(pendingRows.map(row=>String(row.repo||'').toLowerCase()));
+  const selected=selectSkillLearningRepos(CURATED_REPO_LIST,learned,pending,limit);
+  const jobs=[];
+  for(const repo of selected)jobs.push(await queueCloudJob(env,{adapterId:'skill-analyze',repo,input:{source:'automatic-skill-learning'}}));
+  return jobs;
 }
 async function upsertRepositorySkill(env,skill,ts=now()){
   const repo=String(skill?.repo||'').trim();if(!validRepo(repo))throw new Error('REPOSITORY_NOT_CURATED');
@@ -152,8 +164,11 @@ export function createCloudCapabilityExecution(core){
       }
       return core.fetch(req,env,ctx);
     },
-    scheduled(event,env,ctx){return core.scheduled?.(event,env,ctx);}
+    async scheduled(event,env,ctx){
+      await core.scheduled?.(event,env,ctx);
+      await queueSkillLearningBatch(env,8).catch(()=>[]);
+    }
   };
 }
 
-export { ALLOWED_ADAPTERS as CLOUD_TOOL_ADAPTERS, verifyRunnerJwt, upsertRepositorySkill, discoverSkills };
+export { ALLOWED_ADAPTERS as CLOUD_TOOL_ADAPTERS, verifyRunnerJwt, upsertRepositorySkill, discoverSkills, queueSkillLearningBatch };
