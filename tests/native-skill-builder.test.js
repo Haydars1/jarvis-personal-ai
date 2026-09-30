@@ -9,6 +9,7 @@ test('worker exposes OIDC-protected native skill backlog for the autonomous buil
   assert.match(source,/\/api\/tools\/skills\/runner\/backlog/);
   assert.match(source,/jarvis-skill-builder/);
   assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/main/);
+  assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/test\/autonomy-runtime/);
   assert.match(source,/adapter_status='unverified'/);
 });
 

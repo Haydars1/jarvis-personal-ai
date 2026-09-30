@@ -13,7 +13,10 @@ const OIDC_AUDIENCE='jarvis-cloud-tool-runner';
 const SKILL_BUILDER_AUDIENCE='jarvis-skill-builder';
 const TRUSTED_REPOSITORY='Haydars1/jarvis-personal-ai';
 const TRUSTED_WORKFLOW='Haydars1/jarvis-personal-ai/.github/workflows/cloud-tool-runner.yml@refs/heads/main';
-const SKILL_BUILDER_WORKFLOW='Haydars1/jarvis-personal-ai/.github/workflows/jarvis-codex-agent.yml@refs/heads/main';
+const SKILL_BUILDER_WORKFLOWS=Object.freeze([
+  'Haydars1/jarvis-personal-ai/.github/workflows/jarvis-codex-agent.yml@refs/heads/main',
+  'Haydars1/jarvis-personal-ai/.github/workflows/jarvis-codex-agent.yml@refs/heads/test/autonomy-runtime'
+]);
 const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':{label:'Repository inspect',mode:'read-only'},
   'source-search':{label:'Source search',mode:'read-only'},
@@ -36,7 +39,7 @@ async function oidcJwks(){
   if(!response.ok)throw new Error(`OIDC_JWKS_${response.status}`);
   const jwks=await response.json();oidcCache={jwks,expires:now()+60*60*1000};return jwks;
 }
-async function verifyGithubOidc(token,audience,workflowRef){
+async function verifyGithubOidc(token,audience,workflowRefs){
   const parts=String(token||'').split('.');if(parts.length!==3)throw new Error('OIDC_TOKEN_INVALID');
   const header=decodeJson(parts[0]),payload=decodeJson(parts[1]);
   const jwks=await oidcJwks(),jwk=(jwks.keys||[]).find(key=>key.kid===header.kid);
@@ -46,11 +49,12 @@ async function verifyGithubOidc(token,audience,workflowRef){
   if(!valid)throw new Error('OIDC_SIGNATURE_INVALID');
   const epoch=Math.floor(Date.now()/1000);
   if(payload.iss!==OIDC_ISSUER||payload.aud!==audience||Number(payload.exp||0)<epoch||Number(payload.nbf||0)>epoch+30)throw new Error('OIDC_CLAIMS_INVALID');
-  if(payload.repository!==TRUSTED_REPOSITORY||payload.workflow_ref!==workflowRef||payload.runner_environment!=='github-hosted')throw new Error('OIDC_RUNNER_NOT_TRUSTED');
+  const allowedWorkflowRefs=Array.isArray(workflowRefs)?workflowRefs:[workflowRefs];
+  if(payload.repository!==TRUSTED_REPOSITORY||!allowedWorkflowRefs.includes(payload.workflow_ref)||payload.runner_environment!=='github-hosted')throw new Error('OIDC_RUNNER_NOT_TRUSTED');
   return payload;
 }
 async function verifyRunnerJwt(token){return verifyGithubOidc(token,OIDC_AUDIENCE,TRUSTED_WORKFLOW);}
-async function verifySkillBuilderJwt(token){return verifyGithubOidc(token,SKILL_BUILDER_AUDIENCE,SKILL_BUILDER_WORKFLOW);}
+async function verifySkillBuilderJwt(token){return verifyGithubOidc(token,SKILL_BUILDER_AUDIENCE,SKILL_BUILDER_WORKFLOWS);}
 function bearer(req){const m=String(req.headers.get('authorization')||'').match(/^Bearer\s+(.+)$/i);return m?m[1].trim():'';}
 async function runnerAuth(req){try{return await verifyRunnerJwt(bearer(req));}catch{return null;}}
 async function skillBuilderAuth(req){try{return await verifySkillBuilderJwt(bearer(req));}catch{return null;}}
