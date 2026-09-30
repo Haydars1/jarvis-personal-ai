@@ -12,6 +12,7 @@ export const ALLOWED_ADAPTERS=Object.freeze({
 });
 
 const BASE=String(process.env.JARVIS_URL||'https://haydojarvis.workers.dev').replace(/\/$/,'');
+const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
 const TEXT_EXT=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1','.json','.yml','.yaml','.toml','.xml','.md','.txt','.ini','.cfg','.sql']);
 
 function run(command,args,{cwd,quiet=true}={}){
@@ -88,7 +89,7 @@ async function sourceRead(job,ctx){
   const full=path.join(ctx.dest,file),info=await stat(full);if(info.size>250*1024)throw new Error('FILE_TOO_LARGE');
   return {repo:job.repo,commit:ctx.commit,path:file,content:await readFile(full,'utf8')};
 }
-async function execute(job,ctx){
+async function executeJob(job,ctx){
   const adapter=String(job.adapter_id||'');if(!ALLOWED_ADAPTERS[adapter])throw new Error('ADAPTER_NOT_ALLOWED');
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
@@ -98,18 +99,23 @@ async function execute(job,ctx){
 }
 
 async function main(){
-  const token=await oidcToken(),claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
-  if(!job){console.log('No queued cloud tool job.');return;}
-  console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
-  try{
-    const ctx=await cloneJob(job),result=await execute(job,ctx);
-    await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:true,result},token});
-    console.log(`Completed ${job.id}`);
-  }catch(error){
-    console.error(error);
-    await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:false,error:String(error?.message||error)},token}).catch(()=>{});
-    process.exitCode=1;
+  const token=await oidcToken();let processed=0,failed=0;
+  for(let index=0;index<MAX_JOBS;index++){
+    const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
+    if(!job){console.log('No more queued cloud tool jobs.');break;}
+    processed++;
+    console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
+    try{
+      const ctx=await cloneJob(job),result=await executeJob(job,ctx);
+      await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:true,result},token});
+      console.log(`Completed ${job.id}`);
+    }catch(error){
+      failed++;
+      console.error(`Failed ${job.id}:`,error);
+      await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:false,error:String(error?.message||error)},token}).catch(()=>{});
+    }
   }
+  console.log(`Cloud runner batch finished. processed=${processed} failed=${failed} max=${MAX_JOBS}`);
 }
 
 if(import.meta.url===new URL(`file://${process.argv[1]}`).href)main();
