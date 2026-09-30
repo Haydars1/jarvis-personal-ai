@@ -1,0 +1,182 @@
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const PERMISSIVE_LICENSES = new Set([
+  'MIT', 'Apache-2.0', 'BSD-2-Clause', 'BSD-3-Clause', 'ISC', 'Unlicense', 'CC0-1.0'
+]);
+const COPYLEFT_LICENSES = new Set([
+  'GPL-2.0', 'GPL-2.0-only', 'GPL-2.0-or-later',
+  'GPL-3.0', 'GPL-3.0-only', 'GPL-3.0-or-later',
+  'AGPL-3.0', 'AGPL-3.0-only', 'AGPL-3.0-or-later',
+  'LGPL-2.1', 'LGPL-2.1-only', 'LGPL-2.1-or-later',
+  'LGPL-3.0', 'LGPL-3.0-only', 'LGPL-3.0-or-later',
+  'MPL-2.0'
+]);
+const RISK_RE = /\b(malware|ransomware|keylogger|spyware|rootkit|botnet|phishing|credential[-\s]?stealer|password[-\s]?stealer|remote[-\s]?access[-\s]?trojan)\b/i;
+
+export const CAPABILITY_DISCOVERY_QUERIES = Object.freeze([
+  { category: 'local-llm', executionTarget: 'local-cpu', query: 'local LLM inference ollama llama.cpp archived:false' },
+  { category: 'coding-agent', executionTarget: 'local-cpu', query: 'coding agent CLI AI pair programming archived:false' },
+  { category: 'browser-agent', executionTarget: 'local-cpu', query: 'browser agent playwright automation AI archived:false' },
+  { category: 'computer-use', executionTarget: 'local-cpu', query: 'computer use desktop automation agent archived:false' },
+  { category: 'workflow-rpa', executionTarget: 'external-service', query: 'self hosted workflow automation RPA archived:false' },
+  { category: 'crawler-scraper', executionTarget: 'local-cpu', query: 'web crawler scraping browser automation archived:false' },
+  { category: 'research-search', executionTarget: 'local-cpu', query: 'open source AI research search engine archived:false' },
+  { category: 'image-generation', executionTarget: 'local-gpu', query: 'ComfyUI stable diffusion image generation archived:false' },
+  { category: 'video-generation', executionTarget: 'local-gpu', query: 'video generation ComfyUI Wan LTX archived:false' },
+  { category: 'video-editing-render', executionTarget: 'local-cpu', query: 'ffmpeg remotion video rendering automation archived:false' },
+  { category: 'speech-to-text', executionTarget: 'local-cpu', query: 'whisper speech to text local inference archived:false' },
+  { category: 'text-to-speech', executionTarget: 'local-gpu', query: 'local text to speech TTS voice synthesis archived:false' },
+  { category: 'ocr-document', executionTarget: 'local-cpu', query: 'OCR document parser local AI archived:false' },
+  { category: 'rag-vector-memory', executionTarget: 'local-cpu', query: 'vector database RAG local memory archived:false' },
+  { category: 'mcp-tooling', executionTarget: 'local-cpu', query: 'MCP server model context protocol archived:false' },
+  { category: 'social-automation', executionTarget: 'external-service', query: 'social media automation instagram facebook scheduler archived:false' },
+  { category: 'devops-observability', executionTarget: 'external-service', query: 'self hosted observability devops automation archived:false' },
+  { category: 'ecu-file-analysis', executionTarget: 'local-cpu', query: 'ECU tuning editor binary calibration archived:false' },
+  { category: 'ecu-diagnostics', executionTarget: 'device', query: 'automotive ECU diagnostic OBD tool archived:false' },
+  { category: 'can-uds-obd', executionTarget: 'device', query: 'CAN UDS OBD ISO14229 automotive archived:false' },
+  { category: 'device-bridge', executionTarget: 'device', query: 'J2534 passthru automotive diagnostic archived:false' },
+  { category: 'data-analysis', executionTarget: 'local-cpu', query: 'local data analysis dataframe agent archived:false' },
+  { category: 'audio-processing', executionTarget: 'local-cpu', query: 'audio processing ffmpeg local AI archived:false' },
+  { category: 'translation', executionTarget: 'local-cpu', query: 'local machine translation inference archived:false' },
+  { category: 'automation-catalog', executionTarget: 'external-service', query: 'awesome MCP servers local AI automation archived:false' }
+]);
+
+export const CURATED_CAPABILITY_SEEDS = Object.freeze([
+  { repo: 'ollama/ollama', category: 'local-llm', executionTarget: 'local-cpu' },
+  { repo: 'ggml-org/llama.cpp', category: 'local-llm', executionTarget: 'local-cpu' },
+  { repo: 'open-webui/open-webui', category: 'local-llm', executionTarget: 'local-cpu' },
+  { repo: 'Aider-AI/aider', category: 'coding-agent', executionTarget: 'local-cpu' },
+  { repo: 'browser-use/browser-use', category: 'browser-agent', executionTarget: 'local-cpu' },
+  { repo: 'microsoft/playwright-mcp', category: 'browser-agent', executionTarget: 'local-cpu' },
+  { repo: 'n8n-io/n8n', category: 'workflow-rpa', executionTarget: 'external-service' },
+  { repo: 'activepieces/activepieces', category: 'workflow-rpa', executionTarget: 'external-service' },
+  { repo: 'apify/crawlee', category: 'crawler-scraper', executionTarget: 'local-cpu' },
+  { repo: 'comfyanonymous/ComfyUI', category: 'image-generation', executionTarget: 'local-gpu' },
+  { repo: 'Lightricks/LTX-Video', category: 'video-generation', executionTarget: 'local-gpu' },
+  { repo: 'Wan-Video/Wan2.1', category: 'video-generation', executionTarget: 'local-gpu' },
+  { repo: 'remotion-dev/remotion', category: 'video-editing-render', executionTarget: 'local-cpu' },
+  { repo: 'FFmpeg/FFmpeg', category: 'video-editing-render', executionTarget: 'local-cpu' },
+  { repo: 'ggerganov/whisper.cpp', category: 'speech-to-text', executionTarget: 'local-cpu' },
+  { repo: 'idiap/coqui-ai-TTS', category: 'text-to-speech', executionTarget: 'local-gpu' },
+  { repo: 'PaddlePaddle/PaddleOCR', category: 'ocr-document', executionTarget: 'local-cpu' },
+  { repo: 'qdrant/qdrant', category: 'rag-vector-memory', executionTarget: 'local-cpu' },
+  { repo: 'chroma-core/chroma', category: 'rag-vector-memory', executionTarget: 'local-cpu' },
+  { repo: 'modelcontextprotocol/servers', category: 'mcp-tooling', executionTarget: 'local-cpu' },
+  { repo: 'punkpeye/awesome-mcp-servers', category: 'automation-catalog', executionTarget: 'external-service' },
+  { repo: 'gitroomhq/postiz-app', category: 'social-automation', executionTarget: 'external-service' },
+  { repo: 'mdabrowski1990/uds', category: 'can-uds-obd', executionTarget: 'device' },
+  { repo: 'Schildkroet/CANgaroo', category: 'can-uds-obd', executionTarget: 'device' },
+  { repo: 'farzadnadiri/MCP-CAN', category: 'can-uds-obd', executionTarget: 'device' },
+  { repo: 'miikasyvanen/FastECU', category: 'ecu-diagnostics', executionTarget: 'device' },
+  { repo: 'Switchleg1/SimosTools', category: 'ecu-file-analysis', executionTarget: 'device' },
+  { repo: 'jeremyhahn/ecutools', category: 'ecu-file-analysis', executionTarget: 'device' },
+  { repo: 'RallyPat/LibreTune', category: 'ecu-file-analysis', executionTarget: 'local-cpu' }
+]);
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function licenseId(repo) {
+  return String(repo?.license?.spdx_id || repo?.license || '').trim();
+}
+
+function safeTopics(repo) {
+  return Array.isArray(repo?.topics) ? repo.topics.map(value => String(value)) : [];
+}
+
+function pushedAgeDays(repo, now) {
+  const pushed = Date.parse(String(repo?.pushed_at || ''));
+  if (!Number.isFinite(pushed)) return Number.POSITIVE_INFINITY;
+  return Math.max(0, (Number(now) - pushed) / DAY_MS);
+}
+
+export function evaluateRepository(repo = {}, now = Date.now()) {
+  const reasons = [];
+  const license = licenseId(repo);
+  const topics = safeTopics(repo);
+  const riskText = [repo?.full_name, repo?.name, repo?.description, ...topics].filter(Boolean).join(' ');
+
+  if (repo?.archived || repo?.disabled) {
+    return { status: 'rejected', score: 0, license, reasons: ['repository archived or disabled'] };
+  }
+  if (RISK_RE.test(riskText)) {
+    return { status: 'rejected', score: 0, license, reasons: ['risk metadata matched blocked abuse category'] };
+  }
+
+  let status = 'quarantine';
+  let score = 35;
+
+  if (PERMISSIVE_LICENSES.has(license)) {
+    status = 'accepted';
+    score += 20;
+  } else if (COPYLEFT_LICENSES.has(license)) {
+    status = 'external-only';
+    score += 10;
+    reasons.push('copyleft license requires external-service boundary');
+  } else {
+    reasons.push('license missing, unknown or not allowlisted');
+    score -= 10;
+  }
+
+  const ageDays = pushedAgeDays(repo, now);
+  if (ageDays <= 30) score += 20;
+  else if (ageDays <= 180) score += 15;
+  else if (ageDays <= 365) score += 10;
+  else if (ageDays <= 730) score += 5;
+  else if (Number.isFinite(ageDays)) score -= 15;
+  else {
+    score -= 15;
+    reasons.push('missing pushed_at metadata');
+  }
+
+  if (ageDays > 1095 && status === 'accepted') {
+    status = 'quarantine';
+    reasons.push('repository stale for more than three years');
+  }
+
+  const stars = Math.max(0, Number(repo?.stargazers_count || 0));
+  const forks = Math.max(0, Number(repo?.forks_count || 0));
+  score += Math.min(15, Math.floor(Math.log10(stars + 1) * 5));
+  score += Math.min(10, Math.floor(Math.log10(forks + 1) * 4));
+  if (repo?.description) score += 3;
+  if (repo?.fork) score -= 5;
+
+  score = clamp(Math.round(score), 0, 100);
+  if (status === 'quarantine') score = Math.min(score, 55);
+
+  return { status, score, license, reasons };
+}
+
+export function normalizeRepository(repo = {}, hints = {}, now = Date.now()) {
+  const admission = evaluateRepository(repo, now);
+  const category = String(hints.category || 'uncategorized');
+  const executionTarget = String(hints.executionTarget || 'external-service');
+  const fullName = String(repo?.full_name || repo?.name || '').trim();
+  return {
+    repo: fullName,
+    name: String(repo?.name || fullName.split('/').pop() || fullName),
+    url: String(repo?.html_url || (fullName ? `https://github.com/${fullName}` : '')),
+    description: String(repo?.description || ''),
+    category,
+    categories: [category],
+    executionTarget,
+    executionTargets: [executionTarget],
+    status: admission.status,
+    score: admission.score,
+    license: admission.license || null,
+    reasons: [...admission.reasons],
+    stars: Math.max(0, Number(repo?.stargazers_count || 0)),
+    forks: Math.max(0, Number(repo?.forks_count || 0)),
+    language: repo?.language ? String(repo.language) : null,
+    pushedAt: repo?.pushed_at ? String(repo.pushed_at) : null,
+    topics: safeTopics(repo).sort(),
+    source: String(hints.source || 'github-search'),
+    adapter: hints.adapter || null
+  };
+}
+
+export const CAPABILITY_LICENSE_POLICY = Object.freeze({
+  permissive: [...PERMISSIVE_LICENSES].sort(),
+  externalOnly: [...COPYLEFT_LICENSES].sort()
+});
