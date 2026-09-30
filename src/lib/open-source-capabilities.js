@@ -73,6 +73,24 @@ export const CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'RallyPat/LibreTune', category: 'ecu-file-analysis', executionTarget: 'local-cpu' }
 ]);
 
+const TASK_CATEGORY_PRIORITY = Object.freeze({
+  chat: ['local-llm'],
+  coding: ['coding-agent', 'local-llm', 'mcp-tooling'],
+  research: ['research-search', 'crawler-scraper', 'browser-agent', 'rag-vector-memory', 'local-llm'],
+  reporting: ['research-search', 'ocr-document', 'rag-vector-memory', 'local-llm'],
+  social_strategy: ['social-automation', 'workflow-rpa', 'video-generation', 'image-generation', 'text-to-speech'],
+  video_creation: ['video-generation', 'video-editing-render', 'image-generation', 'text-to-speech'],
+  image: ['image-generation'],
+  audio: ['speech-to-text', 'text-to-speech', 'audio-processing'],
+  translation: ['translation', 'local-llm'],
+  ecu_diagnostics: ['ecu-diagnostics', 'can-uds-obd', 'device-bridge', 'local-llm'],
+  ecu_file_analysis: ['ecu-file-analysis', 'local-llm'],
+  vehicle_coding: ['can-uds-obd', 'ecu-diagnostics', 'device-bridge'],
+  service_procedure: ['can-uds-obd', 'ecu-diagnostics', 'device-bridge'],
+  performance_calibration: ['ecu-file-analysis', 'local-llm'],
+  emissions_modification: ['ecu-file-analysis']
+});
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -89,6 +107,10 @@ function pushedAgeDays(repo, now) {
   const pushed = Date.parse(String(repo?.pushed_at || ''));
   if (!Number.isFinite(pushed)) return Number.POSITIVE_INFINITY;
   return Math.max(0, (Number(now) - pushed) / DAY_MS);
+}
+
+function listField(value, fallback = []) {
+  return Array.isArray(value) ? value.map(item => String(item)) : [...fallback];
 }
 
 export function evaluateRepository(repo = {}, now = Date.now()) {
@@ -175,6 +197,46 @@ export function normalizeRepository(repo = {}, hints = {}, now = Date.now()) {
     adapter: hints.adapter || null
   };
 }
+
+export function openSourceCandidates(kind = 'chat', registry = [], runtimeContext = {}) {
+  const priorities = TASK_CATEGORY_PRIORITY[String(kind || 'chat')] || TASK_CATEGORY_PRIORITY.chat;
+  const availableTargets = new Set(listField(runtimeContext.availableTargets, ['cloud', 'external-service']));
+  const health = runtimeContext.health && typeof runtimeContext.health === 'object' ? runtimeContext.health : {};
+  const includeUnadapted = runtimeContext.includeUnadapted === true;
+  const candidates = [];
+
+  for (const entry of Array.isArray(registry) ? registry : []) {
+    if (!entry || !['accepted', 'external-only'].includes(String(entry.status))) continue;
+    const categories = listField(entry.categories, entry.category ? [entry.category] : []);
+    const matchIndexes = categories.map(category => priorities.indexOf(category)).filter(index => index >= 0);
+    if (!matchIndexes.length) continue;
+    const targets = listField(entry.executionTargets, entry.executionTarget ? [entry.executionTarget] : []);
+    if (!targets.some(target => availableTargets.has(target))) continue;
+
+    const repo = String(entry.repo || '');
+    const repoHealth = health[repo] || {};
+    if (repoHealth.available === false) continue;
+
+    const adapterReady = Boolean(entry.adapterReady || entry.adapter?.status === 'ready' || entry.adapter?.type === 'builtin');
+    if (!adapterReady && !includeUnadapted) continue;
+
+    const bestMatch = Math.min(...matchIndexes);
+    let routingScore = Number(entry.score || 0) + Math.max(10, 50 - bestMatch * 10);
+    if (Number.isFinite(Number(repoHealth.successRate))) routingScore += Math.round(clamp(Number(repoHealth.successRate), 0, 1) * 10);
+    if (Number(repoHealth.consecutiveFailures || 0) >= 2) routingScore -= 20;
+
+    candidates.push({
+      ...entry,
+      runnable: adapterReady,
+      routingScore: Math.round(routingScore),
+      executionMode: kind === 'emissions_modification' ? 'analysis-only' : 'execute'
+    });
+  }
+
+  return candidates.sort((a, b) => b.routingScore - a.routingScore || String(a.repo).localeCompare(String(b.repo)));
+}
+
+export const CAPABILITY_TASK_CATEGORY_PRIORITY = TASK_CATEGORY_PRIORITY;
 
 export const CAPABILITY_LICENSE_POLICY = Object.freeze({
   permissive: [...PERMISSIVE_LICENSES].sort(),
