@@ -51,7 +51,10 @@ test('chat orchestrator attempts a ready learned skill before paid provider expe
   assert.match(source,/adapter_status\s*===\s*['"]ready['"]/);
   assert.match(source,/native_adapter/);
   assert.match(source,/kind:\s*['"]skill['"]/);
-  const skillIndex=source.indexOf('skillFirstResponse');
-  const expertIndex=source.indexOf('getExperts(env,text');
+  const orchestrated=source.slice(source.indexOf('async function orchestratedChat'));
+  const skillIndex=orchestrated.indexOf('skillFirstResponse(');
+  const expertIndex=orchestrated.indexOf('getExperts(env,text');
   assert.ok(skillIndex>=0&&expertIndex>skillIndex);
+  const simple=source.slice(source.indexOf('async function simpleChat'),source.indexOf('async function orchestratedChat'));
+  assert.ok(simple.indexOf('skillFirstResponse(')>=0&&simple.indexOf('getExperts(env,text')>simple.indexOf('skillFirstResponse('));
 });
