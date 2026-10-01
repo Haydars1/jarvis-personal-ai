@@ -12,6 +12,7 @@ final class AppState: ObservableObject {
     @Published var statusText = "Hazır"
     @Published var loginStatusText = ""
     @Published var showLogin = false
+    @Published var showVehicleConnection = false
     @Published var password = ""
     @Published var biometricLoginAvailable = false
     @Published var biometricLoginTitle = "Face ID ile Giriş Yap"
@@ -166,6 +167,7 @@ final class AppState: ObservableObject {
     private func consumePendingIntentIfNeeded() async { let defaults=UserDefaults(suiteName:"group.com.haydojarvis.jarvis"); guard let text=defaults?.string(forKey:"pendingIntentText"),!text.isEmpty else{return}; defaults?.removeObject(forKey:"pendingIntentText"); input=text; await send() }
     func handle(url: URL) {
         guard url.scheme == "jarvis" else { return }
+        if url.host == "obd" { showVehicleConnection = true; return }
         if url.host == "voice" { voice.startListening(); return }
         if url.host == "settings" { statusText = "Ayarları sol üst dişliden aç"; return }
         if url.host == "share" { consumePendingShare(); return }
