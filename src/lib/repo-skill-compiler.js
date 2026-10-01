@@ -1,3 +1,5 @@
+export const SKILL_COMPILER_VERSION='2026-10-01.2';
+
 const RULES=Object.freeze([
   {id:'speech-to-text',patterns:[/speech[- ]to[- ]text|speech recognition|automatic speech recognition|transcrib|whisper/i],weight:9},
   {id:'wake-word-detection',patterns:[/wake[- ]?word|wakeword|keyword spotting|openwakeword/i],weight:9},
@@ -85,6 +87,7 @@ export function compileRepositorySkill(inspect={},hints={}){
     id:`repo:${repo.toLowerCase()}`,
     repo,
     source_commit:commit,
+    compiler_version:SKILL_COMPILER_VERSION,
     capabilities,
     primary_capability:capabilities[0]||'repository-knowledge',
     execution_lane:laneFor(capabilities,text),
