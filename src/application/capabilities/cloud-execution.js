@@ -2,7 +2,7 @@ import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/r
 import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from '../../lib/obd-pdf-seeds.js';
 import { classifyCapability } from '../../lib/capability-policy.js';
-import { skillMatchesTask } from '../../lib/repo-skill-compiler.js';
+import { SKILL_COMPILER_VERSION, skillMatchesTask } from '../../lib/repo-skill-compiler.js';
 import { selectSkillLearningRepos } from '../../lib/skill-learning.js';
 import { resolveNativeSkillAdapter } from '../../lib/native-skill-adapters.js';
 
@@ -84,13 +84,20 @@ async function queueCloudJob(env,{adapterId,repo,commit=null,input={}}){
   return publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id));
 }
 async function queueSkillLearningBatch(env,limit=8){
-  const learnedRows=await queryAll(env,'SELECT repo FROM repo_skills');
+  const learnedRows=await queryAll(env,'SELECT repo,manifest_json FROM repo_skills');
   const pendingRows=await queryAll(env,"SELECT repo FROM cloud_tool_jobs WHERE adapter_id='skill-analyze' AND status IN ('queued','running')");
-  const learned=new Set(learnedRows.map(row=>String(row.repo||'').toLowerCase()));
+  const learned=new Map(learnedRows.map(row=>{
+    const repo=String(row.repo||'').toLowerCase();
+    const manifest=parse(row.manifest_json,{});
+    return [repo,manifest.compiler_version||null];
+  }));
   const pending=new Set(pendingRows.map(row=>String(row.repo||'').toLowerCase()));
-  const selected=selectSkillLearningRepos(CURATED_REPO_LIST,learned,pending,limit);
+  const selected=selectSkillLearningRepos(CURATED_REPO_LIST,learned,pending,limit,SKILL_COMPILER_VERSION);
   const jobs=[];
-  for(const repo of selected)jobs.push(await queueCloudJob(env,{adapterId:'skill-analyze',repo,input:{source:'automatic-skill-learning'}}));
+  for(const repo of selected){
+    const source=learned.has(repo)?'automatic-skill-revalidation':'automatic-skill-learning';
+    jobs.push(await queueCloudJob(env,{adapterId:'skill-analyze',repo,input:{source,compiler_version:SKILL_COMPILER_VERSION}}));
+  }
   return jobs;
 }
 async function upsertRepositorySkill(env,skill,ts=now()){
@@ -100,7 +107,7 @@ async function upsertRepositorySkill(env,skill,ts=now()){
   const adapterStatus=nativeAdapter?'ready':String(skill.adapter_status||'unverified');
   const id=String(skill.id||`repo:${repo.toLowerCase()}`);
   const learnedAt=Number(skill.learned_at||ts);
-  const manifest={...skill,capabilities,adapter_status:adapterStatus,native_adapter:nativeAdapter||null};
+  const manifest={...skill,compiler_version:String(skill.compiler_version||SKILL_COMPILER_VERSION),capabilities,adapter_status:adapterStatus,native_adapter:nativeAdapter||null};
   await execute(env,`INSERT INTO repo_skills(id,repo,source_commit,primary_capability,capabilities_json,execution_lane,risk,status,verification,adapter_status,requires_paid_api,manifest_json,learned_at,last_verified_at,updated_at)
     VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(repo) DO UPDATE SET id=excluded.id,source_commit=excluded.source_commit,primary_capability=excluded.primary_capability,capabilities_json=excluded.capabilities_json,execution_lane=excluded.execution_lane,risk=excluded.risk,status=excluded.status,verification=excluded.verification,adapter_status=excluded.adapter_status,requires_paid_api=excluded.requires_paid_api,manifest_json=excluded.manifest_json,last_verified_at=excluded.last_verified_at,updated_at=excluded.updated_at`,
@@ -142,7 +149,7 @@ export function createCloudCapabilityExecution(core){
         const body=await readJson(req),repo=String(body.repo||'');
         if(!validRepo(repo))return jsonResponse({error:'REPOSITORY_NOT_CURATED'},400);
         const commit=/^[0-9a-f]{40}$/i.test(String(body.commit||''))?String(body.commit):null;
-        const job=await queueCloudJob(env,{adapterId:'skill-analyze',repo,commit,input:{source:'skill-compiler'}});
+        const job=await queueCloudJob(env,{adapterId:'skill-analyze',repo,commit,input:{source:'skill-compiler',compiler_version:SKILL_COMPILER_VERSION}});
         return jsonResponse({job},202);
       }
       if(path==='/api/tools/skills'&&method==='GET'){
