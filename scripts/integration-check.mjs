@@ -82,13 +82,16 @@ try {
     try {
       const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
       const errors = [];
+      mkdirSync('.wrangler/browser-report', { recursive: true });
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(base);
       await page.locator('#authMsg').filter({ hasText: 'Parolanı gir' }).waitFor();
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('nav [data-page="ecu"]').click();
+      await page.screenshot({ path: '.wrangler/browser-report/after-login.png', fullPage: true });
+      console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
+      await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
       await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
       mkdirSync('.wrangler/browser-report', { recursive: true });

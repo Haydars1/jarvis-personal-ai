@@ -10,6 +10,7 @@ import { encryptCredential } from '../src/lib/runtime.js';
 import { decodeEcuFile, MAX_ECU_FILE_BYTES } from '../src/lib/ecu-file.js';
 import { createOwnerRouteGuard } from '../src/application/chat/owner-route-guard.js';
 import { createEcuDeviceBridge } from '../src/application/ecu/device-bridge.js';
+import { createPushApi } from '../src/infrastructure/apns/push-service.js';
 
 const request = body => new Request('https://jarvis.test/api/chat/send', {
   method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body)
@@ -50,6 +51,27 @@ test('owner guard blocks unauthenticated chat and ECU channel access before exec
       assert.equal((await guard(new Request(`https://jarvis.test${path}`), {}, {})).status, 401);
     }
   }
+});
+
+test('iOS push registration persists safely and reports missing Apple configuration', async t => {
+  const env = database(t);
+  const push = createPushApi({ fetch: async () => new Response('{"authenticated":true}') });
+  const call = (path, body) => push(new Request(`https://jarvis.test/api/mobile/push/${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  }), env, {});
+  assert.equal((await call('register', { token: 'invalid' })).status, 400);
+  const fixtureToken = 'a'.repeat(64);
+  const first = await (await call('register', { token: fixtureToken, environment: 'sandbox' })).json();
+  const second = await (await call('register', { token: fixtureToken, environment: 'production' })).json();
+  assert.equal(first.id, second.id);
+  const status = await (await call('status')).json();
+  assert.equal(status.configured, false);
+  assert.deepEqual(status.missing, ['APNS_TEAM_ID', 'APNS_KEY_ID', 'APNS_PRIVATE_KEY']);
+  assert.equal(status.devices.length, 1);
+  assert.equal(status.devices[0].environment, 'production');
+  assert.equal(JSON.stringify(status).includes(fixtureToken), false);
+  assert.equal((await call('test', {})).status, 503);
 });
 
 test('owner guard forwards session headers and preserves separately authenticated bridge routes', async () => {
