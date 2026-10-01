@@ -21,7 +21,8 @@ Included:
 - runtime verification uses the canonical deployed Worker hostname `jarvis-personal-ai.haydojarvis.workers.dev`
 - autonomous native-skill builder now fetches its OIDC backlog from that same canonical production Worker instead of the stale legacy hostname
 - skill-builder OIDC authentication trusts only the exact main workflow ref plus the dedicated `test/autonomy-runtime` verification ref, fixing live BACKLOG 401 without allowing wildcard workflow branches
-- keyless local coder now requests the live available `Qwen/Qwen3-1.7B-GGUF:Q8_0` model variant instead of the removed/unavailable `Q4_K_M` selector
+- keyless local coder uses a cached local Qwen2.5 Coder/llama.cpp path before Codex, with a bounded OpenCode attempt and verified unified-diff fallback
+- repository skill compiler manifests are now versioned; old or missing compiler versions are automatically requeued for revalidation so classifier improvements repair existing D1 skills
 - self-update CI now admits `fix/*` branches in addition to `feature/*` and `jarvis/*`, so bugfix PRs receive the same full test, Cloudflare dry-run and auto-merge gate
 - top-level skill-first chat gate: executable ready native skills are attempted before the chat orchestrator starts any hosted AI provider request
 - repository knowledge/source-search jobs go directly to the GitHub cloud runner without hosted AI API usage
