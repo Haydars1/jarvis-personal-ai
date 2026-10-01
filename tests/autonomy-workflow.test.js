@@ -98,6 +98,18 @@ test('local coder tool probe accepts equivalent JSON content fallback',()=>{
   assert.match(script,/parsed\?\.arguments\?\.value==='ready'/);
 });
 
+test('local coder falls back to a bounded verified unified-diff path when OpenCode cannot edit',()=>{
+  const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
+  assert.match(script,/timeout\s+180s\s+opencode run/);
+  assert.match(script,/Return only a unified diff/);
+  assert.match(script,/git apply --check/);
+  assert.match(script,/git apply --whitespace=nowarn/);
+  assert.match(script,/PATCH_MAX_FILES=3/);
+  assert.match(script,/src\/\*\|public\/\*\|tests\/\*\|docs\/\*/);
+  assert.match(script,/PATCH_RESPONSE/);
+  assert.match(script,/\/v1\/chat\/completions/);
+});
+
 test('local coder bootstraps from pinned verified llama.cpp binary instead of compiling it',()=>{
   const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
   assert.match(script,/b11146/);
