@@ -1,0 +1,4782 @@
+{
+  "schema_version": 1,
+  "total": 214,
+  "results": [
+    {
+      "repo": "abhishekoct18/allpro",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:34.444Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "abhishekoct18/allpro",
+      "license": null,
+      "archived": false,
+      "language": "C",
+      "source_commit": "b5010a1f26510890da19034545519b085abac776",
+      "readme_sha256": "39498165b644d0a698166917872c8c5614d5ee31bcd4b1aceaa5ecafff9b35b6",
+      "readme_path": "README.md",
+      "readme_bytes": 83
+    },
+    {
+      "repo": "activepieces/activepieces",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:34.486Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "activepieces/activepieces",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "a3ba6ca5c874be35b9ef523823a098f1e2404e2c",
+      "readme_sha256": "cd713ed6ae78214e2a54266541df2b8c1de6163312dd499a83d59a930065ed1b",
+      "readme_path": "README.md",
+      "readme_bytes": 91205
+    },
+    {
+      "repo": "Aider-AI/aider",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:23.758Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Aider-AI/aider",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "5dc9490bb35f9729ef2c95d00a19ccd30c26339c",
+      "readme_sha256": "e40e05367ceacf7138a2605484bf7d1cb5a262d2dba03f52a5327c023b3cd0dc",
+      "readme_path": "README.md",
+      "readme_bytes": 12406
+    },
+    {
+      "repo": "aiogram/aiogram",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:34.545Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "aiogram/aiogram",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "b17c710ca9a05559e2141e1d16338b83dd50a445",
+      "readme_sha256": "485f05c818cf511eaa95f3a88e186029076041f99dc473aa66970b9b8f450687",
+      "readme_path": "README.rst",
+      "readme_bytes": 3555
+    },
+    {
+      "repo": "All-Hands-AI/OpenHands",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:23.759Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "OpenHands/OpenHands",
+      "license": "MIT",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "a8c05584ec6bb063a0857460b9cbff48e136919f",
+      "readme_sha256": "b7c1e6e52f95654bbf812ed442d28955392fa238c3fb50a49e3e2bb24b862159",
+      "readme_path": "README.md",
+      "readme_bytes": 12836
+    },
+    {
+      "repo": "alphacep/vosk-api",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:34.873Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "alphacep/vosk-api",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "05adbfcc0df27a1535913c6accd4b7fc60ffd59d",
+      "readme_sha256": "5f56ab2addced6c3655d22dbeeaf05dd5fc75ab9aa8e5e6a9f18b622fe68e5bb",
+      "readme_path": "README.md",
+      "readme_bytes": 1107
+    },
+    {
+      "repo": "anthropics/anthropic-cookbook",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.138Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "anthropics/claude-cookbooks",
+      "license": "MIT",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "d7265d6ae994ccd8429db0594b000073b2f9ad43",
+      "readme_sha256": "5d5af555aff7b94e67b38478e20463c09aaa1c6d7202b75d91ee1eb49a262a41",
+      "readme_path": "README.md",
+      "readme_bytes": 6083
+    },
+    {
+      "repo": "anthropics/claude-code",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.279Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "anthropics/claude-code",
+      "license": null,
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "6160717d8994f236ab381cf534fc1cde5347c12f",
+      "readme_sha256": "aa0d8b80ac083e1591be0789273f447058cc9187b4331634a5614155da27778d",
+      "readme_path": "README.md",
+      "readme_bytes": 2873
+    },
+    {
+      "repo": "Apophenic/ELM327-OBD-Simulator",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:23.760Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Apophenic/ELM327-OBD-Simulator",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "dc61c70d727913c0a33e4d5c5cd0345201a8b6a7",
+      "readme_sha256": "89b86785699dafc8e6d13ba6f4942c46a8c98167e01a2a1e9f440e618d6f68ec",
+      "readme_path": "README.md",
+      "readme_bytes": 2105
+    },
+    {
+      "repo": "ArchiveBox/ArchiveBox",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:24.331Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ArchiveBox/ArchiveBox",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "8050ef393d96804bcbe54f1fe26e905cc413614d",
+      "readme_sha256": "41f203111fff26667d8b629e832862f2ad32d054c0f6ebe9887706c086ef9584",
+      "readme_path": "README.md",
+      "readme_bytes": 95698
+    },
+    {
+      "repo": "assafelovic/gpt-researcher",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.368Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "assafelovic/gpt-researcher",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "0957c301ed06c2a5857b834358c7227c739041d4",
+      "readme_sha256": "a626a979f449e5fd0917b23209dbdbc1e7afbea5d2b38bacd4d86dee667929e7",
+      "readme_path": "README.md",
+      "readme_bytes": 19019
+    },
+    {
+      "repo": "AtesComp/pyOBDA",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:24.402Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "AtesComp/pyOBDA",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "456235105fcb0d39881ebd0e1158c76297ba66f6",
+      "readme_sha256": "dd95830d7787523abf0e4e12e17138c0b7e72c29d1b6e4ef1b541152a692cb86",
+      "readme_path": "README.md",
+      "readme_bytes": 5475
+    },
+    {
+      "repo": "audacity/audacity",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.528Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "audacity/audacity",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "96dee2dd6de471db9f0cac20a823ac572be8a15a",
+      "readme_sha256": "c84ab5991133706a2899c20539df624ecaa124b7be9d4aff6d2b20986978d121",
+      "readme_path": "README.md",
+      "readme_bytes": 1541
+    },
+    {
+      "repo": "AustinMurphy/OBD2-Scantool",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:24.708Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "AustinMurphy/OBD2-Scantool",
+      "license": null,
+      "archived": false,
+      "language": "Python",
+      "source_commit": "2a1412330b58a6eea010d724b690034dea7175c1",
+      "readme_sha256": "c25ddb9819debbc79fdefed3484178b94ac412bf2482b722fcd1eb98d114b44c",
+      "readme_path": "README",
+      "readme_bytes": 384
+    },
+    {
+      "repo": "autodiag2/autodiag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.853Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "autodiag2/autodiag",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "C",
+      "source_commit": "657487a8f0ec0467a91de86652b8ba62a548aecf",
+      "readme_sha256": "69c065572704ae42796c9c17410379ab65704df7a73ccf8d778094d9bd6e9045",
+      "readme_path": "README.md",
+      "readme_bytes": 4925
+    },
+    {
+      "repo": "AUTOMATIC1111/stable-diffusion-webui",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:23.724Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "AUTOMATIC1111/stable-diffusion-webui",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "82a973c04367123ae98bd9abdf80d9eda9b910e2",
+      "readme_sha256": "bd853b26858ab8f5065d2e6b90b3552ff8f169977140f3b77a96ed1753bfe916",
+      "readme_path": "README.md",
+      "readme_bytes": 12924
+    },
+    {
+      "repo": "axolotl-ai-cloud/axolotl",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:35.869Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "axolotl-ai-cloud/axolotl",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "7bd9bd81b4dc3344e7b9dc46a6b77c8065b4bbfd",
+      "readme_sha256": "37ab40dde0d586befffbe5a3ce555c8205a7769ebf1a4a96dbeba277a3832371",
+      "readme_path": "README.md",
+      "readme_bytes": 18664
+    },
+    {
+      "repo": "barnhill/AndroidOBD",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:36.064Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "barnhill/AndroidOBD",
+      "license": "MIT",
+      "archived": false,
+      "language": "Kotlin",
+      "source_commit": "9f2fa500edfa4ecd232de87a4e3d76d710c73f63",
+      "readme_sha256": "6505198ab188fb52e649701ce3159b17230ebaab2e79fcdcbc3c01082e420c53",
+      "readme_path": "README.md",
+      "readme_bytes": 1871
+    },
+    {
+      "repo": "barracuda-fsh/pyobd",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:36.454Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "barracuda-fsh/pyobd",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "f9ae32863f12b747d8d0b0e2d362bfa337877d5c",
+      "readme_sha256": "05fc02350d141db1558f8ee0eed86003274b9cbfc46ab3af866faf62b5cd2bf2",
+      "readme_path": "README.md",
+      "readme_bytes": 11619
+    },
+    {
+      "repo": "black-forest-labs/flux",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:36.666Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "black-forest-labs/flux",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "802fb4713906133fcbd0d8dc5351620ca4773036",
+      "readme_sha256": "d87b208a6a7b4669f08fa1882025c6fe825ee29605b0250d0b9f56b36ce27078",
+      "readme_path": "README.md",
+      "readme_bytes": 6722
+    },
+    {
+      "repo": "blender/blender",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:36.780Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "blender/blender",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "5977018ecf24290f3e4d4f6560d8e289d7f66ac6",
+      "readme_sha256": "ffa889032313fd4725dbcb84f807ad5be505f2ae7f4079e4cc5769e5baa6e441",
+      "readme_path": ".github/README.md",
+      "readme_bytes": 1555
+    },
+    {
+      "repo": "blizniukp/WIFI_kit_32_dpf",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:36.883Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "blizniukp/WIFI_kit_32_dpf",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "80ce730ebb602f49d64a3a12dd350ccb2b2de07c",
+      "readme_sha256": "d28c028b4fe46b9024fa8819907f097f7d095d28b9ef478b8575bd017fa27772",
+      "readme_path": "README.md",
+      "readme_bytes": 9180
+    },
+    {
+      "repo": "brendan-w/python-OBD",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.289Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "brendan-w/python-OBD",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a378bdd81d58c67d08050e4244173a9a7dbda73d",
+      "readme_sha256": "c2a9dd0acc8f579b6cf920c8ac8edec7bf9aa0e7d6740c4fb851491721db93bb",
+      "readme_path": "README.md",
+      "readme_bytes": 1990
+    },
+    {
+      "repo": "browser-use/browser-use",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.356Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "browser-use/browser-use",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "4cbe921673b48a488f5415d9159249afd12a625b",
+      "readme_sha256": "0cf61424017e5d88361b33dcbc6e1326c9eb52a1501e857caebe92b80f78f64f",
+      "readme_path": "README.md",
+      "readme_bytes": 14959
+    },
+    {
+      "repo": "casianb2/koleos-dpf-alert",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.405Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "casianb2/koleos-dpf-alert",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "4b3b9ec9249381d7bee64a37e7e50fc4d05aaaf6",
+      "readme_sha256": "fddbe0d37047b49e8ab2fd84ca2c5ed4b7f915b55a1e0ab8020587c805581267",
+      "readme_path": "README.md",
+      "readme_bytes": 6145
+    },
+    {
+      "repo": "cbush06/obd-express",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.664Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "cbush06/obd-express",
+      "license": null,
+      "archived": false,
+      "language": "C#",
+      "source_commit": "51d4e822129a7546b3cfcaa122627f053c0edf8a",
+      "readme_sha256": "340964b7efc47004e2e245e9cb2766a4be1921904952a9901bd179146a924870",
+      "readme_path": "README.md",
+      "readme_bytes": 2035
+    },
+    {
+      "repo": "cedricp/ddt4all",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.971Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "cedricp/ddt4all",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "68bf06e3cf6ffc7086aa5af6275823c4d49e5e02",
+      "readme_sha256": "333595cac0c41b80417bff2833e1c931734ad77acd36b1ced941032dd7e13f9c",
+      "readme_path": "README.md",
+      "readme_bytes": 12510
+    },
+    {
+      "repo": "chroma-core/chroma",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:37.985Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "chroma-core/chroma",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "848cf58dd6dd952f8d0ff672af7b30cbf4d67f81",
+      "readme_sha256": "a71f91e5fadfb03772be1f76b0bab7116eea1bfc6cc9bc4fb190ce95dd275264",
+      "readme_path": "README.md",
+      "readme_bytes": 3273
+    },
+    {
+      "repo": "cline/cline",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:38.412Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "cline/cline",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "8eee168b80127b0c94bad849323754b5864865e7",
+      "readme_sha256": "e68470af087a1f3a7abe00a725e42e5d4a9da56c204047df2211986ddd844d24",
+      "readme_path": "README.md",
+      "readme_bytes": 9237
+    },
+    {
+      "repo": "collin80/SavvyCAN",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:38.528Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "collin80/SavvyCAN",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "2f683fd59bf3dfd8753f542554964fb971e39094",
+      "readme_sha256": "b568e6aad4df6733abaf959cb914de296d7d9b3582b39ca52dbac01a3119ef32",
+      "readme_path": "README.md",
+      "readme_bytes": 3246
+    },
+    {
+      "repo": "comey246/romHEX14-ECU-Tuning",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:38.537Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "comey246/romHEX14-ECU-Tuning",
+      "license": null,
+      "archived": false,
+      "language": null,
+      "source_commit": "7faf0c3aecc2d18f414056548464ec1f135056d4",
+      "readme_sha256": "8643b7527a8d954f29e368ee6712a3ff168e4a7eb5f69f4b5854554ef2a50e4d",
+      "readme_path": "README.md",
+      "readme_bytes": 6650
+    },
+    {
+      "repo": "comfyanonymous/ComfyUI",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:38.546Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Comfy-Org/ComfyUI",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "651ca296a73cd21c12a57eb8741d52e40dc6528f",
+      "readme_sha256": "9e3730235b5e88ca5db52c62c0116235bd8064c4b2dffb81e410eebb64d0c555",
+      "readme_path": "README.md",
+      "readme_bytes": 29239
+    },
+    {
+      "repo": "commaai/opendbc",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:38.950Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "commaai/opendbc",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "f1e707b7ad1ec807894ecc85149d8fd7ebb9649a",
+      "readme_sha256": "de36e2a132934cdfac501bb407fc4f8125f3637e5448db67809049573212215c",
+      "readme_path": "README.md",
+      "readme_bytes": 12866
+    },
+    {
+      "repo": "commaai/openpilot",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:39.243Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "commaai/openpilot",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "c8fb906815530460ed156f14e09e1f312bb0f851",
+      "readme_sha256": "341ddeb74fc41bf14296cd25cce9047f0e00d5e5ad4bff7c1ad6cdc61aee034b",
+      "readme_path": "README.md",
+      "readme_bytes": 8307
+    },
+    {
+      "repo": "continuedev/continue",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:39.412Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "continuedev/continue",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "5522c6f44ca0ac3528b37244818fbfa39b5af470",
+      "readme_sha256": "054b77f9573011fa4ebf89d960300aabd1ebecc37d8f6f261341ba7d27d885e7",
+      "readme_path": "README.md",
+      "readme_bytes": 2791
+    },
+    {
+      "repo": "coqui-ai/TTS",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:39.522Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "coqui-ai/TTS",
+      "license": "MPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "dbf1a08a0d4e47fdad6172e433eeb34bc6b13b4e",
+      "readme_sha256": "3be56d1fa633aa71947b8f52788ac85a3603f0ad52abad4fe6710d60a5aa8314",
+      "readme_path": "README.md",
+      "readme_bytes": 17429
+    },
+    {
+      "repo": "cracker4o/elm327lib",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:39.612Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "cracker4o/elm327lib",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "C#",
+      "source_commit": "31d0db2c820b49e758df9f91e9823459488c19eb",
+      "readme_sha256": "e20ee4673070cd3891ecd0b556f7104f4bfa71dbc6fb8c2440704f29d1d78d72",
+      "readme_path": "README.md",
+      "readme_bytes": 971
+    },
+    {
+      "repo": "crewAIInc/crewAI",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:39.794Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "crewAIInc/crewAI",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "fbcf2de39d3f8252500b74a0751b92c5774c751b",
+      "readme_sha256": "b0f39843f93676b12883d5821a34555e2146e62bd2c42dc12733fc41222de013",
+      "readme_path": "README.md",
+      "readme_bytes": 32755
+    },
+    {
+      "repo": "cubigato/thinkcar-tc-reader",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.051Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "cubigato/thinkcar-tc-reader",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "eddac46c4556a45a3fc6917877c42f62b511774f",
+      "readme_sha256": "a2a969c8b18ceb5bb3fa5d3f1c8fbd64df4b6d615c246fb8239140e9b0be1554",
+      "readme_path": "README.md",
+      "readme_bytes": 10078
+    },
+    {
+      "repo": "dair-ai/Prompt-Engineering-Guide",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.175Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "dair-ai/Prompt-Engineering-Guide",
+      "license": "MIT",
+      "archived": false,
+      "language": "MDX",
+      "source_commit": "57673726396dd94acb23bdb1e67f27c78ee85a8e",
+      "readme_sha256": "5c1f0fcf7bdd37761249708969b17923a0995e4734ca5ab3713e1acb4d6f6ad9",
+      "readme_path": "README.md",
+      "readme_bytes": 10961
+    },
+    {
+      "repo": "danielgatis/rembg",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.317Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "danielgatis/rembg",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "202e42649a8492a7c49f808de36608a7d1cbbfe3",
+      "readme_sha256": "d7aaa0ea9623c38cdf429e2c477261bec52d653bc70f7b52ddc52a615b67a397",
+      "readme_path": "README.md",
+      "readme_bytes": 23151
+    },
+    {
+      "repo": "danny-avila/LibreChat",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.394Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "LibreChat-AI/LibreChat",
+      "license": "MIT",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "f10b1d91f1eee3a2c82d5247bf620351486b7c1b",
+      "readme_sha256": "e2437e78b27a2ed18aea0c749768d26672bf0904a77d1024e1fac02c1ca5d5cb",
+      "readme_path": "README.md",
+      "readme_bytes": 16337
+    },
+    {
+      "repo": "dixtone/GiuliaAndStelvioDPFMonitor",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.729Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "dixtone/GiuliaAndStelvioDPFMonitor",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "7ff21a91e03787186884afa962804169b54c423f",
+      "readme_sha256": "9d2c4057dcdbd91278d29c5f30f5843bb5285759944f5840affb63f73e328096",
+      "readme_path": "README.md",
+      "readme_bytes": 6411
+    },
+    {
+      "repo": "djs/obdii",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.851Z",
+      "status": "metadata-only",
+      "executed_upstream_code": false,
+      "canonical_repo": "djs/obdii",
+      "license": null,
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "499cae56add397581bf1ed88e926c0b54cd42ef7",
+      "readme_error": "GITHUB_404"
+    },
+    {
+      "repo": "dmatej/java-cardiag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:40.938Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "dmatej/java-cardiag",
+      "license": null,
+      "archived": true,
+      "language": "Java",
+      "source_commit": "6d5d2200be24aa5a8fa3532ac1cfc16450295d0b",
+      "readme_sha256": "5baac3f1b61293ec7675fda946dc48f02b0e6d7034f053bb59101ee7e2b3ceda",
+      "readme_path": "README.md",
+      "readme_bytes": 2616
+    },
+    {
+      "repo": "docling-project/docling",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.305Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "docling-project/docling",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "d6f03078ad364108df3e7e82e8f0dcc3fd7f39ea",
+      "readme_sha256": "4f55583e9c57442b635a2bdf0c718a9919752a73a18b710b0b5cb57ef23c0aed",
+      "readme_path": "README.md",
+      "readme_bytes": 8535
+    },
+    {
+      "repo": "driftregion/iso14229",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.333Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "driftregion/iso14229",
+      "license": "MIT",
+      "archived": false,
+      "language": "C",
+      "source_commit": "d018adc7015a88d7a4f164418fcb7e7927e5aa77",
+      "readme_sha256": "89bfc7022c44186ac7610f0bd04a513e56176da727c66a984de05f7ee3ff133e",
+      "readme_path": "README.md",
+      "readme_bytes": 2141
+    },
+    {
+      "repo": "dscripka/openWakeWord",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.560Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "dscripka/openWakeWord",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "368c03716d1e92591906a84949bc477f3a834455",
+      "readme_sha256": "00190089228bb85e6caf6d11708f0f75931b53b375a33f3bebfa01ee97d02692",
+      "readme_path": "README.md",
+      "readme_bytes": 27414
+    },
+    {
+      "repo": "dspl1236/CerberusCAN",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.667Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "dspl1236/CerberusCAN",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "d630c4c08a7d13135badd49d319e90add26570d0",
+      "readme_sha256": "189fdce5073b2ebb2c08e71ffe5677b602ec6421bd2c55f281e575bd1e73cd88",
+      "readme_path": "README.md",
+      "readme_bytes": 14493
+    },
+    {
+      "repo": "eclipse-mosquitto/mosquitto",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.907Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "eclipse-mosquitto/mosquitto",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "6aaba32614eb1160ddbfeafd616f9f67e7914a41",
+      "readme_sha256": "a214fc32f8d23e629bb6175677d97d9fdd681a9f0fc373abd39c3024204b6b71",
+      "readme_path": "README.md",
+      "readme_bytes": 5319
+    },
+    {
+      "repo": "educampos28/OBD2_HACK",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:41.986Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "educampos28/OBD2_HACK",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "03dfb80f38e867a7447eceacc316ebfa8ead3a32",
+      "readme_sha256": "7c802b51dd1428ea4e7f551be5b60d2cc60f5f0be03c760a718426d410a79b08",
+      "readme_path": "README.md",
+      "readme_bytes": 428
+    },
+    {
+      "repo": "ejvaughan/obdii",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:42.242Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ejvaughan/obdii",
+      "license": "MIT",
+      "archived": false,
+      "language": "C",
+      "source_commit": "281e0426839624ab2a8a0a988b8bd6487f4562c7",
+      "readme_sha256": "de12400d725b0b8d6d41df544c1e0ba3babf6015b001b3995bb998edd67f69e7",
+      "readme_path": "README.md",
+      "readme_bytes": 9670
+    },
+    {
+      "repo": "endurodave/OBDII-Adapter-Software",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:42.372Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "endurodave/OBDII-Adapter-Software",
+      "license": "MIT",
+      "archived": false,
+      "language": "C",
+      "source_commit": "72b0305be3cf35663c8f56a105cfc8c6f8d5f1b0",
+      "readme_sha256": "4c9d9759cabba0ca155954f6419123d50aa4802e0cc1702665d516cfa6c1c6e5",
+      "readme_path": "README.md",
+      "readme_bytes": 6224
+    },
+    {
+      "repo": "erdesigns-eu/Delphi-OBD",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:42.559Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "erdesigns-eu/Delphi-OBD",
+      "license": null,
+      "archived": false,
+      "language": "Pascal",
+      "source_commit": "886985cd6e93d14b9c33566a30c06ef9e824bba1",
+      "readme_sha256": "4cc676a1dd6f1dee3187d74881d0072f0397295e83d222f3e6609eb2a35d5061",
+      "readme_path": "README.md",
+      "readme_bytes": 8306
+    },
+    {
+      "repo": "esphome/esphome",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:42.591Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "esphome/esphome",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "5a11f8d7c3b0728e526d0040f6c6ff53b5ea21e2",
+      "readme_sha256": "1c54cf43c54cc139720bd37f349fd4372c38fee2d36bd4664f863bb91cdf2b31",
+      "readme_path": "README.md",
+      "readme_bytes": 933
+    },
+    {
+      "repo": "EstevanTH/OBD-to-JSON_ELM327",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:24.990Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "EstevanTH/OBD-to-JSON_ELM327",
+      "license": "LGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "867a814ceae86994c13c9e75123c0bea924fb352",
+      "readme_sha256": "b4af7d4b8be32aeca96d086febfa15aaae449e394bcb2bfe58fa16fa0f7aa0d1",
+      "readme_path": "README.md",
+      "readme_bytes": 1449
+    },
+    {
+      "repo": "f/awesome-chatgpt-prompts",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:42.890Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "f/prompts.chat",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "HTML",
+      "source_commit": "f78a1c5136fa080155d928e0d7e2b4a41ddef03e",
+      "readme_sha256": "580241073020148096fb32d9731c9068ec5110b06d92c6e7f32816d2076d94d2",
+      "readme_path": "README.md",
+      "readme_bytes": 11382
+    },
+    {
+      "repo": "fenugrec/freediag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:43.041Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "fenugrec/freediag",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "C",
+      "source_commit": "619d96ca5333ed4a40e9748a91e231ed371c3476",
+      "readme_sha256": "1a3ecf87761bd30def771a2e28faf2937cdc9d66e729cc58d4d3c692840263c7",
+      "readme_path": "README.md",
+      "readme_bytes": 2385
+    },
+    {
+      "repo": "FFmpeg/FFmpeg",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.081Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "FFmpeg/FFmpeg",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "0b01ed76aa6a64e95ec4b87297aaa374a72de34e",
+      "readme_sha256": "7e30f809d40454ebc467cf473a063d7306f5eb836dca6b80668c4427d8845914",
+      "readme_path": "README.md",
+      "readme_bytes": 1798
+    },
+    {
+      "repo": "firecrawl/firecrawl",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:43.229Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "firecrawl/firecrawl",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "58d5eef59a7842f33f547b3164f47d55ce8855bb",
+      "readme_sha256": "a5c4aa0d637d739818486995f789bde3103e8b1e658c481f064c0020e9579543",
+      "readme_path": "README.md",
+      "readme_bytes": 25492
+    },
+    {
+      "repo": "flexadecimal/serpentine",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:43.626Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "flexadecimal/serpentine",
+      "license": null,
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "88ac390e3ed63b6444f8f1d6408bbffbc459d5ac",
+      "readme_sha256": "5c2b4c140e0a6380de66d4381b3bddb672d5062a660149e39547877960c0af51",
+      "readme_path": "README.md",
+      "readme_bytes": 1897
+    },
+    {
+      "repo": "FlowiseAI/Flowise",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.481Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "FlowiseAI/Flowise",
+      "license": "NOASSERTION",
+      "archived": true,
+      "language": "TypeScript",
+      "source_commit": "9291856d1ea4a4ceea9f8fef8ce14f4f6c81e8eb",
+      "readme_sha256": "21b4384ec2e295295dee10992fd9ee7ef4b0a0c9cb77a493bca39174a1c09a51",
+      "readme_path": "README.md",
+      "readme_bytes": 7850
+    },
+    {
+      "repo": "foerbsnavi/obdex",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:43.724Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "foerbsnavi/OBDex",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "bc58b0eb7273226a1aabae98e956b70b8362bda1",
+      "readme_sha256": "b09b8ba3bfd0b7f40ec4abdc43633d082a98a92f79382f192d33c565f6613e2a",
+      "readme_path": "README.md",
+      "readme_bytes": 8397
+    },
+    {
+      "repo": "FOME-Tech/fome-fw",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.275Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "FOME-Tech/fome-fw",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "178ecaff6516607a68e77bdcca017ed5bef195a8",
+      "readme_sha256": "1b3fc8b7a4780981523a921b8827f664d31031764eed5d6ed72abf6b8c0dc853",
+      "readme_path": "README.md",
+      "readme_bytes": 3373
+    },
+    {
+      "repo": "fr3ts0n/AndrOBD",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:43.820Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "fr3ts0n/AndrOBD",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "f741a854b9262fdf2ad2b71c77363c8f2ac35ad3",
+      "readme_sha256": "e729e7c32eaa8bf03c7f4b5a99b8b81451ec8f465dd900c3174d4a8b89bbc4d8",
+      "readme_path": "README.md",
+      "readme_bytes": 9853
+    },
+    {
+      "repo": "FreeCAD/FreeCAD",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 10
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.728Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "FreeCAD/FreeCAD",
+      "license": "LGPL-2.1",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "0c9c4b5daba6af500989b0f86c95e06dd813cbb9",
+      "readme_sha256": "2de839c26b7343be697550809a5834ea1177edbd1490dd0dec302ec9b8b42372",
+      "readme_path": "README.md",
+      "readme_bytes": 4993
+    },
+    {
+      "repo": "gabehunt/J2534Diag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:44.299Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "gabehunt/J2534Diag",
+      "license": null,
+      "archived": false,
+      "language": "C#",
+      "source_commit": "d8cca62ebc86c059c9b2c062655123a597380a59",
+      "readme_sha256": "162088f32a2181fbe4d9f640e95cd35f9d92101cbb606763d55f9bb70209a7fc",
+      "readme_path": "README.md",
+      "readme_bytes": 2768
+    },
+    {
+      "repo": "ggml-org/llama.cpp",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:44.372Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ggml-org/llama.cpp",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "32dd62ee6dfa80ada846551fefec215cefc5ae1c",
+      "readme_sha256": "e58520857253729851cc02313883c9d2a8b2ae86abe212aaf1bcbd7db8bfefb4",
+      "readme_path": "README.md",
+      "readme_bytes": 7351
+    },
+    {
+      "repo": "ggml-org/whisper.cpp",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:44.487Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ggml-org/whisper.cpp",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "6e4ab854f67f743900934a703d5603419384c961",
+      "readme_sha256": "43451813ec96b5ea286c6d676f467bdffb053224c110c257ce3d67d911e774e7",
+      "readme_path": "README.md",
+      "readme_bytes": 40988
+    },
+    {
+      "repo": "google-gemini/gemini-cli",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:44.895Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "google-gemini/gemini-cli",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "c6bccb7ecbf6d8368d995455dd725ed34466faad",
+      "readme_sha256": "bacf354f3f674d57679ebf7b42dd69311bb9ef14200e18ca703d82aba48bf833",
+      "readme_path": "README.md",
+      "readme_bytes": 13489
+    },
+    {
+      "repo": "HandBrake/HandBrake",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.847Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "HandBrake/HandBrake",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "dc3832bf0efc8ed6d38536c23e33caae4ded8fed",
+      "readme_sha256": "741c06120ef25c8a8e27b54c8683d15e24846643bc80fe60c31012801a920cda",
+      "readme_path": "README.markdown",
+      "readme_bytes": 2716
+    },
+    {
+      "repo": "hardbyte/python-can",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:44.941Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "hardbyte/python-can",
+      "license": "LGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "b4f82abede25ff83376be793a2935c41f81c3869",
+      "readme_sha256": "1c63aea9f7e5bfb57cd01f16deaf59ec62db5ea67e1950a91ace32366d4be82b",
+      "readme_path": "README.rst",
+      "readme_bytes": 5083
+    },
+    {
+      "repo": "harry0703/MoneyPrinterTurbo",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.009Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "harry0703/MoneyPrinterTurbo",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "2e1b30396e059e55939cc802c60faac2061e4d41",
+      "readme_sha256": "eaae6cc4f72d911b73d8724fe73f2d5b8597a330b4258af5ec90eec1e767b5d0",
+      "readme_path": "README.md",
+      "readme_bytes": 36658
+    },
+    {
+      "repo": "harvooo/obd-tool",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.045Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "harvooo/obd-tool",
+      "license": null,
+      "archived": false,
+      "language": "Python",
+      "source_commit": "b3251b5339a7152e88d98301f5efcbdc9ffa638c",
+      "readme_sha256": "85e36e8f0306f8b79454536ac79c16c8fbd03a7875211dfeaccb50fe9904efad",
+      "readme_path": "docs/README.md",
+      "readme_bytes": 314
+    },
+    {
+      "repo": "hexgrad/kokoro",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.410Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "hexgrad/kokoro",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "dfb907a02bba8152ca444717ca5d78747ccb4bec",
+      "readme_sha256": "b50b84220668f8247a2405b249c34c7083acc24114279ff1429fd79f46a2c04b",
+      "readme_path": "README.md",
+      "readme_bytes": 8355
+    },
+    {
+      "repo": "hiyouga/LLaMA-Factory",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.513Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "hiyouga/LlamaFactory",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "ce9dc9e072f80fa3abe0989d4ab90da25f083438",
+      "readme_sha256": "2d61d3ee9a0b7a099800b17b0be7a8ef034ed9b08f43cb32bdac17642cc823dd",
+      "readme_path": "README.md",
+      "readme_bytes": 70465
+    },
+    {
+      "repo": "home-assistant/core",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.534Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "home-assistant/core",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "55a13602e4a5925058ec81dc918477167f75373d",
+      "readme_sha256": "c9955c50630b0e2582cbc56b13f077e778a8c03c8002ce8966a38444a30c4d93",
+      "readme_path": "README.rst",
+      "readme_bytes": 1964
+    },
+    {
+      "repo": "hrmnc/J2534DllLoader",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:45.963Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "hrmnc/J2534DllLoader",
+      "license": "GPL-2.0",
+      "archived": true,
+      "language": null,
+      "source_commit": "9427a4abba9fb11ce8712f657460519b18e99263",
+      "readme_sha256": "28a0128f9a1afb27b9bbf3ecff1845a29d1a23d8ed311b5e302206b72af3a9d2",
+      "readme_path": "README.md",
+      "readme_bytes": 3532
+    },
+    {
+      "repo": "huggingface/diffusers",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.129Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "huggingface/diffusers",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "4de185d6ec51a54ae12a07bba1fccef598e86147",
+      "readme_sha256": "7983ae4d23ec43664c587027d7462ba8a742ddff784430dfb7fd3cea8ba5523c",
+      "readme_path": "README.md",
+      "readme_bytes": 14610
+    },
+    {
+      "repo": "huggingface/transformers",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.433Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "huggingface/transformers",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "262419157d701a5dcccdd93203b4b57f6758c9b2",
+      "readme_sha256": "9f745fda7e49125b047e41f99ff1bf67b1c092c34c61bdfda1c3460feaa95382",
+      "readme_path": "README.md",
+      "readme_bytes": 17182
+    },
+    {
+      "repo": "huginn/huginn",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.454Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "huginn/huginn",
+      "license": "MIT",
+      "archived": false,
+      "language": "Ruby",
+      "source_commit": "86ac2818e0dc4983aaecf73f126740071c57158e",
+      "readme_sha256": "90dde64a17b65905953f8d292d93393b4490293389729ed579bf47aa0d50619f",
+      "readme_path": "README.md",
+      "readme_bytes": 10141
+    },
+    {
+      "repo": "humitos/obd2lib",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.696Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "humitos/obd2lib",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "e938f7e273aac0eb276861fea9977b650eb8575e",
+      "readme_sha256": "b0a5d4d830f8364e4ede39b062adf0cfd86f7baafee89eaf40cf0d09dff47e07",
+      "readme_path": "README.md",
+      "readme_bytes": 6500
+    },
+    {
+      "repo": "hyper-tuner/hypertuner",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.916Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "hyper-tuner/hypertuner",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Shell",
+      "source_commit": "7170490e043cb7b2a17408f0878f992a7e2df03f",
+      "readme_sha256": "bc00b1e43fea5c98beaffe29bee9f74f83b99480ad6f2780de2d943bdaaea340",
+      "readme_path": "README.md",
+      "readme_bytes": 1418
+    },
+    {
+      "repo": "infiniflow/ragflow",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.023Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "infiniflow/ragflow",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Go",
+      "source_commit": "9766c8c5483b10d923acbbf2ba5e25b14819be19",
+      "readme_sha256": "df66638493e541745e68e1bd4afa1298eca5b9c0b425c1d34efaf2b1ae565787",
+      "readme_path": "README.md",
+      "readme_bytes": 18629
+    },
+    {
+      "repo": "invoke-ai/InvokeAI",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.386Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "invoke-ai/InvokeAI",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a51e26fe24a1d680feba35d3309c14002115d200",
+      "readme_sha256": "48293a6dbe76e2980f0532b64ee8bd2e236d48ff00c8601bc35c9e0bdf80646a",
+      "readme_path": "README.md",
+      "readme_bytes": 7967
+    },
+    {
+      "repo": "Ircama/ELM327-emulator",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:25.952Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Ircama/ELM327-emulator",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "dd3b1d2b19368875830ea8c86cea070040c26caf",
+      "readme_sha256": "a6d094f1815f9491a703d062666216642778385bb94c2afab5937bb0fd45243f",
+      "readme_path": "README.md",
+      "readme_bytes": 114614
+    },
+    {
+      "repo": "ItzCrazyKns/Perplexica",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:26.105Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ItzCrazyKns/Vane",
+      "license": "MIT",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "348feca3e378fb4157b217724ed508dc707f853f",
+      "readme_sha256": "5d534fafeb1e3d1355751e82241b74ab6c5e3d89561e98178512a704dba28268",
+      "readme_path": "README.md",
+      "readme_bytes": 12956
+    },
+    {
+      "repo": "iUnreallx/ReDrive",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:46.973Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "iUnreallx/ReDrive",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Dart",
+      "source_commit": "d2c5d879e828d13aa78d5110004b6ec23a3f3568",
+      "readme_sha256": "853048b1a8c0b94560beccce0f0aac95cfcb360427a8358a7c079801791a706e",
+      "readme_path": "README.md",
+      "readme_bytes": 8345
+    },
+    {
+      "repo": "jakka351/GenericDiagnosticTool",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.622Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "jakka351/GenericDiagnosticTool",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C#",
+      "source_commit": "daae643f771d4a991a2e82d64928993465aa6591",
+      "readme_sha256": "bf25e5bf5fd5b959933b0aa03fcb1648c57dbac30c1b04b965751d663ca0fcfd",
+      "readme_path": "README.md",
+      "readme_bytes": 8274
+    },
+    {
+      "repo": "JaKuBisz/OBD2AI",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:26.372Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "JaKuBisz/OBD2AI",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Kotlin",
+      "source_commit": "59aeb8c88cd8e6771290247ca0ae00bd0eef356b",
+      "readme_sha256": "0c12bf76f3093892b42bea4e37178037d1ee749bc4f8f10df188daa9dc21c99f",
+      "readme_path": "README.md",
+      "readme_bytes": 4015
+    },
+    {
+      "repo": "janhq/jan",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.622Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "janhq/jan",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "e0c62f863a1b930ed625085979a3d62c947635d9",
+      "readme_sha256": "297a156f1747488b907a98fb9182027ba3c535386b6827195528925abba80998",
+      "readme_path": "README.md",
+      "readme_bytes": 7190
+    },
+    {
+      "repo": "japawBlob/uds-rs",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.720Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "japawBlob/uds-rs",
+      "license": "MIT",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "232d24c5c2e7a98fe84649a990050089c884c53b",
+      "readme_sha256": "8b973be91935f47e213873e37b4763efabeafca7f05b38bdb92cf6f32ee0b871",
+      "readme_path": "README.md",
+      "readme_bytes": 5294
+    },
+    {
+      "repo": "jeremyhahn/ecutools",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:47.934Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "jeremyhahn/ecutools",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "C",
+      "source_commit": "6862905cb628db866533e121dbec84a5bd1dcbd6",
+      "readme_sha256": "60109da6400c36144731c55e4c8944c7d0f02000b8502c094d3f189cde219dc5",
+      "readme_path": "README.md",
+      "readme_bytes": 3093
+    },
+    {
+      "repo": "jglim/ExpressOBD",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.323Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "jglim/ExpressOBD",
+      "license": "MIT",
+      "archived": false,
+      "language": "C#",
+      "source_commit": "98460d59ba99942ab169c35094f767a514c75b72",
+      "readme_sha256": "8dbfb5454d90c9a1b18907b6492596e50ba598d0c1650c09ad0b993a93ff33cf",
+      "readme_path": "README.md",
+      "readme_bytes": 4244
+    },
+    {
+      "repo": "KalebKE/ME7Tuner",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:26.678Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "TracqiTechnology/MxT",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Kotlin",
+      "source_commit": "bae7da1586c8cdab323d72632f416488238631ea",
+      "readme_sha256": "989ef73eb0de7f7149963aa095753e97d793ccd55bde5f3371844a7fb4658188",
+      "readme_path": "README.md",
+      "readme_bytes": 45164
+    },
+    {
+      "repo": "karpathy/nanoGPT",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.386Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "karpathy/nanoGPT",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "3adf61e154c3fe3fca428ad6bc3818b27a3b8291",
+      "readme_sha256": "8d969370683849a2cc4e46c81bf2449717f2daff657586888151933c3590f85f",
+      "readme_path": "README.md",
+      "readme_bytes": 13850
+    },
+    {
+      "repo": "KDE/kdenlive",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:26.393Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "KDE/kdenlive",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "b6c4ca850e536863d411a75d011c9586dfc630f8",
+      "readme_sha256": "86f55bc195dc5ff81d82f52d1c4b10a17c411e6fc43a629be0c2a74708084f36",
+      "readme_path": "README.md",
+      "readme_bytes": 2720
+    },
+    {
+      "repo": "kees/scantool",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.622Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "kees/scantool",
+      "license": null,
+      "archived": false,
+      "language": "C",
+      "source_commit": "ce6257abd33887ec7acb6abb7ee76c021425e3ab",
+      "readme_sha256": "4e0bf0355526f4638e5900ac3b977580e59a3ef3b125af8ea6a61a275ccc5cd1",
+      "readme_path": "readme.txt",
+      "readme_bytes": 5509
+    },
+    {
+      "repo": "khanfar/OBD2-PYTHON",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.722Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "khanfar/OBD2-PYTHON",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "99276388a1e0e56f3a3259f4d546b9186f29f046",
+      "readme_sha256": "32fbcdb8a9b015af8b4b82d9eb06fb4146145c8b1300b38f754cb7f2e1d5d140",
+      "readme_path": "README.md",
+      "readme_bytes": 7061
+    },
+    {
+      "repo": "kierandrewett/obd",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.889Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "kierandrewett/obd",
+      "license": "MIT",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "b56a07a2ffc0d574e68e6426ff55418ee4173b7a",
+      "readme_sha256": "c73b428d038ff8e6b89e81819f6b486ea458153ffdf4739a0357d8947d6876fe",
+      "readme_path": "README.md",
+      "readme_bytes": 9210
+    },
+    {
+      "repo": "Koenkk/zigbee2mqtt",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.117Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Koenkk/zigbee2mqtt",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "3c3d8c1a71cabb31f1b97ad268681dd3f747ce19",
+      "readme_sha256": "b67b52ddeacd73ec3eb836244919ebd3e6ff55976c2c05d86c2326001d4ce474",
+      "readme_path": "README.md",
+      "readme_bytes": 7515
+    },
+    {
+      "repo": "KooshaYeganeh/opendiag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.177Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "KooshaYeganeh/opendiag",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a5fec693cbf7ff7eaaa98deb629d7ece25037526",
+      "readme_sha256": "85e57624ad4f9ebb8bb402e1866b260fc18ac4971711c540cd6a9dbb52248ce8",
+      "readme_path": "README.md",
+      "readme_bytes": 3666
+    },
+    {
+      "repo": "langchain-ai/langchain",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:48.915Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "langchain-ai/langchain",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "054a5088830f363321b789df575a8775c67f0fe2",
+      "readme_sha256": "9e6d706b38215c6979ef398ba72181b0f9099b8150f317c4c221877456c2dc2e",
+      "readme_path": "README.md",
+      "readme_bytes": 5935
+    },
+    {
+      "repo": "langchain-ai/langgraph",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:49.326Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "langchain-ai/langgraph",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "4be610c6bc7c042038f671d6def9f523ca385a69",
+      "readme_sha256": "3a13e257af1216962d53d72414a7f44ac1fc5cea34d994bdff60ea2a3b045933",
+      "readme_path": "README.md",
+      "readme_bytes": 6395
+    },
+    {
+      "repo": "langflow-ai/langflow",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:49.450Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "langflow-ai/langflow",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a5801536e09f5f2315e4668ca19632fc98681a83",
+      "readme_sha256": "4dcf55d87265217613ee5ce315a567ee29ced5151c97f828aa6c0bd96c277e7a",
+      "readme_path": "README.md",
+      "readme_bytes": 4729
+    },
+    {
+      "repo": "langgenius/dify",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:49.456Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "langgenius/dify",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "431c1857062d09225dc2b51104b51b0ad1ef6f18",
+      "readme_sha256": "8eb87aa99e246498d50d4ea4ca40a880b904207c96120dbb0c8148ef02218b7f",
+      "readme_path": "README.md",
+      "readme_bytes": 12256
+    },
+    {
+      "repo": "leon-ai/leon",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:49.836Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "leon-ai/leon",
+      "license": "MIT",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "1c4fe5bc32984577bc4caa497871c0e9f98ea8b0",
+      "readme_sha256": "622b6737c5c4228aee1f52a93102001d290a25e85610c35b964e1a6aa546b1d0",
+      "readme_path": "README.md",
+      "readme_bytes": 8794
+    },
+    {
+      "repo": "Libre-Diagnosctic/libre-automotive-diagnostic",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.180Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Libre-Diagnosctic/libre-automotive-diagnostic",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "C",
+      "source_commit": "c3e8b35d9d6b01c486af366af833a14a00475de5",
+      "readme_sha256": "95561e77dc36f7469c69c51130ecb05fd07ec3559f581bad1bd107ee9ff13de6",
+      "readme_path": "README.md",
+      "readme_bytes": 7954
+    },
+    {
+      "repo": "Lightricks/LTX-Video",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.709Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Lightricks/LTX-Video",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "4b2d053057623ddd4d0a1d3e9cd28890e9ef487f",
+      "readme_sha256": "09d0cbcec65734a07a67c6b5e96fa16989792633020d993e157b76f35ff68c3a",
+      "readme_path": "README.md",
+      "readme_bytes": 26649
+    },
+    {
+      "repo": "linux-can/can-utils",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:49.908Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "linux-can/can-utils",
+      "license": null,
+      "archived": false,
+      "language": "C",
+      "source_commit": "cbbad5eedeacd1898700d9be40270250d5b5147a",
+      "readme_sha256": "967a82ae9184d36a90ea4c13de6cdc887c9b70c323406f600a68c22eeb77ffec",
+      "readme_path": "README.md",
+      "readme_bytes": 4283
+    },
+    {
+      "repo": "lllyasviel/Fooocus",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:50.124Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "lllyasviel/Fooocus",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "ae05379cc97bc4361ec8b4ec90193dab21be763f",
+      "readme_sha256": "89e1efb0ef1245a6b2abc4db41d5b76e3179656f875db99675900dc477e067bf",
+      "readme_path": "readme.md",
+      "readme_bytes": 33354
+    },
+    {
+      "repo": "lllyasviel/stable-diffusion-webui-forge",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:50.265Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "lllyasviel/stable-diffusion-webui-forge",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "dfdcbab685e57677014f05a3309b48cc87383167",
+      "readme_sha256": "e99a0cdc5711816a3da4edb1d70f41dcf3396a6e1fd524f9dd236ce6b1a76cc0",
+      "readme_path": "README.md",
+      "readme_bytes": 12192
+    },
+    {
+      "repo": "LostRuins/koboldcpp",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.844Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "LostRuins/koboldcpp",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "4959b8d3695cf740c1e2d508bedabdea70cbbd44",
+      "readme_sha256": "b35b86326a7da622ccbae77fffd924f4d0a2177dd14b0cda4bd3303d50aa11ad",
+      "readme_path": "README.md",
+      "readme_bytes": 24129
+    },
+    {
+      "repo": "louislam/uptime-kuma",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:50.488Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "louislam/uptime-kuma",
+      "license": "MIT",
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "e7420f8fa546a8baa7ac4bf9d10a32545d4346e0",
+      "readme_sha256": "99d14082acde75f539730547c4090e9f1b08a2ea3f6c2ff64750e9c467a16ac9",
+      "readme_path": "README.md",
+      "readme_bytes": 7974
+    },
+    {
+      "repo": "Luke-k-dev/SportPyOBD",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:27.879Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Luke-k-dev/SportPyOBD",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a48f331d9c17554686a7323158f05489b3739da2",
+      "readme_sha256": "fdd7e8afe37a561dbb1aba340b3b8763018e677c180aa33ebbe74409b87e7f00",
+      "readme_path": "README.md",
+      "readme_bytes": 3792
+    },
+    {
+      "repo": "m-bain/whisperX",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:50.686Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "m-bain/whisperX",
+      "license": "BSD-2-Clause",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "771b4a14a9486f8fd5aef18ef49e35d639523dd3",
+      "readme_sha256": "38a681ac8cc79589e11f227f9d053f6f66054cab4ae0069804ca6b52306e3aa8",
+      "readme_path": "README.md",
+      "readme_bytes": 16028
+    },
+    {
+      "repo": "ManimCommunity/manim",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:28.316Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ManimCommunity/manim",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "22aa85f47c9dc1b32a4e27bda2dd68320f9cd69c",
+      "readme_sha256": "41cac8aeb33a726c1b0a70d10233ee06d9cd73c6df0bace8145637d75c5fc283",
+      "readme_path": "README.md",
+      "readme_bytes": 8378
+    },
+    {
+      "repo": "mattiasclaesson/TuningSuites",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:50.896Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mattiasclaesson/TuningSuites",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "C#",
+      "source_commit": "78951fc9cf395902ddf836ef466ab5e809dae979",
+      "readme_sha256": "526d9249660537f9bd7a984a42db7248070f62d7f3a91b39e887606bb76dbb53",
+      "readme_path": "README.md",
+      "readme_bytes": 3232
+    },
+    {
+      "repo": "mbroihier/obd-collection-tools",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.089Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mbroihier/obd-collection-tools",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "c6bdaafd4827c59e16647c138df61340df76f0c8",
+      "readme_sha256": "1d228b862a48fa3698b8dc8065ab8ad0208c82bf6202efd9be8e6d9d31b95946",
+      "readme_path": "README.md",
+      "readme_bytes": 922
+    },
+    {
+      "repo": "mdabrowski1990/uds",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.219Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mdabrowski1990/uds",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "9b32a924fad96d5b1c21ea4c3c1f0d1feaa8c45f",
+      "readme_sha256": "33b1e05e036c9992dbc88223be2e2f6f16924e1f0ccec7936445bcc31d991108",
+      "readme_path": "README.rst",
+      "readme_bytes": 5048
+    },
+    {
+      "repo": "mem0ai/mem0",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.367Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mem0ai/mem0",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "94c3fe9f238f3dbf29c9ce98643bd71eb13077cd",
+      "readme_sha256": "7509347d34a767a2ef37ceb6cf6c714de9e8d84fe66ad5eea92bbae824a8fbeb",
+      "readme_path": "README.md",
+      "readme_bytes": 11914
+    },
+    {
+      "repo": "microsoft/autogen",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.859Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/autogen",
+      "license": "CC-BY-4.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "027ecf0a379bcc1d09956d46d12d44a3ad9cee14",
+      "readme_sha256": "5d300aa3304aeecf1a48f68ac76a1af255b8645d666b8aa154790cb30f1dbb94",
+      "readme_path": "README.md",
+      "readme_bytes": 20790
+    },
+    {
+      "repo": "microsoft/generative-ai-for-beginners",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.962Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/generative-ai-for-beginners",
+      "license": "MIT",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "d8ec07e31c4b32bd283d565c1abd9b58bb5cf2e8",
+      "readme_sha256": "a57045087a78daa833312fe2f4f404427985d89457d86eabeb69722df010d109",
+      "readme_path": "README.md",
+      "readme_bytes": 24618
+    },
+    {
+      "repo": "microsoft/JARVIS",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.549Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/JARVIS",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "7624cf388b47334ff8a0868e7d862dde18cfda86",
+      "readme_sha256": "0e519dc09eb1532379d1e675133d9049e2f6a1ba11e4b7a5e510606dd002cd16",
+      "readme_path": "README.md",
+      "readme_bytes": 14987
+    },
+    {
+      "repo": "microsoft/markitdown",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:52.176Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/markitdown",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "1f9530a6d35364886a038dc2dcb34256bb0c85b0",
+      "readme_sha256": "9f9dc0e582d066e8ac671a1f63b3a73c70a7be9909e8be51a7f5aeb5a7c04af2",
+      "readme_path": "README.md",
+      "readme_bytes": 18313
+    },
+    {
+      "repo": "microsoft/ML-For-Beginners",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:51.853Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/ML-For-Beginners",
+      "license": "MIT",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "de2d4e12236445198213a0711855e348e7253cd4",
+      "readme_sha256": "9ba547bfc11370e232c30c959bf4dd31d7ba2cd17e80e19973a534c4dea117c5",
+      "readme_path": "README.md",
+      "readme_bytes": 31845
+    },
+    {
+      "repo": "microsoft/playwright",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:52.514Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/playwright",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "82db81d9b8b97d439eda601e504d03daab1e9734",
+      "readme_sha256": "36be602c00c09ffd3d52a2d8934fb5c4c3671eab597593fdbd15e53a49888a9f",
+      "readme_path": "README.md",
+      "readme_bytes": 11282
+    },
+    {
+      "repo": "microsoft/vscode",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 10
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:52.551Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "microsoft/vscode",
+      "license": "MIT",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "5e8e57c65bbd4ee459f4cabc5697a9a3a5f3aeda",
+      "readme_sha256": "45a411a3b8d49556fbaa73601befc458ab10ad873fca9088136888c89abb8935",
+      "readme_path": "README.md",
+      "readme_bytes": 6728
+    },
+    {
+      "repo": "mifi/lossless-cut",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:52.832Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mifi/lossless-cut",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "70f2663a7a7c995903701acd2f616d057f4fdc2f",
+      "readme_sha256": "aad0be61e3679dd9925f6b9725cba4ae49145192f531f14ef205bce9999e73b8",
+      "readme_path": "README.md",
+      "readme_bytes": 12433
+    },
+    {
+      "repo": "miikasyvanen/FastECU",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.082Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "miikasyvanen/FastECU",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "d7198f1c47791e67738576015789ebc2d740e55e",
+      "readme_sha256": "c1ca30d495f4211a19a8e5391a1c8675c064308f1b27445c4379fe3eb39e72e1",
+      "readme_path": "README.md",
+      "readme_bytes": 3975
+    },
+    {
+      "repo": "Mintplex-Labs/anything-llm",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:28.457Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Mintplex-Labs/anything-llm",
+      "license": "MIT",
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "0713f5513322e34d191b10df8324f0dd0a14102b",
+      "readme_sha256": "1ddced19c04258cdf3cf932a48f5cb3f39769624a5ea9d835b6bac5f2f35e5d0",
+      "readme_path": "README.md",
+      "readme_bytes": 26484
+    },
+    {
+      "repo": "mltframework/shotcut",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.193Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mltframework/shotcut",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "1ccb8db3bc6f573e9e849e4bd4e088ae912bac1c",
+      "readme_sha256": "2a38840fc2fafa928b9b8cfa4082581b1a1a699b920e5b9168a23c62bd6a9df8",
+      "readme_path": "README.md",
+      "readme_bytes": 2838
+    },
+    {
+      "repo": "modelcontextprotocol/servers",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.402Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "modelcontextprotocol/servers",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "f46d9578190b476b3501923ea8977d899e8db2cb",
+      "readme_sha256": "c112784223279665bda02d79105eff6f268c629f18c4590a50e9305b72bf1f9e",
+      "readme_path": "README.md",
+      "readme_bytes": 8707
+    },
+    {
+      "repo": "mudler/LocalAI",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.538Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "mudler/LocalAI",
+      "license": "MIT",
+      "archived": false,
+      "language": "Go",
+      "source_commit": "b9c975e71c4f60408e64affb6cb8178981cbf638",
+      "readme_sha256": "ebb0b428c816cc72ea82c9fdb215a7156e289408014f15f3b36214cea0bc6cde",
+      "readme_path": "README.md",
+      "readme_bytes": 23723
+    },
+    {
+      "repo": "murdinc/ELMFlash",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.720Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "murdinc/ELMFlash",
+      "license": null,
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "c813c8d1e5410b885b726ee798cce05e97ff930f",
+      "readme_sha256": "75d0a9467c10f1b2deeafa4dd1532cf5bdcf4d9fcfca35b4562d439746488b04",
+      "readme_path": "README.md",
+      "readme_bytes": 2156
+    },
+    {
+      "repo": "myshell-ai/OpenVoice",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:53.778Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "myshell-ai/OpenVoice",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "74a1d147b17a8c3092dd5430504bd83ef6c7eb23",
+      "readme_sha256": "3c6f5d24798763ebb9ca5fea8a1cbd21b935a140300ba531138b5518cd297dfc",
+      "readme_path": "README.md",
+      "readme_bytes": 3120
+    },
+    {
+      "repo": "n8n-io/n8n",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.092Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "n8n-io/n8n",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "e0b4928bc81ab866a75a9d8ab23e0c580d748223",
+      "readme_sha256": "75c64f04b8b1e7d435496f6ebd2dbf3ea5ff7d3ff3d944d7fcf98cf1a7df2242",
+      "readme_path": "README.md",
+      "readme_bytes": 4023
+    },
+    {
+      "repo": "NationalSecurityAgency/ghidra",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 12
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 12
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:28.761Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "NationalSecurityAgency/ghidra",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "a462673d2f1543d153c61d10bcd6c68f85555194",
+      "readme_sha256": "bc211b0cd68a0a586a07b1cccea28aec99c8aa695d888405fd7ffa4533807a35",
+      "readme_path": "README.md",
+      "readme_bytes": 7205
+    },
+    {
+      "repo": "node-red/node-red",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.136Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "node-red/node-red",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "JavaScript",
+      "source_commit": "1e85f1efbc8875ad960400905038154a4e4dd76e",
+      "readme_sha256": "1cd81f510ce63f317c2c72b52971b98e4f749a6d11e0ce67453d139e380f32bc",
+      "readme_path": "README.md",
+      "readme_bytes": 5289
+    },
+    {
+      "repo": "nomic-ai/gpt4all",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.347Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "nomic-ai/gpt4all",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "b666d16db5aeab8b91aaf7963adcee9c643734d7",
+      "readme_sha256": "7d4c9cbb1d20ffb1becbdef7b50ec47a3e45568fee76d5ff9da490018d685d04",
+      "readme_path": "README.md",
+      "readme_bytes": 5925
+    },
+    {
+      "repo": "obsproject/obs-studio",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.351Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "obsproject/obs-studio",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "C",
+      "source_commit": "a8b04ac5e15115591d8a184701e1670fb5dc00af",
+      "readme_sha256": "be2dff0124620dcd9d8d83ef9084b12d1e61e896d3295232501cb3ebd3f6a318",
+      "readme_path": "README.rst",
+      "readme_bytes": 3139
+    },
+    {
+      "repo": "ocrmypdf/OCRmyPDF",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.725Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ocrmypdf/OCRmyPDF",
+      "license": "MPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "3f5553cf19e5b10e714667a82a502c3b9c48d144",
+      "readme_sha256": "6cb5020b784072a4e3724c28dc7399a25d1d700e98691984cd479c871ac0192e",
+      "readme_path": "README.md",
+      "readme_bytes": 9893
+    },
+    {
+      "repo": "oguzbakir/OBDIIPy",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.770Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "oguzbakir/OBDIIPy",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "ce4f25b312253244798a48280741cc75f1dcac07",
+      "readme_sha256": "fdf9775361389584916f3b0740296af8911ac319fde4bfc15e6bcf3f0c389246",
+      "readme_path": "README.md",
+      "readme_bytes": 6502
+    },
+    {
+      "repo": "ollama/ollama",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:54.947Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ollama/ollama",
+      "license": "MIT",
+      "archived": false,
+      "language": "Go",
+      "source_commit": "1abe35e6e6e777e858bbfbba283667ee8d516801",
+      "readme_sha256": "09c456b8f3e2fca486f6961e07494f424ec6f998cfd0b23ebde099bc028a47de",
+      "readme_path": "README.md",
+      "readme_bytes": 19225
+    },
+    {
+      "repo": "oobabooga/text-generation-webui",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:55.002Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "oobabooga/textgen",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "c93f8871239550de2ccfe1e95d469aa82616f07e",
+      "readme_sha256": "af5861e3628130552b39519a92a735f8149cc5d577ad2549bf7a65c858a1d910",
+      "readme_path": "README.md",
+      "readme_bytes": 30593
+    },
+    {
+      "repo": "open-webui/open-webui",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:55.260Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "open-webui/open-webui",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "8bd8b4fac5e059578ac0c74b3c18d11139f88b7d",
+      "readme_sha256": "da3d46f4d7e6c158e13ed91e5e46250d22d278b972d8d1b028f5e0bb62be612b",
+      "readme_path": "README.md",
+      "readme_bytes": 18194
+    },
+    {
+      "repo": "openai/whisper",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:55.460Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "openai/whisper",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "86098128c0b4f24f0e2aa2994de830614b474227",
+      "readme_sha256": "38c180c2a8d8ba628a3e131ad42bf06c8a51bb681efb30fbe28d5a0f4b65f288",
+      "readme_path": "README.md",
+      "readme_bytes": 8246
+    },
+    {
+      "repo": "openinterpreter/open-interpreter",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:55.580Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "openinterpreter/openinterpreter",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "9acdb707400234bebe31e672b808235495916b95",
+      "readme_sha256": "8f6c33487eca77769798677d32bce15335d0439f129c9a0413e12e0d9e70ab7a",
+      "readme_path": "README.md",
+      "readme_bytes": 8364
+    },
+    {
+      "repo": "OpenShot/openshot-qt",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:28.923Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "OpenShot/openshot-qt",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "af0da398e70e39597c879e65ac3f3beb8a4637e4",
+      "readme_sha256": "ebc33ce9c6aea7d4b63cbd8f0e83dd5c52751252047c07fd0310ab56f4ef1513",
+      "readme_path": "README.md",
+      "readme_bytes": 6677
+    },
+    {
+      "repo": "OpenVoiceOS/ovos-core",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:28.932Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "OpenVoiceOS/ovos-core",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "2bf6549ff3097b18220a0ef393890f6938527bc8",
+      "readme_sha256": "a5d9fc696fd3c9461473e8332503548dd62195451219548b1897490e3798f2d1",
+      "readme_path": "README.md",
+      "readme_bytes": 6728
+    },
+    {
+      "repo": "openw3rk-DEVELOP/o3DIAG",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:55.993Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "openw3rk-DEVELOP/o3DIAG",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "73531e383fae78d8b156bc79480b7aac4881837b",
+      "readme_sha256": "8bb8edc9e084c9b9ada94a685fadb27e1a2e90653099bd2e035ff50df2e2019e",
+      "readme_path": "README.md",
+      "readme_bytes": 3174
+    },
+    {
+      "repo": "openxc/uds-c",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.003Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "openxc/uds-c",
+      "license": "BSD-3-Clause",
+      "archived": false,
+      "language": "C",
+      "source_commit": "e56aeb9c884ccbdbe73e1630942f8c0d17e27498",
+      "readme_sha256": "5e4d318e03b86403337c2a083cde097563cff314507e16d82420fa7b8316d73b",
+      "readme_path": "README.mkd",
+      "readme_bytes": 7637
+    },
+    {
+      "repo": "oxibus/automotive_diag",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.101Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "oxibus/automotive_diag",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "6bed2f35f8833fb499493b89043bb136b2799899",
+      "readme_sha256": "51b5e0f9c33eee1af1064559cf14408d503ffdee0474f90b928d1df60825d121",
+      "readme_path": "README.md",
+      "readme_bytes": 4022
+    },
+    {
+      "repo": "PaddlePaddle/PaddleOCR",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:29.125Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "PaddlePaddle/PaddleOCR",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "dab3fe35379033fdcb2d0e9572fac0b36c9a9ebf",
+      "readme_sha256": "63d76041f1dcb84e1dd141d45dc8dec5d86a3e357fe98bf8432ad2721c0ced90",
+      "readme_path": "README.md",
+      "readme_bytes": 25918
+    },
+    {
+      "repo": "paperless-ngx/paperless-ngx",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.500Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "paperless-ngx/paperless-ngx",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "d02c19a09e42b945df26f4964af722d65aa81bda",
+      "readme_sha256": "c53f8a4f9a6ceb243992ec10113d3c68307736ad9892351593da0bd6ae77479b",
+      "readme_path": "README.md",
+      "readme_bytes": 7093
+    },
+    {
+      "repo": "Paul-HenryP/PyOBD-Dashboard",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:29.393Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Paul-HenryP/PyOBD-Dashboard",
+      "license": null,
+      "archived": false,
+      "language": "Python",
+      "source_commit": "299b9bab36de69a9595c4f3fe20b2e25b0a2a8df",
+      "readme_sha256": "567cc44e6e8196bf4f86fb8048582520d0f4e4a76bb02f7516bdbb3f2800f4e2",
+      "readme_path": "README.md",
+      "readme_bytes": 4444
+    },
+    {
+      "repo": "PaulMarisOUMary/OBDII",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:29.538Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "PaulMarisOUMary/OBDII",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "45cd8868da8ac7b839c4aebd7935a0affacb7364",
+      "readme_sha256": "2012bc49f9d06486d527c3846b0ca5c0c8fc8dd86d2b72c7630c11b59e60fcd6",
+      "readme_path": ".github/README.rst",
+      "readme_bytes": 5558
+    },
+    {
+      "repo": "PowerBroker2/ELMduino",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:29.620Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "PowerBroker2/ELMduino",
+      "license": "MIT",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "e9d6b55fd63f4afd7789d0981861e9990cdfcd8e",
+      "readme_sha256": "386b731b7da6769de19d04c9addc0a4275cad78fd58b64e1dea0d98ba229d2ca",
+      "readme_path": "README.md",
+      "readme_bytes": 4114
+    },
+    {
+      "repo": "provrb/obdium",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.632Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "provrb/obdium",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "fdaef0a3bdc293b1621e1b2f96b482fba7e4ee69",
+      "readme_sha256": "8e3c4dd6191902e31040e286a9143f2c01aaac3ca503ee2294c867236ca7e81c",
+      "readme_path": "README.md",
+      "readme_bytes": 9181
+    },
+    {
+      "repo": "pylessard/python-can-isotp",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.659Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "pylessard/python-can-isotp",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "5593c219f35e739554d743a98d3af68c9332da31",
+      "readme_sha256": "496854f21b4afe723b70cd69d452d08fe1e9918b6b9d2c608bb9bd6349b7b066",
+      "readme_path": "README.rst",
+      "readme_bytes": 888
+    },
+    {
+      "repo": "pylessard/python-udsoncan",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:56.925Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "pylessard/python-udsoncan",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "78e85f1b5dac968b6a2d478fce9c0cc5adba2b50",
+      "readme_sha256": "6923274bba5f01bf6e87c0750353e31900f23780d33adaf1ec735d8b5ff45bec",
+      "readme_path": "README.rst",
+      "readme_bytes": 1992
+    },
+    {
+      "repo": "python-telegram-bot/python-telegram-bot",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.025Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "python-telegram-bot/python-telegram-bot",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "d4f2b1682938710be93332c08be543a683e414e6",
+      "readme_sha256": "938bd9f052138a5c432779a747c14ab73ccc14dcf3113921a0b252fa0b478b5e",
+      "readme_path": "README.rst",
+      "readme_bytes": 14191
+    },
+    {
+      "repo": "pytorch/pytorch",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.256Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "pytorch/pytorch",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "1d40e77c093f371f28fa9caa18ba2ff3bd1c8eff",
+      "readme_sha256": "afb5b1b86ca2152e1442eed3ae809f26a5b92bb94401ea631bc55fd464c85d5d",
+      "readme_path": "README.md",
+      "readme_bytes": 30083
+    },
+    {
+      "repo": "qdrant/qdrant",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.322Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "qdrant/qdrant",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "6ab21cac18ebb6f4ae29102c7f8f5cc11affd5de",
+      "readme_sha256": "f1455d12252bf40235ad0128d8e98b2cd6d42583e441ac832b01f4daf08df2e4",
+      "readme_path": "README.md",
+      "readme_bytes": 11560
+    },
+    {
+      "repo": "radareorg/radare2",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 12
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.523Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "radareorg/radare2",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "457c381526d811671dfb1f18af66bd02c10d53c7",
+      "readme_sha256": "042504cc17f101977a7f90ffd63d8fdb2f071a58bca4b37816c830a86879e0b4",
+      "readme_path": "README.md",
+      "readme_bytes": 10644
+    },
+    {
+      "repo": "RallyPat/LibreTune",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:30.493Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "RallyPat/LibreTune",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "34608da882f218a40bc9ae4ec1f0239d3f9b7274",
+      "readme_sha256": "a0a986acbf11acc2ff0f373a91d697bbb3f01fc1e78574d9b22b7b955595eb26",
+      "readme_path": "README.md",
+      "readme_bytes": 10703
+    },
+    {
+      "repo": "rasbt/LLMs-from-scratch",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.601Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "rasbt/LLMs-from-scratch",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "817de229cfe412360bb76c78e09e2bfd77018d49",
+      "readme_sha256": "7fe7c2073510b1e9a37e5b684d0cbd81389047404ee40da5f261e9f831c38acf",
+      "readme_path": "README.md",
+      "readme_bytes": 19004
+    },
+    {
+      "repo": "ReFirmLabs/binwalk",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 12
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.106Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "ReFirmLabs/binwalk",
+      "license": "MIT",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "26713972e3f9f52dc37d4a421c4554b0bd9e82ef",
+      "readme_sha256": "87b8277efbbbdcdfcaa6518c1d3efed071617214432c81400b9e67ee093a11d4",
+      "readme_path": "README.md",
+      "readme_bytes": 1470
+    },
+    {
+      "repo": "remotion-dev/remotion",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.783Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "remotion-dev/remotion",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "c320056a980972de109ef27a40bede9660a46931",
+      "readme_sha256": "c0aa4732decbd340d28ed59c805605820c3a6ade67b34933d2fad1c8bc0a603d",
+      "readme_path": "README.md",
+      "readme_bytes": 4158
+    },
+    {
+      "repo": "RJ-6463/Bosch_EDC15_EEPROM_Tool",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 5
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:29.785Z",
+      "status": "metadata-only",
+      "executed_upstream_code": false,
+      "canonical_repo": "RJ-6463/Bosch_EDC15_EEPROM_Tool",
+      "license": null,
+      "archived": false,
+      "language": "C++",
+      "source_commit": "2be078df2454d84b54be667244770aeb0c4a918a",
+      "readme_error": "GITHUB_404"
+    },
+    {
+      "repo": "RJSzynal/ScanTool.net",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:30.324Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "RJSzynal/ScanTool.net",
+      "license": null,
+      "archived": false,
+      "language": "C",
+      "source_commit": "67394924dab0be6a0dcb1abe041eb5409d942601",
+      "readme_sha256": "88bb21f434963224453713703f82f1a9fe46b3277a0237c7bbe6d8abb4d7505a",
+      "readme_path": "readme.md",
+      "readme_bytes": 1034
+    },
+    {
+      "repo": "rnd-ash/OpenVehicleDiag",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:57.874Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "rnd-ash/OpenVehicleDiag",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "0d9a6bdf88e219a6b9375b45a638cc5acc2fbcf3",
+      "readme_sha256": "9dfbf9eb6edd1e29ddbf4c05a26f422b9ee523cbc435476368e369249867fe91",
+      "readme_path": "README.md",
+      "readme_bytes": 1214
+    },
+    {
+      "repo": "RomRaider/RomRaider",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.145Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "RomRaider/RomRaider",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "dafe0c36c1a68efadbeedb2825f3855463fdbc35",
+      "readme_sha256": "ef4821a31fd44158d6e621a67d4443b834dd1854e7c5d2308894124b9d8e17d7",
+      "readme_path": "README.md",
+      "readme_bytes": 576
+    },
+    {
+      "repo": "RooCodeInc/Roo-Code",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.198Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "RooCodeInc/Roo-Code",
+      "license": "Apache-2.0",
+      "archived": true,
+      "language": "TypeScript",
+      "source_commit": "b867ec9145750d0ae1ff7f02d35406e9bf2a0b16",
+      "readme_sha256": "bcabc1221142dc7d7161d089dcd945bb50ff8d7498d7c6b8774b10a8cd5c164f",
+      "readme_path": "README.md",
+      "readme_bytes": 3387
+    },
+    {
+      "repo": "run-llama/llama_index",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.180Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "run-llama/llama_index",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "7e2c60a78ec27e8d146dfdd596778aea83c041d5",
+      "readme_sha256": "625c49e7dedf84826b350be28d118e7823e669504689105611e91ff709406d1f",
+      "readme_path": "README.md",
+      "readme_bytes": 11598
+    },
+    {
+      "repo": "rusefi/rusefi",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.216Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "rusefi/rusefi",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "C",
+      "source_commit": "5a8d43a8f72a7ab8a642ef598d2fc2d79d1f5c06",
+      "readme_sha256": "e9f567e2dc8f4577360e22dbb755b1c3ae73682c5b3cd943868073e4bce5e45a",
+      "readme_path": "README.md",
+      "readme_bytes": 2356
+    },
+    {
+      "repo": "RVC-Project/Retrieval-based-Voice-Conversion-WebUI",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:30.379Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "RVC-Project/Retrieval-based-Voice-Conversion-WebUI",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "81eed5e8f68b6bed1789f682fe78cdd324495afc",
+      "readme_sha256": "6ae347c0cc60836f1e7fd2b73ee73327746e66c32a5dd4270d02a096810bca8b",
+      "readme_path": "README.md",
+      "readme_bytes": 9344
+    },
+    {
+      "repo": "rzetterberg/elmobd",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.318Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "rzetterberg/elmobd",
+      "license": "MIT",
+      "archived": false,
+      "language": "Go",
+      "source_commit": "01e7bbc11e6cfe235b9cc57da79a754f05b51c16",
+      "readme_sha256": "bbef4312308a08f2f401f6a6bb12e956fafd5b875c1e7ec8a1613b2ba0a9c9e9",
+      "readme_path": "README.org",
+      "readme_bytes": 11209
+    },
+    {
+      "repo": "SalihTuncer/obd_diagnosis",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.842Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "SalihTuncer/obd_diagnosis",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "805cc7f3b0adaa8c7b7cf720f51ccabeb8e02ce4",
+      "readme_sha256": "516a171590b3bd3375f92a0662d7004d052d3a6886b6cec6fb8107b092c61e09",
+      "readme_path": "README.md",
+      "readme_bytes": 2912
+    },
+    {
+      "repo": "sanketh-1850/OBDPlus",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.474Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "sanketh-1850/OBDPlus",
+      "license": null,
+      "archived": false,
+      "language": "Python",
+      "source_commit": "713639d4393d892ca03e22385004df823b9763b1",
+      "readme_sha256": "7b9eabc0151db5681c1cc12365d2ebaf5ef4242acdc382435397ca731b4f9708",
+      "readme_path": "README.md",
+      "readme_bytes": 4139
+    },
+    {
+      "repo": "scrapy/scrapy",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.919Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "scrapy/scrapy",
+      "license": "BSD-3-Clause",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "6fdac2f120775d0a73398331a804654d86dacab3",
+      "readme_sha256": "5147a065b179297b6089b0a9949e66c854f1b9764d94b8edd6c199df1a648ba8",
+      "readme_path": "README.rst",
+      "readme_bytes": 1793
+    },
+    {
+      "repo": "searxng/searxng",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.936Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "searxng/searxng",
+      "license": "AGPL-3.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a9d99003344ac3879ec45c56c661283482a92a39",
+      "readme_sha256": "6a78fb798e890f75c99d2637f83dcdc90bebfdfdc563d24b59b38ef8a673e2ab",
+      "readme_path": "README.rst",
+      "readme_bytes": 2296
+    },
+    {
+      "repo": "SeleniumHQ/selenium",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.913Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "SeleniumHQ/selenium",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "0db3e3833cb3665de9183dd4f31808bab859a51c",
+      "readme_sha256": "cddee91a72895c73d37228873c4e1328ea0b3e3b5fd313ae38f4ebd50b9eacc3",
+      "readme_path": "README.md",
+      "readme_bytes": 18510
+    },
+    {
+      "repo": "Significant-Gravitas/AutoGPT",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.313Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Significant-Gravitas/AutoGPT",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "d58d41bb289cc3fef8f15e25f22f2395b2471b89",
+      "readme_sha256": "5e8b890b94d97d55260792c60b4db01c8aeaf9a83e100171c78b444d1e5e598f",
+      "readme_path": "README.md",
+      "readme_bytes": 11197
+    },
+    {
+      "repo": "sostisoft/ecu-definitions",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:58.997Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "sostisoft/ecu-definitions",
+      "license": null,
+      "archived": false,
+      "language": null,
+      "source_commit": "d5899b85e7b97e15b46990d574c44e9dbb525885",
+      "readme_sha256": "09eb95269dc2f73d21fd586736989a325886c949610fd05b244f7a4ffb02fc17",
+      "readme_path": "README.md",
+      "readme_bytes": 6123
+    },
+    {
+      "repo": "souvik1997/obdython",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:59.183Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "souvik1997/obdython",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "b0b79867363791e28eb77ede241e6a7b6a40607f",
+      "readme_sha256": "0db077b1112570f5dca3da668975cee8ede6cb3a442a70e81ef6d4af8950dcf1",
+      "readme_path": "README.md",
+      "readme_bytes": 1020
+    },
+    {
+      "repo": "speed785/open-mechanic",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:59.450Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "speed785/open-mechanic",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "fc01063a911a6851dc18472ec67e9d7842142274",
+      "readme_sha256": "3ffa3bae4430c93695ac65c580aae1fa4236b630550b78bf40222892dd551424",
+      "readme_path": "README.md",
+      "readme_bytes": 6868
+    },
+    {
+      "repo": "speeduino/speeduino",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:59.468Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "speeduino/speeduino",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "473b4b48a070db547aaedbbf10c75106d58e2f6b",
+      "readme_sha256": "7fc1fb64fac93a05138128add2b0b1856bac44b0c91da63ef368f652b9ba45ee",
+      "readme_path": "README.md",
+      "readme_bytes": 3248
+    },
+    {
+      "repo": "stene-xyz/OpenCodeReader",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:59.706Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "stene-xyz/OpenCodeReader",
+      "license": "GPL-3.0",
+      "archived": true,
+      "language": "C#",
+      "source_commit": "493e4f91478cf2958c827dcf6120ecf9d141d548",
+      "readme_sha256": "cbd4bebb29cb29d6d9fc0c5cc50eb6a75cb49dee86a706b77e6211a3a09a7416",
+      "readme_path": "README.md",
+      "readme_bytes": 748
+    },
+    {
+      "repo": "Stirling-Tools/Stirling-PDF",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.357Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Stirling-Tools/Stirling-PDF",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "1bbfe56f8db9cd4effe6ec8645cdccff3f7c50b9",
+      "readme_sha256": "5d370c4ec2e7b0e940a00eaac883d26780b58c57b973dddc2793afa3468f8bdf",
+      "readme_path": "README.md",
+      "readme_bytes": 3163
+    },
+    {
+      "repo": "stko/oobd",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:59.808Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "stko/oobd",
+      "license": null,
+      "archived": false,
+      "language": "Java",
+      "source_commit": "44a74d3fa4845b2d6743209e771d2a8bb3f81080",
+      "readme_sha256": "74e301cfc619c4b02ad87d3ee4c6285e17504ec2998af1c139cb04ee343b1327",
+      "readme_path": "README.md",
+      "readme_bytes": 1327
+    },
+    {
+      "repo": "suno-ai/bark",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.145Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "suno-ai/bark",
+      "license": "MIT",
+      "archived": false,
+      "language": "Jupyter Notebook",
+      "source_commit": "f4f32d4cd480dfec1c245d258174bc9bde3c2148",
+      "readme_sha256": "727acc4ec3d37ad8e20a8333fb779edece39271f3be9a813019d01849b256c72",
+      "readme_path": "README.md",
+      "readme_bytes": 15207
+    },
+    {
+      "repo": "SYSTRAN/faster-whisper",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:31.756Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "SYSTRAN/faster-whisper",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "2ce7f9d7a9fbe315a5804a33bf7224d42e101174",
+      "readme_sha256": "5ae59e0781834e6887bbd51bda2d8bd5dfe08cd345e0c6f7f3aca455d129cc69",
+      "readme_path": "README.md",
+      "readme_bytes": 15246
+    },
+    {
+      "repo": "TabbyML/tabby",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.500Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "TabbyML/tabby",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "21b29048d7bcf6b94f9f482f2d0fd05efadfd19f",
+      "readme_sha256": "58a2d414c1dd1aee82c4b6b5f429d5af246fbf80524fd7b3ce8812959c1ca20f",
+      "readme_path": "README.md",
+      "readme_bytes": 9981
+    },
+    {
+      "repo": "Tencent-Hunyuan/HunyuanVideo",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.605Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Tencent-Hunyuan/HunyuanVideo",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "e748c73ac064728bf6bd15b1cdb8161e55a4f331",
+      "readme_sha256": "fcc29022b5d80583e2f4b3b4f09145c4d65c4e7bf63bd4006ba367ea4d470427",
+      "readme_path": "README.md",
+      "readme_bytes": 29010
+    },
+    {
+      "repo": "tesseract-ocr/tesseract",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.323Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "tesseract-ocr/tesseract",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "db20f322d03664d1e878e2fbf6e904f5da755594",
+      "readme_sha256": "1a14c7cd54039ffb79e05aff12841f48d4d4da50f231ee98e7e9bb6138d03e7a",
+      "readme_path": "README.md",
+      "readme_bytes": 8159
+    },
+    {
+      "repo": "the-can-opener/simple-elm",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.383Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "the-can-opener/simple-elm",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "9ce3a712625f74b20a93d54ce6f25b44f751874e",
+      "readme_sha256": "4db368f0205c17ce2b92168e959f636ee455c9a9bd4463b7f2ba2857edb3dd56",
+      "readme_path": "README.md",
+      "readme_bytes": 2681
+    },
+    {
+      "repo": "TheFlashBold/tune-editor",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.908Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "TheFlashBold/tune-editor",
+      "license": "GPL-3.0",
+      "archived": false,
+      "language": "TypeScript",
+      "source_commit": "e8f7ed22814c5e4f2698dd5cdfcd54162eb7638f",
+      "readme_sha256": "a08c0f8f0811c82e73d06a3c67a4d7b8af2d24790b764113fd270f4528d6ccd6",
+      "readme_path": "readme.md",
+      "readme_bytes": 2405
+    },
+    {
+      "repo": "tronikos/elm327_obdii",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 6
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.591Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "tronikos/elm327_obdii",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "b0f3151c6650de44a03f1c0538f8704a98fcfd51",
+      "readme_sha256": "7205d4b8edcdda9acdb976fb2b91a0a8ecf7f259f9fc2f2724a3b0aa280ffef4",
+      "readme_path": "README.md",
+      "readme_bytes": 7127
+    },
+    {
+      "repo": "unclecode/crawl4ai",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.813Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "unclecode/crawl4ai",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "e5d2e786d1a101225f3f6a3e6fd344d76eeb13af",
+      "readme_sha256": "c3f6d704fe58c197b59d9ac7fe669fffc5fb3c86fbbc27871253311400e529a6",
+      "readme_path": "README.md",
+      "readme_bytes": 26926
+    },
+    {
+      "repo": "unslothai/unsloth",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:00.838Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "unslothai/unsloth",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a76ac47c81e6af851add0fca5c368db150035fd6",
+      "readme_sha256": "e763fe1699169d57ba2f1516399824e807a52d51f6872d52157de6b3318f01f6",
+      "readme_path": "README.md",
+      "readme_bytes": 25612
+    },
+    {
+      "repo": "Unstructured-IO/unstructured",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:32.925Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Unstructured-IO/unstructured",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "HTML",
+      "source_commit": "ddf4453692ae034e09ab6dadf2fafb2ab3425c08",
+      "readme_sha256": "d0f098800a4eaf7e0284c29ffd5c141818c025ad76e97ef8bdb1cbbf8d1bc933",
+      "readme_path": "README.md",
+      "readme_bytes": 21125
+    },
+    {
+      "repo": "vllm-project/vllm",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 1
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:01.230Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "vllm-project/vllm",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "e5e38ba9b7d18f9746d989e389a51a94b0f96f6f",
+      "readme_sha256": "8d2e7cd8d120bcd91ddfa85ef957f7246021b4a3f46f2e1f4ccf084ec6c20026",
+      "readme_path": "README.md",
+      "readme_bytes": 5708
+    },
+    {
+      "repo": "VSCodium/vscodium",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 10
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.114Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "VSCodium/vscodium",
+      "license": "MIT",
+      "archived": false,
+      "language": "Shell",
+      "source_commit": "5a73682ca091082675b10c9dc3f348c1d824d94f",
+      "readme_sha256": "1ba459da00cccc5825cc498e853dc180165ccc2623622b5219fb3d6f646f8508",
+      "readme_path": "README.md",
+      "readme_bytes": 11800
+    },
+    {
+      "repo": "Wal33D/dtc-database",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 2
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.476Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Wal33D/dtc-database",
+      "license": "MIT",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "04c43d72e7db7197658b6f72fe582c5076d9eee8",
+      "readme_sha256": "60526631da85d81a8c9100709b0ac13cc270c4380ba055a95f38cedff70b6aa7",
+      "readme_path": "README.md",
+      "readme_bytes": 4353
+    },
+    {
+      "repo": "Wal33D/OBD-Droid",
+      "pdf": [
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos_Updated(1).pdf",
+          "page": 5
+        },
+        {
+          "file": "OBD_ChipTuning_DPF_GitHub_Repos(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.230Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Wal33D/OBD-Droid",
+      "license": "MIT",
+      "archived": false,
+      "language": "Java",
+      "source_commit": "05de190269edea5b8ddc7e42eb4f23541f93ce0a",
+      "readme_sha256": "fdbdff59c343521a1f895320ef713a2086ef9594914ed362640e3915680198f7",
+      "readme_path": "README.md",
+      "readme_bytes": 14504
+    },
+    {
+      "repo": "Wan-Video/Wan2.1",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.740Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Wan-Video/Wan2.1",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "9737cba9c1c3c4d04b33fcad41c111989865d315",
+      "readme_sha256": "3bdaca69aa116222a49859dc21d4a735b60a580af7e1b81531085c87227e4486",
+      "readme_path": "README.md",
+      "readme_bytes": 43823
+    },
+    {
+      "repo": "WerWolv/ImHex",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 11
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.768Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "WerWolv/ImHex",
+      "license": "GPL-2.0",
+      "archived": false,
+      "language": "C++",
+      "source_commit": "f2d432dfd6c0b4e56b26f5e2851dd2a9f72cbe23",
+      "readme_sha256": "8f4c89c636606543b6396cbca436a7586bd662ef52eb365a00bc8b2f88ad5e97",
+      "readme_path": "README.md",
+      "readme_bytes": 21423
+    },
+    {
+      "repo": "windmill-labs/windmill",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 8
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:01.316Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "windmill-labs/windmill",
+      "license": "NOASSERTION",
+      "archived": false,
+      "language": "Rust",
+      "source_commit": "6fe992aebe55f2fdbe137010e06722ddf1a3cca5",
+      "readme_sha256": "9fc7e3abd4457514a37a6bf174976a8e694fe15e3c63e0200f66b789af26045d",
+      "readme_path": "README.md",
+      "readme_bytes": 28128
+    },
+    {
+      "repo": "WyattBlue/auto-editor",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:33.917Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "WyattBlue/auto-editor",
+      "license": "Unlicense",
+      "archived": false,
+      "language": "Nim",
+      "source_commit": "7796222139b5d87fe32247f8a60a931b02006db5",
+      "readme_sha256": "5f83405b988edc0972bb2d0e083159aae3b2e422c2d70f2563e04100900ec7c4",
+      "readme_path": "README.md",
+      "readme_bytes": 4467
+    },
+    {
+      "repo": "xinntao/Real-ESRGAN",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 3
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 7
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:01.409Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "xinntao/Real-ESRGAN",
+      "license": "BSD-3-Clause",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "a4abfb2979a7bbff3f69f58f58ae324608821e27",
+      "readme_sha256": "d0a13607913ea94e65a91ac864b969683a41a45b0aec16e0ae64271649d0364d",
+      "readme_path": "README.md",
+      "readme_bytes": 16548
+    },
+    {
+      "repo": "yt-dlp/yt-dlp",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:01.443Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "yt-dlp/yt-dlp",
+      "license": "Unlicense",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "51bab8a0116f4d8004c315706d809782607d5847",
+      "readme_sha256": "45ad19ed646fe0f037632bfefafb777ba7e4cae26477f4013832055c9381a4bd",
+      "readme_path": "README.md",
+      "readme_bytes": 179196
+    },
+    {
+      "repo": "Zulko/moviepy",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 9
+        }
+      ],
+      "checked_at": "2026-10-01T08:00:34.258Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "Zulko/moviepy",
+      "license": "MIT",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "211e4b15f6ce4f34a6a9efbfff40590e43a68f77",
+      "readme_sha256": "34b932b6bb7320500bd1c1693ba615482f576672ea72a205eb017529cc714120",
+      "readme_path": "README.md",
+      "readme_bytes": 5004
+    },
+    {
+      "repo": "zylon-ai/private-gpt",
+      "pdf": [
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 4
+        },
+        {
+          "file": "yapay_zeka_github_rehberi(1).pdf",
+          "page": 6
+        }
+      ],
+      "checked_at": "2026-10-01T08:01:01.846Z",
+      "status": "source-verified",
+      "executed_upstream_code": false,
+      "canonical_repo": "zylon-ai/private-gpt",
+      "license": "Apache-2.0",
+      "archived": false,
+      "language": "Python",
+      "source_commit": "01ac43d72bc4c0b7565994197fe23476539059a7",
+      "readme_sha256": "3b4ae5d4ee0793b3aa65b1a292cb1409bcaf6d12f7739d38f81937135f8dab07",
+      "readme_path": "README.md",
+      "readme_bytes": 12742
+    }
+  ],
+  "counts": {
+    "source-verified": 212,
+    "metadata-only": 2
+  }
+}

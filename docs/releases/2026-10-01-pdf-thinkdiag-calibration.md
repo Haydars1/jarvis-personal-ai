@@ -35,3 +35,5 @@ Yerel GPU/LLM/otomasyon projeleri ayrı çalışma ortamı ister. OpenAI uyumlu 
 ## Doğrulama
 
 154 birim/davranış testi geçti. Tam Worker HTTP hattına ThinkDiag profili, kayıt importu, rapor ayrıştırma, sohbet saklama ve 214-repo katalog kontrolleri eklendi. CI gerçek tarayıcıda TC/PDF dosya seçimi, map hücresi düzenleme, ORI/MOD ve mobil katalog testlerini; Apple runner'da iOS build'i çalıştırır. Son CI/dağıtım kanıtları tamamlandıktan sonra bu rapora eklenir.
+
+Doğrulama run: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36833586223 — 154 test, 32 HTTP kontrolü ve gerçek Chromium TC/PDF/map/ORI-MOD/katalog testleri başarılı. 212 repo commit+README ile, 2 repo yalnız metaveriyle doğrulandı. Denetim verisi `data/pdf-repository-audit.json` içinde korunur.

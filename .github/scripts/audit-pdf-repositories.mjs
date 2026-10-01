@@ -27,6 +27,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   const report = await auditPdfRepositories(provenance); await mkdir('.wrangler', { recursive: true });
   await writeFile('.wrangler/pdf-repository-audit.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report.counts));
+  if (process.env.GITHUB_REPOSITORY && process.env.GITHUB_SHA && process.env.GITHUB_TOKEN) {
+    const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs?head_sha=${process.env.GITHUB_SHA}`, { headers: { authorization: 'Bearer ' + process.env.GITHUB_TOKEN, accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(15000) });
+    if (response.ok) { const data = await response.json(); console.log('RELATED_WORKFLOWS ' + JSON.stringify((data.workflow_runs || []).map(run => ({ id: run.id, name: run.name, status: run.status, conclusion: run.conclusion })))); }
+  }
   // Missing repositories are explicit per-row outcomes. Rate/network failure must not masquerade as a successful audit.
   if (!report.results.some(row => row.status === 'source-verified')) process.exitCode = 1;
 }
