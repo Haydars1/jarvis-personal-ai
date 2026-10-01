@@ -34,6 +34,10 @@ Yerel GPU/LLM/otomasyon projeleri ayrı çalışma ortamı ister. OpenAI uyumlu 
 
 ## Doğrulama
 
-154 birim/davranış testi geçti. Tam Worker HTTP hattına ThinkDiag profili, kayıt importu, rapor ayrıştırma, sohbet saklama ve 214-repo katalog kontrolleri eklendi. CI gerçek tarayıcıda TC/PDF dosya seçimi, map hücresi düzenleme, ORI/MOD ve mobil katalog testlerini; Apple runner'da iOS build'i çalıştırır. Son CI/dağıtım kanıtları tamamlandıktan sonra bu rapora eklenir.
+154 birim/davranış testi geçti. Tam Worker HTTP hattına ThinkDiag profili, kayıt importu, rapor ayrıştırma, sohbet saklama ve 214-repo katalog kontrolleri eklendi. CI gerçek tarayıcıda TC/PDF dosya seçimi, map hücresi düzenleme, ORI/MOD ve mobil katalog testlerini; Apple runner'da iOS build'i çalıştırır. Son sürümde 154 test, 32 HTTP kontrolü ve gerçek Chromium senaryoları geçti; aşağıdaki dağıtım ve native build kanıtları tamamlandı.
 
 Doğrulama run: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36833586223 — 154 test, 32 HTTP kontrolü ve gerçek Chromium TC/PDF/map/ORI-MOD/katalog testleri başarılı. 212 repo commit+README ile, 2 repo yalnız metaveriyle doğrulandı. Denetim verisi `data/pdf-repository-audit.json` içinde korunur.
+
+Son commit doğrulaması: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36834305791
+Canlı main dağıtımı: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36834631360 — başarılı, rollback yapılmadı. Bağımsız 8 production kontrolü, yeni modüller/PDF.js assets ve 401 oturum koruması doğrulandı.
+Main iPhone/Simulator build ve IPA: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36834631335 — başarılı; JARVIS-Run378-a218d83-unsigned-artifact.
