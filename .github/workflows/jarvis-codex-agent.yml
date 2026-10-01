@@ -138,12 +138,11 @@ jobs:
           git clean -fd
 
       - name: Restore keyless local coder cache
-        id: localcache
         if: ${{ steps.multiprovider.outcome != 'success' }}
-        uses: actions/cache/restore@v4
+        uses: actions/cache@v4
         with:
           path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
+          key: jarvis-local-coder-v2-${{ runner.os }}-qwen3-1.7b-q8
 
       - name: Run keyless local coding fallback
         id: localcoder
@@ -152,13 +151,6 @@ jobs:
         timeout-minutes: 15
         shell: bash
         run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
-
-      - name: Save keyless local coder cache
-        if: ${{ always() && steps.multiprovider.outcome != 'success' && steps.localcache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v4
-        with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Reset failed local coding work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
@@ -175,7 +167,6 @@ jobs:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           permission-profile: ":workspace"
           safety-strategy: drop-sudo
-          allow-bots: true
           allow-bot-users: "github-actions[bot]"
           prompt: |
             Work only in this repository on the current jarvis/auto-* branch.
@@ -191,7 +182,7 @@ jobs:
       - name: Require a coding agent to succeed
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' && steps.codex.outcome != 'success' }}
         run: |
-          echo "::error::Hosted providers, the keyless local coder, and Codex all failed."
+          echo "::error::Hosted providers, keyless local coder, and Codex all failed."
           exit 1
 
       - name: Validate agent changes
@@ -208,7 +199,6 @@ jobs:
           PRIMARY_PROVIDER: ${{ steps.multiprovider.outputs.provider }}
           PRIMARY_MODEL: ${{ steps.multiprovider.outputs.model }}
           CODEX_OUTCOME: ${{ steps.codex.outcome }}
-          LOCAL_OUTCOME: ${{ steps.localcoder.outcome }}
           LOCAL_PROVIDER: ${{ steps.localcoder.outputs.provider }}
           LOCAL_MODEL: ${{ steps.localcoder.outputs.model }}
         run: |
@@ -230,9 +220,9 @@ jobs:
           if [ -n "${PRIMARY_PROVIDER:-}" ]; then
             provider="$PRIMARY_PROVIDER"
             model="${PRIMARY_MODEL:-unknown}"
-          elif [ "${LOCAL_OUTCOME:-}" = "success" ]; then
-            provider="${LOCAL_PROVIDER:-Local Qwen2.5 Coder}"
-            model="${LOCAL_MODEL:-bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF:Q4_K_M}"
+          elif [ "${LOCAL_PROVIDER:-}" != "" ]; then
+            provider="$LOCAL_PROVIDER"
+            model="${LOCAL_MODEL:-Qwen/Qwen3-1.7B-GGUF:Q8_0}"
           elif [ "${CODEX_OUTCOME:-}" = "success" ]; then
             provider="Codex fallback"
             model="OpenAI Codex"
