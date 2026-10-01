@@ -4,6 +4,7 @@
 <key>CFBundleDisplayName</key><string>JARVIS</string>
 <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.haydojarvis.jarvis</string><key>CFBundleURLSchemes</key><array><string>jarvis</string></array></dict></array>
 <key>NSMicrophoneUsageDescription</key><string>JARVIS ile sesli konuşmak için mikrofon kullanılır.</string>
+<key>NSBluetoothAlwaysUsageDescription</key><string>JARVIS OBD cihazını bulmak ve seçtiğin cihaza Bluetooth ile bağlanmak için erişim kullanır.</string>
 <key>NSSpeechRecognitionUsageDescription</key><string>JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır.</string>
 <key>NSCameraUsageDescription</key><string>JARVIS'e fotoğraf göstermek için kamera kullanılır.</string>
 <key>NSPhotoLibraryUsageDescription</key><string>JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
