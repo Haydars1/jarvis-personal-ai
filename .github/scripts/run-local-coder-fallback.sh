@@ -196,19 +196,24 @@ export OPENCODE_DISABLE_AUTOUPDATE=true
 git reset --hard HEAD >/dev/null
 git clean -fd >/dev/null
 
+# OpenCode is useful when the model emits native tool calls, but this small model
+# must not consume the entire workflow if it cannot drive tools. Give it a short
+# bounded attempt, then fall back to a validated unified-diff path using the same
+# already-running local model.
 set +e
-opencode run --standalone --model "llama.cpp/$MODEL_ID" --agent build "$(cat "$LOCAL_PROMPT_PATH")"
+timeout 180s opencode run --standalone --model "llama.cpp/$MODEL_ID" --agent build "$(cat "$LOCAL_PROMPT_PATH")"
 agent_rc=$?
 set -e
 
-if [ "$agent_rc" -ne 0 ]; then
-  echo "local coding agent failed with exit code $agent_rc" >&2
+mapfile -t changed_files < <(git status --porcelain | sed -E 's/^.. //' | sed -E 's/.* -> //')
+if [ "$agent_rc" -ne 0 ] || [ "${#changed_files[@]}" -eq 0 ]; then
+  echo "OpenCode local edit path unavailable; trying verified unified-diff fallback."
   git reset --hard HEAD >/dev/null
   git clean -fd >/dev/null
-  exit 1
+  bash .github/scripts/run-local-patch-fallback.sh "$LOCAL_PROMPT_PATH" "$MODEL_ID"
+  mapfile -t changed_files < <(git status --porcelain | sed -E 's/^.. //' | sed -E 's/.* -> //')
 fi
 
-mapfile -t changed_files < <(git status --porcelain | sed -E 's/^.. //' | sed -E 's/.* -> //')
 if [ "${#changed_files[@]}" -eq 0 ]; then
   echo "local coding agent produced no file changes" >&2
   exit 1
