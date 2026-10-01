@@ -100,14 +100,18 @@ test('local coder tool probe accepts equivalent JSON content fallback',()=>{
 
 test('local coder falls back to a bounded verified unified-diff path when OpenCode cannot edit',()=>{
   const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
+  const patchUrl=new URL('../.github/scripts/run-local-patch-fallback.sh',import.meta.url);
+  assert.equal(existsSync(patchUrl),true,'local patch fallback script must exist');
+  const patchScript=readFileSync(patchUrl,'utf8');
   assert.match(script,/timeout\s+180s\s+opencode run/);
-  assert.match(script,/Return only a unified diff/);
-  assert.match(script,/git apply --check/);
-  assert.match(script,/git apply --whitespace=nowarn/);
-  assert.match(script,/PATCH_MAX_FILES=3/);
-  assert.match(script,/src\/\*\|public\/\*\|tests\/\*\|docs\/\*/);
-  assert.match(script,/PATCH_RESPONSE/);
-  assert.match(script,/\/v1\/chat\/completions/);
+  assert.match(script,/run-local-patch-fallback\.sh/);
+  assert.match(patchScript,/Return only a unified diff/);
+  assert.match(patchScript,/git apply --check/);
+  assert.match(patchScript,/git apply --whitespace=nowarn/);
+  assert.match(patchScript,/PATCH_MAX_FILES=3/);
+  assert.match(patchScript,/src\/\*\|public\/\*\|tests\/\*\|docs\/\*/);
+  assert.match(patchScript,/PATCH_RESPONSE/);
+  assert.match(patchScript,/\/v1\/chat\/completions/);
 });
 
 test('local coder bootstraps from pinned verified llama.cpp binary instead of compiling it',()=>{
