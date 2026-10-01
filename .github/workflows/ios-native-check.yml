@@ -35,6 +35,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Print :LSSupportsGameMode" "$APP_PATH/Info.plist" | grep -qx false
           /usr/libexec/PlistBuddy -c "Print :LSApplicationCategoryType" "$APP_PATH/Info.plist" | grep -qx 'public.app-category.utilities'
           /usr/libexec/PlistBuddy -c "Print :NSMicrophoneUsageDescription" "$APP_PATH/Info.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c "Print :NSBluetoothAlwaysUsageDescription" "$APP_PATH/Info.plist" >/dev/null
           test -n "$(find "$APP_PATH" -name 'AppIcon*.png' -print -quit)"
           EXT_PLIST="$APP_PATH/PlugIns/JARVISShare.appex/Info.plist"
           test -f "$EXT_PLIST"

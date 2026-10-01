@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var showCamera = false
     @State private var showFiles = false
     @State private var showSettings = false
+    @State private var showVehicle = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -32,6 +33,7 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(state).presentationDetents([.large])
         }
+        .sheet(isPresented: $showVehicle) { VehicleBluetoothView() }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
         }
@@ -189,6 +191,7 @@ struct ContentView: View {
             if !state.attachments.isEmpty { attachmentStrip }
             HStack(alignment: .bottom, spacing: 7) {
                 Menu {
+                    Button { showVehicle = true } label: { Label("OBD cihazına bağlan", systemImage: "car") }
                     Button { showCamera = true } label: { Label("Kamera", systemImage: "camera") }
                     PhotosPicker(selection: $photoItem, matching: .images) { Label("Fotoğraflar", systemImage: "photo.on.rectangle") }
                     Button { showFiles = true } label: { Label("Dosya / PDF", systemImage: "doc") }
