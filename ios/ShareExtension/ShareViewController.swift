@@ -10,7 +10,13 @@ final class ShareViewController: UIViewController {
     private func collectSharedText() {
         guard let items = extensionContext?.inputItems as? [NSExtensionItem] else { return finish() }
         let providers = items.flatMap { $0.attachments ?? [] }
-        if let provider = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) || $0.hasItemConformingToTypeIdentifier(UTType.data.identifier) }) {
+        if let provider = providers.first(where: { provider in
+            provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) ||
+            provider.registeredTypeIdentifiers.contains(UTType.fileURL.identifier) ||
+            (provider.hasItemConformingToTypeIdentifier(UTType.data.identifier) &&
+             !provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) &&
+             !provider.hasItemConformingToTypeIdentifier(UTType.url.identifier))
+        }) {
             let type = provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) ? UTType.pdf.identifier : UTType.data.identifier
             provider.loadFileRepresentation(forTypeIdentifier: type) { [weak self] url, _ in
                 guard let url, let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.haydojarvis.jarvis") else { self?.finish(); return }
