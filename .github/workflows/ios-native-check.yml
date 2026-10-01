@@ -20,6 +20,11 @@ jobs:
       - name: Generate Xcode project
         working-directory: ios
         run: xcodegen generate
+      - name: Validate candidate VCI frame against published example
+        working-directory: ios
+        run: |
+          swiftc JARVIS/VciFrameInspector.swift scripts/test_vci_frame.swift -o /tmp/jarvis-vci-frame-check
+          /tmp/jarvis-vci-frame-check
       - name: Build simulator without signing
         working-directory: ios
         run: xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
