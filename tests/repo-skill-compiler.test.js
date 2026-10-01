@@ -50,6 +50,24 @@ test('compiler identifies vehicle diagnostics but marks physical-device work as 
   assert.equal(skill.risk,'high');
 });
 
+test('repository identity keeps rembg primarily in image processing despite broad README media mentions',()=>{
+  const skill=compileRepositorySkill(inspect({repo:'danielgatis/rembg',readme:'Remove image backgrounds. Documentation also mentions ffmpeg video workflows and audio examples.',files:['README.md','rembg/bg.py']}));
+  assert.equal(skill.primary_capability,'image-processing');
+  assert.ok(skill.capabilities.includes('image-processing'));
+});
+
+test('repository identity recognizes openWakeWord as wake-word detection instead of text-to-speech',()=>{
+  const skill=compileRepositorySkill(inspect({repo:'dscripka/openWakeWord',readme:'Open-source wake word and keyword spotting models for real-time audio. Documentation compares speech synthesis and RAG integrations.',files:['README.md','openwakeword/model.py']}));
+  assert.equal(skill.primary_capability,'wake-word-detection');
+  assert.ok(skill.capabilities.includes('audio-processing'));
+});
+
+test('repository identity recognizes prompt engineering guide instead of incidental video and image topics',()=>{
+  const skill=compileRepositorySkill(inspect({repo:'dair-ai/Prompt-Engineering-Guide',readme:'Prompt engineering guide covering prompting techniques for language, image, video, RAG and workflows.',files:['README.md','pages/guides/prompts.md']}));
+  assert.equal(skill.primary_capability,'prompt-engineering');
+  assert.ok(skill.capabilities.includes('document-processing'));
+});
+
 test('skill matching prefers learned capability over unrelated skill',()=>{
   const video=compileRepositorySkill(inspect({repo:'video/tool',readme:'ffmpeg video editing, transcode and concatenate media'}));
   const speech=compileRepositorySkill(inspect({repo:'speech/tool',readme:'speech recognition and transcription from audio'}));

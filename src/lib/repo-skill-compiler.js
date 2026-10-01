@@ -1,5 +1,6 @@
 const RULES=Object.freeze([
   {id:'speech-to-text',patterns:[/speech[- ]to[- ]text|speech recognition|automatic speech recognition|transcrib|whisper/i],weight:9},
+  {id:'wake-word-detection',patterns:[/wake[- ]?word|wakeword|keyword spotting|openwakeword/i],weight:9},
   {id:'audio-processing',patterns:[/audio|wav|mp3|speech|ffmpeg/i],weight:4},
   {id:'text-to-speech',patterns:[/text[- ]to[- ]speech|tts|speech synthesis|voice synthesis/i],weight:8},
   {id:'browser-automation',patterns:[/browser automation|playwright|puppeteer|selenium|chromium|browser agent/i],weight:9},
@@ -9,9 +10,10 @@ const RULES=Object.freeze([
   {id:'video-generation',patterns:[/text[- ]to[- ]video|image[- ]to[- ]video|video generation|diffusion video|comfyui.*video|wan.*video|ltx.*video/i],weight:9},
   {id:'media-conversion',patterns:[/ffmpeg|transcod|encode|decode|convert media|mux|demux/i],weight:6},
   {id:'image-generation',patterns:[/image generation|stable diffusion|diffusers|comfyui|text[- ]to[- ]image|flux/i],weight:8},
-  {id:'image-processing',patterns:[/opencv|image processing|resize image|upscal|background removal|segmentation/i],weight:6},
+  {id:'image-processing',patterns:[/opencv|image processing|resize image|upscal|background removal|segmentation|\brembg\b/i],weight:6},
   {id:'ocr',patterns:[/ocr|optical character recognition|tesseract|document text extraction/i],weight:8},
-  {id:'document-processing',patterns:[/pdf|document parser|docx|office document|markdown conversion|document processing/i],weight:6},
+  {id:'prompt-engineering',patterns:[/prompt engineering|prompt-engineering|prompting techniques|prompt guide/i],weight:8},
+  {id:'document-processing',patterns:[/pdf|document parser|docx|office document|markdown conversion|document processing|prompt engineering guide|prompt-engineering-guide/i],weight:6},
   {id:'local-llm',patterns:[/llama\.cpp|ollama|local llm|gguf|inference server|language model inference/i],weight:8},
   {id:'coding-agent',patterns:[/coding agent|software agent|code assistant|aider|openhands|code generation|repository agent/i],weight:8},
   {id:'workflow-automation',patterns:[/workflow automation|node-red|n8n|huginn|automation platform|rpa/i],weight:8},
@@ -28,18 +30,18 @@ const RULES=Object.freeze([
 
 const TASK_MAP=Object.freeze({
   video_creation:['video-generation','video-processing','media-conversion','image-generation'],
-  audio:['speech-to-text','text-to-speech','audio-processing'],
+  audio:['speech-to-text','wake-word-detection','text-to-speech','audio-processing'],
   vision:['ocr','image-processing','document-processing'],
   image:['image-generation','image-processing'],
   coding:['coding-agent','local-llm','binary-analysis'],
-  research:['web-scraping','browser-automation','web-navigation','rag','vector-search'],
+  research:['web-scraping','browser-automation','web-navigation','rag','vector-search','prompt-engineering'],
   social_strategy:['social-automation','video-processing','workflow-automation'],
   ecu_diagnostics:['vehicle-diagnostics','uds','can-bus'],
   ecu_file_analysis:['ecu-file-analysis','binary-analysis'],
   vehicle_coding:['vehicle-diagnostics','uds','can-bus'],
   service_procedure:['vehicle-diagnostics','uds','can-bus'],
-  reporting:['document-processing','ocr','rag'],
-  chat:['local-llm','rag']
+  reporting:['document-processing','ocr','rag','prompt-engineering'],
+  chat:['local-llm','rag','prompt-engineering']
 });
 
 function normalizedText(inspect={}){
@@ -47,12 +49,19 @@ function normalizedText(inspect={}){
   const files=Array.isArray(inspect.files)?inspect.files:[];
   return [inspect.repo||'',...Object.values(snippets).map(String),...files].join('\n').toLowerCase();
 }
-function detectCapabilities(text){
+function detectCapabilities(text,repoText=''){
   const scored=[];
   for(const rule of RULES){
     let matches=0;
-    for(const pattern of rule.patterns)if(pattern.test(text))matches++;
-    if(matches)scored.push({id:rule.id,score:rule.weight+Math.min(4,matches-1)});
+    let repoMatches=0;
+    for(const pattern of rule.patterns){
+      if(pattern.test(text))matches++;
+      if(pattern.test(repoText))repoMatches++;
+    }
+    if(matches||repoMatches){
+      const repositoryIdentityBoost=repoMatches?12+Math.min(4,repoMatches-1):0;
+      scored.push({id:rule.id,score:rule.weight+Math.min(4,Math.max(0,matches-1))+repositoryIdentityBoost});
+    }
   }
   return scored.sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id)).map(x=>x.id);
 }
@@ -69,8 +78,8 @@ function riskFor(capabilities){
 
 export function compileRepositorySkill(inspect={},hints={}){
   const text=normalizedText(inspect);
-  const capabilities=detectCapabilities(text);
   const repo=String(inspect.repo||hints.repo||'').trim();
+  const capabilities=detectCapabilities(text,repo.toLowerCase());
   const commit=/^[0-9a-f]{40}$/i.test(String(inspect.commit||''))?String(inspect.commit):null;
   return {
     id:`repo:${repo.toLowerCase()}`,
