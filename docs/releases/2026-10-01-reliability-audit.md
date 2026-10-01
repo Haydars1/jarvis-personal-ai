@@ -1,45 +1,44 @@
 # Jarvis doğrulama ve geliştirme — 1 Ekim 2026
 
-Başlangıç sürümü: `f0cbc9eb6b97070856880218bf2c0378ac9e01f5`.
+Uygulama değişiklikleri PR #82 ile main'e birleştirildi: `9d31fca2d380a9d7511386c570588caa6f82c25d`.
+Canlı dağıtım başarılı: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36830072919
 
-## Uygulanan düzeltmeler
-
-- Yedek AI yalnız mevcut başarısız cevabı değiştirir; geçmişteki doğru cevapları korur.
-- Sohbet gönderme ve ECU kanal uçları, uygulama katmanında sahibin oturumunu doğrular. Bridge token doğrulaması ayrı kalır.
-- Claude çağrıları Messages protokolünü kullanır. Uzman yönlendirici aynı sağlayıcı çağrı yolunu kullanarak başarı/hata/gecikme ölçümlerini kaydeder.
-- OpenAI uyumlu tam `/chat/completions` adresine aynı yol ikinci kez eklenmez. Bilinen sağlayıcılar için varsayılan temel adresler korunur.
-- ECU girişleri boş, bozuk Base64 ve 12 MiB üzeri içerik için yazma başlamadan reddedilir. Dosya boyutu çözülmüş byte sayısından hesaplanır.
-- MIME türü olmayan `.mod` ve `.ecu` ekleri tanınır.
-- Uzun ECU geçmişlerinde en yeni 1.000 mesaj, zaman ve eklenme sırasıyla döner.
-- ORI/MOD farkları, hash, boyut ve offset bilgileri `analysis` alanında yapılandırılmış olarak döner. Gizlenen bölgeler doğru belirtilir.
-- Tüm JavaScript modülleri için ek syntax taraması ve PR için yalnız doğrulama yapan CI workflow eklendi.
-
-## Doğrulama kanıtları
+## Sonuçlar
 
 | Kontrol | Sonuç |
 |---|---|
-| Başlangıç `npm run check` | 126/126 test başarılı |
-| Son `npm run check` | 140/140 test başarılı; atlanan test yok |
-| Ek JavaScript syntax taraması | Başarılı |
-| Shell scriptleri `bash -n` | Başarılı |
-| Cloudflare `wrangler deploy --dry-run` | Başarılı |
-| SQLite üzerinde `schema.sql` iki kez uygulama | Başarılı |
-| Wrangler yerel D1 şema uygulama | Başarılı |
-| ECU dosya → kanal → saklanan geçmiş | SQLite üzerinde başarılı |
-| Bridge kayıt → token heartbeat → job claim → simüle sonuç | SQLite üzerinde başarılı; gerçek araç kullanılmadı |
-| Canlı `/api/health` | HTTP 200, `ok: true` |
-| Mevcut main deployment CI | Başarılı: run `36825178408`, başlangıç commit'i |
-| Son mevcut native iOS build | Başarılı: run `36588863927`, commit `af7390f6`; bu çalışmada tekrar derlenmedi |
+| Birim ve davranış testleri | 143/143 başarılı; atlanan yok |
+| JavaScript syntax | 79 modül başarılı |
+| Tam Worker HTTP entegrasyonu | 24 kontrol başarılı; yerelde ve GitHub runner'da |
+| Gerçek Chromium arayüz testi | Parolayla giriş, ECU navigasyonu, dosya yükleme, masaüstü/mobil ekranlar başarılı |
+| Cloudflare bundle | Dry-run başarılı |
+| Canlı HTTP ve oturum sınırları | 8 kontrol başarılı; dağıtım workflow'u ve bağımsız kontrol |
+| Native iOS | Simülatör ve iPhone Release build başarılı; unsigned IPA üretildi |
+| SQLite/D1 | Additive şema, dosya/kanal/geçmiş ve simüle cihaz job akışı başarılı |
+| iOS push backend | Token kaydı, tekrar kayıt, environment güncellemesi, eksik Apple ayarı ve gizli token'ın durum çıktısına sızmaması test edildi |
 
-14 yeni davranış testi, önceki testlere ek olarak gerçek Request/Response nesneleri, SQLite şeması ve sahte sağlayıcı yanıtlarıyla çalışır. Sağlayıcı anahtarları test fixture değerleridir; ücretli API çağrısı yapılmadı.
+Tarayıcı/HTTP/test kanıtı: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36829941389
+Yeni main iOS build/IPA: https://github.com/Haydars1/jarvis-personal-ai/actions/runs/36830072868
 
-## Henüz doğrulanamayanlar
+## Düzeltilen sorunlar
 
-- Yerel Wrangler HTTP sunucusu bu yürütme ortamında erişilebilir olmadı (`uv_interface_addresses` ortam hatası; ayrıca localhost bağlantısı reddedildi). Tarayıcıdan tam uygulama uçtan uca kontrolü başarılı sayılmadı.
-- Gerçek ThinkDiag/KT200 bağlantısı, araçtan DTC/VIN/PID/freeze-frame okuma ve cihaz üzerinde işlemler bu ortama bağlı donanım olmadığından doğrulanmadı.
-- Yeni Claude protokolü ve hata metrikleri fixture yanıtlarıyla doğrulandı; gerçek hesap kotası, model erişimi ve ücretli AI istekleri doğrulanmadı.
-- iPhone mikrofonu, sesli konuşma, APNs bildirimi ve gerçek cihazdaki uygulama davranışı doğrulanmadı.
-- Giriş yapılmış canlı hesapla sohbet, Google/Gmail/Drive ve sosyal/video servisleri çalıştırılmadı.
-- BIN/HEX dosyasının byte analizi, ECU'ya özgü checksum doğrulaması veya Intel HEX adres kayıtlarının parse edilmesi anlamına gelmez. Bunlar bu pakette eklenmedi.
+- `jarvis-face-ui.js` MutationObserver callback'i aynı başlığı tekrar tekrar yazıp kendini tetikliyordu. Sonsuz DOM döngüsü arayüzü donduruyordu. Başlık yalnız farklıysa güncellenir. Gerçek tarayıcı testi düzeltme öncesinde takıldı, sonrasında geçti. Canlı sayfa da yeniden açılıp gözlemlendi.
+- Yedek AI yalnız mevcut başarısız cevabı değiştirir; eski doğru cevapları korur.
+- Sohbet ve ECU kanal uçları uygulama katmanında sahibin oturumunu doğrular; bridge token doğrulaması ayrı kalır.
+- Claude Messages protokolü ve ortak uzman sağlayıcı çağrısı düzeltildi; başarı/hata/gecikme metrikleri kaydedilir.
+- Tam OpenAI uyumlu endpoint'e `/chat/completions` ikinci kez eklenmez.
+- ECU dosyaları boş, bozuk Base64 ve 12 MiB sınırı için yazma başlamadan doğrulanır. Boyut gerçek byte sayısından hesaplanır; `.mod` ve `.ecu` MIME olmadan tanınır.
+- Uzun ECU geçmişlerinde son 1.000 mesaj döner. ORI/MOD farkı, boyut, hash ve offset bilgileri yapılandırılmış `analysis` alanında sunulur.
+- ECU mobil CSS içindeki bozuk süslü parantez düzeltildi.
+- iOS ses motoru izin reddini ve mikrofon/konuşma tanıma hatalarını gösterir; durdurulmuş dinleme gecikmiş callback yüzünden yeniden başlamaz; eski tanıma görevlerinin callback'leri yok sayılır.
+- Eski production smoke testi giriş yapmadan AI yanıtı bekliyordu. Yeni kontrol sağlık, static assets ve korunan oturum sınırlarını sınar; yeni oturum korumasını yanlışlıkla geri almaz ve ücretli AI üretimi istemez.
 
-Bu rapor tüm Jarvis özelliklerinin tamamlandığı iddiası değildir. Yeni geliştirmeler ayrı PR'dadır; canlıya aktarılmaları bu raporun yerel test sonucuyla kanıtlanmış sayılmaz.
+## Kalan gerçek cihaz/hesap doğrulamaları
+
+- Canlı giriş ekranı donmadan açılıyor. Hesaba giriş henüz pozitif signed-in kanıtıyla doğrulanmadı; gerçek bağlı Google/Gmail/Drive/sosyal/AI hesaplarının güncel yetki ve kota testleri bu yüzden tamamlanmış sayılmaz. Dağıtımın credential audit kayıtları geçmiş durumları gösterir, güncel servis testi değildir.
+- Gerçek ThinkDiag/KT200 veya araç bağlı değil. DTC/VIN/PID/freeze-frame ve donanım üzerinde işlemler test edilmiş sayılmaz. Job akışı simülasyonla ve gerçek Worker/SQLite üzerinden doğrulandı.
+- IPA build'i unsigned'dır. Telefona kurulum/imzalama, mikrofon ve Türkçe konuşma tanıma kalitesi bu ortamdaki build başarısıyla kanıtlanmaz.
+- Gerçek APNs teslimatı Apple push ayarları, uygun imzalama/provisioning ve kayıtlı iPhone gerektirir. Fixture testleri gerçek telefona bildirim gönderildiği anlamına gelmez.
+- ECU'ya özgü checksum doğrulaması ve Intel HEX adres kayıtlarının parse edilmesi bu pakette eklenmedi.
+
+Yeni ücretli API üretimi, veri silme veya gerçek araca yazma yapılmadı. Bu rapor bütün Jarvis yeteneklerinin eksiksiz doğrulandığı iddiası değildir.
