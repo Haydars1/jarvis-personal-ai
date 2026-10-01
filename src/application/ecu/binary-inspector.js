@@ -1,4 +1,4 @@
-const MAX_FILE_BYTES = 12 * 1024 * 1024;
+import { decodeEcuFile as b64Bytes, ecuFileError, isBinaryAttachment } from '../../lib/ecu-file.js';
 const MAX_DIFF_RANGES = 24;
 
 function json(payload, status = 200) {
@@ -10,14 +10,6 @@ function json(payload, status = 200) {
 
 async function readJson(req) {
   try { return await req.clone().json(); } catch { return {}; }
-}
-
-function b64Bytes(value = '') {
-  const raw = atob(String(value || ''));
-  if (raw.length > MAX_FILE_BYTES) throw new Error('ECU_FILE_TOO_LARGE');
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
 }
 
 async function sha256(bytes) {
@@ -70,6 +62,7 @@ function compare(a, b) {
   let first = -1, last = -1;
   const ranges = [];
   let rangeStart = -1;
+  let rangeCount = 0;
   for (let i = 0; i < min; i++) {
     const diff = a[i] !== b[i];
     if (diff) {
@@ -78,12 +71,17 @@ function compare(a, b) {
       last = i;
       if (rangeStart < 0) rangeStart = i;
     } else if (rangeStart >= 0) {
+      rangeCount++;
       if (ranges.length < MAX_DIFF_RANGES) ranges.push({ start: rangeStart, end: i - 1 });
       rangeStart = -1;
     }
   }
-  if (rangeStart >= 0 && ranges.length < MAX_DIFF_RANGES) ranges.push({ start: rangeStart, end: min - 1 });
+  if (rangeStart >= 0) {
+    rangeCount++;
+    if (ranges.length < MAX_DIFF_RANGES) ranges.push({ start: rangeStart, end: min - 1 });
+  }
   if (a.length !== b.length) {
+    rangeCount++;
     const start = min;
     const end = Math.max(a.length, b.length) - 1;
     if (first < 0) first = start;
@@ -97,7 +95,7 @@ function compare(a, b) {
     first,
     last,
     ranges,
-    truncatedRanges: ranges.length >= MAX_DIFF_RANGES
+    truncatedRanges: rangeCount > ranges.length
   };
 }
 
@@ -129,12 +127,6 @@ function classifyPair(files) {
   const mod = files.find(f => /(^|[^a-z])(mod|tuned|stage|modified|off)([^a-z]|$)/i.test(String(f.name || '')));
   if (ori && mod && ori !== mod) return [ori, mod];
   return files.slice(0, 2);
-}
-
-function isBinaryAttachment(file) {
-  const name = String(file?.name || '');
-  const type = String(file?.type || '');
-  return /\.(bin|ori|hex|rom)$/i.test(name) || /octet-stream|macbinary/i.test(type);
 }
 
 function diagnosticIntent(text='') {
@@ -252,16 +244,16 @@ export function createEcuBinaryInspector(core) {
             '',
             `Değişen byte: ${diff.changed.toLocaleString('tr-TR')} (%${diff.changedPct})`,
             diff.first >= 0 ? `İlk fark: 0x${diff.first.toString(16).toUpperCase()} • Son fark: 0x${diff.last.toString(16).toUpperCase()}` : 'İki dosya byte düzeyinde aynı.',
-            diff.ranges.length ? `Değişiklik bölgeleri:\n${rangeLines.join('\n')}${diff.truncatedRanges ? '\n… daha fazla bölge var.' : ''}` : '',
+            diff.ranges.length ? `Değişiklik bölgeleri:\n${rangeLines.join('\n')}${diff.truncatedRanges || diff.ranges.length > 12 ? '\n… daha fazla bölge var.' : ''}` : '',
             sampleLines.length ? `\nİlk farklardan hexdump örnekleri:\n${sampleLines.join('\n\n')}` : '',
             '',
             'Not: Sadece byte farkından “bu kesin Stage 1 / DTC OFF” diye etiket koymak güvenilir değildir. Bunun için ECU/HW/SW eşleşmesi ve doğrulanmış map/rulepack gerekir. Ama yukarıdaki offset ve byte farkları gerçek dosya farkıdır.'
           ].filter(Boolean).join('\n');
 
-          return json(chatPayload(text, reply, [
+          return json({ ...chatPayload(text, reply, [
             { kind: 'binary-diff', label: 'Değişen byte', value: String(diff.changed) },
             { kind: 'binary-diff', label: 'Fark oranı', value: `%${diff.changedPct}` }
-          ]));
+          ]), analysis: { kind: 'binary-diff', ...diff, original: { name: oriFile.name, size: ori.length, sha256: oriHash }, modified: { name: modFile.name, size: mod.length, sha256: modHash } } });
         }
 
         const file = files[0];
@@ -292,9 +284,7 @@ export function createEcuBinaryInspector(core) {
           { kind: 'binary', label: 'Boyut', value: String(bytes.length) }
         ]));
       } catch (error) {
-        const message = error?.message === 'ECU_FILE_TOO_LARGE'
-          ? 'ECU dosyası 12 MB sınırını aşıyor.'
-          : `ECU dosyası okunamadı: ${error?.message || String(error)}`;
+        const message = ecuFileError(error);
         return json(chatPayload(text, message), 400);
       }
     },

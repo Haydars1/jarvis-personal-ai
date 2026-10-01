@@ -7,6 +7,7 @@ import { createNativeSkillFirstChat } from './application/capabilities/native-sk
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
+import { createOwnerRouteGuard } from './application/chat/owner-route-guard.js';
 import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from './application/ecu/channels.js';
 import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
@@ -75,9 +76,11 @@ async function routeRequest(req, env, ctx) {
   return cloudToolCore.fetch(req, env, ctx);
 }
 
+const handleOwnerRequest = createOwnerRouteGuard(legacyBase, routeRequest);
+
 export default {
   async fetch(req, env, ctx) {
-    const response = await routeRequest(req, env, ctx);
+    const response = await handleOwnerRequest(req, env, ctx);
     if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
     return response;
   },

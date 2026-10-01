@@ -1,3 +1,4 @@
+import { decodeEcuFile, ecuFileError, isBinaryAttachment } from '../../lib/ecu-file.js';
 function json(payload,status=200){
   return new Response(JSON.stringify(payload),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
 }
@@ -7,27 +8,22 @@ const uid=()=>crypto.randomUUID();
 async function readJson(req){try{return await req.clone().json();}catch{return {}}}
 function likeTerm(q=''){return `%${String(q).trim().toLowerCase().replace(/[%_]/g,'')}%`}
 
-async function sha256Base64(value=''){
-  if(!value)return '';
-  const raw=atob(String(value));
-  const bytes=new Uint8Array(raw.length);
-  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
-  const d=await crypto.subtle.digest('SHA-256',bytes);
-  return [...new Uint8Array(d)].map(x=>x.toString(16).padStart(2,'0')).join('');
-}
-
 async function ensureChannel(env,{channelId,title,file}){
   const ts=now();
   let id=String(channelId||'').trim();
   let hash='';
-  if(file?.base64)hash=await sha256Base64(file.base64);
+  const bytes=file?decodeEcuFile(file.base64):null;
+  if(bytes){
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
   if(!id&&hash){
     const existing=await env.DB.prepare('SELECT id FROM ecu_chat_channels WHERE file_sha256=? ORDER BY updated_at DESC LIMIT 1').bind(hash).first();
     if(existing?.id)id=existing.id;
   }
   if(!id)id=uid();
   const fileName=String(file?.name||'');
-  const fileSize=file?.base64?Math.floor(String(file.base64).length*3/4):0;
+  const fileSize=bytes?.length||0;
   const channelTitle=String(title||fileName||'ECU Sohbeti').slice(0,180);
   await env.DB.prepare(`INSERT INTO ecu_chat_channels(id,title,file_name,file_sha256,file_size,identity_text,created_at,updated_at)
     VALUES(?,?,?,?,?,?,?,?)
@@ -68,7 +64,7 @@ async function listChannels(env,q=''){
 }
 
 async function messages(env,id){
-  return (await env.DB.prepare('SELECT role,content,provider,created_at FROM ecu_chat_messages WHERE channel_id=? ORDER BY created_at ASC LIMIT 1000').bind(id).all()).results||[];
+  return (await env.DB.prepare('SELECT role,content,provider,created_at FROM (SELECT rowid AS sequence,role,content,provider,created_at FROM ecu_chat_messages WHERE channel_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1000) ORDER BY created_at ASC,sequence ASC').bind(id).all()).results||[];
 }
 
 async function renameChannel(env,id,title){
@@ -106,12 +102,16 @@ export function createEcuChannelStore(core){
         if(String(body?.channel||'').toLowerCase()!=='ecu')return core.fetch(req,env,ctx);
 
         const files=(Array.isArray(body.attachments)?body.attachments:[]);
-        const primary=files[0]||null;
-        const channel=await ensureChannel(env,{
+        const primary=files.find(isBinaryAttachment)||null;
+        let channel;
+        try { channel=await ensureChannel(env,{
           channelId:body.channelId||body.threadId,
           title:body.channelTitle,
           file:primary
-        });
+        }); } catch(error) {
+          if(String(error?.message||'').startsWith('ECU_FILE_'))return json({reply:ecuFileError(error),error:error.message},400);
+          throw error;
+        }
 
         const text=String(body.text||'').trim();
         const userVisible=primary?`${text}\n📎 ${files.map(x=>x.name).join(', ')}`:text;
