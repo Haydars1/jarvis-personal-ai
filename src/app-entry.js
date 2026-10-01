@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
+import { createRepositoryCatalog } from './application/capabilities/repository-catalog.js';
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
@@ -10,6 +11,7 @@ import { createEmergencyChatFallback } from './application/chat/emergency-fallba
 import { createOwnerRouteGuard } from './application/chat/owner-route-guard.js';
 import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from './application/ecu/channels.js';
+import { createThinkdiagImport } from './application/ecu/thinkdiag.js';
 import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
@@ -35,7 +37,7 @@ const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const cloudToolCore = createSkillSeeding(createCloudCapabilityExecution(capabilityCore));
+const cloudToolCore = createRepositoryCatalog(createSkillSeeding(createCloudCapabilityExecution(capabilityCore)));
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
   fetch(req, env, ctx) {
@@ -48,7 +50,7 @@ const mediaCore = {
   }
 };
 
-const ecuCore = createEcuChannelStore(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore)));
+const ecuCore = createEcuChannelStore(createThinkdiagImport(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore))));
 const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
 const handleChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
 const handlePush = createPushApi(cloudToolCore);
@@ -61,7 +63,7 @@ function shouldFlushPush(req, response) {
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
   if (url.pathname.startsWith('/api/tools/cloud/')) return cloudToolCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/')) return ecuCore.fetch(req, env, ctx);
+  if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/') || url.pathname.startsWith('/api/ecu/thinkdiag/')) return ecuCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/mobile/push/')) {
     const response = await handlePush(req, env, ctx);
     if (response) return response;

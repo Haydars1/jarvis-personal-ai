@@ -6,6 +6,9 @@ import {
   CURATED_CAPABILITY_SEEDS,
   normalizeRepository
 } from '../../src/lib/open-source-capabilities.js';
+import { OBD_PDF_SEEDS } from '../../src/lib/obd-pdf-seeds.js';
+
+export const ALL_PDF_SEEDS = [...new Map([...CURATED_CAPABILITY_SEEDS, ...OBD_PDF_SEEDS].map(seed => [seed.repo.toLowerCase(), seed])).values()];
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const DEFAULT_OUTPUT = resolve(ROOT, 'data/capability-registry.json');
@@ -125,12 +128,14 @@ async function harvestSearchQuery(definition, options) {
 async function harvestCuratedSeed(seed, options) {
   const url = `https://api.github.com/repos/${seed.repo}`;
   const repo = await githubJson(url, { ...options, optional: true });
-  if (!repo) return curatedFallback(seed, options.now);
+  if (!repo) return {...curatedFallback(seed, options.now), metadataAvailable:false,checkedAt:options.now};
   const normalized = normalizeRepository(repo, { ...seed, source: 'curated' }, options.now);
   const canonicalRepo = String(repo.full_name || '').trim();
   const canonicalUrl = String(repo.html_url || '').trim();
   return {
     ...normalized,
+    metadataAvailable:true,
+    checkedAt:options.now,
     repo: seed.repo,
     url: `https://github.com/${seed.repo}`,
     canonicalRepo: canonicalRepo && canonicalRepo.toLowerCase() !== String(seed.repo).toLowerCase() ? canonicalRepo : null,
@@ -164,7 +169,7 @@ export async function harvestCapabilities({
     if (delayMs > 0) await smallDelay(delayMs);
   }
 
-  for (const seed of CURATED_CAPABILITY_SEEDS) {
+  for (const seed of ALL_PDF_SEEDS) {
     try {
       discovered.push(await harvestCuratedSeed(seed, options));
     } catch (error) {
@@ -179,7 +184,7 @@ export async function harvestCapabilities({
     entries,
     stats: {
       queries: CAPABILITY_DISCOVERY_QUERIES.length,
-      curatedSeeds: CURATED_CAPABILITY_SEEDS.length,
+      curatedSeeds: ALL_PDF_SEEDS.length,
       candidates: discovered.length,
       uniqueRepositories: entries.length,
       errors: errors.length
@@ -205,7 +210,7 @@ async function main() {
     return acc;
   }, {});
   const repos = new Set(stable.entries.map(entry => String(entry.repo).toLowerCase()));
-  const missingCurated = CURATED_CAPABILITY_SEEDS.map(seed => seed.repo).filter(repo => !repos.has(repo.toLowerCase()));
+  const missingCurated = ALL_PDF_SEEDS.map(seed => seed.repo).filter(repo => !repos.has(repo.toLowerCase()));
   if (missingCurated.length) throw new Error(`Registry missing curated seeds: ${missingCurated.join(', ')}`);
   console.log(JSON.stringify({ entries: stable.entries.length, curatedSeeds: CURATED_CAPABILITY_SEEDS.length, missingCurated: 0, status: counts }, null, 2));
 }

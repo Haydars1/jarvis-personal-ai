@@ -1,11 +1,22 @@
 import Foundation
 import UniformTypeIdentifiers
+import PDFKit
 
 struct NativeAttachment: Identifiable {
     let id = UUID()
     let name: String
     let mimeType: String
     let data: Data
+
+    var extractedText: String? {
+        guard mimeType == "application/pdf", let document = PDFDocument(data: data), document.pageCount <= 100 else { return nil }
+        var text = ""
+        for index in 0..<document.pageCount {
+            text += (document.page(at: index)?.string ?? "") + "\n"
+            if text.count > 200_000 { return nil }
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : text
+    }
 
     var icon: String {
         if mimeType.hasPrefix("image/") { return "photo" }

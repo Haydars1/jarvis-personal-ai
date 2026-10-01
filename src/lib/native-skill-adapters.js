@@ -34,6 +34,7 @@ const ADAPTERS=Object.freeze([
 ]);
 
 export function resolveNativeSkillAdapter(skill={}){
+  if(String(skill.repo||'').toLowerCase()==='cubigato/thinkcar-tc-reader')return {id:'thinkdiag-tc-import',capabilities:['diagnostic-recording'],matched_capabilities:['diagnostic-recording'],lane:'worker',risk:'low',route:'/api/ecu/thinkdiag/import',status:'ready',notes:'TC recording parser; does not control Bluetooth or a vehicle.'};
   const caps=new Set(Array.isArray(skill.capabilities)?skill.capabilities.map(String):[]);
   for(const adapter of ADAPTERS){
     const matched=adapter.capabilities.filter(cap=>caps.has(cap));

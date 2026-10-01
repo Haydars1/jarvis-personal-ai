@@ -33,3 +33,14 @@ jobs:
           if-no-files-found: ignore
       - name: Cloudflare bundle validation
         run: npx wrangler deploy --dry-run --outdir .wrangler-dry
+      - name: Verify every repository from the uploaded PDFs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/audit-pdf-repositories.mjs
+      - name: Per-repository source evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-repository-audit
+          path: .wrangler/pdf-repository-audit.json
+          if-no-files-found: ignore

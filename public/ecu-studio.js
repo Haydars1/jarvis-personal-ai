@@ -21,9 +21,14 @@
   }
   async function loadFile(file){
     if(!file)return;
+    if(file.size>12*1024*1024)return notify('ECU dosyası 12 MB sınırını aşıyor');
     const buf=await file.arrayBuffer();
     state.name=file.name||'ecu.bin';
-    state.original=new Uint8Array(buf);
+    let imported=new Uint8Array(buf);state.baseAddress=0;
+    if(/\.hex$/i.test(file.name)&&new TextDecoder().decode(imported.subarray(0,1))===':'){
+      try{const {parseIntelHex}=await import('/lib/calibration.js');const parsed=parseIntelHex(new TextDecoder().decode(imported));imported=parsed.bytes;state.baseAddress=parsed.base_address;}catch(error){return notify('HEX okunamadı: '+error.message)}
+    }
+    state.original=imported;
     state.bytes=new Uint8Array(state.original);
     state.offset=0;state.selected=0;state.undo=[];state.redo=[];
     state.projectKey='jarvis.ecu.'+state.name+'.'+state.bytes.length; state.notes=localStorage.getItem(state.projectKey+'.notes')||''; q('#ecuNotes').value=state.notes; state.candidates=scanCandidates(state.bytes);
@@ -223,5 +228,6 @@
     q('#ecuPrev').onclick=()=>{if(state.bytes){state.offset=Math.max(0,state.offset-pageSize());render()}};
     q('#ecuNext').onclick=()=>{if(state.bytes){state.offset=Math.min(Math.max(0,state.bytes.length-1),state.offset+pageSize());render()}};
   }
+  window.jarvisEcuStudio={getState:()=>state,render:()=>{render();renderMeta()},loadFile};
   addStyle(); if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
 })();

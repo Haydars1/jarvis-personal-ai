@@ -37,6 +37,7 @@ final class AppState: ObservableObject {
     }
 
     func bootstrap() async {
+        consumePendingShare()
         refreshBiometricState()
         do {
             let auth = try await api.authStatus()
@@ -167,7 +168,23 @@ final class AppState: ObservableObject {
         guard url.scheme == "jarvis" else { return }
         if url.host == "voice" { voice.startListening(); return }
         if url.host == "settings" { statusText = "Ayarları sol üst dişliden aç"; return }
-        if url.host == "share" { if let shared=UserDefaults(suiteName:"group.com.haydojarvis.jarvis")?.string(forKey:"pendingShareText"),!shared.isEmpty { input="Bunu incele ve bana gerekli olanı yap: \(shared)"; UserDefaults(suiteName:"group.com.haydojarvis.jarvis")?.removeObject(forKey:"pendingShareText") }; return }
+        if url.host == "share" { consumePendingShare(); return }
         if url.host == "ask", let c=URLComponents(url:url,resolvingAgainstBaseURL:false), let q=c.queryItems?.first(where:{$0.name=="q"})?.value { input=q; Task { await send() } }
+    }
+
+    private func consumePendingShare() {
+        guard let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis") else { return }
+        if let shared = defaults.string(forKey: "pendingShareText"), !shared.isEmpty { input = "Bunu incele: \(shared)"; defaults.removeObject(forKey: "pendingShareText") }
+        guard let filename = defaults.string(forKey: "pendingShareFile"), !filename.contains("/"),
+              let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.haydojarvis.jarvis") else { return }
+        let url = group.appendingPathComponent(filename)
+        do {
+            let attachment = try NativeAttachment.from(url: url)
+            guard attachments.count < 4 else { statusText = "Önce bekleyen ekleri gönder"; return }
+            addAttachment(NativeAttachment(name: defaults.string(forKey: "pendingShareFileName") ?? attachment.name, mimeType: attachment.mimeType, data: attachment.data))
+            input = "ThinkDiag raporunu/kaydını incele."
+            defaults.removeObject(forKey: "pendingShareFile"); defaults.removeObject(forKey: "pendingShareFileName")
+            try? FileManager.default.removeItem(at: url)
+        } catch { statusText = "Paylaşılan dosya alınamadı: \(error.localizedDescription)" }
     }
 }
