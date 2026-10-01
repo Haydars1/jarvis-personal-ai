@@ -7,6 +7,11 @@ struct VehiclePeripheral: Identifiable {
     let rssi: Int
 }
 
+struct VehicleNotificationChannel: Identifiable {
+    let id: String
+    let characteristic: CBCharacteristic
+}
+
 // Discovery only: GATT connectivity does not establish a THINKDIAG vehicle session.
 // No guessed UUIDs, authentication packets, characteristic writes or vehicle commands.
 final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
@@ -16,6 +21,10 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
     @Published private(set) var busy = false
     @Published private(set) var connected = false
     @Published private(set) var inventory: [String] = []
+    @Published private(set) var notificationChannels: [VehicleNotificationChannel] = []
+    @Published private(set) var receivedPackets: [String] = []
+    @Published private(set) var notificationStatus = "Paket izleme kapalı"
+    private var receivedByteCount = 0
     private var central: CBCentralManager?
     private var peripherals: [UUID: CBPeripheral] = [:]
     private var selected: CBPeripheral?
@@ -52,7 +61,9 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
         guard central?.state == .poweredOn, !busy, !connected,
               let peripheral = peripherals[id] else { return }
         stopScan(); selected = peripheral; peripheral.delegate = self
-        inventory = []; busy = true; status = "BLE bağlantısı kuruluyor"
+        inventory = []; notificationChannels = []; receivedPackets = []; receivedByteCount = 0
+        notificationStatus = "Paket izleme kapalı"
+        busy = true; status = "BLE bağlantısı kuruluyor"
         central?.connect(peripheral, options: nil)
         armTimeout("BLE bağlantısı zaman aşımına uğradı")
     }
@@ -71,6 +82,36 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
         selected = nil; busy = false; connected = false; pendingServices = 0
         if let old { old.delegate = nil; central?.cancelPeripheralConnection(old) }
         status = "Bağlantı kapatıldı"
+        notificationChannels = []; notificationStatus = "Paket izleme kapalı"
+    }
+
+    func monitor(_ channel: VehicleNotificationChannel) {
+        guard let selected, connected, !busy,
+              notificationChannels.contains(where: { $0.id == channel.id }) else { return }
+        notificationStatus = "Bildirim durumu bekleniyor"
+        selected.setNotifyValue(!channel.characteristic.isNotifying, for: channel.characteristic)
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        guard selected === peripheral, connected else { return }
+        notificationStatus = error.map { "Bildirim hatası: \($0.localizedDescription)" }
+            ?? (characteristic.isNotifying ? "Paket izleme açık; bu yalnız Jarvis bağlantısına gelen verilerdir" : "Bu kanalın paket izlemesi kapalı")
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard selected === peripheral, connected else { return }
+        if let error { notificationStatus = "Paket alınamadı: \(error.localizedDescription)"; return }
+        guard let data = characteristic.value, !data.isEmpty else { return }
+        guard receivedPackets.count < 128, receivedByteCount + data.count <= 65536 else {
+            notificationStatus = "Kayıt sınırı doldu; yeniden bağlanarak yeni kayıt başlat"
+            for channel in notificationChannels where channel.characteristic.isNotifying {
+                peripheral.setNotifyValue(false, for: channel.characteristic)
+            }
+            return
+        }
+        receivedByteCount += data.count
+        let hex = data.map { String(format: "%02X", $0) }.joined()
+        receivedPackets.append("\(Date().timeIntervalSince1970) / \(characteristic.uuid.uuidString) / \(hex) / \(VciFrameInspector.describe(data))")
     }
 
     private func refreshStatus() {
@@ -141,6 +182,9 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
             if p.contains(.notify) { flags.append("notify") }
             if p.contains(.indicate) { flags.append("indicate") }
             inventory.append("\(service.uuid.uuidString) / \(characteristic.uuid.uuidString): \(flags.joined(separator: ", "))")
+            if p.contains(.notify) || p.contains(.indicate) {
+                notificationChannels.append(VehicleNotificationChannel(id: "\(service.uuid.uuidString)/\(characteristic.uuid.uuidString)", characteristic: characteristic))
+            }
         }
         pendingServices -= 1
         if pendingServices <= 0 { finishDiscovery() }
@@ -183,6 +227,23 @@ struct VehicleBluetoothView: View {
                 }
                 Section("Araç işlemleri") {
                     Text("Hata okuma/silme, kodlama, adaptasyon ve servis sıfırlama: henüz kullanılamıyor. BLE bağlantısı tek başına araç oturumu değildir; THINKDIAG2 protokol sürücüsü eksik.")
+                }
+                if bluetooth.connected && !bluetooth.busy && !bluetooth.notificationChannels.isEmpty {
+                    Section("Cihazdan gelen paketler") {
+                        Text("Bu ekran yalnız Jarvis bağlantısına gelen bildirimleri izler. ThinkDiag+ uygulamasının iletişimini yakalamaz; araç komutu göndermez.").font(.footnote)
+                        Text(bluetooth.notificationStatus).font(.caption)
+                        ForEach(bluetooth.notificationChannels) { channel in
+                            Button("İzlemeyi aç/kapat: \(channel.id)") { bluetooth.monitor(channel) }
+                        }
+                        if !bluetooth.receivedPackets.isEmpty {
+                            ShareLink(item: "JARVIS BLE bildirim kaydı — araç komutları doğrulanmadı\n" + bluetooth.receivedPackets.joined(separator: "\n")) {
+                                Label("Paket kaydını paylaş", systemImage: "square.and.arrow.up")
+                            }
+                            ForEach(Array(bluetooth.receivedPackets.enumerated()), id: \.offset) { _, packet in
+                                Text(packet).font(.caption2).textSelection(.enabled)
+                            }
+                        }
+                    }
                 }
                 if !bluetooth.inventory.isEmpty {
                     Section("Bağlantı özellikleri") {
