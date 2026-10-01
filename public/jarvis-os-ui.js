@@ -34,7 +34,7 @@
   }
 
   function fileToBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=reject;r.readAsDataURL(file)})}
-  async function addFiles(files){for(const f of files.slice(0,MAX_FILES-attachments.length)){if(f.size>MAX_SIZE){toast(f.name+' çok büyük (maks. 12 MB)');continue}const base64=await fileToBase64(f);attachments.push({name:f.name,type:f.type||'application/octet-stream',base64,preview:/^image\//.test(f.type)?URL.createObjectURL(f):null})}renderAttachments()}
+  async function addFiles(files){for(const f of files.slice(0,MAX_FILES-attachments.length)){if(f.size>MAX_SIZE){toast(f.name+' çok büyük (maks. 12 MB)');continue}const base64=await fileToBase64(f);let extractedText; if(/\.pdf$/i.test(f.name)){try{const {extractPdfReport}=await import('/lib/pdf-report.js');extractedText=await extractPdfReport(new Uint8Array(await f.arrayBuffer()))}catch(error){toast('PDF metni: '+error.message)}}attachments.push({name:f.name,type:f.type||'application/octet-stream',base64,extractedText,preview:/^image\//.test(f.type)?URL.createObjectURL(f):null})}renderAttachments()}
   function renderAttachments(){const host=document.querySelector('#osAttachments');if(!host)return;host.classList.toggle('hidden',!attachments.length);host.innerHTML=attachments.map((a,i)=>`<div class="osAttachment">${a.preview?`<img src="${a.preview}" alt="">`:`<div class="fileIcon">${fileIcon(a.type,a.name)}</div>`}<span>${escOs(a.name)}</span><button type="button" data-rm="${i}">×</button></div>`).join('');host.querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.rm);try{if(attachments[i]?.preview)URL.revokeObjectURL(attachments[i].preview)}catch{}attachments.splice(i,1);renderAttachments()})}
 
   function cleanLegacyControls(){document.querySelectorAll('#chatAttachBtn,#chatCameraBtn,#chatAttachInput,#chatCameraInput,#chatAttachments').forEach(x=>x.remove())}
@@ -66,7 +66,7 @@
 
   async function performSend(text,files){
     switchPage('chat');appendUser(text,files);const pending=appendPending();mode('THINKING',files.length?'Dosyaları inceliyorum':'İşliyorum');
-    const payload={text};if(files.length)payload.attachments=files.map(({name,type,base64})=>({name,type,base64}));
+    const payload={text};if(files.some(f=>/\.(tc|pdf)$/i.test(f.name)))payload.channel='ecu';if(files.length)payload.attachments=files.map(({name,type,base64,extractedText})=>({name,type,base64,extractedText}));
     try{
       const r=await api('/api/chat/send',{method:'POST',body:JSON.stringify(payload)});
       if(r.state){STATE=r.state;render()}

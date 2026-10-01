@@ -3,6 +3,8 @@ import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 // Isolated local Worker: no AI binding, production credentials, external services or vehicle.
 const directory = mkdtempSync(join(tmpdir(), 'jarvis-http-test-'));
@@ -47,6 +49,8 @@ try {
   await call('/api/ecu/channels', 401);
   await call('/api/chat/send', 401, { text: 'session test' });
   await call('/api/tools/cloud/adapters', 401);
+  await call('/api/tools/repositories', 401);
+  await call('/api/ecu/thinkdiag/profile', 401);
   await call('/api/auth/setup', 400, { password: 'short' });
   const setup = await call('/api/auth/setup', 200, { password: 'http-test-password-only' });
   cookie = setup.headers.get('set-cookie').split(';')[0];
@@ -74,6 +78,18 @@ try {
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
   await call('/api/integrations/status', 200);
+  assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, 214);
+  assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
+  const tcBase64 = readFileSync('tests/fixtures/thinkcar-subaru.tc.base64', 'utf8').trim();
+  const tcImport = await (await call('/api/ecu/thinkdiag/import', 200, { base64: tcBase64 })).json();
+  assert.equal(tcImport.recording.record_count, 203);
+  assert.equal(tcImport.summary.length, 32);
+  const tcChat = await (await call('/api/chat/send', 200, { channel: 'ecu', text: 'Kaydı incele', attachments: [{ name: 'sample.TC', base64: tcBase64, type: 'application/octet-stream' }] })).json();
+  assert.equal(tcChat.analysis.type, 'thinkdiag-tc');
+  assert.equal(tcChat.history.length, 2);
+  await call('/api/ecu/thinkdiag/import', 400, { base64: 'AQID' });
+  const report = await (await call('/api/chat/send', 200, { channel: 'ecu', text: 'Raporu incele', attachments: [{ name: 'test.pdf', type: 'application/pdf', base64: 'AQID', extractedText: 'Engine P0299 underboost\nBCM B138F4B heater\nABS C0035 wheel\nGateway U0100 communication' }] })).json();
+  assert.equal(report.analysis.type, 'diagnostic-report'); assert.equal(report.analysis.code_count, 4);
   cookie = '';
   await call('/api/ecu/channels', 401);
   if (process.env.JARVIS_BROWSER_TEST === '1') {
@@ -95,12 +111,32 @@ try {
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
       await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
+      await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
+      await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
+      assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);
+      await page.locator('#thinkdiagPdf').setInputFiles({ name: 'diagnostic.pdf', mimeType: 'application/pdf', buffer: Buffer.from(readFileSync('tests/fixtures/thinkdiag-report.pdf.base64', 'utf8'), 'base64') });
+      await page.locator('#thinkdiagStatus').filter({ hasText: '4 farklı arıza kodu · rapor metni okundu' }).waitFor();
+      const definition = { version: 1, original_sha256: createHash('sha256').update(Buffer.from([1,2,3,4])).digest('hex'), maps: [{ id: 'test', name: 'Test Map', address: 0, rows: 1, columns: 4, type: 'u8', endian: 'le', factor: 1, offset: 0, min: 0, max: 10 }] };
+      await page.locator('#calibrationDefinition').setInputFiles({ name: 'test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(definition)) });
+      await page.locator('#calibrationStatus').filter({ hasText: '1 map · ORI SHA-256 eşleşti' }).waitFor();
+      await page.getByLabel('Test Map 1,1', { exact: true }).fill('5');
+      await page.getByLabel('Test Map 1,1', { exact: true }).press('Tab');
+      await page.locator('#calibrationStatus').filter({ hasText: 'Map hücresi güncellendi' }).waitFor();
+      await page.locator('#calibrationMod').setInputFiles({ name: 'test.mod', mimeType: 'application/octet-stream', buffer: Buffer.from([1,2,3,5]) });
+      await page.locator('#calibrationStatus').filter({ hasText: 'MOD yüklendi' }).waitFor();
       mkdirSync('.wrangler/browser-report', { recursive: true });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
+      await page.locator('[data-page="tools"]:visible').first().click();
+      await page.locator('#repositoryRefresh').click();
+      await page.locator('#repositoryStatus').filter({ hasText: '214 repo' }).waitFor();
+      assert.equal(await page.locator('#repositoryRows article').count(), 214);
+      await page.locator('#repositorySearch').fill('thinkcar-tc-reader');
+      assert.equal(await page.locator('#repositoryRows article').count(), 1);
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
       assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log('Browser checks passed: password sign-in, navigation, real file input, desktop/mobile rendering.');
+      console.log('Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, 214-repo catalog, desktop/mobile rendering.');
     } finally { await browser.close(); }
   }
   console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);

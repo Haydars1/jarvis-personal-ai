@@ -1,4 +1,4 @@
-export const SKILL_COMPILER_VERSION='2026-10-01.2';
+export const SKILL_COMPILER_VERSION='2026-10-01.3';
 
 const RULES=Object.freeze([
   {id:'speech-to-text',patterns:[/speech[- ]to[- ]text|speech recognition|automatic speech recognition|transcrib|whisper/i],weight:9},

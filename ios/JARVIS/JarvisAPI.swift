@@ -55,9 +55,12 @@ final class JarvisAPI {
 
     func send(text: String, attachments: [NativeAttachment] = []) async throws -> ChatResponse {
         var payload: [String: Any] = ["text": text]
+        if attachments.contains(where: { $0.name.lowercased().hasSuffix(".tc") || $0.mimeType == "application/pdf" }) { payload["channel"] = "ecu" }
         if !attachments.isEmpty {
             payload["attachments"] = attachments.map {
-                ["name": $0.name, "type": $0.mimeType, "base64": $0.data.base64EncodedString()]
+                var file: [String: Any] = ["name": $0.name, "type": $0.mimeType, "base64": $0.data.base64EncodedString()]
+                if let text = $0.extractedText { file["extractedText"] = text }
+                return file
             }
         }
         let data = try JSONSerialization.data(withJSONObject: payload)
