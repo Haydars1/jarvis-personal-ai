@@ -18,7 +18,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 2373,
+      "stars": 2374,
       "forks": 454,
       "language": "Python",
       "pushedAt": "2026-09-14T07:55:21Z",
@@ -58,10 +58,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 59217,
-      "forks": 8613,
+      "stars": 59247,
+      "forks": 8616,
       "language": "Python",
-      "pushedAt": "2026-09-29T23:02:58Z",
+      "pushedAt": "2026-10-01T06:37:44Z",
       "topics": [
         "agents",
         "ai",
@@ -76,6 +76,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -96,10 +98,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 147311,
-      "forks": 24669,
+      "stars": 147341,
+      "forks": 24672,
       "language": "Python",
-      "pushedAt": "2026-09-30T08:33:03Z",
+      "pushedAt": "2026-10-01T08:09:38Z",
       "topics": [
         "agents",
         "ai",
@@ -129,6 +131,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -149,10 +153,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 42510,
-      "forks": 7201,
+      "stars": 42546,
+      "forks": 7211,
       "language": "Python",
-      "pushedAt": "2026-09-29T16:44:15Z",
+      "pushedAt": "2026-10-01T06:19:01Z",
       "topics": [
         "agents",
         "ai",
@@ -180,6 +184,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -200,8 +206,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 897,
-      "forks": 150,
+      "stars": 902,
+      "forks": 151,
       "language": "Python",
       "pushedAt": "2026-09-30T01:55:13Z",
       "topics": [
@@ -251,10 +257,10 @@
       "score": 97,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 448,
+      "stars": 453,
       "forks": 47,
       "language": "Python",
-      "pushedAt": "2026-09-16T04:05:23Z",
+      "pushedAt": "2026-10-01T03:25:18Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -400,8 +406,8 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 25362,
-      "forks": 2234,
+      "stars": 25371,
+      "forks": 2233,
       "language": "Python",
       "pushedAt": "2025-07-29T13:44:13Z",
       "topics": [
@@ -416,6 +422,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -508,8 +516,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 225,
-      "forks": 19,
+      "stars": 226,
+      "forks": 20,
       "language": "Python",
       "pushedAt": "2026-09-23T23:21:42Z",
       "topics": [
@@ -615,8 +623,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 61238,
-      "forks": 9271,
+      "stars": 61248,
+      "forks": 9276,
       "language": "Python",
       "pushedAt": "2026-04-15T11:59:09Z",
       "topics": [
@@ -638,6 +646,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -660,10 +670,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 187619,
-      "forks": 45982,
+      "stars": 187630,
+      "forks": 45978,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:38:02Z",
+      "pushedAt": "2026-10-01T07:58:58Z",
       "topics": [
         "agentic-ai",
         "agents",
@@ -684,6 +694,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -748,10 +760,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 18608,
+      "stars": 18618,
       "forks": 2675,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:34:20Z",
+      "pushedAt": "2026-09-30T16:14:17Z",
       "topics": [
         "audio",
         "cross-platform",
@@ -766,6 +778,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -786,8 +800,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 95704,
-      "forks": 16851,
+      "stars": 95733,
+      "forks": 16893,
       "language": null,
       "pushedAt": "2026-09-27T02:12:17Z",
       "topics": [
@@ -801,6 +815,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -821,8 +837,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 79990,
-      "forks": 8911,
+      "stars": 80065,
+      "forks": 8922,
       "language": "Java",
       "pushedAt": "2026-09-30T09:03:44Z",
       "topics": [
@@ -837,6 +853,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -857,7 +875,7 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 14386,
+      "stars": 14387,
       "forks": 1840,
       "language": "Rust",
       "pushedAt": "2026-08-11T15:27:34Z",
@@ -869,6 +887,96 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "RJ-6463/Bosch_EDC15_EEPROM_Tool",
+      "name": "Bosch_EDC15_EEPROM_Tool",
+      "url": "https://github.com/RJ-6463/Bosch_EDC15_EEPROM_Tool",
+      "description": "🔧 Modify binary dumps from Bosch EDC15 ECUs easily, enhancing performance for Audi, VW, Seat, and Skoda vehicles.",
+      "category": "binary-analysis",
+      "categories": [
+        "binary-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 51,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 3,
+      "forks": 0,
+      "language": "C++",
+      "pushedAt": "2026-09-30T05:58:03Z",
+      "topics": [
+        "bosch",
+        "chiptuning",
+        "ecu",
+        "ecu-tuning",
+        "ecutune",
+        "immo-off",
+        "immobilizer",
+        "immobilizer-remover",
+        "mileage-correction",
+        "obd",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "odometer",
+        "odometer-correction"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "catalog/source only for sensitive EEPROM functions; never auto-execute",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "murdinc/ELMFlash",
+      "name": "ELMFlash",
+      "url": "https://github.com/murdinc/ELMFlash",
+      "description": "Tool for reverse engineering the ECU on my car",
+      "category": "binary-analysis",
+      "categories": [
+        "binary-analysis"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 24,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 39,
+      "forks": 5,
+      "language": "JavaScript",
+      "pushedAt": "2018-01-31T08:45:27Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "reverse-engineering/write actions require explicit manual approval",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -891,10 +999,10 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 24904,
+      "stars": 24905,
       "forks": 3332,
       "language": "C",
-      "pushedAt": "2026-09-30T10:39:29Z",
+      "pushedAt": "2026-10-01T07:58:30Z",
       "topics": [
         "binary-analysis",
         "c",
@@ -914,6 +1022,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -934,8 +1044,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 116791,
-      "forks": 12883,
+      "stars": 116874,
+      "forks": 12891,
       "language": "Python",
       "pushedAt": "2026-09-30T01:29:10Z",
       "topics": [
@@ -954,6 +1064,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -975,8 +1087,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 31722,
-      "forks": 4680,
+      "stars": 31731,
+      "forks": 4682,
       "language": "Python",
       "pushedAt": "2026-09-25T13:53:08Z",
       "topics": [
@@ -1026,10 +1138,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 11278,
-      "forks": 1118,
+      "stars": 11294,
+      "forks": 1120,
       "language": "JavaScript",
-      "pushedAt": "2026-09-22T23:39:29Z",
+      "pushedAt": "2026-09-30T17:03:33Z",
       "topics": [
         "ai-agent",
         "anti-bot",
@@ -1072,10 +1184,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 96912,
-      "forks": 6529,
+      "stars": 96939,
+      "forks": 6533,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T11:23:04Z",
+      "pushedAt": "2026-10-01T07:54:54Z",
       "topics": [
         "automation",
         "chrome",
@@ -1100,6 +1212,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1120,8 +1234,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 37713,
-      "forks": 3204,
+      "stars": 37733,
+      "forks": 3207,
       "language": "TypeScript",
       "pushedAt": "2026-09-28T23:19:44Z",
       "topics": [
@@ -1135,6 +1249,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1155,10 +1271,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 34525,
-      "forks": 8719,
+      "stars": 34526,
+      "forks": 8718,
       "language": "Java",
-      "pushedAt": "2026-09-30T11:21:09Z",
+      "pushedAt": "2026-10-01T07:24:47Z",
       "topics": [
         "dotnet",
         "java",
@@ -1176,6 +1292,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1196,10 +1314,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1471,
+      "stars": 1472,
       "forks": 174,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:25:39Z",
+      "pushedAt": "2026-10-01T02:10:04Z",
       "topics": [
         "agent",
         "ai",
@@ -1243,7 +1361,7 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 13848,
+      "stars": 13855,
       "forks": 1467,
       "language": "TypeScript",
       "pushedAt": "2026-08-18T00:42:48Z",
@@ -1386,7 +1504,7 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 9551,
+      "stars": 9554,
       "forks": 866,
       "language": "TypeScript",
       "pushedAt": "2026-04-02T12:55:42Z",
@@ -1423,7 +1541,7 @@
       "score": 92,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 4133,
+      "stars": 4134,
       "forks": 240,
       "language": "TypeScript",
       "pushedAt": "2026-02-08T20:51:06Z",
@@ -1557,7 +1675,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1581,
+      "stars": 1584,
       "forks": 211,
       "language": "TypeScript",
       "pushedAt": "2026-05-11T21:41:09Z",
@@ -1629,10 +1747,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 33861,
-      "forks": 6098,
+      "stars": 33872,
+      "forks": 6107,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:28:57Z",
+      "pushedAt": "2026-10-01T07:02:07Z",
       "topics": [
         "3d",
         "3d-printing",
@@ -1658,6 +1776,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1766,7 +1886,7 @@
       "stars": 2,
       "forks": 0,
       "language": "Rust",
-      "pushedAt": "2026-09-30T12:37:30Z",
+      "pushedAt": "2026-10-01T05:33:51Z",
       "topics": [
         "3d-modeling",
         "ai-assisted",
@@ -1806,7 +1926,7 @@
       "stars": 6,
       "forks": 1,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:35:11Z",
+      "pushedAt": "2026-09-30T12:48:59Z",
       "topics": [
         "3d-printing",
         "cad",
@@ -2165,7 +2285,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 733,
+      "stars": 734,
       "forks": 231,
       "language": "Python",
       "pushedAt": "2026-09-21T02:07:02Z",
@@ -2192,12 +2312,14 @@
         "vehicle-diagnostic"
       ],
       "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2219,7 +2341,7 @@
       "license": "MIT",
       "reasons": [],
       "stars": 1854,
-      "forks": 477,
+      "forks": 478,
       "language": "C++",
       "pushedAt": "2026-05-15T01:09:49Z",
       "topics": [],
@@ -2230,6 +2352,58 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "driftregion/iso14229",
+      "name": "iso14229",
+      "url": "https://github.com/driftregion/iso14229",
+      "description": "ISO 14229 (UDS) server and client for embedded systems",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 98,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 368,
+      "forks": 131,
+      "language": "C",
+      "pushedAt": "2026-09-29T18:51:14Z",
+      "topics": [
+        "arm",
+        "automotive",
+        "bootloader",
+        "c",
+        "can",
+        "controller-area-network",
+        "diagnostic",
+        "embedded",
+        "firmware",
+        "iot",
+        "iso14229",
+        "microcontroller",
+        "uds",
+        "uds-server",
+        "universal-diagno"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2276,12 +2450,14 @@
         "vehicle-diagnostics"
       ],
       "source": "curated",
-      "catalogSource": null,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
       "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2329,6 +2505,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2366,6 +2544,42 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "oxibus/automotive_diag",
+      "name": "automotive_diag",
+      "url": "https://github.com/oxibus/automotive_diag",
+      "description": "Unified Diagnostic Services/UDS (ISO-14229-1), KWP2000 (ISO-142330), OBD-II (ISO-9141), and DoIP (ISO-13400) definitions to communicate with the road vehicle ECUs in Rust.",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 88,
+      "license": "Apache-2.0",
+      "reasons": [],
+      "stars": 101,
+      "forks": 17,
+      "language": "Rust",
+      "pushedAt": "2026-08-19T18:23:49Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2411,6 +2625,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2457,6 +2673,82 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "japawBlob/uds-rs",
+      "name": "uds-rs",
+      "url": "https://github.com/japawBlob/uds-rs",
+      "description": "A asynchronous library implementing UDS protocol used for automotive diagnostic, standardized by ISO 14229-1:2013.",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 77,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 5,
+      "forks": 2,
+      "language": "Rust",
+      "pushedAt": "2026-07-25T11:39:16Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "educampos28/OBD2_HACK",
+      "name": "OBD2_HACK",
+      "url": "https://github.com/educampos28/OBD2_HACK",
+      "description": "Use ELM327 bluetooth device to evaluate all packages sent through CAN on OBD2 interface.",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "MIT",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 63,
+      "forks": 11,
+      "language": "Python",
+      "pushedAt": "2018-06-04T22:56:22Z",
+      "topics": [
+        "bluetooth",
+        "elm327",
+        "odb2"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2479,7 +2771,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 2925,
+      "stars": 2926,
       "forks": 794,
       "language": "C",
       "pushedAt": "2026-09-20T20:12:42Z",
@@ -2496,6 +2788,44 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "openxc/uds-c",
+      "name": "uds-c",
+      "url": "https://github.com/openxc/uds-c",
+      "description": "Unified Diagnostics Service (UDS) and OBD-II (On Board Diagnostics for Vehicles) C Library",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "BSD-3-Clause",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 831,
+      "forks": 359,
+      "language": "C",
+      "pushedAt": "2021-08-16T20:03:43Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2516,10 +2846,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 89600,
-      "forks": 11827,
+      "stars": 89681,
+      "forks": 11839,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T11:50:06Z",
+      "pushedAt": "2026-10-01T06:51:08Z",
       "topics": [
         "agent",
         "artificial-intelligence",
@@ -2538,6 +2868,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "OpenHands/OpenHands",
       "canonicalUrl": "https://github.com/OpenHands/OpenHands"
     },
@@ -2558,10 +2890,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 69596,
-      "forks": 7557,
+      "stars": 69640,
+      "forks": 7572,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:57:46Z",
+      "pushedAt": "2026-10-01T07:47:07Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -2570,6 +2902,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2590,7 +2924,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 36069,
+      "stars": 36075,
       "forks": 5446,
       "language": "TypeScript",
       "pushedAt": "2026-09-30T10:51:18Z",
@@ -2608,6 +2942,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2628,10 +2964,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 107195,
-      "forks": 14666,
+      "stars": 107213,
+      "forks": 14668,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T01:33:54Z",
+      "pushedAt": "2026-10-01T01:34:16Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -2648,6 +2984,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2668,10 +3006,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 68478,
-      "forks": 5885,
+      "stars": 68482,
+      "forks": 5888,
       "language": "Rust",
-      "pushedAt": "2026-09-30T11:55:03Z",
+      "pushedAt": "2026-09-30T21:57:59Z",
       "topics": [
         "acp",
         "coding-agent",
@@ -2688,6 +3026,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "openinterpreter/openinterpreter",
       "canonicalUrl": "https://github.com/openinterpreter/openinterpreter"
     },
@@ -2708,7 +3048,7 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 49292,
+      "stars": 49305,
       "forks": 5019,
       "language": "Python",
       "pushedAt": "2026-05-22T14:02:20Z",
@@ -2734,6 +3074,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2751,7 +3093,7 @@
         "local-cpu"
       ],
       "status": "accepted",
-      "score": 98,
+      "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
       "stars": 624,
@@ -2764,6 +3106,44 @@
         "cli",
         "coding-assistant",
         "hacktoberfest"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null
+    },
+    {
+      "repo": "Danush-Aries/agentcard",
+      "name": "agentcard",
+      "url": "https://github.com/Danush-Aries/agentcard",
+      "description": "github-readme-stats, but for AI pair-programming — turn your real Claude Code logs into an embeddable SVG stat card. npx agentcard",
+      "category": "coding-agent",
+      "categories": [
+        "coding-agent"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 79,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 1,
+      "forks": 0,
+      "language": "TypeScript",
+      "pushedAt": "2026-10-01T06:12:54Z",
+      "topics": [
+        "agents",
+        "claude-code",
+        "cli",
+        "developer-tools",
+        "github-readme",
+        "mcp",
+        "svg"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -2859,41 +3239,6 @@
       "adapter": null
     },
     {
-      "repo": "Danush-Aries/agentcard",
-      "name": "agentcard",
-      "url": "https://github.com/Danush-Aries/agentcard",
-      "description": "github-readme-stats, but for AI pair-programming — turn your real Claude Code logs into an embeddable SVG stat card. npx agentcard",
-      "category": "coding-agent",
-      "categories": [
-        "coding-agent"
-      ],
-      "executionTarget": "local-cpu",
-      "executionTargets": [
-        "local-cpu"
-      ],
-      "status": "accepted",
-      "score": 74,
-      "license": "MIT",
-      "reasons": [],
-      "stars": 1,
-      "forks": 0,
-      "language": "TypeScript",
-      "pushedAt": "2026-07-01T21:58:46Z",
-      "topics": [
-        "agents",
-        "claude-code",
-        "cli",
-        "mcp"
-      ],
-      "source": "github-search",
-      "catalogSource": null,
-      "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": false,
-      "adapter": null
-    },
-    {
       "repo": "anthropics/claude-code",
       "name": "claude-code",
       "url": "https://github.com/anthropics/claude-code",
@@ -2912,10 +3257,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 148652,
-      "forks": 25101,
+      "stars": 148761,
+      "forks": 25117,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T09:23:08Z",
+      "pushedAt": "2026-10-01T05:23:04Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -2924,6 +3269,8 @@
       "restriction": "PDF guide: not open-source; provider terms apply; catalog only",
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2946,8 +3293,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 33885,
-      "forks": 1789,
+      "stars": 33884,
+      "forks": 1790,
       "language": "Rust",
       "pushedAt": "2026-06-30T20:38:02Z",
       "topics": [
@@ -2968,6 +3315,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3098,6 +3447,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3157,10 +3508,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 1728,
+      "stars": 1740,
       "forks": 121,
       "language": "Rust",
-      "pushedAt": "2026-09-29T19:55:47Z",
+      "pushedAt": "2026-10-01T02:17:39Z",
       "topics": [
         "accessibility",
         "accessibility-api",
@@ -3242,7 +3593,7 @@
       "score": 95,
       "license": "MIT",
       "reasons": [],
-      "stars": 331,
+      "stars": 332,
       "forks": 23,
       "language": "Zig",
       "pushedAt": "2026-09-08T08:19:13Z",
@@ -3313,7 +3664,7 @@
       "stars": 22,
       "forks": 3,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:01:26Z",
+      "pushedAt": "2026-10-01T07:00:21Z",
       "topics": [
         "agent",
         "anthropic",
@@ -3391,10 +3742,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1927,
+      "stars": 1928,
       "forks": 266,
       "language": null,
-      "pushedAt": "2026-09-29T12:22:37Z",
+      "pushedAt": "2026-09-30T16:36:06Z",
       "topics": [
         "agentic-ai",
         "ai-agent",
@@ -3610,10 +3961,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 25945,
+      "stars": 25954,
       "forks": 1686,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:12:17Z",
+      "pushedAt": "2026-10-01T06:19:52Z",
       "topics": [
         "apify",
         "automation",
@@ -3658,10 +4009,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9568,
+      "stars": 9571,
       "forks": 813,
       "language": "Python",
-      "pushedAt": "2026-09-29T10:52:48Z",
+      "pushedAt": "2026-10-01T07:36:52Z",
       "topics": [
         "apify",
         "automation",
@@ -3706,10 +4057,10 @@
       "score": 100,
       "license": "BSD-3-Clause",
       "reasons": [],
-      "stars": 64536,
-      "forks": 11984,
+      "stars": 64537,
+      "forks": 11985,
       "language": "Python",
-      "pushedAt": "2026-09-30T11:54:23Z",
+      "pushedAt": "2026-09-30T18:52:28Z",
       "topics": [
         "crawler",
         "crawling",
@@ -3727,6 +4078,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3747,8 +4100,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 84545,
-      "forks": 8747,
+      "stars": 84589,
+      "forks": 8750,
       "language": "Python",
       "pushedAt": "2026-09-25T06:37:14Z",
       "topics": [
@@ -3775,6 +4128,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3797,10 +4152,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 186907,
-      "forks": 9991,
+      "stars": 187293,
+      "forks": 9997,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T08:18:50Z",
+      "pushedAt": "2026-10-01T06:28:25Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -3829,6 +4184,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3849,7 +4206,7 @@
       "score": 77,
       "license": "MIT",
       "reasons": [],
-      "stars": 71,
+      "stars": 72,
       "forks": 0,
       "language": "Ruby",
       "pushedAt": "2026-01-02T09:26:39Z",
@@ -4079,7 +4436,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 5145,
+      "stars": 5146,
       "forks": 276,
       "language": "JavaScript",
       "pushedAt": "2026-07-27T20:32:07Z",
@@ -4250,10 +4607,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 193297,
-      "forks": 43961,
+      "stars": 193324,
+      "forks": 43969,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:38:40Z",
+      "pushedAt": "2026-10-01T08:04:33Z",
       "topics": [
         "editor",
         "electron",
@@ -4268,6 +4625,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4288,8 +4647,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 33462,
-      "forks": 1877,
+      "stars": 33475,
+      "forks": 1876,
       "language": "Shell",
       "pushedAt": "2026-09-23T12:43:17Z",
       "topics": [
@@ -4306,6 +4665,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4447,10 +4808,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1202,
+      "stars": 1203,
       "forks": 203,
       "language": "Java",
-      "pushedAt": "2026-09-29T15:14:18Z",
+      "pushedAt": "2026-09-30T19:31:40Z",
       "topics": [
         "blockly",
         "code-generator",
@@ -4518,7 +4879,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 314,
+      "stars": 315,
       "forks": 93,
       "language": "Java",
       "pushedAt": "2024-04-12T05:48:35Z",
@@ -4596,6 +4957,387 @@
       "adapter": null
     },
     {
+      "repo": "rnd-ash/OpenVehicleDiag",
+      "name": "OpenVehicleDiag",
+      "url": "https://github.com/rnd-ash/OpenVehicleDiag",
+      "description": "A rust based cross-platform ECU diagnostics and car hacking application, utilizing the passthru protocol",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 76,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 1008,
+      "forks": 106,
+      "language": "Rust",
+      "pushedAt": "2025-07-25T16:43:34Z",
+      "topics": [
+        "daimler",
+        "diagnostics",
+        "diagnostics-application",
+        "dpdu",
+        "ecu",
+        "hacking",
+        "j2534",
+        "kwp2000",
+        "macchina-m2",
+        "mercedes-cbf",
+        "odb",
+        "open-vehicle-diagnostics",
+        "ovd",
+        "protocol",
+        "reverse-engineering-framework",
+        "rust",
+        "socketcan",
+        "uds",
+        "vehicle"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Ircama/ELM327-emulator",
+      "name": "ELM327-emulator",
+      "url": "https://github.com/Ircama/ELM327-emulator",
+      "description": "ELM327 Emulator for testing software interfacing OBDII via ELM327 adapter supporting multi-ECU simulation",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 680,
+      "forks": 123,
+      "language": "Python",
+      "pushedAt": "2026-09-17T11:08:47Z",
+      "topics": [
+        "automotive",
+        "can",
+        "can-bus",
+        "controller-area-network",
+        "diagnostic-tool",
+        "elm327",
+        "emulator",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "obdlink",
+        "simulation",
+        "simulator",
+        "torque",
+        "uds",
+        "vehicle-diagnostic"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "jakka351/GenericDiagnosticTool",
+      "name": "GenericDiagnosticTool",
+      "url": "https://github.com/jakka351/GenericDiagnosticTool",
+      "description": "Generic Diagnostic Tool is an open source, free J2534 PassThru software tool for general purpose use of raw diagnostic protocols on an ECU.",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 143,
+      "forks": 40,
+      "language": "C#",
+      "pushedAt": "2026-08-03T13:01:39Z",
+      "topics": [
+        "diagnostics",
+        "j2534",
+        "kwp2000",
+        "passthru",
+        "protocol",
+        "uds"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "gabehunt/J2534Diag",
+      "name": "J2534Diag",
+      "url": "https://github.com/gabehunt/J2534Diag",
+      "description": "Open Source J2534 Drivability Scan Tool",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 48,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 9,
+      "forks": 0,
+      "language": "C#",
+      "pushedAt": "2026-05-07T00:34:25Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "SalihTuncer/obd_diagnosis",
+      "name": "obd_diagnosis",
+      "url": "https://github.com/SalihTuncer/obd_diagnosis",
+      "description": "OBD2 Diagnosis tool ",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 47,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 7,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2024-09-23T19:34:55Z",
+      "topics": [
+        "api",
+        "docker",
+        "docker-compose",
+        "fastapi",
+        "obd2",
+        "python3"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "EstevanTH/OBD-to-JSON_ELM327",
+      "name": "OBD-to-JSON_ELM327",
+      "url": "https://github.com/EstevanTH/OBD-to-JSON_ELM327",
+      "description": "Relay reading OBD data from an ELM327 chip, producing HTTP + WebSocket JSON outputs & CSV log",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 40,
+      "license": "LGPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 12,
+      "forks": 4,
+      "language": "Python",
+      "pushedAt": "2019-08-16T17:54:03Z",
+      "topics": [
+        "elm327",
+        "http-server",
+        "json",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "websocket"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "sanketh-1850/OBDPlus",
+      "name": "OBDPlus",
+      "url": "https://github.com/sanketh-1850/OBDPlus",
+      "description": "An OBD Diagnostic Assistant",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 38,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2026-02-08T14:32:00Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Apophenic/ELM327-OBD-Simulator",
+      "name": "ELM327-OBD-Simulator",
+      "url": "https://github.com/Apophenic/ELM327-OBD-Simulator",
+      "description": "An OBD2 compliant simulator adhering to the SAE standard J/1979.",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 23,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 31,
+      "forks": 6,
+      "language": "Python",
+      "pushedAt": "2015-07-06T21:47:15Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "hrmnc/J2534DllLoader",
+      "name": "J2534DllLoader",
+      "url": "https://github.com/hrmnc/J2534DllLoader",
+      "description": "Modified J2534 DLL Loader for the Think City TechCentre Diagnostic Software",
+      "category": "device-bridge",
+      "categories": [
+        "device-bridge"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "rejected",
+      "score": 0,
+      "license": "GPL-2.0",
+      "reasons": [
+        "repository archived or disabled"
+      ],
+      "stars": 5,
+      "forks": 1,
+      "language": null,
+      "pushedAt": "2023-11-18T23:27:07Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
       "repo": "louislam/uptime-kuma",
       "name": "uptime-kuma",
       "url": "https://github.com/louislam/uptime-kuma",
@@ -4612,10 +5354,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 91985,
-      "forks": 8491,
+      "stars": 91999,
+      "forks": 8496,
       "language": "JavaScript",
-      "pushedAt": "2026-09-30T00:06:45Z",
+      "pushedAt": "2026-10-01T00:07:25Z",
       "topics": [
         "docker",
         "monitor",
@@ -4637,6 +5379,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5209,7 +5953,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 2116,
+      "stars": 2118,
       "forks": 410,
       "language": "Java",
       "pushedAt": "2026-09-26T15:18:16Z",
@@ -5235,12 +5979,366 @@
         "wifi"
       ],
       "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "cedricp/ddt4all",
+      "name": "ddt4all",
+      "url": "https://github.com/cedricp/ddt4all",
+      "description": "OBD tool",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 92,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 1871,
+      "forks": 314,
+      "language": "Python",
+      "pushedAt": "2026-09-30T15:34:02Z",
+      "topics": [
+        "can-bus",
+        "ecu",
+        "elm327",
+        "obd2",
+        "vehicle"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "PaulMarisOUMary/OBDII",
+      "name": "OBDII",
+      "url": "https://github.com/PaulMarisOUMary/OBDII",
+      "description": "A modern, easy to use, Python 3.8+ library for interacting with Vehicles via OBDII devices. Support USB, Bluetooth, Ethernet, and WiFi adapters.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 87,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 33,
+      "forks": 4,
+      "language": "Python",
+      "pushedAt": "2026-09-07T22:07:06Z",
+      "topics": [
+        "automotive",
+        "can",
+        "canutils",
+        "car",
+        "diagnostic",
+        "dtc",
+        "elm327",
+        "iso15765-2",
+        "j1850",
+        "kwp2000",
+        "obd",
+        "obd2",
+        "obdii",
+        "pids",
+        "protocols",
+        "py-obd2",
+        "py-obdii",
+        "python",
+        "torque",
+        "vehicle"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "provrb/obdium",
+      "name": "obdium",
+      "url": "https://github.com/provrb/obdium",
+      "description": "OBDium. The free, open-source on-board diagnostics software. Where silence falls, truth rises.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 87,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 398,
+      "forks": 33,
+      "language": "Rust",
+      "pushedAt": "2026-09-10T17:17:26Z",
+      "topics": [
+        "automotive",
+        "car-diagnostics",
+        "elm327",
+        "obd",
+        "obd-ii",
+        "obd2",
+        "rust"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "barracuda-fsh/pyobd",
+      "name": "pyobd",
+      "url": "https://github.com/barracuda-fsh/pyobd",
+      "description": "OBD-II compliant automotive diagnostic tool",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 86,
+      "license": "GPL-2.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 1264,
+      "forks": 105,
+      "language": "Python",
+      "pushedAt": "2026-06-26T18:25:06Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "PowerBroker2/ELMduino",
+      "name": "ELMduino",
+      "url": "https://github.com/PowerBroker2/ELMduino",
+      "description": "Arduino OBD-II Bluetooth Scanner Interface Library for Car Hacking Projects",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 85,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 937,
+      "forks": 143,
+      "language": "C++",
+      "pushedAt": "2025-05-20T20:28:15Z",
+      "topics": [
+        "arduino",
+        "car",
+        "carhacking",
+        "elm",
+        "elm327",
+        "heads-up-display",
+        "hud",
+        "obd",
+        "obd2",
+        "obdii",
+        "obdii-library",
+        "vehicle"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "speed785/open-mechanic",
+      "name": "open-mechanic",
+      "url": "https://github.com/speed785/open-mechanic",
+      "description": "Open-source AI-powered car diagnostics. OBD-II adapter + Claude API = plain-English diagnosis and repair guides.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 83,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 37,
+      "forks": 7,
+      "language": "Python",
+      "pushedAt": "2026-08-29T20:03:14Z",
+      "topics": [
+        "automotive",
+        "car-diagnostics",
+        "claude-ai",
+        "linux",
+        "obd2",
+        "obdlink",
+        "open-source",
+        "python"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "barnhill/AndroidOBD",
+      "name": "AndroidOBD",
+      "url": "https://github.com/barnhill/AndroidOBD",
+      "description": "Android library for reading OBD messages from ELM327 based devices",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 81,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 84,
+      "forks": 15,
+      "language": "Kotlin",
+      "pushedAt": "2025-11-03T14:39:37Z",
+      "topics": [
+        "android-library",
+        "automotive",
+        "car",
+        "java",
+        "kotlin",
+        "kotlin-android",
+        "obd",
+        "obd2",
+        "onboard-diagnostics"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "the-can-opener/simple-elm",
+      "name": "simple-elm",
+      "url": "https://github.com/the-can-opener/simple-elm",
+      "description": "Small ELM327 helper library for serial OBD/CAN adapters.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 81,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 18,
+      "forks": 3,
+      "language": "Python",
+      "pushedAt": "2026-04-20T00:56:11Z",
+      "topics": [
+        "can-bus",
+        "diagnostic",
+        "elm327",
+        "embedded",
+        "obd",
+        "software-defined-vehicle"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5258,10 +6356,10 @@
         "device"
       ],
       "status": "accepted",
-      "score": 79,
+      "score": 80,
       "license": "MIT",
       "reasons": [],
-      "stars": 8,
+      "stars": 9,
       "forks": 3,
       "language": "Python",
       "pushedAt": "2026-08-27T20:09:15Z",
@@ -5273,14 +6371,96 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
     {
-      "repo": "miikasyvanen/FastECU",
-      "name": "FastECU",
-      "url": "https://github.com/miikasyvanen/FastECU",
-      "description": "FastECU tuning/logging/flashing software for OEM ECUs",
+      "repo": "tronikos/elm327_obdii",
+      "name": "elm327_obdii",
+      "url": "https://github.com/tronikos/elm327_obdii",
+      "description": "A Python library for reading vehicle diagnostic data from ELM327 Bluetooth Low Energy (BLE) OBD-II adapters.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 80,
+      "license": "Apache-2.0",
+      "reasons": [],
+      "stars": 1,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2026-09-07T22:23:59Z",
+      "topics": [
+        "automotive",
+        "ble",
+        "bluetooth",
+        "car",
+        "diagnostics",
+        "elm327",
+        "home-assistant",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "python"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "JaKuBisz/OBD2AI",
+      "name": "OBD2AI",
+      "url": "https://github.com/JaKuBisz/OBD2AI",
+      "description": "Android application - analyze your car by AI",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 78,
+      "license": "Apache-2.0",
+      "reasons": [],
+      "stars": 8,
+      "forks": 1,
+      "language": "Kotlin",
+      "pushedAt": "2026-08-30T03:52:49Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Libre-Diagnosctic/libre-automotive-diagnostic",
+      "name": "libre-automotive-diagnostic",
+      "url": "https://github.com/Libre-Diagnosctic/libre-automotive-diagnostic",
+      "description": "An open-source automotive diagnostic tool using ELM327, supporting OBD2, DTCs, and brand-specific commands.",
       "category": "ecu-diagnostics",
       "categories": [
         "ecu-diagnostics"
@@ -5291,30 +6471,89 @@
       ],
       "status": "external-only",
       "score": 78,
-      "license": "GPL-3.0",
+      "license": "AGPL-3.0",
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 104,
-      "forks": 27,
-      "language": "C++",
-      "pushedAt": "2026-07-24T20:45:24Z",
-      "topics": [],
+      "stars": 34,
+      "forks": 6,
+      "language": "C",
+      "pushedAt": "2026-09-28T15:20:37Z",
+      "topics": [
+        "automotive",
+        "automotive-diagnostics",
+        "c",
+        "car-diagnostics",
+        "diagnostic-tool",
+        "diagnostics",
+        "elm327",
+        "obd2",
+        "python",
+        "raspberry-pi",
+        "scanner"
+      ],
       "source": "curated",
-      "catalogSource": null,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
       "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
     {
-      "repo": "rnd-ash/OpenVehicleDiag",
-      "name": "OpenVehicleDiag",
-      "url": "https://github.com/rnd-ash/OpenVehicleDiag",
-      "description": "A rust based cross-platform ECU diagnostics and car hacking application, utilizing the passthru protocol",
+      "repo": "Wal33D/OBD-Droid",
+      "name": "OBD-Droid",
+      "url": "https://github.com/Wal33D/OBD-Droid",
+      "description": "Professional OBD-II diagnostic app for Android with live data, fault codes, emissions testing, vehicle history, track mode, and AI-powered analysis",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 78,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 22,
+      "forks": 9,
+      "language": "Java",
+      "pushedAt": "2026-02-25T18:57:46Z",
+      "topics": [
+        "android",
+        "automotive",
+        "diagnostics",
+        "elm327",
+        "emissions",
+        "fault-codes",
+        "java",
+        "obd2",
+        "telemetry",
+        "vehicle-diagnostics"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "autodiag2/autodiag",
+      "name": "autodiag",
+      "url": "https://github.com/autodiag2/autodiag",
+      "description": "Scantool to read diagnostic codes with an adaptater ELM320 ELM322 ELM323 ELM327 ELM329. Dive into the automotive and repair your car !",
       "category": "ecu-diagnostics",
       "categories": [
         "ecu-diagnostics"
@@ -5324,43 +6563,88 @@
         "device"
       ],
       "status": "external-only",
-      "score": 76,
-      "license": "GPL-3.0",
+      "score": 75,
+      "license": "AGPL-3.0",
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1007,
-      "forks": 106,
-      "language": "Rust",
-      "pushedAt": "2025-07-25T16:43:34Z",
+      "stars": 21,
+      "forks": 2,
+      "language": "C",
+      "pushedAt": "2026-09-10T16:25:31Z",
       "topics": [
-        "daimler",
-        "diagnostics",
-        "diagnostics-application",
-        "dpdu",
-        "ecu",
-        "hacking",
-        "j2534",
-        "kwp2000",
-        "macchina-m2",
-        "mercedes-cbf",
-        "odb",
-        "open-vehicle-diagnostics",
-        "ovd",
-        "protocol",
-        "reverse-engineering-framework",
-        "rust",
-        "socketcan",
-        "uds",
-        "vehicle"
+        "automotive",
+        "automotive-software",
+        "bluetooth",
+        "ecu-simulation",
+        "ecu-simulator",
+        "iso14229",
+        "iso15765-2",
+        "isotp",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "serial",
+        "serial-communication",
+        "uds"
       ],
       "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "openw3rk-DEVELOP/o3DIAG",
+      "name": "o3DIAG",
+      "url": "https://github.com/openw3rk-DEVELOP/o3DIAG",
+      "description": "o3DIAG - A Open Source OBD-II Diagnostic Tool for Windows and Linux",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 75,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 21,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2025-11-19T10:18:29Z",
+      "topics": [
+        "debian",
+        "diagnostic-tool",
+        "elm327",
+        "gui",
+        "linux",
+        "o3diag",
+        "o3script",
+        "o3script-language",
+        "obd2",
+        "obd2-reader",
+        "openw3rk",
+        "openw3rk-invent",
+        "python"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5389,12 +6673,1145 @@
       "pushedAt": "2025-04-07T05:17:34Z",
       "topics": [],
       "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
       "autoExecute": true,
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "dixtone/GiuliaAndStelvioDPFMonitor",
+      "name": "GiuliaAndStelvioDPFMonitor",
+      "url": "https://github.com/dixtone/GiuliaAndStelvioDPFMonitor",
+      "description": "Simple project to monitor DPF regeneration status and other",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 72,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 37,
+      "forks": 4,
+      "language": "C++",
+      "pushedAt": "2025-02-22T19:58:00Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "kierandrewett/obd",
+      "name": "obd",
+      "url": "https://github.com/kierandrewett/obd",
+      "description": "A real-time OBD-II diagnostic dashboard for ELM327 adapters",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 72,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 4,
+      "forks": 1,
+      "language": "Rust",
+      "pushedAt": "2026-03-31T21:41:30Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "blizniukp/WIFI_kit_32_dpf",
+      "name": "WIFI_kit_32_dpf",
+      "url": "https://github.com/blizniukp/WIFI_kit_32_dpf",
+      "description": "Displays DPF (diesel particulate filter) status information on the WIFI_kit_32/Wemos Lolin32 device.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 69,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 9,
+      "forks": 2,
+      "language": "C++",
+      "pushedAt": "2025-06-06T21:04:59Z",
+      "topics": [
+        "car",
+        "diesel-engine",
+        "dpf",
+        "esp32",
+        "obd2",
+        "wemos-lolin-esp32",
+        "wifi-kit-32"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "khanfar/OBD2-PYTHON",
+      "name": "OBD2-PYTHON",
+      "url": "https://github.com/khanfar/OBD2-PYTHON",
+      "description": "OBD2 PYTHON",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 64,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 1,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2025-01-17T18:26:57Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "rzetterberg/elmobd",
+      "name": "elmobd",
+      "url": "https://github.com/rzetterberg/elmobd",
+      "description": "A Go library for talking to cars over OBD-II",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 60,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 249,
+      "forks": 40,
+      "language": "Go",
+      "pushedAt": "2024-05-29T16:41:45Z",
+      "topics": [
+        "automotive",
+        "cars",
+        "go",
+        "golang",
+        "obd-ii",
+        "obd2"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "ejvaughan/obdii",
+      "name": "obdii",
+      "url": "https://github.com/ejvaughan/obdii",
+      "description": "C API for OBD-II vehicle diagnostics",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "MIT",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 152,
+      "forks": 50,
+      "language": "C",
+      "pushedAt": "2022-12-29T13:24:51Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "iUnreallx/ReDrive",
+      "name": "ReDrive",
+      "url": "https://github.com/iUnreallx/ReDrive",
+      "description": "Open-source OBD2 dashboard app for real-time car data and diagnostics.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 55,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 131,
+      "forks": 17,
+      "language": "Dart",
+      "pushedAt": "2026-09-30T20:21:39Z",
+      "topics": [
+        "automotive",
+        "car-dashboard",
+        "car-diagnostics",
+        "contributions-welcome",
+        "dart",
+        "diagnostic-tool",
+        "dtc",
+        "elm327",
+        "flutter",
+        "mobile-app",
+        "obd2",
+        "obd2-dashboard",
+        "real-time-data",
+        "vehicle-diagnostics",
+        "vehicle-telemetry"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "KooshaYeganeh/opendiag",
+      "name": "opendiag",
+      "url": "https://github.com/KooshaYeganeh/opendiag",
+      "description": "Automitive Diag",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 55,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 1,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2025-01-29T22:46:53Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "jglim/ExpressOBD",
+      "name": "ExpressOBD",
+      "url": "https://github.com/jglim/ExpressOBD",
+      "description": "Free control utility for your ELM327-based OBD2 device to clear MIL (\"Check Engine Light\")",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 54,
+      "license": "MIT",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 49,
+      "forks": 8,
+      "language": "C#",
+      "pushedAt": "2017-08-20T15:20:38Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "erdesigns-eu/Delphi-OBD",
+      "name": "Delphi-OBD",
+      "url": "https://github.com/erdesigns-eu/Delphi-OBD",
+      "description": "Comprehensive Delphi library for OBD-II diagnostics, vehicle protocols, and automotive utilities.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 53,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 29,
+      "forks": 8,
+      "language": "Pascal",
+      "pushedAt": "2026-05-15T20:33:36Z",
+      "topics": [
+        "elm327",
+        "obd-ii",
+        "obd2",
+        "radio-code"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "fenugrec/freediag",
+      "name": "freediag",
+      "url": "https://github.com/fenugrec/freediag",
+      "description": "OBD2 scantool",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 53,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 494,
+      "forks": 94,
+      "language": "C",
+      "pushedAt": "2024-09-09T18:33:55Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "cracker4o/elm327lib",
+      "name": "elm327lib",
+      "url": "https://github.com/cracker4o/elm327lib",
+      "description": "A library for communication with ELM327 devices and OBD II protocols.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 52,
+      "license": "Apache-2.0",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 19,
+      "forks": 6,
+      "language": "C#",
+      "pushedAt": "2015-10-30T01:59:26Z",
+      "topics": [
+        "elm327",
+        "obd-ii"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Paul-HenryP/PyOBD-Dashboard",
+      "name": "PyOBD-Dashboard",
+      "url": "https://github.com/Paul-HenryP/PyOBD-Dashboard",
+      "description": "A modern, open-source OBD-II diagnostic tool and dashboard built with Python. Designed to work with ELM327 USB adapters, this tool allows you to monitor vehicle sensors in real-time, read/clear check engine lights, and log data for analysis.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 49,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 10,
+      "forks": 2,
+      "language": "Python",
+      "pushedAt": "2026-07-09T14:01:47Z",
+      "topics": [
+        "elm327",
+        "obd-ii",
+        "obd2",
+        "opencore",
+        "python"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "mbroihier/obd-collection-tools",
+      "name": "obd-collection-tools",
+      "url": "https://github.com/mbroihier/obd-collection-tools",
+      "description": "OBD II Tools for collection of diagnostic information from vehicles",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 48,
+      "license": "MIT",
+      "reasons": [
+        "repository stale for more than three years"
+      ],
+      "stars": 8,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2018-01-29T16:58:01Z",
+      "topics": [
+        "obd",
+        "obd-ii"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "cubigato/thinkcar-tc-reader",
+      "name": "thinkcar-tc-reader",
+      "url": "https://github.com/cubigato/thinkcar-tc-reader",
+      "description": "Python library & CLI tool to parse ThinkCar diagnostic device recordings (.TC files). Converts proprietary binary OBD-II data logs from ThinkDiag/ThinkScan/ThinkTool devices to CSV. Includes reverse-engineered format documentation. Extract metadata, parameters & recorded values for analysis. Apache 2.0 licensed.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 47,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 3,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2026-07-28T19:46:33Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "RJSzynal/ScanTool.net",
+      "name": "ScanTool.net",
+      "url": "https://github.com/RJSzynal/ScanTool.net",
+      "description": "ScanTool.net OBD-II Software for ElmScan is free software that allows you to use your computer and an inexpensive hardware interface to read information from your car's computer. Current version allows you to read trouble codes and see their descriptions, clear the codes and turn off the \"Check Engine\" light, and display real-time sensor data such as RPM, Engine Load, Vehicle Speed, Coolant Temperature, and Timing Advance.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 44,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 25,
+      "forks": 15,
+      "language": "C",
+      "pushedAt": "2025-06-22T18:52:04Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "souvik1997/obdython",
+      "name": "obdython",
+      "url": "https://github.com/souvik1997/obdython",
+      "description": "An OBD-II compliant car diagnostic tool library",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 43,
+      "license": "GPL-2.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 20,
+      "forks": 11,
+      "language": "Python",
+      "pushedAt": "2015-04-07T23:37:33Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "harvooo/obd-tool",
+      "name": "obd-tool",
+      "url": "https://github.com/harvooo/obd-tool",
+      "description": "obd tool written in python with dearpygui",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 41,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 3,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2025-11-22T20:37:08Z",
+      "topics": [
+        "dearpygui",
+        "elm327",
+        "obd",
+        "obd2",
+        "pygui"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "humitos/obd2lib",
+      "name": "obd2lib",
+      "url": "https://github.com/humitos/obd2lib",
+      "description": "OBD-2 library to read information from cars",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 41,
+      "license": "GPL-2.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 21,
+      "forks": 3,
+      "language": "Python",
+      "pushedAt": "2013-10-13T19:24:10Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "casianb2/koleos-dpf-alert",
+      "name": "koleos-dpf-alert",
+      "url": "https://github.com/casianb2/koleos-dpf-alert",
+      "description": "",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 40,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "language": "Java",
+      "pushedAt": "2026-07-19T05:07:16Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "AtesComp/pyOBDA",
+      "name": "pyOBDA",
+      "url": "https://github.com/AtesComp/pyOBDA",
+      "description": "The Python Onboard Diagnostic II Advanced application inspired by pyOBD",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "external-only",
+      "score": 37,
+      "license": "GPL-2.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 5,
+      "forks": 1,
+      "language": "Python",
+      "pushedAt": "2023-10-18T05:54:23Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "AustinMurphy/OBD2-Scantool",
+      "name": "OBD2-Scantool",
+      "url": "https://github.com/AustinMurphy/OBD2-Scantool",
+      "description": "A scantool to read OBD2 info from cars.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 31,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 247,
+      "forks": 60,
+      "language": "Python",
+      "pushedAt": "2023-03-17T13:59:46Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "kees/scantool",
+      "name": "scantool",
+      "url": "https://github.com/kees/scantool",
+      "description": "Linux port of ScanTool.Net GPL ODB-II tool",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 26,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 77,
+      "forks": 16,
+      "language": "C",
+      "pushedAt": "2021-12-02T09:49:09Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "djs/obdii",
+      "name": "obdii",
+      "url": "https://github.com/djs/obdii",
+      "description": "ELM327-compatible open-source OBD-II software",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 24,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 35,
+      "forks": 9,
+      "language": "JavaScript",
+      "pushedAt": "2015-07-12T22:26:16Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "stko/oobd",
+      "name": "oobd",
+      "url": "https://github.com/stko/oobd",
+      "description": "OOBD- The Open Onboard Diagnostics Toolkit",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 21,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 13,
+      "forks": 8,
+      "language": "Java",
+      "pushedAt": "2023-03-05T23:09:17Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "oguzbakir/OBDIIPy",
+      "name": "OBDIIPy",
+      "url": "https://github.com/oguzbakir/OBDIIPy",
+      "description": "ELM327 OBDII CAN Bus Python Car Diagnostic Software",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 20,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 11,
+      "forks": 3,
+      "language": "Python",
+      "pushedAt": "2022-11-22T04:30:30Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "cbush06/obd-express",
+      "name": "obd-express",
+      "url": "https://github.com/cbush06/obd-express",
+      "description": "API and GUI for communicating with On-board Diagnostics (OBD) Systems of modern automobiles.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 18,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 2,
+      "forks": 5,
+      "language": "C#",
+      "pushedAt": "2016-10-28T00:28:24Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Luke-k-dev/SportPyOBD",
+      "name": "SportPyOBD",
+      "url": "https://github.com/Luke-k-dev/SportPyOBD",
+      "description": "[WORKING] Uses python to communicate with your car. This Library is designed to work with the FRS/BRZ/86 and the raspberry pi.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 16,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 3,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2018-02-22T16:50:10Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "dmatej/java-cardiag",
+      "name": "java-cardiag",
+      "url": "https://github.com/dmatej/java-cardiag",
+      "description": "ELM327+OBDII car diagnostic completely written in Java",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "rejected",
+      "score": 0,
+      "license": null,
+      "reasons": [
+        "repository archived or disabled"
+      ],
+      "stars": 46,
+      "forks": 14,
+      "language": "Java",
+      "pushedAt": "2017-10-23T18:20:46Z",
+      "topics": [
+        "car",
+        "java",
+        "java-cardiag",
+        "obd-ii",
+        "obd2",
+        "serial-interface"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "stene-xyz/OpenCodeReader",
+      "name": "OpenCodeReader",
+      "url": "https://github.com/stene-xyz/OpenCodeReader",
+      "description": "Open-source code reader for ELM327-based OBD interfaces.",
+      "category": "ecu-diagnostics",
+      "categories": [
+        "ecu-diagnostics"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "rejected",
+      "score": 0,
+      "license": "GPL-3.0",
+      "reasons": [
+        "repository archived or disabled"
+      ],
+      "stars": 11,
+      "forks": 0,
+      "language": "C#",
+      "pushedAt": "2021-11-27T02:48:47Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5417,8 +7834,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 54945,
-      "forks": 2475,
+      "stars": 54949,
+      "forks": 2476,
       "language": "C++",
       "pushedAt": "2026-09-30T00:55:08Z",
       "topics": [
@@ -5450,6 +7867,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5482,6 +7901,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "TracqiTechnology/MxT",
       "canonicalUrl": "https://github.com/TracqiTechnology/MxT"
     },
@@ -5510,12 +7931,14 @@
       "pushedAt": "2026-09-27T22:06:37Z",
       "topics": [],
       "source": "curated",
-      "catalogSource": null,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
       "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5550,6 +7973,128 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "miikasyvanen/FastECU",
+      "name": "FastECU",
+      "url": "https://github.com/miikasyvanen/FastECU",
+      "description": "FastECU tuning/logging/flashing software for OEM ECUs",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 78,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 105,
+      "forks": 27,
+      "language": "C++",
+      "pushedAt": "2026-07-24T20:45:24Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "mattiasclaesson/TuningSuites",
+      "name": "TuningSuites",
+      "url": "https://github.com/mattiasclaesson/TuningSuites",
+      "description": "TrionicSuites",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 77,
+      "license": "Apache-2.0",
+      "reasons": [],
+      "stars": 72,
+      "forks": 25,
+      "language": "C#",
+      "pushedAt": "2025-07-03T20:10:48Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "TheFlashBold/tune-editor",
+      "name": "tune-editor",
+      "url": "https://github.com/TheFlashBold/tune-editor",
+      "description": "Web-based ECU tuning editor for ECUs and TCUs mainly Simos12/18/DQ250. A2L/XDF/JSON definitions, 3D map visualization, compare mode, BinToolz patch support. Supports 8V0906264, 06K906071, 0D930001 and more.",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 75,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 60,
+      "forks": 10,
+      "language": "TypeScript",
+      "pushedAt": "2026-08-22T09:10:18Z",
+      "topics": [
+        "a2l",
+        "audi",
+        "bin-editor",
+        "calibration",
+        "dq250",
+        "ea888",
+        "ecu-tuning",
+        "map-editor",
+        "simos12",
+        "simos18",
+        "vag",
+        "volkswagen",
+        "xdf"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5562,9 +8107,9 @@
       "categories": [
         "ecu-file-analysis"
       ],
-      "executionTarget": "device",
+      "executionTarget": "local-cpu",
       "executionTargets": [
-        "device"
+        "local-cpu"
       ],
       "status": "external-only",
       "score": 52,
@@ -5589,12 +8134,69 @@
         "tune"
       ],
       "source": "curated",
-      "catalogSource": null,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
       "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "hyper-tuner/hypertuner",
+      "name": "hypertuner",
+      "url": "https://github.com/hyper-tuner/hypertuner",
+      "description": "HyperTuner - the ultimate ECU tuning and dash software for every platform",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 47,
+      "license": "GPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 129,
+      "forks": 12,
+      "language": "Shell",
+      "pushedAt": "2023-09-05T06:48:21Z",
+      "topics": [
+        "android",
+        "desktop",
+        "ecu",
+        "efi",
+        "esp32",
+        "fome",
+        "gps",
+        "hyper-tuner",
+        "hypertuner",
+        "ios",
+        "macos",
+        "megalogviewer",
+        "rusefi",
+        "speeduino",
+        "tpms",
+        "tunerstudio",
+        "tuning",
+        "windows"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5629,6 +8231,80 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "comey246/romHEX14-ECU-Tuning",
+      "name": "romHEX14-ECU-Tuning",
+      "url": "https://github.com/comey246/romHEX14-ECU-Tuning",
+      "description": "romHEX 14 — AI-powered ECU calibration software with full A2L support",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 38,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "language": null,
+      "pushedAt": "2026-04-21T12:51:03Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "flexadecimal/serpentine",
+      "name": "serpentine",
+      "url": "https://github.com/flexadecimal/serpentine",
+      "description": "an open-source, web-based alternative to tunerpro engine tuning software",
+      "category": "ecu-file-analysis",
+      "categories": [
+        "ecu-file-analysis"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 21,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 15,
+      "forks": 4,
+      "language": "Jupyter Notebook",
+      "pushedAt": "2022-09-08T03:09:46Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded; calibration/flash actions are not auto-executed",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5651,18 +8327,65 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1797,
-      "forks": 655,
+      "stars": 1798,
+      "forks": 656,
       "language": "C++",
-      "pushedAt": "2026-09-28T04:56:58Z",
+      "pushedAt": "2026-09-30T20:17:12Z",
       "topics": [],
       "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
-      "autoExecute": true,
-      "restriction": null,
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded but firmware/device write execution requires explicit adapter approval",
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "endurodave/OBDII-Adapter-Software",
+      "name": "OBDII-Adapter-Software",
+      "url": "https://github.com/endurodave/OBDII-Adapter-Software",
+      "description": "OBDII adapter source code and schematic for automotive diagnostic vehicle communication.",
+      "category": "ecu-firmware",
+      "categories": [
+        "ecu-firmware"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 71,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 20,
+      "forks": 4,
+      "language": "C",
+      "pushedAt": "2025-02-18T16:21:05Z",
+      "topics": [
+        "canbus",
+        "elm",
+        "elm327",
+        "obd-ii",
+        "obd2",
+        "obdii",
+        "obdii-dongle",
+        "obdii-interface",
+        "obdii-library",
+        "scan-tool"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded but firmware/device write execution requires explicit adapter approval",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5729,6 +8452,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5751,10 +8476,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1177,
+      "stars": 1176,
       "forks": 420,
       "language": "C",
-      "pushedAt": "2026-09-30T03:01:41Z",
+      "pushedAt": "2026-10-01T03:45:32Z",
       "topics": [
         "automotive",
         "c-plus-plus",
@@ -5773,6 +8498,44 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "abhishekoct18/allpro",
+      "name": "allpro",
+      "url": "https://github.com/abhishekoct18/allpro",
+      "description": "Open-source ELM327 OBD adapter",
+      "category": "ecu-firmware",
+      "categories": [
+        "ecu-firmware"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "quarantine",
+      "score": 28,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 49,
+      "forks": 97,
+      "language": "C",
+      "pushedAt": "2016-04-10T01:32:58Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": false,
+      "restriction": "source is downloaded but firmware/device write execution requires explicit adapter approval",
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5794,9 +8557,9 @@
       "license": "Apache-2.0",
       "reasons": [],
       "stars": 12512,
-      "forks": 1450,
+      "forks": 1452,
       "language": "Python",
-      "pushedAt": "2026-09-30T11:10:49Z",
+      "pushedAt": "2026-10-01T07:18:00Z",
       "topics": [
         "fine-tuning",
         "llm"
@@ -5808,6 +8571,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5828,8 +8593,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 75229,
-      "forks": 9208,
+      "stars": 75244,
+      "forks": 9217,
       "language": "Python",
       "pushedAt": "2026-09-28T09:10:59Z",
       "topics": [
@@ -5861,6 +8626,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "hiyouga/LlamaFactory",
       "canonicalUrl": "https://github.com/hiyouga/LlamaFactory"
     },
@@ -5881,10 +8648,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 166848,
-      "forks": 34731,
+      "stars": 166878,
+      "forks": 34737,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:42:58Z",
+      "pushedAt": "2026-10-01T07:03:23Z",
       "topics": [
         "audio",
         "deep-learning",
@@ -5913,6 +8680,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5933,10 +8702,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 77076,
-      "forks": 7092,
+      "stars": 77104,
+      "forks": 7096,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:43:15Z",
+      "pushedAt": "2026-10-01T08:00:50Z",
       "topics": [
         "agent",
         "ai",
@@ -5966,6 +8735,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6374,10 +9145,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 103544,
-      "forks": 31023,
+      "stars": 103578,
+      "forks": 31024,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:04:18Z",
+      "pushedAt": "2026-10-01T08:09:19Z",
       "topics": [
         "autograd",
         "deep-learning",
@@ -6395,6 +9166,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6485,9 +9258,9 @@
       "license": "Apache-2.0",
       "reasons": [],
       "stars": 34636,
-      "forks": 7361,
+      "forks": 7366,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:08:04Z",
+      "pushedAt": "2026-10-01T07:44:44Z",
       "topics": [
         "deep-learning",
         "diffusion",
@@ -6512,6 +9285,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6532,10 +9307,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 28314,
-      "forks": 2983,
+      "stars": 28320,
+      "forks": 2984,
       "language": "Python",
-      "pushedAt": "2026-09-27T17:00:58Z",
+      "pushedAt": "2026-10-01T02:56:09Z",
       "topics": [
         "ai-art",
         "artificial-intelligence",
@@ -6558,6 +9333,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6580,10 +9357,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 135590,
-      "forks": 16076,
+      "stars": 135695,
+      "forks": 16097,
       "language": "Python",
-      "pushedAt": "2026-09-30T10:02:29Z",
+      "pushedAt": "2026-10-01T07:57:58Z",
       "topics": [
         "ai",
         "comfy",
@@ -6599,6 +9376,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "Comfy-Org/ComfyUI",
       "canonicalUrl": "https://github.com/Comfy-Org/ComfyUI"
     },
@@ -6619,8 +9398,8 @@
       "score": 88,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 25995,
-      "forks": 1923,
+      "stars": 25998,
+      "forks": 1924,
       "language": "Python",
       "pushedAt": "2025-07-31T13:58:55Z",
       "topics": [],
@@ -6631,6 +9410,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6653,8 +9434,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 165157,
-      "forks": 32140,
+      "stars": 165173,
+      "forks": 32144,
       "language": "Python",
       "pushedAt": "2026-03-02T07:00:53Z",
       "topics": [
@@ -6682,6 +9463,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6704,8 +9487,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 53235,
-      "forks": 8626,
+      "stars": 53246,
+      "forks": 8628,
       "language": "Python",
       "pushedAt": "2025-12-01T19:17:07Z",
       "topics": [],
@@ -6716,6 +9499,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6771,8 +9556,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 13041,
-      "forks": 1748,
+      "stars": 13042,
+      "forks": 1749,
       "language": "Python",
       "pushedAt": "2025-07-31T01:33:17Z",
       "topics": [],
@@ -6783,6 +9568,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6958,7 +9745,7 @@
         "local-gpu"
       ],
       "status": "quarantine",
-      "score": 53,
+      "score": 48,
       "license": "NOASSERTION",
       "reasons": [
         "license missing, unknown or not allowlisted"
@@ -7198,8 +9985,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 24931,
-      "forks": 2426,
+      "stars": 24938,
+      "forks": 2428,
       "language": "Python",
       "pushedAt": "2026-09-20T17:16:21Z",
       "topics": [
@@ -7214,6 +10001,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7234,8 +10023,8 @@
       "score": 68,
       "license": "BSD-3-Clause",
       "reasons": [],
-      "stars": 36946,
-      "forks": 4485,
+      "stars": 36955,
+      "forks": 4486,
       "language": "Python",
       "pushedAt": "2024-08-06T13:15:18Z",
       "topics": [
@@ -7255,6 +10044,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7307,8 +10098,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 11237,
-      "forks": 2645,
+      "stars": 11238,
+      "forks": 2644,
       "language": "C",
       "pushedAt": "2026-09-03T12:44:36Z",
       "topics": [
@@ -7329,6 +10120,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7349,8 +10142,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 53084,
-      "forks": 6381,
+      "stars": 53110,
+      "forks": 6386,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-09-28T16:56:36Z",
       "topics": [],
@@ -7361,6 +10154,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "anthropics/claude-cookbooks",
       "canonicalUrl": "https://github.com/anthropics/claude-cookbooks"
     },
@@ -7381,10 +10176,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 120826,
-      "forks": 63550,
+      "stars": 120872,
+      "forks": 63571,
       "language": "Jupyter Notebook",
-      "pushedAt": "2026-09-24T03:43:20Z",
+      "pushedAt": "2026-10-01T03:45:43Z",
       "topics": [
         "ai",
         "azure",
@@ -7408,6 +10203,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7428,8 +10225,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 91158,
-      "forks": 22516,
+      "stars": 91180,
+      "forks": 22526,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-09-15T05:29:39Z",
       "topics": [
@@ -7453,6 +10250,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7473,8 +10272,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 78740,
-      "forks": 8650,
+      "stars": 78760,
+      "forks": 8653,
       "language": "MDX",
       "pushedAt": "2026-03-11T20:09:13Z",
       "topics": [
@@ -7497,6 +10296,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7517,8 +10318,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 63464,
-      "forks": 10920,
+      "stars": 63478,
+      "forks": 10921,
       "language": "Python",
       "pushedAt": "2025-11-12T19:52:34Z",
       "topics": [],
@@ -7529,6 +10330,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7551,8 +10354,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 171661,
-      "forks": 22019,
+      "stars": 171757,
+      "forks": 22022,
       "language": "HTML",
       "pushedAt": "2026-09-09T10:27:05Z",
       "topics": [
@@ -7582,6 +10385,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "f/prompts.chat",
       "canonicalUrl": "https://github.com/f/prompts.chat"
     },
@@ -7604,10 +10409,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 105795,
-      "forks": 16236,
+      "stars": 105830,
+      "forks": 16240,
       "language": "Jupyter Notebook",
-      "pushedAt": "2026-09-22T13:58:26Z",
+      "pushedAt": "2026-10-01T00:25:16Z",
       "topics": [
         "ai",
         "artificial-intelligence",
@@ -7636,6 +10441,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7656,10 +10463,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 45150,
-      "forks": 9252,
+      "stars": 45169,
+      "forks": 9257,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:42:26Z",
+      "pushedAt": "2026-10-01T08:09:21Z",
       "topics": [
         "ai",
         "anthropic",
@@ -7689,6 +10496,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "LibreChat-AI/LibreChat",
       "canonicalUrl": "https://github.com/LibreChat-AI/LibreChat"
     },
@@ -7709,10 +10518,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 129953,
-      "forks": 23927,
+      "stars": 130022,
+      "forks": 23952,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:35:24Z",
+      "pushedAt": "2026-10-01T08:05:40Z",
       "topics": [
         "ggml"
       ],
@@ -7723,6 +10532,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7743,10 +10554,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 66619,
-      "forks": 7430,
+      "stars": 66645,
+      "forks": 7435,
       "language": "JavaScript",
-      "pushedAt": "2026-09-29T18:12:14Z",
+      "pushedAt": "2026-10-01T06:45:43Z",
       "topics": [
         "agent-computer",
         "agent-harness",
@@ -7771,6 +10582,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7791,10 +10604,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 49339,
+      "stars": 49351,
       "forks": 4481,
       "language": "Go",
-      "pushedAt": "2026-09-30T12:06:31Z",
+      "pushedAt": "2026-10-01T08:06:19Z",
       "topics": [
         "agents",
         "ai",
@@ -7822,6 +10635,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7842,10 +10657,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 181947,
-      "forks": 18049,
+      "stars": 181995,
+      "forks": 18062,
       "language": "Go",
-      "pushedAt": "2026-09-30T02:33:25Z",
+      "pushedAt": "2026-09-30T20:25:24Z",
       "topics": [
         "deepseek",
         "gemma",
@@ -7870,6 +10685,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7890,10 +10707,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 92983,
-      "forks": 22843,
+      "stars": 93027,
+      "forks": 22881,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:41:53Z",
+      "pushedAt": "2026-10-01T08:09:15Z",
       "topics": [
         "amd",
         "blackwell",
@@ -7923,6 +10740,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7930,7 +10749,7 @@
       "repo": "LostRuins/koboldcpp",
       "name": "koboldcpp",
       "url": "https://github.com/LostRuins/koboldcpp",
-      "description": "Run GGUF models easily with a KoboldAI UI. One File. Zero Install.",
+      "description": "KoboldCpp - Run GGUF AI models locally with a KoboldAI UI. One File. Zero Install.",
       "category": "local-llm",
       "categories": [
         "local-llm"
@@ -7945,10 +10764,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 11909,
+      "stars": 11915,
       "forks": 786,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:30:05Z",
+      "pushedAt": "2026-09-30T16:08:41Z",
       "topics": [
         "gemma",
         "ggml",
@@ -7968,6 +10787,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7988,7 +10809,7 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 77386,
+      "stars": 77387,
       "forks": 8284,
       "language": "C++",
       "pushedAt": "2025-05-27T20:05:19Z",
@@ -8003,6 +10824,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8025,8 +10848,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 47725,
-      "forks": 5992,
+      "stars": 47721,
+      "forks": 5991,
       "language": "Python",
       "pushedAt": "2026-08-17T17:38:16Z",
       "topics": [],
@@ -8037,6 +10860,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "oobabooga/textgen",
       "canonicalUrl": "https://github.com/oobabooga/textgen"
     },
@@ -8057,7 +10882,7 @@
       "score": 85,
       "license": "MIT",
       "reasons": [],
-      "stars": 51,
+      "stars": 52,
       "forks": 11,
       "language": "Python",
       "pushedAt": "2026-08-11T03:03:04Z",
@@ -8145,7 +10970,7 @@
       "stars": 14,
       "forks": 0,
       "language": "Rust",
-      "pushedAt": "2026-09-30T10:39:14Z",
+      "pushedAt": "2026-10-01T07:59:52Z",
       "topics": [
         "ai",
         "apple-silicon",
@@ -8467,10 +11292,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 44717,
-      "forks": 3063,
+      "stars": 44734,
+      "forks": 3062,
       "language": "Rust",
-      "pushedAt": "2026-09-30T09:48:39Z",
+      "pushedAt": "2026-10-01T07:23:51Z",
       "topics": [
         "chatgpt",
         "gpt",
@@ -8488,6 +11313,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8510,10 +11337,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 153621,
-      "forks": 22461,
+      "stars": 153693,
+      "forks": 22474,
       "language": "Python",
-      "pushedAt": "2026-09-29T16:25:29Z",
+      "pushedAt": "2026-10-01T04:38:23Z",
       "topics": [
         "ai",
         "llm",
@@ -8538,6 +11365,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8642,9 +11471,9 @@
       "license": "MIT",
       "reasons": [],
       "stars": 6448,
-      "forks": 322,
+      "forks": 321,
       "language": "TypeScript",
-      "pushedAt": "2026-09-28T23:10:11Z",
+      "pushedAt": "2026-10-01T03:47:12Z",
       "topics": [
         "mcp",
         "mcp-server",
@@ -8679,10 +11508,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6190,
-      "forks": 942,
+      "stars": 6197,
+      "forks": 941,
       "language": "Python",
-      "pushedAt": "2026-09-29T20:19:12Z",
+      "pushedAt": "2026-10-01T02:01:56Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -8709,10 +11538,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 8446,
-      "forks": 742,
+      "stars": 8483,
+      "forks": 744,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T11:49:21Z",
+      "pushedAt": "2026-10-01T08:04:50Z",
       "topics": [
         "agent",
         "android",
@@ -8749,10 +11578,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 24441,
-      "forks": 3991,
+      "stars": 24445,
+      "forks": 3995,
       "language": "Python",
-      "pushedAt": "2026-09-29T19:11:26Z",
+      "pushedAt": "2026-10-01T07:30:59Z",
       "topics": [
         "mcp",
         "mcp-client",
@@ -8784,8 +11613,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 4334,
-      "forks": 2092,
+      "stars": 4340,
+      "forks": 2095,
       "language": null,
       "pushedAt": "2026-07-13T12:44:30Z",
       "topics": [],
@@ -8814,8 +11643,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 5658,
-      "forks": 539,
+      "stars": 5660,
+      "forks": 538,
       "language": "TypeScript",
       "pushedAt": "2025-12-13T04:28:38Z",
       "topics": [],
@@ -8844,7 +11673,7 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 12455,
+      "stars": 12457,
       "forks": 1146,
       "language": "TypeScript",
       "pushedAt": "2026-01-06T13:05:39Z",
@@ -8876,7 +11705,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 4554,
+      "stars": 4556,
       "forks": 817,
       "language": "C#",
       "pushedAt": "2026-09-28T06:21:26Z",
@@ -8915,10 +11744,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 5169,
-      "forks": 559,
+      "stars": 5174,
+      "forks": 560,
       "language": "Go",
-      "pushedAt": "2026-09-30T07:41:35Z",
+      "pushedAt": "2026-10-01T08:01:47Z",
       "topics": [
         "go",
         "mcp"
@@ -8950,10 +11779,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 7302,
+      "stars": 7305,
       "forks": 1016,
       "language": "Go",
-      "pushedAt": "2026-09-23T23:33:30Z",
+      "pushedAt": "2026-09-30T23:35:30Z",
       "topics": [
         "mcp",
         "mcp-servers"
@@ -8985,10 +11814,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 90711,
-      "forks": 11716,
+      "stars": 90875,
+      "forks": 11732,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T10:02:11Z",
+      "pushedAt": "2026-10-01T06:57:00Z",
       "topics": [],
       "source": "curated",
       "catalogSource": null,
@@ -8997,6 +11826,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9019,10 +11850,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 13489,
-      "forks": 2237,
+      "stars": 13494,
+      "forks": 2241,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:07:45Z",
+      "pushedAt": "2026-09-30T20:50:51Z",
       "topics": [
         "mcp",
         "mcp-client",
@@ -9056,7 +11887,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 5364,
+      "stars": 5365,
       "forks": 433,
       "language": "TypeScript",
       "pushedAt": "2026-09-14T08:44:36Z",
@@ -9092,10 +11923,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 28653,
+      "stars": 28661,
       "forks": 1611,
       "language": "Python",
-      "pushedAt": "2026-09-30T05:59:31Z",
+      "pushedAt": "2026-09-30T22:36:28Z",
       "topics": [
         "archivebox",
         "backups",
@@ -9125,6 +11956,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9145,8 +11978,8 @@
       "score": 100,
       "license": "Unlicense",
       "reasons": [],
-      "stars": 194479,
-      "forks": 16889,
+      "stars": 194650,
+      "forks": 16911,
       "language": "Python",
       "pushedAt": "2026-09-27T22:09:13Z",
       "topics": [
@@ -9165,6 +11998,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9185,10 +12020,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 5878,
+      "stars": 5879,
       "forks": 969,
       "language": "Python",
-      "pushedAt": "2026-09-27T18:58:21Z",
+      "pushedAt": "2026-09-30T23:42:32Z",
       "topics": [
         "aiogram",
         "asyncio",
@@ -9223,7 +12058,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1845,
+      "stars": 1846,
       "forks": 162,
       "language": "Go",
       "pushedAt": "2026-09-11T09:33:48Z",
@@ -9260,10 +12095,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3758,
+      "stars": 3757,
       "forks": 156,
       "language": "TypeScript",
-      "pushedAt": "2026-09-27T06:59:19Z",
+      "pushedAt": "2026-10-01T05:14:18Z",
       "topics": [
         "bot",
         "deno",
@@ -9299,7 +12134,7 @@
       "license": "MIT",
       "reasons": [],
       "stars": 9193,
-      "forks": 938,
+      "forks": 939,
       "language": "TypeScript",
       "pushedAt": "2026-09-24T15:15:55Z",
       "topics": [
@@ -9375,7 +12210,7 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 6237,
+      "stars": 6239,
       "forks": 354,
       "language": "TypeScript",
       "pushedAt": "2026-08-28T20:23:28Z",
@@ -9422,10 +12257,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 41252,
-      "forks": 2999,
+      "stars": 41272,
+      "forks": 3002,
       "language": "Python",
-      "pushedAt": "2026-09-30T10:41:16Z",
+      "pushedAt": "2026-10-01T07:48:48Z",
       "topics": [
         "agent",
         "ai",
@@ -9472,10 +12307,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 29499,
-      "forks": 6151,
+      "stars": 29504,
+      "forks": 6150,
       "language": "Python",
-      "pushedAt": "2026-09-30T05:35:02Z",
+      "pushedAt": "2026-10-01T04:06:46Z",
       "topics": [
         "bot",
         "chatbot",
@@ -9550,7 +12385,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 3236,
+      "stars": 3240,
       "forks": 290,
       "language": "HTML",
       "pushedAt": "2026-02-05T07:59:11Z",
@@ -9603,7 +12438,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 2030,
+      "stars": 2033,
       "forks": 152,
       "language": null,
       "pushedAt": "2025-10-04T07:56:18Z",
@@ -9674,10 +12509,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 68212,
-      "forks": 4966,
+      "stars": 68244,
+      "forks": 4972,
       "language": "Python",
-      "pushedAt": "2026-09-30T10:03:29Z",
+      "pushedAt": "2026-10-01T07:51:33Z",
       "topics": [
         "ai",
         "convert",
@@ -9702,6 +12537,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9722,10 +12559,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 187718,
-      "forks": 13876,
+      "stars": 187813,
+      "forks": 13888,
       "language": "Python",
-      "pushedAt": "2026-09-21T21:03:34Z",
+      "pushedAt": "2026-10-01T05:24:20Z",
       "topics": [
         "autogen",
         "autogen-extension",
@@ -9742,6 +12579,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9762,8 +12601,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 90454,
-      "forks": 11427,
+      "stars": 90480,
+      "forks": 11429,
       "language": "Python",
       "pushedAt": "2026-09-16T03:31:50Z",
       "topics": [
@@ -9788,6 +12627,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9808,7 +12649,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 76767,
+      "stars": 76779,
       "forks": 10819,
       "language": "C++",
       "pushedAt": "2026-09-28T07:40:38Z",
@@ -9828,6 +12669,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9848,10 +12691,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 15521,
-      "forks": 1351,
+      "stars": 15520,
+      "forks": 1352,
       "language": "HTML",
-      "pushedAt": "2026-09-29T22:36:56Z",
+      "pushedAt": "2026-09-30T19:32:11Z",
       "topics": [
         "data-pipelines",
         "deep-learning",
@@ -9881,6 +12724,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9903,7 +12748,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 34907,
+      "stars": 34910,
       "forks": 2419,
       "language": "Python",
       "pushedAt": "2026-09-29T07:55:13Z",
@@ -9921,6 +12766,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9943,10 +12790,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 46183,
-      "forks": 3197,
+      "stars": 46206,
+      "forks": 3200,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:35:31Z",
+      "pushedAt": "2026-10-01T02:14:21Z",
       "topics": [
         "ai",
         "angular",
@@ -9968,6 +12815,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10104,10 +12953,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 93291,
-      "forks": 10027,
+      "stars": 93352,
+      "forks": 10035,
       "language": "Java",
-      "pushedAt": "2026-09-30T12:21:18Z",
+      "pushedAt": "2026-09-30T22:02:30Z",
       "topics": [
         "docker",
         "hacktoberfest",
@@ -10130,6 +12979,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10468,10 +13319,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 29410,
-      "forks": 2540,
+      "stars": 29420,
+      "forks": 2541,
       "language": "Rust",
-      "pushedAt": "2026-09-30T04:01:33Z",
+      "pushedAt": "2026-10-01T07:18:44Z",
       "topics": [
         "agents",
         "ai",
@@ -10487,6 +13338,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10507,10 +13360,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 91544,
-      "forks": 10868,
+      "stars": 91568,
+      "forks": 10873,
       "language": "Go",
-      "pushedAt": "2026-09-30T12:08:16Z",
+      "pushedAt": "2026-09-30T13:19:25Z",
       "topics": [
         "agent-harness",
         "agentic-ai",
@@ -10535,6 +13388,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10555,8 +13410,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 66363,
-      "forks": 7813,
+      "stars": 66400,
+      "forks": 7822,
       "language": "Python",
       "pushedAt": "2026-09-30T10:03:23Z",
       "topics": [
@@ -10582,6 +13437,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10602,10 +13459,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 34886,
-      "forks": 2714,
+      "stars": 34891,
+      "forks": 2716,
       "language": "Rust",
-      "pushedAt": "2026-09-30T12:39:42Z",
+      "pushedAt": "2026-10-01T05:29:54Z",
       "topics": [
         "ai-search",
         "ai-search-engine",
@@ -10635,6 +13492,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10655,8 +13514,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 52369,
-      "forks": 8253,
+      "stars": 52378,
+      "forks": 8257,
       "language": "Python",
       "pushedAt": "2026-09-29T04:49:06Z",
       "topics": [
@@ -10678,6 +13537,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10698,7 +13559,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 57556,
+      "stars": 57557,
       "forks": 7621,
       "language": "Python",
       "pushedAt": "2026-09-29T10:20:26Z",
@@ -10714,6 +13575,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10988,7 +13851,7 @@
       "stars": 201,
       "forks": 18,
       "language": "Rust",
-      "pushedAt": "2026-09-29T03:54:33Z",
+      "pushedAt": "2026-10-01T03:56:07Z",
       "topics": [
         "agent-memory",
         "ai-agents",
@@ -11216,8 +14079,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 29830,
-      "forks": 4068,
+      "stars": 29856,
+      "forks": 4070,
       "language": "Python",
       "pushedAt": "2026-09-26T17:46:25Z",
       "topics": [
@@ -11240,6 +14103,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11260,8 +14125,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 36942,
-      "forks": 4103,
+      "stars": 36951,
+      "forks": 4101,
       "language": "TypeScript",
       "pushedAt": "2026-09-01T14:12:12Z",
       "topics": [
@@ -11287,6 +14152,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "ItzCrazyKns/Vane",
       "canonicalUrl": "https://github.com/ItzCrazyKns/Vane"
     },
@@ -11347,8 +14214,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 37804,
-      "forks": 3455,
+      "stars": 37837,
+      "forks": 3459,
       "language": "Python",
       "pushedAt": "2026-09-30T05:42:37Z",
       "topics": [
@@ -11375,6 +14242,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11613,10 +14482,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 91217,
-      "forks": 38780,
+      "stars": 91232,
+      "forks": 38784,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:39:21Z",
+      "pushedAt": "2026-10-01T08:04:30Z",
       "topics": [
         "asyncio",
         "hacktoberfest",
@@ -11634,6 +14503,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11656,10 +14527,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 15678,
-      "forks": 2016,
+      "stars": 15681,
+      "forks": 2015,
       "language": "TypeScript",
-      "pushedAt": "2026-09-29T18:36:23Z",
+      "pushedAt": "2026-09-30T20:03:48Z",
       "topics": [
         "hacktoberfest"
       ],
@@ -11670,6 +14541,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11693,7 +14566,7 @@
       "stars": 4,
       "forks": 3,
       "language": "Python",
-      "pushedAt": "2026-09-30T02:54:35Z",
+      "pushedAt": "2026-10-01T08:08:22Z",
       "topics": [
         "ai-assistant",
         "automation",
@@ -11821,7 +14694,7 @@
       "stars": 43,
       "forks": 7,
       "language": "Python",
-      "pushedAt": "2026-09-27T04:04:14Z",
+      "pushedAt": "2026-09-30T13:25:18Z",
       "topics": [
         "ai",
         "ai-assistant",
@@ -11943,10 +14816,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 11752,
-      "forks": 5674,
+      "stars": 11758,
+      "forks": 5675,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:42:31Z",
+      "pushedAt": "2026-10-01T06:39:23Z",
       "topics": [
         "esp32",
         "esp8266",
@@ -11966,6 +14839,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11991,7 +14866,7 @@
       "stars": 54,
       "forks": 13,
       "language": "JavaScript",
-      "pushedAt": "2026-09-29T17:16:45Z",
+      "pushedAt": "2026-10-01T06:50:52Z",
       "topics": [
         "automation-controller",
         "embedded-systems",
@@ -12136,13 +15011,13 @@
         "local-cpu"
       ],
       "status": "quarantine",
-      "score": 43,
+      "score": 44,
       "license": null,
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
       "stars": 4,
-      "forks": 4,
+      "forks": 5,
       "language": "Python",
       "pushedAt": "2026-02-01T21:10:13Z",
       "topics": [],
@@ -12205,10 +15080,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 36526,
-      "forks": 7039,
+      "stars": 36568,
+      "forks": 7046,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T09:04:38Z",
+      "pushedAt": "2026-10-01T04:59:14Z",
       "topics": [
         "nextjs",
         "open-source",
@@ -12228,6 +15103,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12707,8 +15584,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54038,
-      "forks": 6200,
+      "stars": 54065,
+      "forks": 6199,
       "language": "C++",
       "pushedAt": "2026-09-28T18:35:46Z",
       "topics": [
@@ -12726,6 +15603,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": "ggml-org/whisper.cpp",
       "canonicalUrl": "https://github.com/ggml-org/whisper.cpp"
     },
@@ -12746,8 +15625,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54038,
-      "forks": 6200,
+      "stars": 54065,
+      "forks": 6199,
       "language": "C++",
       "pushedAt": "2026-09-28T18:35:46Z",
       "topics": [
@@ -12765,6 +15644,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12785,8 +15666,8 @@
       "score": 100,
       "license": "BSD-2-Clause",
       "reasons": [],
-      "stars": 24315,
-      "forks": 2453,
+      "stars": 24322,
+      "forks": 2454,
       "language": "Python",
       "pushedAt": "2026-09-26T20:53:59Z",
       "topics": [
@@ -12803,14 +15684,16 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
     {
-      "repo": "openai/whisper",
-      "name": "whisper",
-      "url": "https://github.com/openai/whisper",
-      "description": "Robust Speech Recognition via Large-Scale Weak Supervision",
+      "repo": "SYSTRAN/faster-whisper",
+      "name": "faster-whisper",
+      "url": "https://github.com/SYSTRAN/faster-whisper",
+      "description": "Faster Whisper transcription with CTranslate2",
       "category": "speech-to-text",
       "categories": [
         "speech-to-text"
@@ -12823,11 +15706,20 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 109789,
-      "forks": 13310,
+      "stars": 25658,
+      "forks": 2103,
       "language": "Python",
-      "pushedAt": "2026-08-31T17:19:19Z",
-      "topics": [],
+      "pushedAt": "2026-09-30T16:50:02Z",
+      "topics": [
+        "deep-learning",
+        "inference",
+        "openai",
+        "quantization",
+        "speech-recognition",
+        "speech-to-text",
+        "transformer",
+        "whisper"
+      ],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
       "guidePage": 3,
@@ -12835,6 +15727,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12855,10 +15749,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 655,
+      "stars": 657,
       "forks": 119,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:40:46Z",
+      "pushedAt": "2026-10-01T07:55:33Z",
       "topics": [
         "ai-sdk",
         "decentralized-ai",
@@ -12890,10 +15784,10 @@
       "adapter": null
     },
     {
-      "repo": "SYSTRAN/faster-whisper",
-      "name": "faster-whisper",
-      "url": "https://github.com/SYSTRAN/faster-whisper",
-      "description": "Faster Whisper transcription with CTranslate2",
+      "repo": "openai/whisper",
+      "name": "whisper",
+      "url": "https://github.com/openai/whisper",
+      "description": "Robust Speech Recognition via Large-Scale Weak Supervision",
       "category": "speech-to-text",
       "categories": [
         "speech-to-text"
@@ -12903,23 +15797,14 @@
         "local-cpu"
       ],
       "status": "accepted",
-      "score": 93,
+      "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 25635,
-      "forks": 2101,
+      "stars": 109820,
+      "forks": 13312,
       "language": "Python",
-      "pushedAt": "2025-11-19T14:40:46Z",
-      "topics": [
-        "deep-learning",
-        "inference",
-        "openai",
-        "quantization",
-        "speech-recognition",
-        "speech-to-text",
-        "transformer",
-        "whisper"
-      ],
+      "pushedAt": "2026-08-31T17:19:19Z",
+      "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
       "guidePage": 3,
@@ -12927,6 +15812,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13355,8 +16242,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 38618,
-      "forks": 5289,
+      "stars": 38624,
+      "forks": 5290,
       "language": "Python",
       "pushedAt": "2026-08-04T07:47:32Z",
       "topics": [
@@ -13384,6 +16271,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13404,8 +16293,8 @@
       "score": 88,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9087,
-      "forks": 995,
+      "stars": 9098,
+      "forks": 997,
       "language": "JavaScript",
       "pushedAt": "2025-08-06T22:28:53Z",
       "topics": [],
@@ -13416,6 +16305,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13436,7 +16327,7 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 37738,
+      "stars": 37750,
       "forks": 4249,
       "language": "Python",
       "pushedAt": "2025-04-19T16:00:00Z",
@@ -13453,6 +16344,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13475,8 +16368,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 2333,
-      "forks": 293,
+      "stars": 2334,
+      "forks": 295,
       "language": "Python",
       "pushedAt": "2026-06-10T09:01:00Z",
       "topics": [],
@@ -13487,6 +16380,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13510,7 +16405,7 @@
       "stars": 2,
       "forks": 0,
       "language": "Swift",
-      "pushedAt": "2026-09-28T20:59:49Z",
+      "pushedAt": "2026-10-01T03:38:17Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -13696,8 +16591,8 @@
       "score": 68,
       "license": "MIT",
       "reasons": [],
-      "stars": 39274,
-      "forks": 4670,
+      "stars": 39273,
+      "forks": 4669,
       "language": "Jupyter Notebook",
       "pushedAt": "2024-08-19T07:45:36Z",
       "topics": [],
@@ -13708,6 +16603,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13790,8 +16687,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 46089,
-      "forks": 6165,
+      "stars": 46095,
+      "forks": 6167,
       "language": "Python",
       "pushedAt": "2024-08-16T12:07:14Z",
       "topics": [
@@ -13822,6 +16719,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14015,10 +16914,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3451,
-      "forks": 2290,
+      "stars": 3455,
+      "forks": 2291,
       "language": "Python",
-      "pushedAt": "2026-09-29T02:53:50Z",
+      "pushedAt": "2026-10-01T01:52:22Z",
       "topics": [
         "automotive",
         "can",
@@ -14032,6 +16931,138 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "Wal33D/dtc-database",
+      "name": "dtc-database",
+      "url": "https://github.com/Wal33D/dtc-database",
+      "description": "Comprehensive OBD-II Diagnostic Trouble Code database with 28,220+ codes including 9,415 generic SAE J2012 and 18,805 manufacturer-specific definitions for 33+ brands. SQLite database with Python/Java implementations, zero dependencies.",
+      "category": "vehicle-dataset",
+      "categories": [
+        "vehicle-dataset"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 80,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 48,
+      "forks": 15,
+      "language": "Java",
+      "pushedAt": "2026-02-16T06:33:47Z",
+      "topics": [
+        "android",
+        "automotive",
+        "automotive-software",
+        "diagnostic-trouble-codes",
+        "dtc",
+        "fleet-management",
+        "java",
+        "obd-ii",
+        "obd2",
+        "python",
+        "sqlite-database",
+        "vehicle-diagnostics"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "foerbsnavi/obdex",
+      "name": "OBDex",
+      "url": "https://github.com/foerbsnavi/obdex",
+      "description": "Open, machine-readable database of OBD-II diagnostic trouble codes and PIDs. CC0 data, MIT tooling.",
+      "category": "vehicle-dataset",
+      "categories": [
+        "vehicle-dataset"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 51,
+      "license": "NOASSERTION",
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 4,
+      "forks": 0,
+      "language": "JavaScript",
+      "pushedAt": "2026-10-01T07:46:14Z",
+      "topics": [
+        "automotive",
+        "cc0",
+        "diagnostic-trouble-codes",
+        "diagnostics",
+        "dtc",
+        "json-schema",
+        "obd-ii",
+        "obd2",
+        "open-data",
+        "yaml"
+      ],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
+      "repo": "sostisoft/ecu-definitions",
+      "name": "ecu-definitions",
+      "url": "https://github.com/sostisoft/ecu-definitions",
+      "description": "Open-source ECU definition library (XDF + RomRaider XML) — 352 XDFs + 671 XMLs organized by vehicle brand/model",
+      "category": "vehicle-dataset",
+      "categories": [
+        "vehicle-dataset"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 41,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 4,
+      "forks": 0,
+      "language": null,
+      "pushedAt": "2026-02-28T05:37:40Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-obd-pdfs-2026-09-30",
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14052,10 +17083,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 63777,
-      "forks": 11399,
+      "stars": 63786,
+      "forks": 11402,
       "language": "Python",
-      "pushedAt": "2026-09-30T09:09:55Z",
+      "pushedAt": "2026-10-01T03:00:13Z",
       "topics": [
         "advanced-driver-assistance-systems",
         "driver-assistance-systems",
@@ -14068,6 +17099,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14090,10 +17123,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 76813,
-      "forks": 10390,
+      "stars": 76834,
+      "forks": 10394,
       "language": "C",
-      "pushedAt": "2026-09-30T01:12:35Z",
+      "pushedAt": "2026-10-01T01:19:55Z",
       "topics": [
         "c",
         "c-plus-plus",
@@ -14114,6 +17147,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14166,8 +17201,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 41146,
-      "forks": 3136,
+      "stars": 41177,
+      "forks": 3139,
       "language": "Python",
       "pushedAt": "2026-09-29T19:26:59Z",
       "topics": [
@@ -14184,6 +17219,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14204,7 +17241,7 @@
       "score": 100,
       "license": "Unlicense",
       "reasons": [],
-      "stars": 5396,
+      "stars": 5400,
       "forks": 673,
       "language": "Nim",
       "pushedAt": "2026-09-19T14:52:15Z",
@@ -14225,6 +17262,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14245,8 +17284,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 14937,
-      "forks": 2112,
+      "stars": 14938,
+      "forks": 2113,
       "language": "Python",
       "pushedAt": "2026-08-26T06:17:08Z",
       "topics": [
@@ -14265,6 +17304,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14287,10 +17328,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 5769,
-      "forks": 522,
+      "stars": 5776,
+      "forks": 523,
       "language": "C++",
-      "pushedAt": "2026-09-30T11:27:39Z",
+      "pushedAt": "2026-10-01T03:27:19Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -14299,6 +17340,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14321,10 +17364,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 44167,
-      "forks": 2190,
+      "stars": 44188,
+      "forks": 2192,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:33:19Z",
+      "pushedAt": "2026-09-30T22:09:42Z",
       "topics": [
         "codec",
         "cut",
@@ -14344,6 +17387,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14366,10 +17411,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 15318,
-      "forks": 1522,
+      "stars": 15324,
+      "forks": 1524,
       "language": "C++",
-      "pushedAt": "2026-09-30T02:44:25Z",
+      "pushedAt": "2026-09-30T17:34:26Z",
       "topics": [
         "cross-platform",
         "gplv3",
@@ -14384,6 +17429,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14495,10 +17542,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 20614,
+      "stars": 20623,
       "forks": 3308,
       "language": "C++",
-      "pushedAt": "2026-09-30T12:19:50Z",
+      "pushedAt": "2026-10-01T07:54:51Z",
       "topics": [
         "3d",
         "animation",
@@ -14514,6 +17561,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14536,10 +17585,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 64664,
-      "forks": 14306,
+      "stars": 64674,
+      "forks": 14308,
       "language": "C",
-      "pushedAt": "2026-09-30T12:38:36Z",
+      "pushedAt": "2026-10-01T07:41:49Z",
       "topics": [
         "audio",
         "c",
@@ -14564,6 +17613,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14586,7 +17637,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 24538,
+      "stars": 24541,
       "forks": 1713,
       "language": "C",
       "pushedAt": "2026-09-30T05:48:17Z",
@@ -14602,6 +17653,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14624,10 +17677,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 6573,
-      "forks": 814,
+      "stars": 6577,
+      "forks": 816,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:28:47Z",
+      "pushedAt": "2026-10-01T05:43:25Z",
       "topics": [
         "c-plus-plus",
         "ffmpeg",
@@ -14646,6 +17699,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14668,10 +17723,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 61227,
-      "forks": 4726,
+      "stars": 61331,
+      "forks": 4737,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:36:18Z",
+      "pushedAt": "2026-10-01T07:36:16Z",
       "topics": [
         "javascript",
         "react",
@@ -14684,6 +17739,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14704,10 +17761,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 127266,
-      "forks": 19905,
+      "stars": 127727,
+      "forks": 19977,
       "language": "Python",
-      "pushedAt": "2026-09-30T07:06:53Z",
+      "pushedAt": "2026-10-01T02:14:45Z",
       "topics": [
         "ai-video-generator",
         "content-creation",
@@ -14731,6 +17788,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14751,8 +17810,8 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 10997,
-      "forks": 1150,
+      "stars": 11000,
+      "forks": 1152,
       "language": "Python",
       "pushedAt": "2026-01-05T22:37:07Z",
       "topics": [
@@ -14770,6 +17829,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14790,8 +17851,8 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 17074,
-      "forks": 3635,
+      "stars": 17077,
+      "forks": 3641,
       "language": "Python",
       "pushedAt": "2026-03-05T09:38:07Z",
       "topics": [
@@ -14805,6 +17866,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14828,7 +17891,7 @@
       "stars": 101,
       "forks": 12,
       "language": "Python",
-      "pushedAt": "2026-09-16T19:29:49Z",
+      "pushedAt": "2026-09-30T20:24:39Z",
       "topics": [
         "ai-video",
         "comfyui",
@@ -15006,6 +18069,8 @@
       "restriction": "PDF guide: license coverage excludes Germany/UK; catalog only",
       "requiresModelLicenseCheck": true,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15058,10 +18123,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 17548,
+      "stars": 17550,
       "forks": 1472,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T08:55:12Z",
+      "pushedAt": "2026-10-01T02:00:51Z",
       "topics": [
         "ai",
         "ai-agent",
@@ -15091,6 +18156,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15111,7 +18178,7 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 15158,
+      "stars": 15157,
       "forks": 1768,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-08-09T13:35:47Z",
@@ -15144,6 +18211,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15164,7 +18233,7 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 2803,
+      "stars": 2804,
       "forks": 349,
       "language": "Jupyter Notebook",
       "pushedAt": "2025-12-30T16:47:27Z",
@@ -15176,6 +18245,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15212,6 +18283,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15669,7 +18742,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 50014,
+      "stars": 50016,
       "forks": 4302,
       "language": "Ruby",
       "pushedAt": "2026-09-26T00:24:07Z",
@@ -15694,6 +18767,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15714,10 +18789,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 155388,
-      "forks": 10150,
+      "stars": 155415,
+      "forks": 10155,
       "language": "Python",
-      "pushedAt": "2026-09-30T12:30:34Z",
+      "pushedAt": "2026-10-01T05:24:30Z",
       "topics": [
         "agents",
         "chatgpt",
@@ -15733,6 +18808,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15753,8 +18830,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 23696,
-      "forks": 3895,
+      "stars": 23697,
+      "forks": 3897,
       "language": "JavaScript",
       "pushedAt": "2026-09-18T11:58:12Z",
       "topics": [
@@ -15772,6 +18849,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15882,10 +18961,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 24805,
-      "forks": 4276,
+      "stars": 24823,
+      "forks": 4281,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:38:07Z",
+      "pushedAt": "2026-10-01T08:00:02Z",
       "topics": [
         "ai-agent",
         "ai-agent-tools",
@@ -15908,6 +18987,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15930,10 +19011,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 157571,
-      "forks": 24852,
+      "stars": 157633,
+      "forks": 24869,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:27:58Z",
+      "pushedAt": "2026-10-01T03:31:29Z",
       "topics": [
         "agent",
         "agentic-ai",
@@ -15962,6 +19043,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15984,10 +19067,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 206347,
-      "forks": 60945,
+      "stars": 206408,
+      "forks": 60965,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T12:42:54Z",
+      "pushedAt": "2026-10-01T08:09:30Z",
       "topics": [
         "ai",
         "apis",
@@ -16017,6 +19100,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16039,10 +19124,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 18070,
-      "forks": 1105,
+      "stars": 18073,
+      "forks": 1106,
       "language": "Rust",
-      "pushedAt": "2026-09-30T12:41:35Z",
+      "pushedAt": "2026-10-01T08:10:07Z",
       "topics": [
         "low-code",
         "open-source",
@@ -16059,6 +19144,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16081,8 +19168,8 @@
       "reasons": [
         "repository archived or disabled"
       ],
-      "stars": 55490,
-      "forks": 25053,
+      "stars": 55487,
+      "forks": 25057,
       "language": "TypeScript",
       "pushedAt": "2026-08-13T12:38:19Z",
       "topics": [
@@ -16111,6 +19198,8 @@
       "restriction": null,
       "requiresModelLicenseCheck": false,
       "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1790842212619,
       "canonicalRepo": null,
       "canonicalUrl": null
     }
