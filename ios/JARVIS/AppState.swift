@@ -28,6 +28,9 @@ final class AppState: ObservableObject {
                 await self.send()
             }
         }
+        voice.onError = { [weak self] message in
+            Task { @MainActor in self?.statusText = message }
+        }
         voice.onStateChange = { [weak self] listening in
             Task { @MainActor in self?.isListening = listening }
         }

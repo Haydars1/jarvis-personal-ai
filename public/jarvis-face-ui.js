@@ -23,6 +23,6 @@
     }catch{}
     return res;
   };
-  const enforce=()=>{const p=document.querySelector('#chatProvider');if(p)p.textContent='JARVIS';document.querySelectorAll('#chatHistory .chatMsg.assistant small').forEach(x=>x.style.display='none')};
+  const enforce=()=>{const p=document.querySelector('#chatProvider');if(p&&p.textContent!=='JARVIS')p.textContent='JARVIS';document.querySelectorAll('#chatHistory .chatMsg.assistant small').forEach(x=>x.style.display='none')};
   new MutationObserver(enforce).observe(document.documentElement,{childList:true,subtree:true});setTimeout(enforce,300);
 })();

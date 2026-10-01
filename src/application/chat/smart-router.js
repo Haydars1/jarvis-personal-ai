@@ -153,16 +153,43 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
     if (!text) throw new Error('GEMINI_EMPTY');
     return { provider: credential.label || 'Gemini', text };
   }
-  const base = String(credential.endpoint || '').replace(/\/$/, ''), model = String(credential.model || '').trim();
+  const model = String(credential.model || '').trim();
+  if (provider === 'anthropic') {
+    if (!model) throw new Error('NO_MODEL');
+    const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': secret, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model, max_tokens: 900, temperature: 0.25,
+        system: messages.filter(item => item.role === 'system').map(item => item.content).join('\n'),
+        messages: messages.filter(item => item.role !== 'system')
+      })
+    }, timeoutMs);
+    if (!response.ok) throw new Error(`ANTHROPIC_${response.status}`);
+    const payload = await response.json();
+    const text = (payload.content || []).filter(item => item.type === 'text').map(item => item.text || '').join('').trim();
+    if (!text) throw new Error('ANTHROPIC_EMPTY');
+    return { provider: credential.label || 'Anthropic', text };
+  }
+  const endpoints = {
+    openai: 'https://api.openai.com/v1', groq: 'https://api.groq.com/openai/v1',
+    openrouter: 'https://openrouter.ai/api/v1', deepseek: 'https://api.deepseek.com/v1',
+    mistral: 'https://api.mistral.ai/v1', xai: 'https://api.x.ai/v1',
+    together: 'https://api.together.xyz/v1', fireworks: 'https://api.fireworks.ai/inference/v1',
+    perplexity: 'https://api.perplexity.ai', cerebras: 'https://api.cerebras.ai/v1'
+  };
+  const base = String(credential.endpoint || endpoints[provider] || '').replace(/\/$/, '');
   if (!base) throw new Error('NO_ENDPOINT');
+  const endpoint = /\/chat\/completions$/i.test(base) ? base : `${base}/chat/completions`;
   if (!model) throw new Error('NO_MODEL');
-  const response = await fetchWithTimeout(`${base}/chat/completions`, {
+  const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' },
     body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
   }, timeoutMs);
   if (!response.ok) throw new Error(`${(provider || 'AI').toUpperCase()}_${response.status}`);
-  const payload = await response.json(), text = payload.choices?.[0]?.message?.content || '';
+  const payload = await response.json(), content = payload.choices?.[0]?.message?.content;
+  const text = (Array.isArray(content) ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('') : String(content || '')).trim();
   if (!text) throw new Error(`${(provider || 'AI').toUpperCase()}_EMPTY`);
   return { provider: credential.label || credential.provider, text };
 }

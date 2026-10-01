@@ -5,6 +5,7 @@ import Speech
 final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     var onFinalTranscript: ((String) -> Void)?
     var onStateChange: ((Bool) -> Void)?
+    var onError: ((String) -> Void)?
 
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "tr-TR"))
     private let audioEngine = AVAudioEngine()
@@ -23,8 +24,16 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
         Task {
             let speechAllowed = await withCheckedContinuation { c in SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0 == .authorized) } }
             let micAllowed = await AVAudioApplication.requestRecordPermission()
-            guard speechAllowed && micAllowed else { return }
-            await MainActor.run { self.beginRecognition() }
+            await MainActor.run {
+                guard self.shouldResume else { return }
+                guard speechAllowed && micAllowed else {
+                    self.shouldResume = false
+                    self.onStateChange?(false)
+                    self.onError?("Sesli kullanım için Ayarlar'dan mikrofon ve konuşma tanıma iznini aç.")
+                    return
+                }
+                self.beginRecognition()
+            }
         }
     }
 
@@ -39,7 +48,13 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     private func beginRecognition() {
+        guard shouldResume else { return }
         stopListeningForSpeechOnly()
+        guard let recognizer, recognizer.isAvailable else {
+            shouldResume = false
+            onError?("Türkçe konuşma tanıma şu an kullanılamıyor. Bağlantını ve konuşma ayarlarını kontrol et.")
+            return
+        }
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .spokenAudio, options: [.defaultToSpeaker, .allowBluetoothHFP])
@@ -56,19 +71,21 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
             try audioEngine.start()
             onStateChange?(true)
 
-            recognitionTask = recognizer?.recognitionTask(with: request) { [weak self] result, error in
-                guard let self else { return }
+            recognitionTask = recognizer.recognitionTask(with: request) { [weak self] result, error in
+                guard let self, self.recognitionRequest === request else { return }
                 if let result, result.isFinal {
                     let text = result.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines)
                     self.stopListeningForSpeechOnly()
                     if !text.isEmpty { self.onFinalTranscript?(text) }
                 } else if error != nil {
                     self.stopListeningForSpeechOnly()
-                    if self.shouldResume { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.beginRecognition() } }
+                    if self.shouldResume { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { if self.shouldResume { self.beginRecognition() } } }
                 }
             }
         } catch {
-            onStateChange?(false)
+            stopListeningForSpeechOnly()
+            shouldResume = false
+            onError?("Mikrofon başlatılamadı: \(error.localizedDescription)")
         }
     }
 
@@ -89,6 +106,6 @@ final class VoiceEngine: NSObject, AVSpeechSynthesizerDelegate {
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        if shouldResume { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { self.beginRecognition() } }
+        if shouldResume { DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { if self.shouldResume { self.beginRecognition() } } }
     }
 }

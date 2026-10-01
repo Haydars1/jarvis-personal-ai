@@ -49,9 +49,15 @@ export function createEmergencyChatFallback(handleChat) {
 
     payload.reply = reply;
     payload.provider = 'JARVIS';
-    payload.history = Array.isArray(payload.history) && payload.history.length
-      ? payload.history.map(message => message?.role === 'assistant' ? { ...message, content: reply, provider: 'JARVIS' } : message)
-      : [{ role: 'user', content: text }, { role: 'assistant', content: reply, provider: 'JARVIS' }];
+    const history = Array.isArray(payload.history) ? [...payload.history] : [];
+    const last = history.at(-1);
+    if (last?.role === 'assistant' && String(last.content || '').trim().startsWith(FAILURE_PREFIX)) {
+      history[history.length - 1] = { ...last, content: reply, provider: 'JARVIS' };
+    } else {
+      if (!history.length) history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: reply, provider: 'JARVIS' });
+    }
+    payload.history = history;
     payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), { kind: 'fallback', label: 'JARVIS emergency AI', value: 'Primary chat paths failed; Workers AI returned the final reply' }];
     return jsonResponse(payload, response.status);
   };
