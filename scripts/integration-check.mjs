@@ -89,15 +89,16 @@ try {
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
-      await page.screenshot({ path: '.wrangler/browser-report/after-login.png', fullPage: true });
+      await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
       await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
       mkdirSync('.wrangler/browser-report', { recursive: true });
-      await page.screenshot({ path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
-      await page.screenshot({ path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
       assert.deepEqual(errors, [], 'Browser runtime errors');
       console.log('Browser checks passed: password sign-in, navigation, real file input, desktop/mobile rendering.');
     } finally { await browser.close(); }
