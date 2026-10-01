@@ -138,11 +138,23 @@ fi
 if ! TOOL_PROBE_RESPONSE="$TOOL_PROBE_RESPONSE" node --input-type=module <<'NODE'
 import { readFileSync } from 'node:fs';
 const body=JSON.parse(readFileSync(process.env.TOOL_PROBE_RESPONSE,'utf8'));
-const calls=body?.choices?.[0]?.message?.tool_calls;
-if(!Array.isArray(calls)||calls.length!==1||calls[0]?.function?.name!=='ping')process.exit(1);
-let args={};
-try{args=JSON.parse(calls[0]?.function?.arguments||'{}')}catch{process.exit(1)}
-if(args.value!=='ready')process.exit(1);
+const message=body?.choices?.[0]?.message||{};
+const calls=message?.tool_calls;
+let ok=false;
+if(Array.isArray(calls)&&calls.length===1&&calls[0]?.function?.name==='ping'){
+  try{
+    const args=JSON.parse(calls[0]?.function?.arguments||'{}');
+    ok=args.value==='ready';
+  }catch{}
+}
+if(!ok&&typeof message?.content==='string'){
+  const cleaned=message.content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  try{
+    const parsed=JSON.parse(cleaned);
+    ok=parsed?.name==='ping'&&parsed?.arguments?.value==='ready';
+  }catch{}
+}
+if(!ok)process.exit(1);
 NODE
 then
   echo "local llama.cpp tool-call probe failed" >&2
