@@ -11,7 +11,8 @@
     "sources:sync": "node local-bridge/source-pool-sync.mjs",
     "sources:sync:dry": "node local-bridge/source-pool-sync.mjs --dry-run",
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test:integration": "node scripts/integration-check.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.131.1"
