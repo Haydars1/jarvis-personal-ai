@@ -90,6 +90,14 @@ test('keyless local coder uses the llama.cpp tool-bench Qwen2.5 Coder build and 
   assert.doesNotMatch(script,/https?:\/\/api\.(openai|anthropic|mistral|groq|x\.ai)/);
 });
 
+test('local coder tool probe accepts equivalent JSON content fallback',()=>{
+  const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
+  assert.match(script,/message\?\.content/);
+  assert.match(script,/JSON\.parse\(cleaned\)/);
+  assert.match(script,/parsed\?\.name==='ping'/);
+  assert.match(script,/parsed\?\.arguments\?\.value==='ready'/);
+});
+
 test('local coder bootstraps from pinned verified llama.cpp binary instead of compiling it',()=>{
   const script=readFileSync(new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url),'utf8');
   assert.match(script,/b11146/);
