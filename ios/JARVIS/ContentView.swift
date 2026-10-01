@@ -9,7 +9,6 @@ struct ContentView: View {
     @State private var showCamera = false
     @State private var showFiles = false
     @State private var showSettings = false
-    @State private var showVehicle = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -33,7 +32,7 @@ struct ContentView: View {
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(state).presentationDetents([.large])
         }
-        .sheet(isPresented: $showVehicle) { VehicleBluetoothView() }
+        .sheet(isPresented: $state.showVehicleConnection) { VehicleBluetoothView() }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
         }
@@ -72,6 +71,11 @@ struct ContentView: View {
                 Image(systemName: "gearshape").font(.system(size: 20, weight: .semibold)).frame(width: 42, height: 42)
             }
             .buttonStyle(.plain)
+            Button { state.showVehicleConnection = true } label: {
+                Label("OBD bağlan", systemImage: "car")
+                    .font(.caption.weight(.semibold)).padding(8)
+            }
+            .buttonStyle(.bordered)
             Spacer()
             VStack(spacing: 1) {
                 Text("JARVIS").font(.system(size: 17, weight: .bold))
@@ -191,7 +195,7 @@ struct ContentView: View {
             if !state.attachments.isEmpty { attachmentStrip }
             HStack(alignment: .bottom, spacing: 7) {
                 Menu {
-                    Button { showVehicle = true } label: { Label("OBD cihazına bağlan", systemImage: "car") }
+                    Button { state.showVehicleConnection = true } label: { Label("OBD cihazına bağlan", systemImage: "car") }
                     Button { showCamera = true } label: { Label("Kamera", systemImage: "camera") }
                     PhotosPicker(selection: $photoItem, matching: .images) { Label("Fotoğraflar", systemImage: "photo.on.rectangle") }
                     Button { showFiles = true } label: { Label("Dosya / PDF", systemImage: "doc") }

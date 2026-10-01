@@ -1,4 +1,4 @@
-const CACHE='jarvis-v8.2-thinkdiag-20261001';
+const CACHE='jarvis-v8.3-obd-connect-20261001';
 const STATIC=['/','/app.css','/app.js','/credential-autotest.js','/integrations-ui.js','/higgsfield-ui.js','/provider-catalog.js','/navigation-state.js','/google-search-ui.js','/chat-enhancements.js','/jarvis-os-ui.js','/social-growth-ui.js','/video-pool-ui.js','/execution-trace-ui.js','/jarvis-face-ui.js','/voice-mode.js','/manifest.webmanifest','/icon.svg'];
 
 self.addEventListener('install',event=>{

@@ -112,6 +112,9 @@ try {
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
       await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
       await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
+      await page.locator('#thinkdiagConnect').waitFor({ state: 'visible' });
+      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'jarvis://obd');
+      assert.match(await page.locator('#thinkdiagConnectionStatus').innerText(), /web ekranı cihazı bağlamaz/);
       await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
       assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);
       await page.locator('#thinkdiagPdf').setInputFiles({ name: 'diagnostic.pdf', mimeType: 'application/pdf', buffer: Buffer.from(readFileSync('tests/fixtures/thinkdiag-report.pdf.base64', 'utf8'), 'base64') });

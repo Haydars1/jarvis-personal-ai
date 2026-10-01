@@ -6,7 +6,12 @@ function mount() {
   const host = document.querySelector('#ecu .ecuShell'); if (!host || document.querySelector('#thinkdiagImport')) return;
   const card = document.createElement('div'); card.className = 'card';
   card.innerHTML = '<h3>THINKDIAG2 · ThinkDiag+ · iPhone</h3><p>ThinkDiag+ → Raporlar’dan paylaştığın TC kaydını yükle. Dosya bu cihazda okunur; bilgisayarın açık olması gerekmez.</p><input id="thinkdiagImport" type="file" accept=".tc"><p id="thinkdiagStatus" role="status">TC kaydı bekleniyor.</p><div class="row"><button id="thinkdiagCsv" disabled>CSV İNDİR</button><button id="thinkdiagJson" disabled>JSON İNDİR</button><button id="thinkdiagChat" disabled>ECU SOHBETİNDE İNCELE</button></div><div id="thinkdiagSummary" style="overflow:auto;max-height:400px"></div><p class="muted">Canlı Bluetooth bağlantısı ThinkDiag+ içinde yapılır. Jarvis bu ekranda kaydı analiz eder. PDF raporunu sohbetten yükleyebilirsin.</p>';
-  host.prepend(card); let recording, selectedFile, reportText;
+  const connection = document.createElement('div'); connection.className = 'card'; connection.id = 'thinkdiagConnection';
+  connection.innerHTML = '<h3>THINKDIAG2 · Cihaz bağlantısı</h3><p>iPhone’daki JARVIS uygulamasında cihazını Bluetooth ile ara ve bağlan.</p><div class="row"><a id="thinkdiagConnect" class="btn" href="jarvis://obd">THINKDIAG2’YE BAĞLAN · UYGULAMADA AÇ</a><a href="https://github.com/Haydars1/jarvis-personal-ai/actions/workflows/ios-native-check.yml" target="_blank" rel="noopener">GÜNCEL iPHONE UYGULAMASI</a></div><p id="thinkdiagConnectionStatus" role="status">Bu web ekranı cihazı bağlamaz; düğme güncel iPhone JARVIS uygulamasını açar. Uygulamada üstte OBD bağlan düğmesi bulunur.</p><p class="muted">Bluetooth keşfi ve bağlantı ekranı eklendi. Gerçek THINKDIAG2 testi henüz yapılmadı. Araç komut sürücüsü eksik: hata okuma/silme, kodlama, adaptasyon ve servis sıfırlama henüz kullanılamaz.</p>';
+  connection.querySelector('#thinkdiagConnect').onclick = () => {
+    connection.querySelector('#thinkdiagConnectionStatus').textContent = 'iPhone JARVIS uygulaması açılmalı. Açılmazsa güncel IPA’yı Feather ile kur; tarayıcıdan doğrudan THINKDIAG2 bağlantısı kurulmaz.';
+  };
+  host.prepend(connection, card); let recording, selectedFile, reportText;
   const pdfInput = document.createElement('input'); pdfInput.id = 'thinkdiagPdf'; pdfInput.type = 'file'; pdfInput.accept = '.pdf,.txt'; pdfInput.setAttribute('aria-label', 'ThinkDiag PDF raporu');
   const pdfLabel = document.createElement('label'); pdfLabel.textContent = 'PDF / metin raporu yükle '; pdfLabel.append(pdfInput); card.append(pdfLabel);
   pdfInput.onchange = async event => {
