@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { selectSkillLearningRepos } from '../src/lib/skill-learning.js';
+import { SKILL_COMPILER_VERSION } from '../src/lib/repo-skill-compiler.js';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 
@@ -16,11 +17,34 @@ test('automatic learner is deterministic and bounded',()=>{
   assert.deepEqual(selected,['a/a','b/b']);
 });
 
-test('cloud capability scheduled handler queues repository skill learning',()=>{
+test('compiler version is explicit and non-empty',()=>{
+  assert.equal(typeof SKILL_COMPILER_VERSION,'string');
+  assert.ok(SKILL_COMPILER_VERSION.length>=3);
+});
+
+test('automatic learner requeues stale learned skills but skips current compiler version',()=>{
+  const learned=new Map([
+    ['a/one',SKILL_COMPILER_VERSION],
+    ['b/two','legacy-v0'],
+    ['c/three',null]
+  ]);
+  const selected=selectSkillLearningRepos(['a/one','b/two','c/three','d/four'],learned,new Set(),10,SKILL_COMPILER_VERSION);
+  assert.deepEqual(selected,['b/two','c/three','d/four']);
+});
+
+test('pending stale skills are not queued twice during compiler revalidation',()=>{
+  const learned=new Map([['a/one','legacy-v0']]);
+  const selected=selectSkillLearningRepos(['a/one'],learned,new Set(['a/one']),5,SKILL_COMPILER_VERSION);
+  assert.deepEqual(selected,[]);
+});
+
+test('cloud capability scheduled handler queues repository skill learning and compiler revalidation',()=>{
   const source=read('src/application/capabilities/cloud-execution.js');
   assert.match(source,/queueSkillLearningBatch/);
   assert.match(source,/scheduled\(event,env,ctx\)/);
   assert.match(source,/skill-analyze/);
+  assert.match(source,/SKILL_COMPILER_VERSION/);
+  assert.match(source,/manifest_json/);
 });
 
 test('cloud runner processes more than one queued skill job per run',()=>{
