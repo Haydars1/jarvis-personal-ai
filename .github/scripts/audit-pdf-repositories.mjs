@@ -30,8 +30,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1
   if (process.env.GITHUB_REPOSITORY && process.env.GITHUB_SHA && process.env.GITHUB_TOKEN) {
     let sourceSha = process.env.GITHUB_SHA;
     if (process.env.GITHUB_EVENT_PATH) { const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, 'utf8')); sourceSha = event.pull_request?.head?.sha || sourceSha; }
-    const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs?head_sha=${sourceSha}`, { headers: { authorization: 'Bearer ' + process.env.GITHUB_TOKEN, accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(15000) });
-    if (response.ok) { const data = await response.json(); console.log('RELATED_WORKFLOWS ' + JSON.stringify((data.workflow_runs || []).map(run => ({ id: run.id, name: run.name, status: run.status, conclusion: run.conclusion })))); }
+    const response = await fetch(`https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}/actions/runs?per_page=30`, { headers: { authorization: 'Bearer ' + process.env.GITHUB_TOKEN, accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(15000) });
+    if (response.ok) { const data = await response.json(); console.log('RELATED_WORKFLOWS ' + JSON.stringify((data.workflow_runs || []).map(run => ({ id: run.id, name: run.name, sha: run.head_sha, status: run.status, conclusion: run.conclusion })))); }
   }
   // Missing repositories are explicit per-row outcomes. Rate/network failure must not masquerade as a successful audit.
   if (!report.results.some(row => row.status === 'source-verified')) process.exitCode = 1;
