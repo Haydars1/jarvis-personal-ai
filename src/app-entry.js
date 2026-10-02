@@ -5,6 +5,7 @@ import { createRepositoryCatalog } from './application/capabilities/repository-c
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
+import { createCodeGraphChatRuntime } from './application/code-graph/chat-runtime.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
@@ -54,7 +55,8 @@ const mediaCore = {
 
 const ecuCore = createEcuChannelStore(createThinkdiagImport(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore))));
 const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
-const handleChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
+const nativeSkillChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
+const handleChat = createCodeGraphChatRuntime(nativeSkillChat);
 const handlePush = createPushApi(cloudToolCore);
 
 function shouldFlushPush(req, response) {
