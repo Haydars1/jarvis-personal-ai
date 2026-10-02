@@ -53,44 +53,68 @@ struct VehicleRuntimeCapability: Identifiable, Hashable {
 enum VehicleRuntimeCapabilities {
     static func list(
         online: Bool,
+        transportReady: Bool,
+        protocolConfirmed: Bool,
         brand: VehicleBrand,
         hasManufacturerPack: Bool,
         hasCodingCache: Bool
     ) -> [VehicleRuntimeCapability] {
-        [
+        let genericReady = transportReady && protocolConfirmed
+        let manufacturerReady = genericReady && hasManufacturerPack
+        let codingReady = genericReady && hasCodingCache
+
+        return [
             .init(
                 name: "Hata kodu okuma",
-                available: true,
+                available: genericReady,
                 tier: .local,
-                detail: "ThinkDiag ↔ araç Bluetooth bağlantısı; internet gerekmez."
+                detail: !transportReady
+                    ? "ThinkDiag bağlı değil."
+                    : (protocolConfirmed
+                        ? "ThinkDiag ↔ araç OBD bağlantısı doğrulandı; internet gerekmez."
+                        : "ThinkDiag bağlı; OBD protokolü henüz doğrulanmadı.")
             ),
             .init(
                 name: "Genel OBD canlı veri",
-                available: true,
+                available: genericReady,
                 tier: .local,
-                detail: "RPM, MAP, MAF, sıcaklık, hız ve desteklenen PID'ler yerel çalışır."
+                detail: !transportReady
+                    ? "ThinkDiag bağlı değil."
+                    : (protocolConfirmed
+                        ? "RPM, MAP, MAF, sıcaklık, hız ve desteklenen PID'ler yerel çalışır."
+                        : "Canlı veri için OBD protokolünün doğrulanması gerekiyor.")
             ),
             .init(
                 name: "Yerel DTC açıklaması",
                 available: true,
                 tier: .local,
-                detail: "Uygulama içindeki DTC veritabanından çalışır."
+                detail: "Okunan veya içe aktarılan DTC'ler uygulama içindeki veritabanından açıklanır."
             ),
             .init(
                 name: "Üretici modül taraması",
-                available: hasManufacturerPack,
+                available: manufacturerReady,
                 tier: hasManufacturerPack ? .cached : .onlineEnhanced,
-                detail: hasManufacturerPack
-                    ? "\(brand.rawValue) teşhis paketi telefonda mevcut."
-                    : "Bu marka için üretici paketi önce çevrimiçiyken indirilmelidir."
+                detail: !transportReady
+                    ? "Önce ThinkDiag bağlantısını kur."
+                    : (!protocolConfirmed
+                        ? "Önce OBD protokolünü doğrula."
+                        : (hasManufacturerPack
+                            ? "\(brand.rawValue) teşhis paketi telefonda mevcut."
+                            : "Bu marka için üretici paketi önce çevrimiçiyken indirilmelidir."))
             ),
             .init(
                 name: "Kodlama / gizli özellikler",
-                available: hasCodingCache || online,
+                available: codingReady,
                 tier: hasCodingCache ? .cached : .onlineEnhanced,
-                detail: hasCodingCache
-                    ? "Daha önce indirilen doğrulanmış reçeteler internet olmadan kullanılabilir."
-                    : "Yeni reçete/katalog için internet gerekir."
+                detail: !transportReady
+                    ? "Önce ThinkDiag bağlantısını kur."
+                    : (!protocolConfirmed
+                        ? "Önce araç protokolünü doğrula."
+                        : (hasCodingCache
+                            ? "Doğrulanmış reçeteler telefonda mevcut."
+                            : (online
+                                ? "İnternet var; ancak doğrulanmış kodlama reçetesi henüz telefonda yok."
+                                : "Doğrulanmış kodlama reçetesi telefonda yok.")))
             ),
             .init(
                 name: "AI teşhis yorumu",
