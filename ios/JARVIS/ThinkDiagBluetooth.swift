@@ -546,10 +546,23 @@ final class ThinkDiagBluetooth: NSObject, ObservableObject {
     }
 
     var transportNotice: String {
-        if preferredServiceDetected {
-            return "Launch/ThinkDiag BLE servis imzası bulundu. JARVIS bildirimleri dinliyor ve bilinen VCI çerçeve yapısını pasif olarak çözüyor."
+        switch state {
+        case .idle:
+            return "ThinkDiag bağlı değil. Bağlanmak için Bluetooth Tara'ya dokun."
+        case .scanning:
+            return "Bluetooth cihazları aranıyor…"
+        case .connecting(let name):
+            return "\(name) bağlantısı kuruluyor…"
+        case .connected:
+            if preferredServiceDetected {
+                return "Launch/ThinkDiag BLE servis imzası bulundu. JARVIS bildirimleri dinliyor ve bilinen VCI çerçeve yapısını pasif olarak çözüyor."
+            }
+            return "Bluetooth bağlantısı kuruldu. JARVIS servis/karakteristikleri keşfediyor; FFF0 veya ISSC imzası bulunursa ThinkDiag VCI modu otomatik seçilir."
+        case .disconnected:
+            return "ThinkDiag bağlantısı kesildi."
+        case .failed(let message):
+            return "Bluetooth kullanılamıyor: \(message)"
         }
-        return "Bluetooth bağlantısı kuruldu. JARVIS servis/karakteristikleri keşfediyor; FFF0 veya ISSC imzası bulunursa ThinkDiag VCI modu otomatik seçilir."
     }
 }
 

@@ -258,7 +258,7 @@ struct DiagnosticView: View {
                     }
 
                     if let lastRefresh = offlinePrefetch.lastRefresh {
-                        Text("Son offline katalog güncellemesi: \(lastRefresh.formatted(date: .abbreviated, time: .shortened))")
+                        Text("Son offline katalog güncellemesi: \(JarvisTurkishFormatting.dateTime.string(from: lastRefresh))")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -1497,6 +1497,8 @@ struct DiagnosticView: View {
     private var vehicleRuntimeCapabilities: [VehicleRuntimeCapability] {
         VehicleRuntimeCapabilities.list(
             online: networkMonitor.isOnline,
+            transportReady: bluetooth.isThinkDiagTransportReady,
+            protocolConfirmed: bluetooth.protocolProfile != nil,
             brand: effectiveBrand,
             hasManufacturerPack: ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil,
             hasCodingCache: OfflineVehicleDataStore.hasCodingResearch(brand: effectiveBrand)
