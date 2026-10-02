@@ -7,6 +7,10 @@ const uid=()=>crypto.randomUUID();
 
 async function readJson(req){try{return await req.clone().json();}catch{return {}}}
 function likeTerm(q=''){return `%${String(q).trim().toLowerCase().replace(/[%_]/g,'')}%`}
+async function channelRow(env,id){
+  if(!id)return null;
+  return env.DB.prepare('SELECT id,title,file_name,file_sha256,file_size,identity_text,created_at,updated_at FROM ecu_chat_channels WHERE id=?').bind(id).first();
+}
 
 async function ensureChannel(env,{channelId,title,file}){
   const ts=now();
@@ -17,14 +21,25 @@ async function ensureChannel(env,{channelId,title,file}){
     const digest=await crypto.subtle.digest('SHA-256',bytes);
     hash=[...new Uint8Array(digest)].map(x=>x.toString(16).padStart(2,'0')).join('');
   }
+
+  let existing=id?await channelRow(env,id):null;
   if(!id&&hash){
-    const existing=await env.DB.prepare('SELECT id FROM ecu_chat_channels WHERE file_sha256=? ORDER BY updated_at DESC LIMIT 1').bind(hash).first();
-    if(existing?.id)id=existing.id;
+    const matched=await env.DB.prepare('SELECT id FROM ecu_chat_channels WHERE file_sha256=? ORDER BY updated_at DESC LIMIT 1').bind(hash).first();
+    if(matched?.id){
+      id=matched.id;
+      existing=await channelRow(env,id);
+    }
   }
   if(!id)id=uid();
-  const fileName=String(file?.name||'');
-  const fileSize=bytes?.length||0;
-  const channelTitle=String(title||fileName||'ECU Sohbeti').slice(0,180);
+
+  const suppliedTitle=String(title||'').trim();
+  const fileName=String(file?.name||existing?.file_name||'');
+  const fileSize=bytes?.length||Number(existing?.file_size||0);
+  const fileHash=hash||String(existing?.file_sha256||'');
+  const identityText=String(existing?.identity_text||'');
+  const channelTitle=String(suppliedTitle||existing?.title||fileName||'ECU Sohbeti').slice(0,180);
+  const createdAt=Number(existing?.created_at||ts);
+
   await env.DB.prepare(`INSERT INTO ecu_chat_channels(id,title,file_name,file_sha256,file_size,identity_text,created_at,updated_at)
     VALUES(?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET
@@ -32,9 +47,19 @@ async function ensureChannel(env,{channelId,title,file}){
       file_name=CASE WHEN excluded.file_name<>'' THEN excluded.file_name ELSE ecu_chat_channels.file_name END,
       file_sha256=CASE WHEN excluded.file_sha256<>'' THEN excluded.file_sha256 ELSE ecu_chat_channels.file_sha256 END,
       file_size=CASE WHEN excluded.file_size>0 THEN excluded.file_size ELSE ecu_chat_channels.file_size END,
+      identity_text=CASE WHEN excluded.identity_text<>'' THEN excluded.identity_text ELSE ecu_chat_channels.identity_text END,
       updated_at=excluded.updated_at`)
-    .bind(id,channelTitle,fileName,hash,fileSize,'',ts,ts).run();
-  return {id,hash,fileName,title:channelTitle};
+    .bind(id,channelTitle,fileName,fileHash,fileSize,identityText,createdAt,ts).run();
+
+  const current=await channelRow(env,id);
+  return {
+    id,
+    hash:String(current?.file_sha256||fileHash),
+    fileName:String(current?.file_name||fileName),
+    fileSize:Number(current?.file_size||fileSize||0),
+    title:String(current?.title||channelTitle),
+    identityText:String(current?.identity_text||identityText)
+  };
 }
 
 async function saveMessage(env,channelId,role,content,provider=null,createdAt=now()){
@@ -117,14 +142,22 @@ export function createEcuChannelStore(core){
         const userVisible=primary?`${text}\n📎 ${files.map(x=>x.name).join(', ')}`:text;
         await saveMessage(env,channel.id,'user',userVisible,null,now());
 
-        const forwarded=new Request(req,{body:JSON.stringify({...body,channelId:channel.id})});
+        const ecuContext=channel.fileName?{
+          channelId:channel.id,
+          fileName:channel.fileName,
+          fileSize:channel.fileSize,
+          sha256:channel.hash,
+          identityText:channel.identityText
+        }:undefined;
+        const forwardedBody={...body,channelId:channel.id,...(ecuContext?{ecuContext}:{})};
+        const forwarded=new Request(req,{body:JSON.stringify(forwardedBody)});
         const response=await core.fetch(forwarded,env,ctx);
         let payload=null;
         try{payload=await response.clone().json();}catch{}
         if(payload?.reply){
           await saveMessage(env,channel.id,'assistant',payload.reply,payload.provider||'JARVIS ECU Brain',now());
           payload.channelId=channel.id;
-          payload.channel={id:channel.id,title:channel.title,file_name:channel.fileName,file_sha256:channel.hash};
+          payload.channel={id:channel.id,title:channel.title,file_name:channel.fileName,file_sha256:channel.hash,file_size:channel.fileSize};
           payload.history=await messages(env,channel.id);
           return json(payload,response.status);
         }
