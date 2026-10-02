@@ -58,18 +58,15 @@ function skillPayload(text,skill,reply,extra={}){
 }
 
 function repoJobAdapter(text=''){return /(ara|bul|search|kaynak|source|kod|code|dosya|file|nerede|hangi)/i.test(String(text))?'source-search':'repo-inspect';}
-
 async function readJsonResponse(response){try{return await response.json();}catch{return null;}}
 
-async function repoJobResult(core,req,env,ctx,jobId){
+async function repoJobStatus(core,req,env,ctx,jobId){
   if(!jobId)return null;
   const url=new URL(`/api/tools/cloud/jobs/${encodeURIComponent(jobId)}`,req.url);
   const response=await core.fetch(new Request(url,{headers:req.headers}),env,ctx);
   if(!response.ok)return null;
   const payload=await readJsonResponse(response);
-  const job=payload?.job;
-  if(job?.status!=='completed'||!payload?.answer)return null;
-  return {job,answer:String(payload.answer)};
+  return payload?.job?{job:payload.job,answer:payload?.answer?String(payload.answer):null}:null;
 }
 
 async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
@@ -78,14 +75,21 @@ async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
   const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
   if(!response.ok)return null;
   const payload=await readJsonResponse(response);
-  const job=payload?.job;if(!job?.id)return null;
+  const queuedJob=payload?.job;if(!queuedJob?.id)return null;
 
-  // A queued/running job is not a user answer. Query once for an already-completed
-  // result (useful when a runner finished immediately); otherwise let the caller
-  // continue to the next executable skill/provider while this job stays pending.
-  const completed=await repoJobResult(core,req,env,ctx,job.id);
-  if(!completed)return null;
-  return skillPayload(text,skill,completed.answer,{job:completed.job});
+  const current=await repoJobStatus(core,req,env,ctx,queuedJob.id);
+  if(current?.job?.status==='completed'&&current.answer){
+    return skillPayload(text,skill,current.answer,{job:current.job});
+  }
+  if(['queued','running'].includes(String(current?.job?.status||queuedJob.status||''))){
+    return {
+      pendingSkillJob:current?.job||queuedJob,
+      pendingSkill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id}
+    };
+  }
+  // A synchronously failed cloud job is a real failure, so the next compatible
+  // executable skill may be attempted immediately.
+  return null;
 }
 
 async function executeDeviceSkill(core,req,env,ctx,text,skill){
@@ -148,7 +152,10 @@ export async function executeFirstNativeSkill(core,req,env,ctx,text,rows=[],cont
   for(const skill of Array.isArray(rows)?rows:[]){
     if(!canExecuteNativeSkill(skill,text,context))continue;
     const result=await executeNativeSkill(core,req,env,ctx,text,skill,context).catch(()=>null);
-    if(result)return result;
+    if(result?.reply)return result;
+    // One queued runner job is enough. Do not enqueue the same user request across
+    // several repositories while the first compatible skill is already running.
+    if(result?.pendingSkillJob)return result;
   }
   return null;
 }
@@ -160,6 +167,17 @@ async function discoverSkills(core,req,env,ctx,text){
   try{return (await response.json())?.results||[];}catch{return [];}
 }
 
+async function fallbackWithPendingJob(fallback,req,env,ctx,job){
+  const headers=new Headers(req.headers);
+  headers.set('x-jarvis-skill-skip','1');
+  const response=await fallback(new Request(req,{headers}),env,ctx);
+  if(!job||!response?.ok)return response;
+  let payload=null;try{payload=await response.clone().json();}catch{return response;}
+  if(!payload||typeof payload!=='object')return response;
+  if(!payload.job)payload.job=job;
+  return jsonResponse(payload,response.status);
+}
+
 export function createNativeSkillFirstChat(core,fallback){
   if(!core?.fetch||typeof fallback!=='function')throw new Error('NATIVE_SKILL_GATE_REQUIRED');
   return async function handleNativeSkillFirst(req,env,ctx){
@@ -168,7 +186,8 @@ export function createNativeSkillFirstChat(core,fallback){
     if(!text)return fallback(req,env,ctx);
     const rows=await discoverSkills(core,req,env,ctx,text).catch(()=>[]);
     const payload=await executeFirstNativeSkill(core,req,env,ctx,text,rows,body).catch(()=>null);
-    if(payload)return jsonResponse(payload);
+    if(payload?.reply)return jsonResponse(payload);
+    if(payload?.pendingSkillJob)return fallbackWithPendingJob(fallback,req,env,ctx,payload.pendingSkillJob);
     return fallback(req,env,ctx);
   };
 }
