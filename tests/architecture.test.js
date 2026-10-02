@@ -42,6 +42,15 @@ test('composition root owns Higgsfield, integrations, provider state, smart rout
   assert.doesNotMatch(entry, /from '\.\/media-rescue-entry\.js'/);
 });
 
+test('production composition exposes vehicle coding research used by the native offline catalog', () => {
+  const entry = read('src/app-entry.js');
+  assert.match(entry, /createVehicleCodingResearch/);
+  assert.match(entry, /const vehicleResearchCore\s*=\s*createVehicleCodingResearch\(searchCore\)/);
+  assert.match(entry, /createChatEnhancements\(vehicleResearchCore\)/);
+  assert.doesNotThrow(() => read('src/application/vehicle/coding-research.js'));
+  assert.doesNotThrow(() => read('src/application/vehicle/trusted-coding-catalogs.js'));
+});
+
 test('migrated entries remain thin compatibility adapters', () => {
   const adapters = [
     ['src/apns-push-entry.js', /createPushApi/, 2000],
