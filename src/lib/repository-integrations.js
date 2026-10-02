@@ -36,6 +36,6 @@ export function repositoryIntegrations() {
     return { repo, url: 'https://github.com/' + repo, category: seed?.category || 'uncategorized', pdf,
       metadata_verified: Boolean(verified?.source_commit || row?.metadataAvailable), license: verified?.license || row?.license || null, admission: row?.status || 'not-checked', canonical_repo: verified?.canonical_repo || row?.canonicalRepo || repo,
       source_verification: verified?.status || 'not-checked', readme_sha256: verified?.readme_sha256 || null,
-      source_commit: verified?.source_commit || null, checked_at: verified?.checkedAt || row?.checkedAt || null, integration };
+      source_commit: verified?.source_commit || null, checked_at: verified?.checked_at || row?.checkedAt || null, integration };
   }).sort((a, b) => a.repo.localeCompare(b.repo));
 }
