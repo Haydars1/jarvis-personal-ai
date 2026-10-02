@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {graphCapabilities,getCodeGraphStatus} from '../src/lib/code-graph.js';const graph=JSON.parse(fs.readFileSync(new URL('./fixtures/code-graph.json',import.meta.url)));
+test('exposes_graph_capabilities_for_current_graph',()=>assert.deepEqual(graphCapabilities(graph,graph.source_commit),['code-graph','dependency-trace','impact-analysis','symbol-neighborhood']));
+test('does_not_expose_graph_capabilities_for_stale_graph',()=>{assert.equal(getCodeGraphStatus(graph,'different'),'stale');assert.deepEqual(graphCapabilities(graph,'different'),[]);});
+test('does_not_require_graph_for_existing_repository_skills',async()=>{const {compileRepositorySkill}=await import('../src/lib/repo-skill-compiler.js');const skill=compileRepositorySkill({repo:'owner/repository-agent',files:['README.md'],snippets:{readme:'coding agent'}});assert.ok(skill.capabilities.includes('coding-agent'));});
