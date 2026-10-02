@@ -383,20 +383,23 @@ struct EcuChatView: View {
 
         let newlySelected = attachments
         let isNewFileChannel = !newlySelected.isEmpty
-        let files = isNewFileChannel ? newlySelected : activeFiles
+        let shouldReuploadActiveFile = !isNewFileChannel && shouldAttachActiveFiles(for: text)
+        let filesToUpload = isNewFileChannel ? newlySelected : (shouldReuploadActiveFile ? activeFiles : [])
         let targetChannelId = isNewFileChannel ? nil : currentChannelId
 
         input = ""
         attachments = []
         sending = true
 
-        let visible = files.isEmpty ? text : "\(text)\n📎 \(files.map(\.name).joined(separator: ", "))"
+        let visible = newlySelected.isEmpty
+            ? text
+            : "\(text)\n📎 \(newlySelected.map(\.name).joined(separator: ", "))"
         messages.append(ChatMessage(role: "user", content: visible, createdAt: Date().timeIntervalSince1970 * 1000))
 
         do {
             let response = try await api.send(
                 text: text,
-                attachments: files,
+                attachments: filesToUpload,
                 channel: "ecu",
                 channelId: targetChannelId
             )
@@ -405,11 +408,9 @@ struct EcuChatView: View {
                 currentChannelId = channelId
 
                 if isNewFileChannel {
-                    activeFiles = files
-                    currentChannelTitle = files.first?.name ?? "ECU Sohbeti"
-                    persistFiles(files, channelId: channelId)
-                } else if currentChannelTitle == "Yeni ECU dosyası" {
-                    currentChannelTitle = files.first?.name ?? "ECU Sohbeti"
+                    activeFiles = newlySelected
+                    currentChannelTitle = newlySelected.first?.name ?? "ECU Sohbeti"
+                    persistFiles(newlySelected, channelId: channelId)
                 }
             }
 
@@ -420,7 +421,7 @@ struct EcuChatView: View {
             await loadChannels()
         } catch {
             if isNewFileChannel {
-                attachments = files
+                attachments = newlySelected
             }
             messages.append(
                 ChatMessage(
@@ -433,6 +434,28 @@ struct EcuChatView: View {
         }
 
         sending = false
+    }
+
+    private func shouldAttachActiveFiles(for text: String) -> Bool {
+        let folded = text.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: Locale(identifier: "tr_TR")
+        )
+        let explicitBinaryTasks = [
+            "bin dosyasini analiz",
+            "dosyayi analiz",
+            "yeniden analiz",
+            "byte analizi",
+            "byte fark",
+            "hexdump",
+            "checksum",
+            "sha256",
+            "entropy",
+            "offset",
+            "ori mod",
+            "fark analizi"
+        ]
+        return explicitBinaryTasks.contains { folded.contains($0) }
     }
 
     private func loadChannels(query: String = "") async {
