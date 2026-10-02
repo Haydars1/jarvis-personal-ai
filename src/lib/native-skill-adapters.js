@@ -34,7 +34,9 @@ const ADAPTERS=Object.freeze([
 ]);
 
 export function resolveNativeSkillAdapter(skill={}){
-  if(String(skill.repo||'').toLowerCase()==='cubigato/thinkcar-tc-reader')return {id:'thinkdiag-tc-import',capabilities:['diagnostic-recording'],matched_capabilities:['diagnostic-recording'],lane:'worker',risk:'low',route:'/api/ecu/thinkdiag/import',status:'ready',notes:'TC recording parser; does not control Bluetooth or a vehicle.'};
+  const repo=String(skill.repo||'').toLowerCase();
+  if(repo==='cubigato/thinkcar-tc-reader')return {id:'thinkdiag-tc-import',capabilities:['diagnostic-recording'],matched_capabilities:['diagnostic-recording'],lane:'worker',risk:'low',route:'/api/ecu/thinkdiag/import',status:'ready',notes:'TC recording parser; does not control Bluetooth or a vehicle.'};
+  if(repo==='artemnovitckii/notebooklm-coach')return {id:'youtube-teaching',capabilities:['youtube-teaching'],matched_capabilities:['youtube-teaching'],lane:'cloud-runner',risk:'low',route:'/api/tools/cloud/jobs',status:'ready',notes:'JARVIS-owned clean-room YouTube teaching adapter. The third-party repository is provenance/reference only and its loader code is not auto-executed.'};
   const caps=new Set(Array.isArray(skill.capabilities)?skill.capabilities.map(String):[]);
   for(const adapter of ADAPTERS){
     const matched=adapter.capabilities.filter(cap=>caps.has(cap));

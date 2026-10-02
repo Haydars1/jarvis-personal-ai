@@ -3,12 +3,14 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
+import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex } from '../../src/lib/youtube-teaching-runtime.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
   'source-read':true,
-  'skill-analyze':true
+  'skill-analyze':true,
+  'youtube-teaching':true
 });
 
 const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
@@ -89,8 +91,24 @@ async function sourceRead(job,ctx){
   const full=path.join(ctx.dest,file),info=await stat(full);if(info.size>250*1024)throw new Error('FILE_TOO_LARGE');
   return {repo:job.repo,commit:ctx.commit,path:file,content:await readFile(full,'utf8')};
 }
+async function youtubeTeaching(job){
+  if(String(job.repo||'').toLowerCase()!==YOUTUBE_TEACHING_REPO)throw new Error('YOUTUBE_TEACHING_REPO_NOT_ALLOWED');
+  const sourceUrl=String(job.input?.url||job.input?.source_url||'').trim();
+  const parsed=parseYouTubeResourceUrl(sourceUrl);if(!parsed)throw new Error('YOUTUBE_URL_INVALID');
+  const learned=parsed.type==='video'
+    ? await fetchYouTubeTranscript(sourceUrl)
+    : await fetchYouTubeChannelIndex(sourceUrl,{limit:50});
+  return {
+    repo:YOUTUBE_TEACHING_REPO,commit:null,
+    engine:'jarvis-clean-room-youtube-teaching',
+    provenance_repo:YOUTUBE_TEACHING_REPO,
+    third_party_code_executed:false,
+    ...learned
+  };
+}
 async function executeJob(job,ctx){
   const adapter=String(job.adapter_id||'');if(!ALLOWED_ADAPTERS[adapter])throw new Error('ADAPTER_NOT_ALLOWED');
+  if(adapter==='youtube-teaching')return youtubeTeaching(job);
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
@@ -112,7 +130,8 @@ async function main(){
     processed++;
     console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
     try{
-      const ctx=await cloneJob(job),result=await executeJob(job,ctx);
+      const ctx=job.adapter_id==='youtube-teaching'?null:await cloneJob(job);
+      const result=await executeJob(job,ctx);
       await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:true,result},token});
       console.log(`Completed ${job.id}`);
     }catch(error){

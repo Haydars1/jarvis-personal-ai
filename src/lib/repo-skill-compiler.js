@@ -1,8 +1,9 @@
 import { CODE_GRAPH_CAPABILITIES } from './code-graph.js';
 
-export const SKILL_COMPILER_VERSION='2026-10-03.1';
+export const SKILL_COMPILER_VERSION='2026-10-03.2';
 
 const RULES=Object.freeze([
+  {id:'youtube-teaching',patterns:[/notebooklm-coach|youtube library|youtube channel.*(learn|teach|coach|source)|source-cited.*coach|notebooklm|bulk channel ingestion|video transcript research/i],weight:12},
   {id:'speech-to-text',patterns:[/speech[- ]to[- ]text|speech recognition|automatic speech recognition|transcrib|whisper/i],weight:9},
   {id:'wake-word-detection',patterns:[/wake[- ]?word|wakeword|keyword spotting|openwakeword/i],weight:9},
   {id:'audio-processing',patterns:[/audio|wav|mp3|speech|ffmpeg/i],weight:4},
@@ -21,7 +22,7 @@ const RULES=Object.freeze([
   {id:'local-llm',patterns:[/llama\.cpp|ollama|local llm|gguf|inference server|language model inference/i],weight:8},
   {id:'coding-agent',patterns:[/coding agent|software agent|code assistant|aider|openhands|code generation|repository agent/i],weight:8},
   {id:'workflow-automation',patterns:[/workflow automation|node-red|n8n|huginn|automation platform|rpa/i],weight:8},
-  {id:'rag',patterns:[/retrieval augmented|\brag\b|vector database|embedding|semantic search/i],weight:7},
+  {id:'rag',patterns:[/retrieval augmented|\brag\b|vector database|embedding|semantic search|source-cited|grounded citations/i],weight:7},
   {id:'vector-search',patterns:[/vector database|vector search|faiss|qdrant|chroma|milvus/i],weight:7},
   {id:'vehicle-diagnostics',patterns:[/vehicle diagnostic|diagnostic service|read dtc|fault code|obd|iso 14229|unified diagnostic services/i],weight:10},
   {id:'uds',patterns:[/\buds\b|unified diagnostic services|iso 14229/i],weight:10},
@@ -34,6 +35,7 @@ const RULES=Object.freeze([
 
 const TASK_MAP=Object.freeze({
   video_creation:['video-generation','video-processing','media-conversion','image-generation'],
+  youtube_teaching:['youtube-teaching','speech-to-text','rag','web-scraping'],
   audio:['speech-to-text','wake-word-detection','text-to-speech','audio-processing'],
   vision:['ocr','image-processing','document-processing'],
   image:['image-generation','image-processing'],
