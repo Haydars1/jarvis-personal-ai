@@ -64,6 +64,7 @@ async function appAuthed(core,req,env,ctx){
 }
 function parse(value,fallback={}){try{return JSON.parse(value||'')}catch{return fallback}}
 function publicJob(row){if(!row)return null;return {id:row.id,adapter_id:row.adapter_id,repo:row.repo,commit:row.commit_sha||null,input:parse(row.input_json,{}),status:row.status,result:parse(row.result_json,null),error:row.error,claimed_by:row.claimed_by,created_at:row.created_at,claimed_at:row.claimed_at,finished_at:row.finished_at,updated_at:row.updated_at};}
+
 export function cloudJobAnswer(row){
   if(!row||String(row.status||'')!=='completed')return null;
   const result=row.result&&typeof row.result==='object'?row.result:parse(row.result_json,null);
@@ -91,6 +92,36 @@ export function cloudJobAnswer(row){
   }
   return [...head,JSON.stringify(result,null,2).slice(0,5000)].filter(Boolean).join('\n');
 }
+
+export function skillExecutionState(skill={}){
+  const status=String(skill?.status||'').toLowerCase();
+  const adapterStatus=String(skill?.adapter_status||'').toLowerCase();
+  const adapter=skill?.native_adapter||null;
+  if(!skill?.repo&&!status&&!adapterStatus&&!adapter)return {execution_state:'catalog-only',execution_reason:'NOT_LEARNED'};
+  if(status==='degraded'||adapterStatus==='degraded')return {execution_state:'degraded',execution_reason:'ADAPTER_DEGRADED'};
+  if(adapterStatus==='ready'&&!adapter)return {execution_state:'degraded',execution_reason:'READY_ADAPTER_UNRESOLVED'};
+  if(adapterStatus!=='ready'||!adapter)return {execution_state:'learned',execution_reason:'RUNNABLE_ADAPTER_MISSING'};
+  if(skill?.requires_paid_api===true)return {execution_state:'adapter-ready',execution_reason:'PAID_API_REQUIRED'};
+  const lane=String(adapter?.lane||skill?.execution_lane||'').toLowerCase();
+  if(lane==='device'||lane==='device-bridge')return {execution_state:'adapter-ready',execution_reason:'RUNTIME_DEVICE_REQUIRED'};
+  return {execution_state:'executable',execution_reason:'VERIFIED_RUNNABLE_ADAPTER'};
+}
+
+export function summarizeExecutionStates(skills=[],curatedTotal=0,recentSuccessCount=0){
+  const rows=Array.isArray(skills)?skills:[];
+  const states=rows.map(skillExecutionState);
+  const learnedCount=states.filter(item=>item.execution_state!=='catalog-only').length;
+  return {
+    curated_repositories:Math.max(0,Number(curatedTotal)||0),
+    learned_skills:learnedCount,
+    catalog_only:Math.max(0,(Number(curatedTotal)||0)-learnedCount),
+    adapter_ready:states.filter(item=>item.execution_state==='adapter-ready').length,
+    executable:states.filter(item=>item.execution_state==='executable').length,
+    degraded:states.filter(item=>item.execution_state==='degraded').length,
+    recently_successful_executions:Math.max(0,Number(recentSuccessCount)||0)
+  };
+}
+
 function publicSkill(row){
   if(!row)return null;
   const skill={
@@ -102,7 +133,8 @@ function publicSkill(row){
     manifest:parse(row.manifest_json,{}),learned_at:row.learned_at,last_verified_at:row.last_verified_at,updated_at:row.updated_at
   };
   const nativeAdapter=resolveNativeSkillAdapter(skill);
-  return nativeAdapter?{...skill,adapter_status:'ready',native_adapter:nativeAdapter}:skill;
+  const resolved=nativeAdapter?{...skill,adapter_status:'ready',native_adapter:nativeAdapter}:skill;
+  return {...resolved,...skillExecutionState(resolved)};
 }
 function validRepo(repo){return CURATED_REPOS.has(String(repo||'').toLowerCase());}
 async function queueCloudJob(env,{adapterId,repo,commit=null,input={}}){
@@ -178,6 +210,14 @@ export function createCloudCapabilityExecution(core){
         const commit=/^[0-9a-f]{40}$/i.test(String(body.commit||''))?String(body.commit):null;
         const job=await queueCloudJob(env,{adapterId:'skill-analyze',repo,commit,input:{source:'skill-compiler',compiler_version:SKILL_COMPILER_VERSION}});
         return jsonResponse({job},202);
+      }
+      if(path==='/api/tools/skills/execution-summary'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const rows=await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 1000');
+        const skills=rows.map(publicSkill);
+        const cutoff=now()-7*24*60*60*1000;
+        const recent=await queryOne(env,"SELECT COUNT(*) AS count FROM cloud_tool_jobs WHERE status='completed' AND finished_at>=?",cutoff);
+        return jsonResponse(summarizeExecutionStates(skills,CURATED_REPOS.size,Number(recent?.count||0)));
       }
       if(path==='/api/tools/skills'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
