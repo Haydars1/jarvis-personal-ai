@@ -78,3 +78,81 @@ export function getCodeGraphStatus(graph, sourceCommit) {
   if (sourceCommit && graph.source_commit !== sourceCommit) return 'stale';
   return graph.status;
 }
+
+function graphIndex(graph) {
+  const validation = validateCodeGraph(graph);
+  if (!validation.valid) throw new Error(`Invalid code graph: ${validation.errors.join('; ')}`);
+  return new Map(graph.nodes.map(node => [node.id, node]));
+}
+
+export function findGraphNodes(graph, query, options = {}) {
+  graphIndex(graph);
+  const needle = String(query ?? '').trim().toLowerCase();
+  if (!needle) return [];
+  const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : Infinity;
+  return graph.nodes
+    .filter(node => [node.name, node.file, node.kind].some(value => String(value ?? '').toLowerCase().includes(needle)))
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .slice(0, limit);
+}
+
+export function getGraphNeighbors(graph, nodeId, options = {}) {
+  const nodes = graphIndex(graph);
+  if (!nodes.has(nodeId)) return [];
+  const direction = options.direction || 'both';
+  if (!['both', 'incoming', 'outgoing'].includes(direction)) throw new Error(`Unsupported graph direction: ${direction}`);
+  const ids = new Set();
+  for (const edge of graph.edges) {
+    if ((direction === 'both' || direction === 'outgoing') && edge.source === nodeId) ids.add(edge.target);
+    if ((direction === 'both' || direction === 'incoming') && edge.target === nodeId) ids.add(edge.source);
+  }
+  return [...ids].sort().map(id => nodes.get(id)).filter(Boolean);
+}
+
+export function findGraphPath(graph, fromId, toId, options = {}) {
+  const nodes = graphIndex(graph);
+  if (!nodes.has(fromId) || !nodes.has(toId)) return null;
+  if (fromId === toId) return [fromId];
+  const direction = options.direction || 'outgoing';
+  const queue = [[fromId]];
+  const visited = new Set([fromId]);
+  while (queue.length) {
+    const path = queue.shift();
+    const current = path[path.length - 1];
+    const neighbors = getGraphNeighbors(graph, current, { direction }).map(node => node.id);
+    for (const neighbor of neighbors) {
+      if (visited.has(neighbor)) continue;
+      const nextPath = [...path, neighbor];
+      if (neighbor === toId) return nextPath;
+      visited.add(neighbor);
+      queue.push(nextPath);
+    }
+  }
+  return null;
+}
+
+export function rankImpactedFiles(graph, changedFiles, options = {}) {
+  const nodes = graphIndex(graph);
+  const changed = new Set((Array.isArray(changedFiles) ? changedFiles : [changedFiles]).filter(Boolean).map(String));
+  if (!changed.size) return [];
+  const seeds = graph.nodes.filter(node => changed.has(node.file)).map(node => node.id).sort();
+  if (!seeds.length) return [];
+  const visited = new Set(seeds);
+  const queue = [...seeds];
+  const scores = new Map();
+  while (queue.length) {
+    const current = queue.shift();
+    const incoming = getGraphNeighbors(graph, current, { direction: 'incoming' });
+    for (const node of incoming) {
+      if (visited.has(node.id)) continue;
+      visited.add(node.id);
+      queue.push(node.id);
+      if (!changed.has(node.file)) scores.set(node.file, (scores.get(node.file) || 0) + 1);
+    }
+  }
+  const limit = Number.isInteger(options.limit) && options.limit > 0 ? options.limit : Infinity;
+  return [...scores.entries()]
+    .map(([file, score]) => ({ file, score }))
+    .sort((a, b) => b.score - a.score || a.file.localeCompare(b.file))
+    .slice(0, limit);
+}
