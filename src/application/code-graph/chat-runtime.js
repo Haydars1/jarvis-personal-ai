@@ -53,14 +53,14 @@ async function attachPendingJob(response,job){
   return jsonResponse(payload,response.status);
 }
 
-export function createCodeGraphChatRuntime(fallback){
-  if(typeof fallback!=='function')throw new Error('CODE_GRAPH_CHAT_FALLBACK_REQUIRED');
+export function createCodeGraphChatRuntime(graphFallback,normalFallback=graphFallback){
+  if(typeof graphFallback!=='function'||typeof normalFallback!=='function')throw new Error('CODE_GRAPH_CHAT_FALLBACK_REQUIRED');
   return async function handleCodeGraphChat(req,env,ctx){
     let body={};try{body=await req.clone().json();}catch{}
     const intent=parseCodeGraphIntent(body?.text||'');
-    if(!intent)return fallback(req,env,ctx);
+    if(!intent)return normalFallback(req,env,ctx);
     const job=await queueGraphJob(env,{...intent,source:'chat-code-graph'}).catch(()=>null);
-    const response=await fallback(req,env,ctx);
+    const response=await graphFallback(req,env,ctx);
     return job?attachPendingJob(response,job):response;
   };
 }
