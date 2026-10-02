@@ -2,7 +2,7 @@ name: Code Graph
 on:
   workflow_dispatch:
   pull_request:
-    paths: ['src/**','ios/**','schema.sql','scripts/code-graph/**','package*.json','.github/workflows/code-graph.yml']
+    paths: ['src/**','ios/**','schema.sql','scripts/code-graph/**','tests/code-graph*.test.js','tests/fixtures/code-graph.json','tests/fixtures/graphify-raw.json','package*.json','.github/workflows/code-graph.yml']
 permissions:
   contents: read
 jobs:
@@ -24,7 +24,7 @@ jobs:
       - name: Validate graph
         run: npm run graph:check
       - name: Focused tests
-        run: node --test tests/code-graph.test.js tests/code-graph-normalizer.test.js tests/code-graph-capability.test.js
+        run: node --test tests/code-graph.test.js tests/code-graph-normalizer.test.js tests/code-graph-cli.test.js tests/code-graph-capability.test.js
       - uses: actions/upload-artifact@v4
         if: always()
         with:
