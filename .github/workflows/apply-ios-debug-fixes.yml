@@ -24,6 +24,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           def replace(path, old, new):
               p = Path(path)
@@ -62,19 +63,23 @@ jobs:
               }
           ''')
 
-          replace(
-              'ios/JARVIS/DiagnosticView.swift',
-              '''            online: networkMonitor.isOnline,
-                  brand: effectiveBrand,''',
-              '''            online: networkMonitor.isOnline,
-                  transportReady: bluetooth.isThinkDiagTransportReady,
-                  protocolConfirmed: bluetooth.protocolProfile != nil,
-                  brand: effectiveBrand,''')
+          p = Path('ios/JARVIS/DiagnosticView.swift')
+          text = p.read_text()
+          pattern = re.compile(r'(VehicleRuntimeCapabilities\.list\(\n\s*online: networkMonitor\.isOnline,\n)(\s*)(brand: effectiveBrand,)')
+          text, count = pattern.subn(
+              lambda m: m.group(1) + m.group(2) + 'transportReady: bluetooth.isThinkDiagTransportReady,\n' + m.group(2) + 'protocolConfirmed: bluetooth.protocolProfile != nil,\n' + m.group(2) + m.group(3),
+              text,
+              count=1
+          )
+          if count != 1:
+              raise SystemExit(f'vehicle runtime call patch count={count}')
 
-          replace(
-              'ios/JARVIS/DiagnosticView.swift',
-              r'''Text("Son offline katalog güncellemesi: \(lastRefresh.formatted(date: .abbreviated, time: .shortened))")''',
-              r'''Text("Son offline katalog güncellemesi: \(JarvisTurkishFormatting.dateTime.string(from: lastRefresh))")''')
+          old_date = 'Text("Son offline katalog güncellemesi: \\(lastRefresh.formatted(date: .abbreviated, time: .shortened))")'
+          new_date = 'Text("Son offline katalog güncellemesi: \\(JarvisTurkishFormatting.dateTime.string(from: lastRefresh))")'
+          if old_date not in text:
+              raise SystemExit('offline catalog date line not found')
+          text = text.replace(old_date, new_date, 1)
+          p.write_text(text)
 
           Path('ios/JARVIS/JarvisTurkishFormatting.swift').write_text('''import Foundation
 
