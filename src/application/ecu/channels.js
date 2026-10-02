@@ -7,6 +7,32 @@ const uid=()=>crypto.randomUUID();
 
 async function readJson(req){try{return await req.clone().json();}catch{return {}}}
 function likeTerm(q=''){return `%${String(q).trim().toLowerCase().replace(/[%_]/g,'')}%`}
+function foldedText(value=''){
+  return String(value||'')
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu,'');
+}
+function needsBinaryWork(text=''){
+  const value=foldedText(text);
+  return [
+    'bin dosyasini analiz','dosyayi analiz','yeniden analiz','byte analizi','byte fark',
+    'hexdump','checksum','sha256','entropy','offset','ori mod','fark analizi',
+    'stage 1','stage1','remap','chip tun','dtc','egr','dpf','adblue','scr','vmax','hiz limit'
+  ].some(term=>value.includes(term));
+}
+function refersToAlreadyUploadedFile(text=''){
+  const value=foldedText(text);
+  const uploaded=/(yukledim|yuklu|gonderdim|attim)/.test(value);
+  const file=/(dosya|orijinal|original|bin|backup)/.test(value);
+  return uploaded&&file;
+}
+function sameStoredFile(file,row){
+  if(!file||!row)return false;
+  const incoming=String(file.name||'').trim();
+  const stored=String(row.file_name||'').trim();
+  return !!incoming&&!!stored&&incoming===stored;
+}
 async function channelRow(env,id){
   if(!id)return null;
   return env.DB.prepare('SELECT id,title,file_name,file_sha256,file_size,identity_text,created_at,updated_at FROM ecu_chat_channels WHERE id=?').bind(id).first();
@@ -128,19 +154,38 @@ export function createEcuChannelStore(core){
 
         const files=(Array.isArray(body.attachments)?body.attachments:[]);
         const primary=files.find(isBinaryAttachment)||null;
+        const requestedChannelId=String(body.channelId||body.threadId||'').trim();
+        const existing=requestedChannelId?await channelRow(env,requestedChannelId):null;
+        const text=String(body.text||'').trim();
+        const repeatedSameFile=sameStoredFile(primary,existing);
+        const binaryWork=needsBinaryWork(text);
+        const redundantBinary=repeatedSameFile&&!binaryWork;
+        const acknowledgeRepeatedFile=redundantBinary&&refersToAlreadyUploadedFile(text);
+
         let channel;
         try { channel=await ensureChannel(env,{
-          channelId:body.channelId||body.threadId,
+          channelId:requestedChannelId,
           title:body.channelTitle,
-          file:primary
+          file:redundantBinary?null:primary
         }); } catch(error) {
           if(String(error?.message||'').startsWith('ECU_FILE_'))return json({reply:ecuFileError(error),error:error.message},400);
           throw error;
         }
 
-        const text=String(body.text||'').trim();
-        const userVisible=primary?`${text}\n📎 ${files.map(x=>x.name).join(', ')}`:text;
+        const userVisible=redundantBinary?text:(primary?`${text}\n📎 ${files.map(x=>x.name).join(', ')}`:text);
         await saveMessage(env,channel.id,'user',userVisible,null,now());
+
+        if(acknowledgeRepeatedFile){
+          const reply=`Evet. Bu kanalın aktif dosyası: ${channel.fileName}. Dosyayı tekrar yüklemene gerek yok; aynı kanalda analiz, checksum veya ORI ↔ MOD karşılaştırması isteyebilirsin.`;
+          await saveMessage(env,channel.id,'assistant',reply,'JARVIS ECU Brain',now());
+          return json({
+            reply,
+            provider:'JARVIS ECU Brain',
+            channelId:channel.id,
+            channel:{id:channel.id,title:channel.title,file_name:channel.fileName,file_sha256:channel.hash,file_size:channel.fileSize},
+            history:await messages(env,channel.id)
+          });
+        }
 
         const ecuContext=channel.fileName?{
           channelId:channel.id,
@@ -149,7 +194,12 @@ export function createEcuChannelStore(core){
           sha256:channel.hash,
           identityText:channel.identityText
         }:undefined;
-        const forwardedBody={...body,channelId:channel.id,...(ecuContext?{ecuContext}:{})};
+        const forwardedBody={
+          ...body,
+          channelId:channel.id,
+          ...(redundantBinary?{attachments:[]}:{}),
+          ...(ecuContext?{ecuContext}:{})
+        };
         const forwarded=new Request(req,{body:JSON.stringify(forwardedBody)});
         const response=await core.fetch(forwarded,env,ctx);
         let payload=null;
