@@ -7,7 +7,11 @@ import {
   validateCodeGraph,
   getCodeGraphStatus,
   normalizeGraphNode,
-  normalizeGraphEdge
+  normalizeGraphEdge,
+  findGraphNodes,
+  getGraphNeighbors,
+  findGraphPath,
+  rankImpactedFiles
 } from '../src/lib/code-graph.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -68,4 +72,47 @@ test('normalization_helpers_preserve_supported_fields', () => {
     normalizeGraphEdge({ source: 'n1', target: 'n2', type: 'calls', provenance: 'EXTRACTED', ignored: true }),
     { source: 'n1', target: 'n2', type: 'calls', provenance: 'EXTRACTED' }
   );
+});
+
+test('finds_nodes_by_name_and_file', async () => {
+  const graph = await fixture();
+  assert.deepEqual(findGraphNodes(graph, 'WORKER').map(node => node.id), ['file:src/worker.js']);
+  assert.deepEqual(findGraphNodes(graph, 'application/chat').map(node => node.id), [
+    'file:src/application/chat/orchestrator.js',
+    'file:src/application/chat/presenter.js'
+  ]);
+});
+
+test('returns_directional_neighbors', async () => {
+  const graph = await fixture();
+  assert.deepEqual(getGraphNeighbors(graph, 'symbol:compose', { direction: 'outgoing' }).map(node => node.id), ['file:src/worker.js']);
+  assert.deepEqual(getGraphNeighbors(graph, 'file:src/worker.js', { direction: 'incoming' }).map(node => node.id), [
+    'file:src/application/chat/presenter.js',
+    'symbol:compose'
+  ]);
+});
+
+test('finds_shortest_path_with_cycle', async () => {
+  const graph = await fixture();
+  assert.deepEqual(findGraphPath(graph, 'file:src/app-entry.js', 'file:src/application/chat/presenter.js'), [
+    'file:src/app-entry.js',
+    'symbol:compose',
+    'file:src/worker.js',
+    'file:src/application/chat/orchestrator.js',
+    'file:src/application/chat/presenter.js'
+  ]);
+});
+
+test('returns_null_for_disconnected_path', async () => {
+  const graph = await fixture();
+  assert.equal(findGraphPath(graph, 'file:src/app-entry.js', 'file:src/disconnected.js'), null);
+});
+
+test('ranks_reverse_dependency_impact', async () => {
+  const graph = await fixture();
+  assert.deepEqual(rankImpactedFiles(graph, ['src/worker.js']), [
+    { file: 'src/app-entry.js', score: 2 },
+    { file: 'src/application/chat/orchestrator.js', score: 1 },
+    { file: 'src/application/chat/presenter.js', score: 1 }
+  ]);
 });
