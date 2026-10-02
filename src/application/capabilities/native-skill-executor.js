@@ -12,6 +12,15 @@ function binaryAttachments(context={}){
   });
 }
 
+function repoToolIntent(text=''){
+  const value=String(text||'').trim().toLowerCase();
+  if(!value)return false;
+  const explicitRepo=/\b(repo|repository|github|git|codebase|source\s*code|kaynak\s*kod|kod\s*taban[ıi])\b/i.test(value);
+  const codeTarget=/\b(checksum|parser|endpoint|api|fonksiyon|function|class|sınıf|dosya|file|commit|branch|test|kaynak|source|kod|code)\b/i.test(value);
+  const inspectAction=/\b(ara|bul|incele|nerede|hangi|search|find|inspect|locate|göster|listele)\b/i.test(value);
+  return (explicitRepo&&inspectAction)||(codeTarget&&inspectAction);
+}
+
 export function deviceIntentIsWrite(text=''){
   const action=parseEcuDeviceIntent(text),meta=action?ECU_DEVICE_ACTIONS[action]:null;
   return !!meta?.write;
@@ -21,7 +30,7 @@ export function canExecuteNativeSkill(skill,text='',context={}){
   if(!ready(skill))return false;
   const id=String(skill.native_adapter?.id||'');
   if(!SUPPORTED_ADAPTERS.has(id))return false;
-  if(id==='repo-cloud-tools')return !!skill.repo;
+  if(id==='repo-cloud-tools')return !!skill.repo&&repoToolIntent(text);
   if(id==='device-bridge')return !!parseEcuDeviceIntent(text);
   if(id==='ecu-binary-inspector')return binaryAttachments(context).length>0;
   if(id==='social-growth')return socialDraftIntent(text);
