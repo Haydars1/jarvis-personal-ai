@@ -17,6 +17,12 @@ const PROFILE = Object.freeze({
     tools: ['web-search','url-context','citations'],
     mode: 'research'
   },
+  youtube_teaching: {
+    aliases: ['yt-teaching','youtube-teaching','yt-ogretisi','youtube-ogretisi'],
+    providers: { gemini:35, openai:32, anthropic:31, perplexity:29, xai:25, openrouter:23 },
+    tools: ['youtube-teaching','citations','learning-engine'],
+    mode: 'learning'
+  },
   coding: {
     aliases: ['software','development','debug'],
     providers: { anthropic:36, openai:35, deepseek:32, mistral:29, gemini:28, nvidia:25, xai:24, openrouter:23, groq:21, cerebras:18 },
@@ -82,6 +88,7 @@ export function capabilityProfile(kind='chat') {
 
 export function classifyCapability(text='') {
   const v=String(text).toLocaleLowerCase('tr-TR');
+  if (/(?:yt|youtube).*(?:öğreti|ogreti|öğren|ogren|eğitim|egitim|teach|kaynak olarak işle)|(?:öğreti|ogreti|öğren|ogren|eğitim|egitim).*(?:youtube|youtu\.be)/i.test(v)) return 'youtube_teaching';
   if (/(dpf|egr|adblue|scr).*(off|iptal|kapat|disable)|(?:off|iptal|kapat).*(dpf|egr|adblue|scr)/i.test(v)) return 'emissions_modification';
   if (/(stage\s*1|stage1|tork|torque|boost|rail pressure|enjeksiyon).*(map|kalibr|tuning|ecu)|(?:map|kalibr|tuning).*(stage\s*1|tork|torque|boost)/i.test(v)) return 'performance_calibration';
   if (/(uzun kodlama|long coding|adaptasyon|adaptation|uyarlama|byte\s*\d+|kodlama).*(araç|ecu|modül|module|obd)|(?:araç|ecu|modül|module|obd).*(uzun kodlama|long coding|adaptasyon|uyarlama|byte)/i.test(v)) return 'vehicle_coding';
