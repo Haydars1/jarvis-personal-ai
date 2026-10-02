@@ -1,6 +1,6 @@
 import Foundation
 
-struct SemanticCodingMapping: Codable, Hashable, Identifiable {
+struct SemanticCodingMapping: Codable, Identifiable {
     let id: String
     let brand: VehicleBrand
     let semanticKey: String
