@@ -6,6 +6,10 @@ function requiredText(value, field) {
   return text;
 }
 
+function optionalText(value) {
+  return String(value ?? '').trim();
+}
+
 function graphifyLine(value) {
   if (Number.isInteger(value) && value > 0) return value;
   const match = String(value ?? '').trim().match(/^L?(\d+)(?::\d+)?$/i);
@@ -27,29 +31,39 @@ export function normalizeGraphify(raw, metadata = {}) {
   const rawEdges = Array.isArray(raw.links) ? raw.links : raw.edges;
   if (raw.nodes.length === 0 || rawEdges.length === 0) throw new Error('Graphify graph is empty');
 
-  const nodes = raw.nodes.map((node, index) => {
+  const nodes = [];
+  for (const [index, node] of raw.nodes.entries()) {
     if (!node || typeof node !== 'object') throw new Error(`Graphify nodes[${index}] must be an object`);
+    const file = optionalText(node.source_file || node.file || node.path);
+    if (!file) continue;
     const normalized = {
       id: requiredText(node.id, `nodes[${index}].id`),
       kind: nodeKind(node),
       name: requiredText(node.label || node.name || node.id, `nodes[${index}].label`),
-      file: requiredText(node.source_file || node.file || node.path, `nodes[${index}].source_file`)
+      file
     };
     const line = graphifyLine(node.source_location ?? node.line ?? node.start_line);
     if (line) normalized.line = line;
-    return normalized;
-  });
+    nodes.push(normalized);
+  }
 
-  const edges = rawEdges.map((edge, index) => {
+  if (nodes.length === 0) throw new Error('Graphify graph has no repository-backed nodes');
+  const nodeIds = new Set(nodes.map(node => node.id));
+  const edges = [];
+  for (const [index, edge] of rawEdges.entries()) {
     if (!edge || typeof edge !== 'object') throw new Error(`Graphify edges[${index}] must be an object`);
-    return {
-      source: requiredText(edge.source?.id ?? edge.source, `edges[${index}].source`),
-      target: requiredText(edge.target?.id ?? edge.target, `edges[${index}].target`),
+    const source = requiredText(edge.source?.id ?? edge.source, `edges[${index}].source`);
+    const target = requiredText(edge.target?.id ?? edge.target, `edges[${index}].target`);
+    if (!nodeIds.has(source) || !nodeIds.has(target)) continue;
+    edges.push({
+      source,
+      target,
       type: requiredText(edge.relation || edge.type || edge.kind || edge.label || 'relates', `edges[${index}].relation`).toLowerCase(),
       provenance: String(edge.confidence || edge.provenance || 'EXTRACTED').trim().toUpperCase() || 'EXTRACTED'
-    };
-  });
+    });
+  }
 
+  if (edges.length === 0) throw new Error('Graphify graph has no repository-backed edges');
   const graph = {
     version: 1,
     generator: 'graphify',
