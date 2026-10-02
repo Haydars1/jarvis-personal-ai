@@ -59,14 +59,33 @@ function skillPayload(text,skill,reply,extra={}){
 
 function repoJobAdapter(text=''){return /(ara|bul|search|kaynak|source|kod|code|dosya|file|nerede|hangi)/i.test(String(text))?'source-search':'repo-inspect';}
 
+async function readJsonResponse(response){try{return await response.json();}catch{return null;}}
+
+async function repoJobResult(core,req,env,ctx,jobId){
+  if(!jobId)return null;
+  const url=new URL(`/api/tools/cloud/jobs/${encodeURIComponent(jobId)}`,req.url);
+  const response=await core.fetch(new Request(url,{headers:req.headers}),env,ctx);
+  if(!response.ok)return null;
+  const payload=await readJsonResponse(response);
+  const job=payload?.job;
+  if(job?.status!=='completed'||!payload?.answer)return null;
+  return {job,answer:String(payload.answer)};
+}
+
 async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
   const adapterId=repoJobAdapter(text),url=new URL('/api/tools/cloud/jobs',req.url);
   const body={adapter_id:adapterId,repo:skill.repo,commit:skill.source_commit||null,input:adapterId==='source-search'?{term:String(text).slice(0,200)}:{source:'skill-first-chat'}};
   const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
   if(!response.ok)return null;
-  let payload={};try{payload=await response.json();}catch{return null;}
-  const job=payload?.job;if(!job)return null;
-  return skillPayload(text,skill,`JARVIS ${skill.repo} becerisini çalıştırıyor. Job ${String(job.id||'').slice(0,8)} oluşturuldu; gerçek repo sonucu tamamlanınca bu sohbet otomatik güncellenecek.`,{job});
+  const payload=await readJsonResponse(response);
+  const job=payload?.job;if(!job?.id)return null;
+
+  // A queued/running job is not a user answer. Query once for an already-completed
+  // result (useful when a runner finished immediately); otherwise let the caller
+  // continue to the next executable skill/provider while this job stays pending.
+  const completed=await repoJobResult(core,req,env,ctx,job.id);
+  if(!completed)return null;
+  return skillPayload(text,skill,completed.answer,{job:completed.job});
 }
 
 async function executeDeviceSkill(core,req,env,ctx,text,skill){
