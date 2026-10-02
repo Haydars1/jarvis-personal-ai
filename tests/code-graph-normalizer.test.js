@@ -56,6 +56,28 @@ test('accepts_raw_edges_key_as_well_as_clustered_links_key', async () => {
   assert.equal(graph.edges[0].type, 'calls');
 });
 
+test('drops_external_nodes_without_source_files_and_their_edges', async () => {
+  const raw = await rawFixture();
+  raw.nodes.push({
+    id: 'external:node:fs',
+    label: 'fs',
+    type: 'module',
+    source_file: '',
+    source_location: ''
+  });
+  raw.links.push({
+    source: 'src/app-entry.js:composeApplication',
+    target: 'external:node:fs',
+    relation: 'imports',
+    confidence: 'INFERRED'
+  });
+  const graph = normalizeGraphify(raw, metadata);
+  assert.equal(graph.nodes.length, 2);
+  assert.equal(graph.edges.length, 1);
+  assert.equal(graph.nodes.some(node => node.id === 'external:node:fs'), false);
+  assert.equal(graph.edges.some(edge => edge.target === 'external:node:fs'), false);
+});
+
 test('rejects_unknown_shape', () => {
   assert.throws(
     () => normalizeGraphify({ vertices: [], relationships: [] }, metadata),
