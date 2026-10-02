@@ -73,6 +73,11 @@ final class JarvisAPI {
         return try decoder.decode(CloudToolJobStatus.self, from: data)
     }
 
+    func skillExecutionSummary() async throws -> SkillExecutionSummary {
+        let data = try await request("/api/tools/skills/execution-summary")
+        return try decoder.decode(SkillExecutionSummary.self, from: data)
+    }
+
     func ecuChannels(query: String = "") async throws -> [EcuChannel] {
         var items: [URLQueryItem] = []
         if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -160,6 +165,26 @@ final class JarvisAPI {
     }
 }
 
+struct SkillExecutionSummary: Decodable {
+    let curatedRepositories: Int
+    let learnedSkills: Int
+    let catalogOnly: Int
+    let adapterReady: Int
+    let executable: Int
+    let degraded: Int
+    let recentlySuccessfulExecutions: Int
+
+    enum CodingKeys: String, CodingKey {
+        case curatedRepositories = "curated_repositories"
+        case learnedSkills = "learned_skills"
+        case catalogOnly = "catalog_only"
+        case adapterReady = "adapter_ready"
+        case executable
+        case degraded
+        case recentlySuccessfulExecutions = "recently_successful_executions"
+    }
+}
+
 struct GoogleSetupInfo: Decodable {
     let configured: Bool
     let connected: Bool
@@ -181,7 +206,6 @@ struct GoogleConnectInfo: Decodable {
     let detail: String?
     let error: String?
 }
-
 
 struct VehicleCodingResearchOperation: Codable, Hashable {
     let kind: String
