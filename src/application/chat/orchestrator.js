@@ -1,4 +1,5 @@
 import { callVaultProvider } from './smart-router.js';
+import { canExecuteNativeSkill } from '../capabilities/native-skill-executor.js';
 import { jsonResponse, queryAll, settleWithin } from '../../lib/runtime.js';
 import { cleanReply, directUrl, needsOrchestration, safeFallbackPayload, scoreProvider, taskKind, wantsResearch } from '../../lib/orchestration.js';
 
@@ -19,6 +20,7 @@ async function callJson(core,request,env,ctx){const r=await core.fetch(request,e
 async function research(core,req,env,ctx,text){const url=new URL('/api/google-search',req.url);url.searchParams.set('q',text);url.searchParams.set('num','4');const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.researchMs,null);return p?.results||[];}
 async function tools(core,req,env,ctx,text){const url=new URL('/api/tools/discover',req.url);url.searchParams.set('capability',text);const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.toolsMs,null);return p?.results||[];}
 export function readySkillCandidate(rows=[]){return (Array.isArray(rows)?rows:[]).find(skill=>skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true)||null;}
+function executableSkillCandidate(rows=[],text='',context={}){return (Array.isArray(rows)?rows:[]).find(skill=>canExecuteNativeSkill(skill,text,context))||null;}
 function skillJobAdapter(text=''){return /(ara|bul|search|kaynak|source|kod|code|dosya|file|nerede|hangi)/i.test(String(text))?'source-search':'repo-inspect';}
 async function executeReadySkill(core,req,env,ctx,text,skill){
   const adapter=skill?.native_adapter;if(!adapter)return null;
@@ -34,7 +36,12 @@ async function executeReadySkill(core,req,env,ctx,text,skill){
   }
   return null;
 }
-export async function skillFirstResponse(core,req,env,ctx,text,rows=null){const discovered=rows||await tools(core,req,env,ctx,text).catch(()=>[]),skill=readySkillCandidate(discovered);if(!skill)return null;return executeReadySkill(core,req,env,ctx,text,skill);}
+export async function skillFirstResponse(core,req,env,ctx,text,rows=null){
+  const discovered=rows||await tools(core,req,env,ctx,text).catch(()=>[]);
+  let context={};try{context=await req.clone().json();}catch{}
+  const skill=executableSkillCandidate(discovered,text,context);if(!skill)return null;
+  return executeReadySkill(core,req,env,ctx,text,skill);
+}
 function researchContext(rows){return(rows||[]).slice(0,4).map((r,i)=>`[${i+1}] ${String(r.title||'').trim()}\n${String(r.snippet||'').slice(0,350)}\n${directUrl(r.url||'')}`).join('\n\n');}
 function extractWorkersText(result){const direct=result?.response||result?.result?.response||result?.text||result?.output_text,choice=result?.choices?.[0]?.message?.content||result?.result?.choices?.[0]?.message?.content;if(typeof choice==='string')return choice;if(Array.isArray(choice))return choice.map(x=>typeof x==='string'?x:(x?.text||x?.content||'')).join('');return String(direct||'');}
 async function workersRun(env,messages,max_tokens,temperature){if(!env.AI)return null;return settleWithin(env.AI.run('@cf/zai-org/glm-4.7-flash',{messages,max_tokens,temperature}),LIMITS.fallbackAiMs,null);}
