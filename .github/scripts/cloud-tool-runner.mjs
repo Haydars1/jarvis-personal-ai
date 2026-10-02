@@ -4,13 +4,15 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex } from '../../src/lib/youtube-teaching-runtime.js';
+import { executeCodeGraphJob } from './code-graph-job.mjs';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
   'source-read':true,
   'skill-analyze':true,
-  'youtube-teaching':true
+  'youtube-teaching':true,
+  'code-graph-query':true
 });
 
 const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
@@ -109,6 +111,7 @@ async function youtubeTeaching(job){
 async function executeJob(job,ctx){
   const adapter=String(job.adapter_id||'');if(!ALLOWED_ADAPTERS[adapter])throw new Error('ADAPTER_NOT_ALLOWED');
   if(adapter==='youtube-teaching')return youtubeTeaching(job);
+  if(adapter==='code-graph-query')return executeCodeGraphJob(job,ctx);
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
