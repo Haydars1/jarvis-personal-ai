@@ -29,7 +29,7 @@ jobs:
               p = Path(path)
               text = p.read_text()
               if old not in text:
-                  raise SystemExit(f"expected source block not found: {path}")
+                  raise SystemExit(f"expected source block not found: {path}: {old[:60]!r}")
               p.write_text(text.replace(old, new, 1))
 
           replace(
@@ -63,147 +63,18 @@ jobs:
           ''')
 
           replace(
-              'ios/JARVIS/VehicleNetworkMonitor.swift',
-              '''    static func list(
-                  online: Bool,
-                  brand: VehicleBrand,
-                  hasManufacturerPack: Bool,
-                  hasCodingCache: Bool
-              ) -> [VehicleRuntimeCapability] {
-                  [
-                      .init(
-                          name: "Hata kodu okuma",
-                          available: true,
-                          tier: .local,
-                          detail: "ThinkDiag ↔ araç Bluetooth bağlantısı; internet gerekmez."
-                      ),
-                      .init(
-                          name: "Genel OBD canlı veri",
-                          available: true,
-                          tier: .local,
-                          detail: "RPM, MAP, MAF, sıcaklık, hız ve desteklenen PID'ler yerel çalışır."
-                      ),
-                      .init(
-                          name: "Yerel DTC açıklaması",
-                          available: true,
-                          tier: .local,
-                          detail: "Uygulama içindeki DTC veritabanından çalışır."
-                      ),
-                      .init(
-                          name: "Üretici modül taraması",
-                          available: hasManufacturerPack,
-                          tier: hasManufacturerPack ? .cached : .onlineEnhanced,
-                          detail: hasManufacturerPack
-                              ? "\\(brand.rawValue) teşhis paketi telefonda mevcut."
-                              : "Bu marka için üretici paketi önce çevrimiçiyken indirilmelidir."
-                      ),
-                      .init(
-                          name: "Kodlama / gizli özellikler",
-                          available: hasCodingCache || online,
-                          tier: hasCodingCache ? .cached : .onlineEnhanced,
-                          detail: hasCodingCache
-                              ? "Daha önce indirilen doğrulanmış reçeteler internet olmadan kullanılabilir."
-                              : "Yeni reçete/katalog için internet gerekir."
-                      ),
-                      .init(
-                          name: "AI teşhis yorumu",
-                          available: online,
-                          tier: .onlineEnhanced,
-                          detail: online
-                              ? "Yerel teşhisin üstüne ek yorum yapabilir."
-                              : "İnternet yok; yerel açıklama kullanılacak."
-                      )
-                  ]
-              }
-          ''',
-              '''    static func list(
-                  online: Bool,
-                  transportReady: Bool,
-                  protocolConfirmed: Bool,
-                  brand: VehicleBrand,
-                  hasManufacturerPack: Bool,
-                  hasCodingCache: Bool
-              ) -> [VehicleRuntimeCapability] {
-                  let genericReady = transportReady && protocolConfirmed
-                  let manufacturerReady = genericReady && hasManufacturerPack
-                  let codingReady = genericReady && hasCodingCache
-
-                  return [
-                      .init(
-                          name: "Hata kodu okuma",
-                          available: genericReady,
-                          tier: .local,
-                          detail: !transportReady
-                              ? "ThinkDiag bağlı değil."
-                              : (protocolConfirmed ? "ThinkDiag ↔ araç OBD bağlantısı doğrulandı; internet gerekmez." : "ThinkDiag bağlı; OBD protokolü henüz doğrulanmadı.")
-                      ),
-                      .init(
-                          name: "Genel OBD canlı veri",
-                          available: genericReady,
-                          tier: .local,
-                          detail: !transportReady
-                              ? "ThinkDiag bağlı değil."
-                              : (protocolConfirmed ? "RPM, MAP, MAF, sıcaklık, hız ve desteklenen PID'ler yerel çalışır." : "Canlı veri için OBD protokolünün doğrulanması gerekiyor.")
-                      ),
-                      .init(
-                          name: "Yerel DTC açıklaması",
-                          available: true,
-                          tier: .local,
-                          detail: "Okunan veya içe aktarılan DTC'ler uygulama içindeki veritabanından açıklanır."
-                      ),
-                      .init(
-                          name: "Üretici modül taraması",
-                          available: manufacturerReady,
-                          tier: hasManufacturerPack ? .cached : .onlineEnhanced,
-                          detail: !transportReady
-                              ? "Önce ThinkDiag bağlantısını kur."
-                              : (!protocolConfirmed
-                                  ? "Önce OBD protokolünü doğrula."
-                                  : (hasManufacturerPack ? "\\(brand.rawValue) teşhis paketi telefonda mevcut." : "Bu marka için üretici paketi önce çevrimiçiyken indirilmelidir."))
-                      ),
-                      .init(
-                          name: "Kodlama / gizli özellikler",
-                          available: codingReady,
-                          tier: hasCodingCache ? .cached : .onlineEnhanced,
-                          detail: !transportReady
-                              ? "Önce ThinkDiag bağlantısını kur."
-                              : (!protocolConfirmed
-                                  ? "Önce araç protokolünü doğrula."
-                                  : (hasCodingCache ? "Doğrulanmış reçeteler telefonda mevcut." : (online ? "İnternet var; ancak doğrulanmış kodlama reçetesi henüz telefonda yok." : "Doğrulanmış kodlama reçetesi telefonda yok.")))
-                      ),
-                      .init(
-                          name: "AI teşhis yorumu",
-                          available: online,
-                          tier: .onlineEnhanced,
-                          detail: online
-                              ? "Yerel teşhisin üstüne ek yorum yapabilir."
-                              : "İnternet yok; yerel açıklama kullanılacak."
-                      )
-                  ]
-              }
-          ''')
-
-          replace(
               'ios/JARVIS/DiagnosticView.swift',
-              '''        VehicleRuntimeCapabilities.list(
-                  online: networkMonitor.isOnline,
-                  brand: effectiveBrand,
-                  hasManufacturerPack: ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil,
-                  hasCodingCache: OfflineVehicleDataStore.hasCodingResearch(brand: effectiveBrand)
-              )''',
-              '''        VehicleRuntimeCapabilities.list(
-                  online: networkMonitor.isOnline,
+              '''            online: networkMonitor.isOnline,
+                  brand: effectiveBrand,''',
+              '''            online: networkMonitor.isOnline,
                   transportReady: bluetooth.isThinkDiagTransportReady,
                   protocolConfirmed: bluetooth.protocolProfile != nil,
-                  brand: effectiveBrand,
-                  hasManufacturerPack: ManufacturerDiagnosticRegistry.shared.pack(for: effectiveBrand) != nil,
-                  hasCodingCache: OfflineVehicleDataStore.hasCodingResearch(brand: effectiveBrand)
-              )''')
+                  brand: effectiveBrand,''')
 
           replace(
               'ios/JARVIS/DiagnosticView.swift',
-              '''Text("Son offline katalog güncellemesi: \\(lastRefresh.formatted(date: .abbreviated, time: .shortened))")''',
-              '''Text("Son offline katalog güncellemesi: \\(JarvisTurkishFormatting.dateTime.string(from: lastRefresh))")''')
+              r'''Text("Son offline katalog güncellemesi: \(lastRefresh.formatted(date: .abbreviated, time: .shortened))")''',
+              r'''Text("Son offline katalog güncellemesi: \(JarvisTurkishFormatting.dateTime.string(from: lastRefresh))")''')
 
           Path('ios/JARVIS/JarvisTurkishFormatting.swift').write_text('''import Foundation
 
@@ -226,7 +97,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ios/JARVIS/ThinkDiagBluetooth.swift ios/JARVIS/VehicleNetworkMonitor.swift ios/JARVIS/DiagnosticView.swift ios/JARVIS/JarvisTurkishFormatting.swift
+          git add ios/JARVIS/ThinkDiagBluetooth.swift ios/JARVIS/DiagnosticView.swift ios/JARVIS/JarvisTurkishFormatting.swift
           git rm .github/workflows/apply-ios-debug-fixes.yml
           git commit -m "fix: make native diagnostic status truthful"
           git push origin HEAD:feature/learning-engine
