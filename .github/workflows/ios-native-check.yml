@@ -46,3 +46,5 @@ jobs:
         run: |
           echo "iOS source validated. No IPA artifact is uploaded from normal development builds." >> "$GITHUB_STEP_SUMMARY"
           echo "Use the 'Build JARVIS Workshop Beta IPA' workflow only when a consolidated test build is wanted." >> "$GITHUB_STEP_SUMMARY"
+
+# validation-trigger: 2026-10-02-screenshot-bug-fixes
