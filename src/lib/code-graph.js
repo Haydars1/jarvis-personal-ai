@@ -156,3 +156,6 @@ export function rankImpactedFiles(graph, changedFiles, options = {}) {
     .sort((a, b) => b.score - a.score || a.file.localeCompare(b.file))
     .slice(0, limit);
 }
+
+export const CODE_GRAPH_CAPABILITIES=Object.freeze(['code-graph','dependency-trace','impact-analysis','symbol-neighborhood']);
+export function graphCapabilities(graph,sourceCommit){return getCodeGraphStatus(graph,sourceCommit)==='ready'?[...CODE_GRAPH_CAPABILITIES]:[];}
