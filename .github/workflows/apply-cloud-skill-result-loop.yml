@@ -1,0 +1,92 @@
+name: Apply cloud skill result loop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-cloud-skill-result-loop.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Patch cloud skill result flow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('src/application/capabilities/cloud-execution.js')
+          s=p.read_text()
+          marker="function publicJob(row){if(!row)return null;return {id:row.id,adapter_id:row.adapter_id,repo:row.repo,commit:row.commit_sha||null,input:parse(row.input_json,{}),status:row.status,result:parse(row.result_json,null),error:row.error,claimed_by:row.claimed_by,created_at:row.created_at,claimed_at:row.claimed_at,finished_at:row.finished_at,updated_at:row.updated_at};}\n"
+          if marker not in s:
+              raise SystemExit('publicJob marker missing')
+          helper=r'''function publicJob(row){if(!row)return null;return {id:row.id,adapter_id:row.adapter_id,repo:row.repo,commit:row.commit_sha||null,input:parse(row.input_json,{}),status:row.status,result:parse(row.result_json,null),error:row.error,claimed_by:row.claimed_by,created_at:row.created_at,claimed_at:row.claimed_at,finished_at:row.finished_at,updated_at:row.updated_at};}
+export function cloudJobAnswer(row){
+  if(!row||String(row.status||'')!=='completed')return null;
+  const result=row.result&&typeof row.result==='object'?row.result:parse(row.result_json,null);
+  if(!result||typeof result!=='object')return null;
+  const repo=String(row.repo||result.repo||'repo');
+  const commit=String(result.commit||row.commit_sha||'');
+  const head=[`Repo sonucu hazır: ${repo}`,commit?`Commit: ${commit}`:''].filter(Boolean);
+  if(row.adapter_id==='source-search'){
+    const term=String(result.term||'').trim();
+    const matches=Array.isArray(result.matches)?result.matches:[];
+    if(!matches.length)return [...head,term?`Aranan: ${term}`:'','Eşleşme bulunamadı.'].filter(Boolean).join('\n');
+    const lines=matches.slice(0,20).map(item=>`${item.file||'?'}:${item.line||'?'} — ${String(item.text||'').trim()}`);
+    return [...head,term?`Aranan: ${term}`:'',`Eşleşme: ${matches.length}`,'',...lines,matches.length>20?'… daha fazla eşleşme var.':''].filter(Boolean).join('\n');
+  }
+  if(row.adapter_id==='repo-inspect'){
+    const files=Array.isArray(result.files)?result.files:[];
+    const snippets=result.snippets&&typeof result.snippets==='object'?result.snippets:{};
+    const readme=String(snippets['README.md']||snippets['README.MD']||snippets['readme.md']||'').trim();
+    return [...head,`Dosya sayısı: ${Number(result.file_count||files.length||0)}`,files.length?`İlk dosyalar: ${files.slice(0,25).join(', ')}`:'',readme?`\nREADME özeti:\n${readme.slice(0,2500)}`:''].filter(Boolean).join('\n');
+  }
+  if(row.adapter_id==='source-read'){
+    return [...head,result.path?`Dosya: ${result.path}`:'',String(result.content||'').slice(0,5000)].filter(Boolean).join('\n');
+  }
+  if(row.adapter_id==='skill-analyze'){
+    const caps=Array.isArray(result.capabilities)?result.capabilities:[];
+    return [...head,result.primary_capability?`Ana yetenek: ${result.primary_capability}`:'',caps.length?`Yetenekler: ${caps.join(', ')}`:'',result.execution_lane?`Çalışma yolu: ${result.execution_lane}`:''].filter(Boolean).join('\n');
+  }
+  return [...head,JSON.stringify(result,null,2).slice(0,5000)].filter(Boolean).join('\n');
+}
+'''
+          s=s.replace(marker,helper,1)
+          endpoint_marker="      if(path==='/api/tools/cloud/jobs'&&method==='GET'){\n        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);\n        const rows=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 100');return jsonResponse({jobs:rows.map(publicJob)});\n      }\n"
+          if endpoint_marker not in s:
+              raise SystemExit('jobs GET marker missing')
+          endpoint=endpoint_marker+"      const appJobMatch=path.match(/^\\/api\\/tools\\/cloud\\/jobs\\/([^/]+)$/);\n      if(appJobMatch&&method==='GET'){\n        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);\n        const id=decodeURIComponent(appJobMatch[1]);\n        const row=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id);\n        if(!row)return jsonResponse({error:'JOB_NOT_FOUND'},404);\n        return jsonResponse({job:publicJob(row),answer:cloudJobAnswer(row)});\n      }\n"
+          s=s.replace(endpoint_marker,endpoint,1)
+          p.write_text(s)
+
+          p=Path('src/application/capabilities/native-skill-executor.js')
+          s=p.read_text()
+          old="  return skillPayload(text,skill,`JARVIS bu işi ${skill.repo} becerisine verdi. Bulut skill işi kuyruğa alındı: ${String(job.id||'').slice(0,8)}.`,{job});"
+          new="  return skillPayload(text,skill,`JARVIS ${skill.repo} becerisini çalıştırıyor. Job ${String(job.id||'').slice(0,8)} oluşturuldu; gerçek repo sonucu tamamlanınca bu sohbet otomatik güncellenecek.`,{job});"
+          if old not in s:
+              raise SystemExit('native reply marker missing')
+          p.write_text(s.replace(old,new,1))
+          PY
+          npm install --no-audit --no-fund
+          npm run check
+          git diff --check
+      - name: Commit result loop backend
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/application/capabilities/cloud-execution.js src/application/capabilities/native-skill-executor.js tests/cloud-skill-result-loop.test.js
+          git rm .github/workflows/apply-cloud-skill-result-loop.yml
+          git commit -m "fix: return real cloud skill job results"
+          git push origin HEAD:main
