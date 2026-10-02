@@ -1,11 +1,28 @@
 import { CURATED_CAPABILITY_SEEDS } from './open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from './obd-pdf-seeds.js';
+import { CODE_GRAPH_CAPABILITIES } from './code-graph.js';
 import provenance from '../../data/pdf-repository-provenance.json' with { type: 'json' };
 import registry from '../../data/capability-registry.json' with { type: 'json' };
 import audit from '../../data/pdf-repository-audit.json' with { type: 'json' };
 
 const NATIVE = { 'cubigato/thinkcar-tc-reader': { status: 'ready', mode: 'format-adapter', route: '/api/ecu/thinkdiag/import', detail: 'TC kayıtları: gerçek örnekle doğrulanmış okuyucu, birimler, CSV/JSON ve istatistik.' } };
 const SERVICE_REPOS = new Set(['ollama/ollama', 'ggml-org/llama.cpp', 'mudler/localai', 'vllm-project/vllm', 'lostruins/koboldcpp', 'oobabooga/text-generation-webui']);
+const GRAPH_STATUSES = new Set(['ready', 'stale', 'degraded', 'unavailable', 'invalid']);
+
+export function repositoryCodeGraphIntegration(status = 'unavailable') {
+  const normalized = String(status || 'unavailable').toLowerCase();
+  const graphStatus = GRAPH_STATUSES.has(normalized) ? normalized : 'unavailable';
+  return {
+    status: graphStatus,
+    mode: 'code-graph',
+    generator: 'graphify-or-native',
+    capabilities: graphStatus === 'ready' ? [...CODE_GRAPH_CAPABILITIES] : [],
+    detail: graphStatus === 'ready'
+      ? 'Repository dependency, symbol-neighborhood and impact-analysis intelligence is current for the validated source commit.'
+      : 'Repository graph state is visible, but structural capabilities are not advertised until the graph is validated as current.'
+  };
+}
+
 export function repositoryIntegrations() {
   const metadata = new Map(registry.entries.map(row => [row.repo.toLowerCase(), row]));
   const seeds = new Map([...CURATED_CAPABILITY_SEEDS, ...OBD_PDF_SEEDS].map(row => [row.repo.toLowerCase(), row]));

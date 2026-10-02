@@ -104,3 +104,9 @@ Primary boundaries:
 3. Add structured observability for provider latency, timeout and fallback reasons without exposing hidden reasoning.
 4. Audit and remove duplicate nested trees only after references are proven absent.
 5. Split native iOS `AppState` into focused session/chat/system-action stores and break large SwiftUI views into focused components.
+
+## Repository code graph
+
+JARVIS owns a normalized version-1 code-graph contract in `src/lib/code-graph.js`. Graphify is an optional local/CI producer only: Python and Graphify are not Cloudflare Worker runtime dependencies. Graph freshness is tied to the exact source commit; stale graphs do not advertise structural capabilities. The stable contract allows a native JARVIS parser to replace Graphify later without changing query consumers.
+
+Graph generation and validation run through `scripts/code-graph/` and the dedicated `.github/workflows/code-graph.yml` workflow. Generated `graphify-out/` data is diagnostic/build output and is not committed to main automatically.

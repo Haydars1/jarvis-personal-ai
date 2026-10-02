@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "generator": "graphify",
+  "source_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "generated_at": "2026-10-03T12:00:00.000Z",
+  "status": "ready",
+  "nodes": [
+    { "id": "file:src/app-entry.js", "kind": "file", "name": "app-entry.js", "file": "src/app-entry.js", "line": 1 },
+    { "id": "symbol:compose", "kind": "function", "name": "composeApplication", "file": "src/app-entry.js", "line": 20 },
+    { "id": "file:src/worker.js", "kind": "file", "name": "worker.js", "file": "src/worker.js", "line": 1 },
+    { "id": "file:src/application/chat/orchestrator.js", "kind": "file", "name": "orchestrator.js", "file": "src/application/chat/orchestrator.js", "line": 1 },
+    { "id": "file:src/application/chat/presenter.js", "kind": "file", "name": "presenter.js", "file": "src/application/chat/presenter.js", "line": 1 },
+    { "id": "file:src/disconnected.js", "kind": "file", "name": "disconnected.js", "file": "src/disconnected.js", "line": 1 }
+  ],
+  "edges": [
+    { "source": "file:src/app-entry.js", "target": "symbol:compose", "type": "contains", "provenance": "EXTRACTED" },
+    { "source": "symbol:compose", "target": "file:src/worker.js", "type": "imports", "provenance": "EXTRACTED" },
+    { "source": "file:src/worker.js", "target": "file:src/application/chat/orchestrator.js", "type": "calls", "provenance": "EXTRACTED" },
+    { "source": "file:src/application/chat/orchestrator.js", "target": "file:src/application/chat/presenter.js", "type": "calls", "provenance": "EXTRACTED" },
+    { "source": "file:src/application/chat/presenter.js", "target": "file:src/worker.js", "type": "imports", "provenance": "EXTRACTED" }
+  ],
+  "stats": { "nodes": 6, "edges": 5 }
+}

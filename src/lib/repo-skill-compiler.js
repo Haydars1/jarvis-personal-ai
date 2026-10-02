@@ -1,4 +1,6 @@
-export const SKILL_COMPILER_VERSION='2026-10-02.1';
+import { CODE_GRAPH_CAPABILITIES } from './code-graph.js';
+
+export const SKILL_COMPILER_VERSION='2026-10-03.2';
 
 const RULES=Object.freeze([
   {id:'youtube-teaching',patterns:[/notebooklm-coach|youtube library|youtube channel.*(learn|teach|coach|source)|source-cited.*coach|notebooklm|bulk channel ingestion|video transcript research/i],weight:12},
@@ -37,7 +39,7 @@ const TASK_MAP=Object.freeze({
   audio:['speech-to-text','wake-word-detection','text-to-speech','audio-processing'],
   vision:['ocr','image-processing','document-processing'],
   image:['image-generation','image-processing'],
-  coding:['coding-agent','local-llm','binary-analysis'],
+  coding:['coding-agent','code-graph','dependency-trace','impact-analysis','symbol-neighborhood','local-llm','binary-analysis'],
   research:['web-scraping','browser-automation','web-navigation','rag','vector-search','prompt-engineering'],
   social_strategy:['social-automation','video-processing','workflow-automation'],
   ecu_diagnostics:['vehicle-diagnostics','uds','can-bus'],
@@ -47,6 +49,8 @@ const TASK_MAP=Object.freeze({
   reporting:['document-processing','ocr','rag','prompt-engineering'],
   chat:['local-llm','rag','prompt-engineering']
 });
+
+const GRAPH_STATUSES=new Set(['ready','stale','degraded','unavailable','invalid']);
 
 function normalizedText(inspect={}){
   const snippets=inspect.snippets&&typeof inspect.snippets==='object'?inspect.snippets:{};
@@ -79,11 +83,17 @@ function riskFor(capabilities){
   if(capabilities.some(x=>['browser-automation','web-navigation','workflow-automation','social-automation'].includes(x)))return 'medium';
   return 'low';
 }
+function codeGraphStatus(hints={}){
+  const status=String(hints.codeGraphStatus||'unavailable').toLowerCase();
+  return GRAPH_STATUSES.has(status)?status:'unavailable';
+}
 
 export function compileRepositorySkill(inspect={},hints={}){
   const text=normalizedText(inspect);
   const repo=String(inspect.repo||hints.repo||'').trim();
+  const graphStatus=codeGraphStatus(hints);
   const capabilities=detectCapabilities(text,repo.toLowerCase());
+  if(graphStatus==='ready')capabilities.push(...CODE_GRAPH_CAPABILITIES.filter(cap=>!capabilities.includes(cap)));
   const commit=/^[0-9a-f]{40}$/i.test(String(inspect.commit||''))?String(inspect.commit):null;
   return {
     id:`repo:${repo.toLowerCase()}`,
@@ -98,7 +108,7 @@ export function compileRepositorySkill(inspect={},hints={}){
     status:capabilities.length?'learned':'needs-review',
     verification:'repository-inspection',
     adapter_status:'unverified',
-    evidence:{files:Number(inspect.file_count||0),snippets:Object.keys(inspect.snippets||{})}
+    evidence:{files:Number(inspect.file_count||0),snippets:Object.keys(inspect.snippets||{}),code_graph_status:graphStatus}
   };
 }
 
