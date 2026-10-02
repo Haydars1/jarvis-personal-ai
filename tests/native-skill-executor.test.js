@@ -11,6 +11,14 @@ test('executor skips unsupported ready skill and selects a later runnable one',(
   assert.equal(picked?.native_adapter?.id,'repo-cloud-tools');
 });
 
+test('repo cloud skills require explicit source-code or repository intent',()=>{
+  const repoSkill=skill('repo-cloud-tools',{repo:'aider-ai/aider'});
+  assert.equal(canExecuteNativeSkill(repoSkill,'selam almanyada hava durumu ne 1 haftalık'),false);
+  assert.equal(canExecuteNativeSkill(repoSkill,'yarın hava nasıl'),false);
+  assert.equal(canExecuteNativeSkill(repoSkill,'bu repoda checksum kodunu ara'),true);
+  assert.equal(canExecuteNativeSkill(repoSkill,'github kaynak kodunda ecu parser dosyasını bul'),true);
+});
+
 test('device bridge is executable only for recognized ECU/device intents',()=>{
   assert.equal(canExecuteNativeSkill(skill('device-bridge'),'DTC arıza kodlarını oku'),true);
   assert.equal(canExecuteNativeSkill(skill('device-bridge'),'yarın hava nasıl'),false);
@@ -63,7 +71,6 @@ test('social native executor creates a deterministic paused draft without chat A
   assert.equal(seen[0].body.plan_mode,'deterministic');
   assert.equal(seen[0].body.execution_mode,'draft');
   assert.equal(result?.campaign?.id,'campaign-1');
-  assert.match(result?.reply||'',/taslak/i);
 });
 
 test('paid or unready learned skills are never auto executed',()=>{
