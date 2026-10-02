@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var showEcu = false
     @State private var showDiagnostics = false
     @State private var showYouTube = false
+    @State private var showYouTubeTeaching = false
     @State private var photoItem: PhotosPickerItem?
     @FocusState private var composerFocused: Bool
     @FocusState private var loginPasswordFocused: Bool
@@ -56,6 +57,9 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showYouTube) {
             YouTubeStudioView().presentationDetents([.large])
+        }
+        .sheet(isPresented: $showYouTubeTeaching) {
+            YouTubeTeachingView().presentationDetents([.large])
         }
         .sheet(isPresented: $showCamera) {
             CameraPicker { state.addAttachment($0) }.ignoresSafeArea()
@@ -172,6 +176,16 @@ struct ContentView: View {
                         showYouTube = true
                     } label: {
                         Label("YouTube", systemImage: "play.rectangle.fill")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(12)
+
+                    Button {
+                        showSidebar = false
+                        showYouTubeTeaching = true
+                    } label: {
+                        Label("YT Öğretisi", systemImage: "graduationcap.fill")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.plain)
