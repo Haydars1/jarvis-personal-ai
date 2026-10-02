@@ -14,6 +14,7 @@ final class OfflineCatalogPrefetcher: ObservableObject {
 
     init() {
         lastRefresh = defaults.object(forKey: refreshKey) as? Date
+        refreshCacheCount()
     }
 
     func refreshCacheCount() {
@@ -42,6 +43,8 @@ final class OfflineCatalogPrefetcher: ObservableObject {
                 if !catalog.candidates.isEmpty {
                     OfflineVehicleDataStore.saveCodingResearch(catalog.candidates, brand: brand)
                     successful += 1
+                } else if OfflineVehicleDataStore.hasCodingResearch(brand: brand) {
+                    successful += 1
                 }
             } catch {
                 if OfflineVehicleDataStore.hasCodingResearch(brand: brand) {
@@ -53,6 +56,12 @@ final class OfflineCatalogPrefetcher: ObservableObject {
         }
 
         cachedBrands = successful
+        guard successful > 0 else {
+            lastRefresh = nil
+            defaults.removeObject(forKey: refreshKey)
+            return
+        }
+
         let now = Date()
         lastRefresh = now
         defaults.set(now, forKey: refreshKey)
