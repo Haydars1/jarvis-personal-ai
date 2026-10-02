@@ -16,9 +16,9 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - name: Install open-source Graphify
-        run: pip install 'graphifyy' || { echo 'Official Graphify package (graphifyy) unavailable; graph job degrades without blocking JARVIS runtime.'; exit 1; }
+        run: pip install 'graphifyy[sql]==0.9.74' || { echo 'Official Graphify package (graphifyy) unavailable; graph job degrades without blocking JARVIS runtime.'; exit 1; }
       - name: Graphify version
-        run: graphify --version || true
+        run: graphify --version
       - name: Build graph
         run: npm run graph:build
       - name: Validate graph
