@@ -35,12 +35,16 @@ export async function buildRuntimeCodeGraph(ctx){
   return normalizeGraphify(raw,{sourceCommit:ctx.commit,generatedAt:new Date().toISOString()});
 }
 
-export async function executeCodeGraphJob(job,ctx){
-  const graph=await buildRuntimeCodeGraph(ctx),input=job.input||{},operation=String(input.operation||'status');
-  const common={repo:job.repo,commit:ctx.commit,engine:'graphify',graph_status:getCodeGraphStatus(graph,ctx.commit),stats:graph.stats,operation};
+export function executeCodeGraphQuery(graph,input={},metadata={}){
+  const operation=String(input.operation||'status');
+  const commit=String(metadata.commit||graph.source_commit||'');
+  const common={repo:String(metadata.repo||''),commit,engine:'graphify',graph_status:getCodeGraphStatus(graph,commit),stats:graph.stats,operation};
   if(operation==='status')return common;
   if(operation==='find')return {...common,query:String(input.query||''),nodes:findGraphNodes(graph,String(input.query||''),{limit:20}).map(compactNode)};
-  if(operation==='impact')return {...common,files:Array.isArray(input.files)?input.files.map(String).slice(0,12):[],impacted:rankImpactedFiles(graph,Array.isArray(input.files)?input.files:[],{limit:30})};
+  if(operation==='impact'){
+    const files=Array.isArray(input.files)?input.files.map(String).slice(0,12):[];
+    return {...common,files,impacted:rankImpactedFiles(graph,files,{limit:30})};
+  }
   if(operation==='neighbors'){
     const node=resolveNode(graph,String(input.node_id||input.query||''));
     if(!node)return {...common,query:String(input.query||''),node:null,neighbors:[]};
@@ -53,4 +57,9 @@ export async function executeCodeGraphJob(job,ctx){
     return {...common,from:compactNode(from),to:compactNode(to),path:ids?ids.map(id=>compactNode(graph.nodes.find(node=>node.id===id))):null};
   }
   throw new Error('CODE_GRAPH_OPERATION_NOT_SUPPORTED');
+}
+
+export async function executeCodeGraphJob(job,ctx){
+  const graph=await buildRuntimeCodeGraph(ctx);
+  return executeCodeGraphQuery(graph,job.input||{},{repo:job.repo,commit:ctx.commit});
 }
