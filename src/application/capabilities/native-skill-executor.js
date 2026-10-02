@@ -2,7 +2,7 @@ import { jsonResponse } from '../../lib/runtime.js';
 import { parseEcuDeviceIntent, ECU_DEVICE_ACTIONS } from '../ecu/device-bridge.js';
 import { socialDraftIntent } from '../social/native-draft.js';
 
-const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector','social-growth']);
+const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector','social-growth','youtube-teaching']);
 
 function ready(skill){return skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true;}
 function binaryAttachments(context={}){
@@ -21,6 +21,17 @@ function repoToolIntent(text=''){
   return (explicitRepo&&inspectAction)||(codeTarget&&inspectAction);
 }
 
+function extractYouTubeUrl(text=''){
+  const match=String(text||'').match(/https:\/\/(?:(?:www|m)\.)?(?:youtube\.com\/(?:watch\?[^\s]*v=[A-Za-z0-9_-]+|shorts\/[A-Za-z0-9_-]+|live\/[A-Za-z0-9_-]+|embed\/[A-Za-z0-9_-]+|@[^\s/?#]+|channel\/UC[A-Za-z0-9_-]+|c\/[^\s/?#]+|user\/[^\s/?#]+)|youtu\.be\/[A-Za-z0-9_-]+)[^\s]*/i);
+  return match?match[0].replace(/[),.;!?]+$/,''):'';
+}
+
+function youtubeTeachingIntent(text=''){
+  const value=String(text||'').toLocaleLowerCase('tr-TR');
+  if(!extractYouTubeUrl(value))return false;
+  return /(?:yt|youtube).*(?:öğreti|ogreti|öğren|ogren|eğitim|egitim|analiz et.*öğren|kaynak olarak işle|teach)|(?:öğreti|ogreti|öğren|ogren|eğitim|egitim|teach|kaynak olarak işle).*(?:youtube|youtu\.be)/i.test(value);
+}
+
 export function deviceIntentIsWrite(text=''){
   const action=parseEcuDeviceIntent(text),meta=action?ECU_DEVICE_ACTIONS[action]:null;
   return !!meta?.write;
@@ -34,6 +45,7 @@ export function canExecuteNativeSkill(skill,text='',context={}){
   if(id==='device-bridge')return !!parseEcuDeviceIntent(text);
   if(id==='ecu-binary-inspector')return binaryAttachments(context).length>0;
   if(id==='social-growth')return socialDraftIntent(text);
+  if(id==='youtube-teaching')return youtubeTeachingIntent(text);
   return false;
 }
 
@@ -87,8 +99,22 @@ async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
       pendingSkill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id}
     };
   }
-  // A synchronously failed cloud job is a real failure, so the next compatible
-  // executable skill may be attempted immediately.
+  return null;
+}
+
+async function executeYouTubeTeachingSkill(core,req,env,ctx,text,skill){
+  const sourceUrl=extractYouTubeUrl(text);if(!sourceUrl)return null;
+  const url=new URL('/api/tools/cloud/jobs',req.url);
+  const body={adapter_id:'youtube-teaching',repo:skill.repo,commit:null,input:{url:sourceUrl,source:'yt-teaching'}};
+  const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
+  if(!response.ok)return null;
+  const payload=await readJsonResponse(response),queuedJob=payload?.job;
+  if(!queuedJob?.id)return null;
+  const current=await repoJobStatus(core,req,env,ctx,queuedJob.id);
+  if(current?.job?.status==='completed'&&current.answer)return skillPayload(text,skill,current.answer,{job:current.job});
+  if(['queued','running'].includes(String(current?.job?.status||queuedJob.status||''))){
+    return {pendingSkillJob:current?.job||queuedJob,pendingSkill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:'youtube-teaching'}};
+  }
   return null;
 }
 
@@ -142,6 +168,7 @@ export async function executeNativeSkill(core,req,env,ctx,text,skill,context={})
   if(!canExecuteNativeSkill(skill,text,context))return null;
   const id=skill.native_adapter.id;
   if(id==='repo-cloud-tools')return executeRepoCloudSkill(core,req,env,ctx,text,skill);
+  if(id==='youtube-teaching')return executeYouTubeTeachingSkill(core,req,env,ctx,text,skill);
   if(id==='device-bridge')return executeDeviceSkill(core,req,env,ctx,text,skill);
   if(id==='ecu-binary-inspector')return executeBinarySkill(core,req,env,ctx,text,skill,context);
   if(id==='social-growth')return executeSocialDraftSkill(core,req,env,ctx,text,skill);
@@ -153,8 +180,6 @@ export async function executeFirstNativeSkill(core,req,env,ctx,text,rows=[],cont
     if(!canExecuteNativeSkill(skill,text,context))continue;
     const result=await executeNativeSkill(core,req,env,ctx,text,skill,context).catch(()=>null);
     if(result?.reply)return result;
-    // One queued runner job is enough. Do not enqueue the same user request across
-    // several repositories while the first compatible skill is already running.
     if(result?.pendingSkillJob)return result;
   }
   return null;

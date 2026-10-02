@@ -21,7 +21,8 @@ const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':{label:'Repository inspect',mode:'read-only'},
   'source-search':{label:'Source search',mode:'read-only'},
   'source-read':{label:'Source file read',mode:'read-only'},
-  'skill-analyze':{label:'Learn repository skill',mode:'read-only'}
+  'skill-analyze':{label:'Learn repository skill',mode:'read-only'},
+  'youtube-teaching':{label:'YouTube teaching',mode:'read-only-learning'}
 });
 const CURATED_REPOS=new Set([...CURATED_CAPABILITY_SEEDS,...OBD_PDF_SEEDS].map(item=>String(item.repo||'').toLowerCase()).filter(Boolean));
 const CURATED_REPO_LIST=[...CURATED_REPOS].sort((a,b)=>a.localeCompare(b));
@@ -72,6 +73,26 @@ export function cloudJobAnswer(row){
   const repo=String(row.repo||result.repo||'repo');
   const commit=String(result.commit||row.commit_sha||'');
   const head=[`Repo sonucu hazır: ${repo}`,commit?`Commit: ${commit}`:''].filter(Boolean);
+  if(row.adapter_id==='youtube-teaching'){
+    if(result.kind==='video'){
+      const title=String(result.title||'YouTube videosu').trim();
+      const transcript=String(result.transcript||'').trim();
+      return [
+        `YT Öğretisi kaynağı işlendi: ${title}`,
+        `Kaynak: ${String(result.source_url||'')}`,
+        result.language?`Altyazı dili: ${result.language}`:'',
+        result.captions_available?'Transkript alındı.':'Bu videoda erişilebilir altyazı/transkript bulunamadı.',
+        transcript?`\nTranskript:\n${transcript.slice(0,12000)}`:''
+      ].filter(Boolean).join('\n');
+    }
+    const videos=Array.isArray(result.videos)?result.videos:[];
+    return [
+      'YT Öğretisi kanal indeksi hazır.',
+      result.channel_id?`Kanal: ${result.channel_id}`:'',
+      `Bulunan son video: ${videos.length}`,
+      ...videos.slice(0,30).map((item,index)=>`${index+1}. ${item.title||item.id} — ${item.url||''}`)
+    ].filter(Boolean).join('\n');
+  }
   if(row.adapter_id==='source-search'){
     const term=String(result.term||'').trim();
     const matches=Array.isArray(result.matches)?result.matches:[];

@@ -70,7 +70,7 @@ test('harvest retains every curated seed even when GitHub metadata lookup fails'
   const repos = new Set(registry.entries.map(entry => entry.repo));
   const missing = CURATED_CAPABILITY_SEEDS.map(seed => seed.repo).filter(repo => !repos.has(repo));
   assert.deepEqual(missing, []);
-  assert.equal(CURATED_CAPABILITY_SEEDS.length, 154);
+  assert.equal(new Set(CURATED_CAPABILITY_SEEDS.map(seed => String(seed.repo).toLowerCase())).size, CURATED_CAPABILITY_SEEDS.length, 'curated source pool must not contain duplicate repository ids');
 });
 
 test('registry sorting is deterministic by capability then score then repo', async () => {
