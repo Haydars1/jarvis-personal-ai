@@ -1,0 +1,80 @@
+name: Apply iOS cloud skill results
+
+on:
+  push:
+    branches:
+      - feature/learning-engine
+    paths:
+      - '.github/workflows/apply-ios-cloud-skill-results.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/learning-engine
+          fetch-depth: 0
+      - name: Patch native result monitoring
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('ios/JARVIS/Models.swift')
+          s=p.read_text()
+          marker='''struct ChatResponse: Decodable {\n    let reply: String\n    let provider: String?\n    let history: [ChatMessage]\n    let channelId: String?\n'''
+          replacement='''struct CloudToolJob: Decodable {\n    let id: String\n    let repo: String\n    let status: String\n    let error: String?\n}\n\nstruct CloudToolJobStatus: Decodable {\n    let job: CloudToolJob\n    let answer: String?\n}\n\nstruct ChatResponse: Decodable {\n    let reply: String\n    let provider: String?\n    let history: [ChatMessage]\n    let channelId: String?\n    let job: CloudToolJob?\n'''
+          if marker not in s: raise SystemExit('Models ChatResponse marker missing')
+          s=s.replace(marker,replacement,1)
+          s=s.replace('''        case reply, provider, history, channelId\n''','''        case reply, provider, history, channelId, job\n''',1)
+          old='''        channelId = try container.decodeIfPresent(String.self, forKey: .channelId)\n'''
+          new='''        channelId = try container.decodeIfPresent(String.self, forKey: .channelId)\n        job = try container.decodeIfPresent(CloudToolJob.self, forKey: .job)\n'''
+          if old not in s: raise SystemExit('Models decode marker missing')
+          p.write_text(s.replace(old,new,1))
+
+          p=Path('ios/JARVIS/JarvisAPI.swift')
+          s=p.read_text()
+          marker='''    func ecuChannels(query: String = "") async throws -> [EcuChannel] {\n'''
+          method='''    func cloudToolJob(_ jobId: String) async throws -> CloudToolJobStatus {\n        let encoded = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId\n        let data = try await request("/api/tools/cloud/jobs/\\(encoded)")\n        return try decoder.decode(CloudToolJobStatus.self, from: data)\n    }\n\n'''
+          if marker not in s: raise SystemExit('JarvisAPI marker missing')
+          p.write_text(s.replace(marker,method+marker,1))
+
+          p=Path('ios/JARVIS/AppState.swift')
+          s=p.read_text()
+          marker='''    private let biometricStore = BiometricLoginStore.shared\n'''
+          repl='''    private let biometricStore = BiometricLoginStore.shared\n    private let pendingCloudJobsKey = "jarvis.cloud.pendingJobs"\n    private var monitoredCloudJobIDs: Set<String> = []\n'''
+          if marker not in s: raise SystemExit('AppState property marker missing')
+          s=s.replace(marker,repl,1)
+
+          s=s.replace('''                try await loadHistory()\n                await NotificationManager.shared.syncPendingToken()\n''','''                try await loadHistory()\n                resumePendingCloudJobs()\n                await NotificationManager.shared.syncPendingToken()\n''',1)
+          s=s.replace('''        try await loadHistory()\n        await NotificationManager.shared.syncPendingToken()\n''','''        try await loadHistory()\n        resumePendingCloudJobs()\n        await NotificationManager.shared.syncPendingToken()\n''',1)
+
+          old='''            let result = try await api.send(text: text, attachments: pendingAttachments)\n            var updatedHistory = result.history\n'''
+          new='''            let result = try await api.send(text: text, attachments: pendingAttachments)\n            let existingMessages = messages\n            var updatedHistory = result.history\n'''
+          if old not in s: raise SystemExit('AppState send result marker missing')
+          s=s.replace(old,new,1)
+
+          old='''            messages = updatedHistory\n            statusText = "Hazır"\n'''
+          new='''            if updatedHistory.count <= 2 && existingMessages.count > updatedHistory.count {\n                var merged = existingMessages\n                if !reply.isEmpty {\n                    merged.append(ChatMessage(role: "assistant", content: reply, provider: result.provider, createdAt: Date().timeIntervalSince1970 * 1000))\n                }\n                messages = merged\n            } else {\n                messages = updatedHistory\n            }\n            if let job = result.job, ["queued", "running"].contains(job.status) {\n                rememberCloudJob(job.id)\n                statusText = "Repo skill çalışıyor…"\n                Task { await monitorCloudJob(job.id) }\n            } else {\n                statusText = "Hazır"\n            }\n'''
+          if old not in s: raise SystemExit('AppState history marker missing')
+          s=s.replace(old,new,1)
+
+          marker='''    private func friendlyError(_ raw: String) -> String {\n'''
+          methods='''    private func pendingCloudJobIDs() -> [String] {\n        UserDefaults.standard.stringArray(forKey: pendingCloudJobsKey) ?? []\n    }\n\n    private func rememberCloudJob(_ id: String) {\n        var ids = Set(pendingCloudJobIDs())\n        ids.insert(id)\n        UserDefaults.standard.set(Array(ids).sorted(), forKey: pendingCloudJobsKey)\n    }\n\n    private func forgetCloudJob(_ id: String) {\n        var ids = Set(pendingCloudJobIDs())\n        ids.remove(id)\n        UserDefaults.standard.set(Array(ids).sorted(), forKey: pendingCloudJobsKey)\n    }\n\n    private func resumePendingCloudJobs() {\n        for id in pendingCloudJobIDs() {\n            Task { await monitorCloudJob(id) }\n        }\n    }\n\n    private func monitorCloudJob(_ id: String) async {\n        guard monitoredCloudJobIDs.insert(id).inserted else { return }\n        defer { monitoredCloudJobIDs.remove(id) }\n        rememberCloudJob(id)\n\n        for _ in 0..<90 {\n            do {\n                let result = try await api.cloudToolJob(id)\n                switch result.job.status {\n                case "completed":\n                    let answer = result.answer?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""\n                    if !answer.isEmpty && !messages.contains(where: { $0.role == "assistant" && $0.content == answer }) {\n                        messages.append(ChatMessage(role: "assistant", content: answer, provider: "JARVIS Skill · \\(result.job.repo)", createdAt: Date().timeIntervalSince1970 * 1000))\n                    }\n                    forgetCloudJob(id)\n                    statusText = "Hazır"\n                    return\n                case "failed":\n                    let detail = result.job.error?.trimmingCharacters(in: .whitespacesAndNewlines)\n                    let message = "Repo skill tamamlanamadı: \\(detail?.isEmpty == false ? detail! : result.job.repo)"\n                    messages.append(ChatMessage(role: "assistant", content: message, provider: "JARVIS Skill", createdAt: Date().timeIntervalSince1970 * 1000))\n                    forgetCloudJob(id)\n                    statusText = "Hazır"\n                    return\n                default:\n                    statusText = "Repo skill çalışıyor…"\n                }\n            } catch {\n                // Ağ kısa süre kesilirse job kimliğini kaybetme; sonraki turda tekrar dene.\n            }\n            try? await Task.sleep(nanoseconds: 5_000_000_000)\n        }\n        statusText = "Repo işi devam ediyor"\n    }\n\n'''
+          if marker not in s: raise SystemExit('AppState friendlyError marker missing')
+          p.write_text(s.replace(marker,methods+marker,1))
+          PY
+          git diff --check
+      - name: Commit native result monitoring
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios/JARVIS/Models.swift ios/JARVIS/JarvisAPI.swift ios/JARVIS/AppState.swift
+          git rm .github/workflows/apply-ios-cloud-skill-results.yml
+          git commit -m "fix: surface completed repo skill results in native chat"
+          git push origin HEAD:feature/learning-engine
