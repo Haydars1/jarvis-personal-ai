@@ -86,15 +86,15 @@ final class DriveLogRecorder: ObservableObject {
         var lines = ["timestamp,pid,label,value,unit"]
         let formatter = ISO8601DateFormatter()
         for sample in record.samples {
-            let label = sample.label.replacingOccurrences(of: """, with: """")
-            lines.append(
-                "(formatter.string(from: sample.timestamp)),0x(String(format: "%02X", sample.pid)),"(label)",(sample.value),(sample.unit)"
-            )
+            let label = sample.label.replacingOccurrences(of: "\"", with: "\"\"")
+            let line = "\(formatter.string(from: sample.timestamp)),0x\(String(format: "%02X", sample.pid)),\"\(label)\",\(sample.value),\(sample.unit)"
+            lines.append(line)
         }
 
-        let name = record.vin ?? record.id.uuidString
+        let name = (record.vin?.isEmpty == false ? record.vin! : record.id.uuidString)
+            .replacingOccurrences(of: "/", with: "-")
         let url = fm.temporaryDirectory
-            .appendingPathComponent("JARVIS-DriveLog-(name).csv")
+            .appendingPathComponent("JARVIS-DriveLog-\(name).csv")
         do {
             try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
             return url
