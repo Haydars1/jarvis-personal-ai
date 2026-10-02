@@ -67,6 +67,21 @@ final class JarvisAPI {
         return try decoder.decode(ChatResponse.self, from: response)
     }
 
+    func queueYouTubeTeaching(url: String) async throws -> CloudToolJob {
+        let payload: [String: Any] = [
+            "adapter_id": "youtube-teaching",
+            "repo": "artemnovitckii/notebooklm-coach",
+            "input": [
+                "url": url,
+                "source": "ios-yt-teaching"
+            ]
+        ]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        let data = try await request("/api/tools/cloud/jobs", method: "POST", body: body)
+        struct Response: Decodable { let job: CloudToolJob }
+        return try decoder.decode(Response.self, from: data).job
+    }
+
     func cloudToolJob(_ jobId: String) async throws -> CloudToolJobStatus {
         let encoded = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
         let data = try await request("/api/tools/cloud/jobs/\(encoded)")
