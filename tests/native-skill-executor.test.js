@@ -1,63 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { canExecuteNativeSkill, chooseExecutableSkill, deviceIntentIsWrite, executeNativeSkill } from '../src/application/capabilities/native-skill-executor.js';
+import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite, executeNativeSkill } from '../src/application/capabilities/native-skill-executor.js';
 
-function skill(id='repo-cloud-tools'){
-  return {id:'repo:test/demo',repo:'test/demo',primary_capability:'coding-agent',adapter_status:'ready',requires_paid_api:false,native_adapter:{id,lane:'cloud-runner'}};
-}
+const skill=(adapter,extra={})=>({adapter_status:'ready',requires_paid_api:false,native_adapter:{id:adapter},repo:'example/tool',...extra});
 
 test('executor skips unsupported ready skill and selects a later runnable one',()=>{
-  const rows=[skill('unsupported-adapter'),skill('repo-cloud-tools')];
-  assert.equal(chooseExecutableSkill(rows,'repo içinde parser kodunu ara')?.native_adapter?.id,'repo-cloud-tools');
+  const rows=[skill('unknown-adapter'),skill('repo-cloud-tools')];
+  const picked=chooseExecutableSkill(rows,'kaynak kodda checksum ara');
+  assert.equal(picked?.native_adapter?.id,'repo-cloud-tools');
 });
 
 test('repo cloud skills require explicit source-code or repository intent',()=>{
-  const row=skill('repo-cloud-tools');
-  assert.equal(canExecuteNativeSkill(row,'Bugün hava nasıl?'),false);
-  assert.equal(canExecuteNativeSkill(row,'repoda checksum fonksiyonu nerede ara'),true);
-  assert.equal(canExecuteNativeSkill(row,'kaynak kod içinde parser dosyasını bul'),true);
+  const repoSkill=skill('repo-cloud-tools',{repo:'aider-ai/aider'});
+  assert.equal(canExecuteNativeSkill(repoSkill,'selam almanyada hava durumu ne 1 haftalık'),false);
+  assert.equal(canExecuteNativeSkill(repoSkill,'yarın hava nasıl'),false);
+  assert.equal(canExecuteNativeSkill(repoSkill,'bu repoda checksum kodunu ara'),true);
+  assert.equal(canExecuteNativeSkill(repoSkill,'github kaynak kodunda ecu parser dosyasını bul'),true);
 });
 
 test('device bridge is executable only for recognized ECU/device intents',()=>{
-  const row=skill('device-bridge');
-  assert.equal(canExecuteNativeSkill(row,'arabadaki hata kodlarını oku'),true);
-  assert.equal(canExecuteNativeSkill(row,'merhaba nasılsın'),false);
+  assert.equal(canExecuteNativeSkill(skill('device-bridge'),'DTC arıza kodlarını oku'),true);
+  assert.equal(canExecuteNativeSkill(skill('device-bridge'),'yarın hava nasıl'),false);
 });
 
 test('device write/service intents stay confirmation gated',()=>{
+  assert.equal(deviceIntentIsWrite('DTC kodlarını temizle'),true);
   assert.equal(deviceIntentIsWrite('servis reset yap'),true);
-  assert.equal(deviceIntentIsWrite('hata kodlarını oku'),false);
+  assert.equal(deviceIntentIsWrite('DTC arıza kodlarını oku'),false);
 });
 
 test('ECU binary inspector is executable only when a supported binary attachment exists',()=>{
-  const row=skill('ecu-binary-inspector');
-  assert.equal(canExecuteNativeSkill(row,'dosyayı analiz et',{attachments:[{name:'ecu.bin',base64:'AA=='}]}),true);
-  assert.equal(canExecuteNativeSkill(row,'dosyayı analiz et',{attachments:[]}),false);
+  const binarySkill=skill('ecu-binary-inspector');
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[{name:'passat.bin',base64:'AA=='}]}),true);
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[{name:'notes.txt',base64:'AA=='}]}),false);
+  assert.equal(canExecuteNativeSkill(binarySkill,'bu dosyayı analiz et',{attachments:[]}),false);
 });
 
 test('ECU binary native executor forwards the original attachment through ECU deterministic analysis',async()=>{
   const seen=[];
-  const core={fetch:async req=>{seen.push({url:new URL(req.url).pathname,body:await req.clone().json()});return new Response(JSON.stringify({reply:'binary-ok',trace:[]}),{status:200,headers:{'content-type':'application/json'}});}};
-  const req=new Request('https://jarvis.test/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'analiz et',attachments:[{name:'ecu.bin',base64:'AA=='}]})});
-  const result=await executeNativeSkill(core,req,{},null,'analiz et',skill('ecu-binary-inspector'),{attachments:[{name:'ecu.bin',base64:'AA=='}]});
-  assert.equal(seen[0].url,'/api/chat/send');
-  assert.equal(seen[0].body.channel,'ecu');
-  assert.equal(seen[0].body.attachments[0].name,'ecu.bin');
-  assert.equal(result?.reply,'binary-ok');
+  const core={fetch:async req=>{
+    const body=await req.json();
+    seen.push(body);
+    return new Response(JSON.stringify({reply:'byte analizi tamam',provider:'JARVIS ECU Binary Inspector',trace:[{kind:'binary'}]}),{status:200,headers:{'content-type':'application/json'}});
+  }};
+  const request=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'bu dosyayı analiz et',attachments:[{name:'passat.bin',type:'application/octet-stream',base64:'AA=='}]})});
+  const result=await executeNativeSkill(core,request,{}, {},'bu dosyayı analiz et',skill('ecu-binary-inspector'),{attachments:[{name:'passat.bin',type:'application/octet-stream',base64:'AA=='}]});
+  assert.equal(result?.provider,'JARVIS ECU Binary Inspector');
+  assert.equal(seen.length,1);
+  assert.equal(seen[0].channel,'ecu');
+  assert.equal(seen[0].attachments[0].name,'passat.bin');
 });
 
 test('social growth is executable only for explicit social campaign intent',()=>{
-  const row=skill('social-growth');
-  assert.equal(canExecuteNativeSkill(row,'Instagram için 7 günlük içerik planı hazırla'),true);
-  assert.equal(canExecuteNativeSkill(row,'bugün nasılsın'),false);
+  assert.equal(canExecuteNativeSkill(skill('social-growth'),'Instagram için haftada bir reels içerik planı hazırla'),true);
+  assert.equal(canExecuteNativeSkill(skill('social-growth'),'yarın hava nasıl'),false);
 });
 
 test('social native executor creates a deterministic paused draft without chat AI fallback',async()=>{
   const seen=[];
-  const core={fetch:async req=>{seen.push({url:new URL(req.url).pathname,body:await req.clone().json()});return new Response(JSON.stringify({id:'campaign-1',items:7}),{status:200,headers:{'content-type':'application/json'}});}};
-  const req=new Request('https://jarvis.test/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'Instagram için 7 günlük içerik planı hazırla'})});
-  const result=await executeNativeSkill(core,req,{},null,'Instagram için 7 günlük içerik planı hazırla',skill('social-growth'));
+  const core={fetch:async req=>{
+    seen.push({url:new URL(req.url).pathname,body:await req.json()});
+    return new Response(JSON.stringify({id:'campaign-1',items:3,platforms:['instagram'],topic:'Instagram için bakım içerikleri',execution_mode:'draft',plan_mode:'deterministic'}),{status:200,headers:{'content-type':'application/json'}});
+  }};
+  const text='Instagram için bakım içerikleri hazırla';
+  const request=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})});
+  const result=await executeNativeSkill(core,request,{}, {},text,skill('social-growth'),{});
+  assert.equal(seen.length,1);
   assert.equal(seen[0].url,'/api/social-growth/native-draft');
   assert.equal(seen[0].body.plan_mode,'deterministic');
   assert.equal(seen[0].body.execution_mode,'draft');
