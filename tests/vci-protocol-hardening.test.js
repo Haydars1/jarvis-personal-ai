@@ -65,8 +65,9 @@ test('single hardware-validation session exports protocol PID DTC module and pac
   assert.match(diagnostics, /3_000_000_000/);
 });
 
-test('drive logger emits valid CSV with quoted labels and Swift interpolation', () => {
+test('drive logger emits valid CSV with quoted labels, sanitized filenames and Swift interpolation', () => {
   assert.match(drive, /replacingOccurrences\(of:/);
-  assert.match(drive, /JARVIS-DriveLog-\\\(name\)\.csv/);
+  assert.match(drive, /JARVIS-DriveLog-\\\(safeName\)\.csv/);
   assert.match(drive, /formatter\.string\(from: sample\.timestamp\)/);
+  assert.match(drive, /let safeName = rawName/);
 });
