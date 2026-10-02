@@ -32,14 +32,27 @@ struct ChatMessage: Identifiable, Codable {
     }
 }
 
+struct CloudToolJob: Decodable {
+    let id: String
+    let repo: String
+    let status: String
+    let error: String?
+}
+
+struct CloudToolJobStatus: Decodable {
+    let job: CloudToolJob
+    let answer: String?
+}
+
 struct ChatResponse: Decodable {
     let reply: String
     let provider: String?
     let history: [ChatMessage]
     let channelId: String?
+    let job: CloudToolJob?
 
     enum CodingKeys: String, CodingKey {
-        case reply, provider, history, channelId
+        case reply, provider, history, channelId, job
     }
 
     init(from decoder: Decoder) throws {
@@ -48,6 +61,7 @@ struct ChatResponse: Decodable {
         provider = try container.decodeIfPresent(String.self, forKey: .provider)
         history = try container.decodeIfPresent([ChatMessage].self, forKey: .history) ?? []
         channelId = try container.decodeIfPresent(String.self, forKey: .channelId)
+        job = try container.decodeIfPresent(CloudToolJob.self, forKey: .job)
     }
 }
 

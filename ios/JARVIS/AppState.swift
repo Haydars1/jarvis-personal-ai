@@ -19,6 +19,8 @@ final class AppState: ObservableObject {
     let api = JarvisAPI()
     let voice = VoiceEngine()
     private let biometricStore = BiometricLoginStore.shared
+    private let pendingCloudJobsKey = "jarvis.cloud.pendingJobs"
+    private var monitoredCloudJobIDs: Set<String> = []
 
     init() {
         voice.onFinalTranscript = { [weak self] text in
@@ -40,6 +42,7 @@ final class AppState: ObservableObject {
             showLogin = !auth.authenticated
             if auth.authenticated {
                 try await loadHistory()
+                resumePendingCloudJobs()
                 await NotificationManager.shared.syncPendingToken()
                 await consumePendingIntentIfNeeded()
                 consumePendingSharedContentIfNeeded()
@@ -93,6 +96,7 @@ final class AppState: ObservableObject {
         showLogin = false
         loginStatusText = ""
         try await loadHistory()
+        resumePendingCloudJobs()
         await NotificationManager.shared.syncPendingToken()
         await consumePendingIntentIfNeeded()
         consumePendingSharedContentIfNeeded()
@@ -114,6 +118,7 @@ final class AppState: ObservableObject {
         messages.append(ChatMessage(role: "user", content: visible, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
         do {
             let result = try await api.send(text: text, attachments: pendingAttachments)
+            let existingMessages = messages
             var updatedHistory = result.history
             // Some providers can return a reply before the persisted history catches up.
             // Never leave the UI showing a visibly truncated assistant answer.
@@ -127,8 +132,22 @@ final class AppState: ObservableObject {
                     updatedHistory.append(ChatMessage(role: "assistant", content: reply, provider: result.provider, createdAt: Date().timeIntervalSince1970 * 1000))
                 }
             }
-            messages = updatedHistory
-            statusText = "Hazır"
+            if updatedHistory.count <= 2 && existingMessages.count > updatedHistory.count {
+                var merged = existingMessages
+                if !reply.isEmpty {
+                    merged.append(ChatMessage(role: "assistant", content: reply, provider: result.provider, createdAt: Date().timeIntervalSince1970 * 1000))
+                }
+                messages = merged
+            } else {
+                messages = updatedHistory
+            }
+            if let job = result.job, ["queued", "running"].contains(job.status) {
+                rememberCloudJob(job.id)
+                statusText = "Repo skill çalışıyor…"
+                Task { await monitorCloudJob(job.id) }
+            } else {
+                statusText = "Hazır"
+            }
         } catch {
             let raw = error.localizedDescription
             statusText = "Yanıt tamamlanıyor..."
@@ -163,6 +182,63 @@ final class AppState: ObservableObject {
         let next = history.index(after: userIndex)
         guard next < history.endIndex else { return false }
         return history[next...].contains { $0.role == "assistant" && !$0.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    private func pendingCloudJobIDs() -> [String] {
+        UserDefaults.standard.stringArray(forKey: pendingCloudJobsKey) ?? []
+    }
+
+    private func rememberCloudJob(_ id: String) {
+        var ids = Set(pendingCloudJobIDs())
+        ids.insert(id)
+        UserDefaults.standard.set(Array(ids).sorted(), forKey: pendingCloudJobsKey)
+    }
+
+    private func forgetCloudJob(_ id: String) {
+        var ids = Set(pendingCloudJobIDs())
+        ids.remove(id)
+        UserDefaults.standard.set(Array(ids).sorted(), forKey: pendingCloudJobsKey)
+    }
+
+    private func resumePendingCloudJobs() {
+        for id in pendingCloudJobIDs() {
+            Task { await monitorCloudJob(id) }
+        }
+    }
+
+    private func monitorCloudJob(_ id: String) async {
+        guard monitoredCloudJobIDs.insert(id).inserted else { return }
+        defer { monitoredCloudJobIDs.remove(id) }
+        rememberCloudJob(id)
+
+        for _ in 0..<90 {
+            do {
+                let result = try await api.cloudToolJob(id)
+                switch result.job.status {
+                case "completed":
+                    let answer = result.answer?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    if !answer.isEmpty && !messages.contains(where: { $0.role == "assistant" && $0.content == answer }) {
+                        messages.append(ChatMessage(role: "assistant", content: answer, provider: "JARVIS Skill · \(result.job.repo)", createdAt: Date().timeIntervalSince1970 * 1000))
+                    }
+                    forgetCloudJob(id)
+                    statusText = "Hazır"
+                    return
+                case "failed":
+                    let detail = result.job.error?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let message = "Repo skill tamamlanamadı: \(detail?.isEmpty == false ? detail! : result.job.repo)"
+                    messages.append(ChatMessage(role: "assistant", content: message, provider: "JARVIS Skill", createdAt: Date().timeIntervalSince1970 * 1000))
+                    forgetCloudJob(id)
+                    statusText = "Hazır"
+                    return
+                default:
+                    statusText = "Repo skill çalışıyor…"
+                }
+            } catch {
+                // Ağ kısa süre kesilirse job kimliğini kaybetme; sonraki turda tekrar dene.
+            }
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+        }
+        statusText = "Repo işi devam ediyor"
     }
 
     private func friendlyError(_ raw: String) -> String {

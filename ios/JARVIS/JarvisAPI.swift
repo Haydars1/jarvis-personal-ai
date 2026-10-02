@@ -67,6 +67,12 @@ final class JarvisAPI {
         return try decoder.decode(ChatResponse.self, from: response)
     }
 
+    func cloudToolJob(_ jobId: String) async throws -> CloudToolJobStatus {
+        let encoded = jobId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? jobId
+        let data = try await request("/api/tools/cloud/jobs/\(encoded)")
+        return try decoder.decode(CloudToolJobStatus.self, from: data)
+    }
+
     func ecuChannels(query: String = "") async throws -> [EcuChannel] {
         var items: [URLQueryItem] = []
         if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
