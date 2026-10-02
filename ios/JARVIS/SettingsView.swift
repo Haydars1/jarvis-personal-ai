@@ -13,6 +13,8 @@ struct SettingsView: View {
     @StateObject private var location = LocationPermissionController()
     @State private var notificationStatus = "Kontrol ediliyor"
     @State private var googleStatus = "Kontrol edilmedi"
+    @State private var skillSummary: SkillExecutionSummary?
+    @State private var skillStatus = "Kontrol ediliyor"
 
     private let accentColor = Color(red: 0.06, green: 0.64, blue: 0.47)
 
@@ -37,6 +39,49 @@ struct SettingsView: View {
 
                         serviceRow("Dosyalar & Paylaşım", "PDF, fotoğraf, belge ve paylaşım uzantısını kontrol et.", "folder.badge.gearshape") {
                             quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. JARVIS'e dosya gönderme akışını hazır hale getir.")
+                        }
+                    }
+
+                    settingsSection("JARVIS Skill Motoru") {
+                        if let skillSummary {
+                            settingRow(
+                                icon: "bolt.fill",
+                                title: "Gerçekten çalışabilir",
+                                subtitle: "\(skillSummary.executable) skill · doğrudan çalıştırılabilir",
+                                tint: .green
+                            ) { Task { await refreshSkillSummary() } }
+
+                            settingRow(
+                                icon: "cable.connector",
+                                title: "Cihaz/çalışma ortamı gerekli",
+                                subtitle: "\(skillSummary.adapterReady) skill · adapter hazır, çalışma zamanı bağımlılığı var",
+                                tint: .orange
+                            ) { Task { await refreshSkillSummary() } }
+
+                            settingRow(
+                                icon: "exclamationmark.triangle",
+                                title: "Sorunlu/degraded",
+                                subtitle: "\(skillSummary.degraded) skill · adapter veya doğrulama sorunu var",
+                                tint: .red
+                            ) { Task { await refreshSkillSummary() } }
+
+                            settingRow(
+                                icon: "books.vertical",
+                                title: "Sadece katalogda",
+                                subtitle: "\(skillSummary.catalogOnly) repo · henüz çalıştırılabilir skill değil",
+                                tint: .secondary
+                            ) { Task { await refreshSkillSummary() } }
+
+                            settingRow(
+                                icon: "checkmark.seal",
+                                title: "Son 7 gün gerçek çalıştırma",
+                                subtitle: "\(skillSummary.recentlySuccessfulExecutions) tamamlanmış cloud skill işi · toplam katalog \(skillSummary.curatedRepositories)",
+                                tint: accentColor
+                            ) { Task { await refreshSkillSummary() } }
+                        } else {
+                            serviceRow("Skill durumu", skillStatus, "bolt.horizontal.circle") {
+                                Task { await refreshSkillSummary() }
+                            }
                         }
                     }
 
@@ -158,6 +203,7 @@ struct SettingsView: View {
         .task {
             await refreshNotificationStatus()
             await refreshGoogleStatus()
+            await refreshSkillSummary()
         }
         .onAppear { location.refresh() }
     }
@@ -243,6 +289,22 @@ struct SettingsView: View {
     private func quickAction(_ text: String) {
         dismiss()
         state.startQuickAction(text)
+    }
+
+    private func refreshSkillSummary() async {
+        await MainActor.run { skillStatus = "Kontrol ediliyor" }
+        do {
+            let summary = try await state.api.skillExecutionSummary()
+            await MainActor.run {
+                skillSummary = summary
+                skillStatus = "Güncel"
+            }
+        } catch {
+            await MainActor.run {
+                skillSummary = nil
+                skillStatus = "Durum alınamadı: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func refreshGoogleStatus() async {
