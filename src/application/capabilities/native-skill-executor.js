@@ -66,7 +66,7 @@ async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
   if(!response.ok)return null;
   let payload={};try{payload=await response.json();}catch{return null;}
   const job=payload?.job;if(!job)return null;
-  return skillPayload(text,skill,`JARVIS bu işi ${skill.repo} becerisine verdi. Bulut skill işi kuyruğa alındı: ${String(job.id||'').slice(0,8)}.`,{job});
+  return skillPayload(text,skill,`JARVIS ${skill.repo} becerisini çalıştırıyor. Job ${String(job.id||'').slice(0,8)} oluşturuldu; gerçek repo sonucu tamamlanınca bu sohbet otomatik güncellenecek.`,{job});
 }
 
 async function executeDeviceSkill(core,req,env,ctx,text,skill){

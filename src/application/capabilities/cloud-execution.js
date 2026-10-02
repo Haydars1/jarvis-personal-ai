@@ -64,6 +64,33 @@ async function appAuthed(core,req,env,ctx){
 }
 function parse(value,fallback={}){try{return JSON.parse(value||'')}catch{return fallback}}
 function publicJob(row){if(!row)return null;return {id:row.id,adapter_id:row.adapter_id,repo:row.repo,commit:row.commit_sha||null,input:parse(row.input_json,{}),status:row.status,result:parse(row.result_json,null),error:row.error,claimed_by:row.claimed_by,created_at:row.created_at,claimed_at:row.claimed_at,finished_at:row.finished_at,updated_at:row.updated_at};}
+export function cloudJobAnswer(row){
+  if(!row||String(row.status||'')!=='completed')return null;
+  const result=row.result&&typeof row.result==='object'?row.result:parse(row.result_json,null);
+  if(!result||typeof result!=='object')return null;
+  const repo=String(row.repo||result.repo||'repo');
+  const commit=String(result.commit||row.commit_sha||'');
+  const head=[`Repo sonucu hazır: ${repo}`,commit?`Commit: ${commit}`:''].filter(Boolean);
+  if(row.adapter_id==='source-search'){
+    const term=String(result.term||'').trim();
+    const matches=Array.isArray(result.matches)?result.matches:[];
+    if(!matches.length)return [...head,term?`Aranan: ${term}`:'','Eşleşme bulunamadı.'].filter(Boolean).join('\n');
+    const lines=matches.slice(0,20).map(item=>`${item.file||'?'}:${item.line||'?'} — ${String(item.text||'').trim()}`);
+    return [...head,term?`Aranan: ${term}`:'',`Eşleşme: ${matches.length}`,'',...lines,matches.length>20?'… daha fazla eşleşme var.':''].filter(Boolean).join('\n');
+  }
+  if(row.adapter_id==='repo-inspect'){
+    const files=Array.isArray(result.files)?result.files:[];
+    const snippets=result.snippets&&typeof result.snippets==='object'?result.snippets:{};
+    const readme=String(snippets['README.md']||snippets['README.MD']||snippets['readme.md']||'').trim();
+    return [...head,`Dosya sayısı: ${Number(result.file_count||files.length||0)}`,files.length?`İlk dosyalar: ${files.slice(0,25).join(', ')}`:'',readme?`\nREADME özeti:\n${readme.slice(0,2500)}`:''].filter(Boolean).join('\n');
+  }
+  if(row.adapter_id==='source-read')return [...head,result.path?`Dosya: ${result.path}`:'',String(result.content||'').slice(0,5000)].filter(Boolean).join('\n');
+  if(row.adapter_id==='skill-analyze'){
+    const caps=Array.isArray(result.capabilities)?result.capabilities:[];
+    return [...head,result.primary_capability?`Ana yetenek: ${result.primary_capability}`:'',caps.length?`Yetenekler: ${caps.join(', ')}`:'',result.execution_lane?`Çalışma yolu: ${result.execution_lane}`:''].filter(Boolean).join('\n');
+  }
+  return [...head,JSON.stringify(result,null,2).slice(0,5000)].filter(Boolean).join('\n');
+}
 function publicSkill(row){
   if(!row)return null;
   const skill={
@@ -174,6 +201,14 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/cloud/jobs'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         const rows=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 100');return jsonResponse({jobs:rows.map(publicJob)});
+      }
+      const appJobMatch=path.match(/^\/api\/tools\/cloud\/jobs\/([^/]+)$/);
+      if(appJobMatch&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const id=decodeURIComponent(appJobMatch[1]);
+        const row=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id);
+        if(!row)return jsonResponse({error:'JOB_NOT_FOUND'},404);
+        return jsonResponse({job:publicJob(row),answer:cloudJobAnswer(row)});
       }
       if(path==='/api/tools/cloud/runner/claim'&&method==='POST'){
         const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
