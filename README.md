@@ -38,3 +38,16 @@ Uygulama API anahtarlari ve OAuth secret'lari repoya yazilmaz; JARVIS Credential
 JARVIS degisiklikleri `jarvis/*` branch'lerinde hazirlayip PR acacak sekilde tasarlanmistir. `.github/workflows/jarvis-self-update.yml` syntax/dry-run testlerinden sonra bu PR'lari birlestirebilir.
 
 Ana repo: `Haydars1/jarvis-personal-ai`
+
+## Code graph
+
+Repository dependency/impact analysis is local-first. Core graph queries do not require Graphify or a paid account.
+
+```bash
+npm run graph:build
+npm run graph:check
+npm run graph:query -- find orchestrator
+npm run graph:query -- impact src/worker.js
+```
+
+`graph:build` uses the optional open-source Graphify CLI; normal `npm run check` and JARVIS runtime do not depend on it.
