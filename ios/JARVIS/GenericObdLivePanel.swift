@@ -73,6 +73,20 @@ struct GenericObdLivePanel: View {
                     }
                 }
 
+                if let boostAssessment = GenericBoostAnalyzer.assess(samples: samples) {
+                    DisclosureGroup("Turbo / P0299 canlı veri analizi") {
+                        Text(boostAssessment.summary)
+                            .font(.caption.weight(.semibold))
+                        ForEach(boostAssessment.findings, id: \.self) { finding in
+                            Text("• " + finding)
+                                .font(.caption2)
+                        }
+                        Text("Analiz güveni: \(Int(boostAssessment.confidence * 100))%")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 if !freezeFrame.isEmpty {
                     DisclosureGroup("Freeze Frame") {
                         ForEach(freezeFrame) { item in
