@@ -41,10 +41,12 @@ test('cloud runner downloads bounded media and sends audio plus frames for analy
   assert.match(runner,/ffmpeg/);
 });
 
-test('runner workflow installs media tools explicitly',()=>{
+test('runner workflow really installs and verifies media tools',()=>{
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
   assert.match(workflow,/yt-dlp/);
-  assert.match(workflow,/ffmpeg/);
+  assert.match(workflow,/apt-get[\s\S]{0,180}install[\s\S]{0,80}ffmpeg/);
+  assert.match(workflow,/command -v ffmpeg/);
+  assert.match(workflow,/command -v ffprobe/);
 });
 
 test('Worker media endpoint uses ASR and vision rather than trusting captions alone',()=>{
