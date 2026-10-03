@@ -1,0 +1,5 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import { normalizeLanguage, createLanguageStore, t } from '../js/i18n.mjs';
+test('supports de tr en and falls back to de',()=>{ assert.equal(normalizeLanguage('tr-TR'),'tr'); assert.equal(normalizeLanguage('en-US'),'en'); assert.equal(normalizeLanguage('fr'),'de'); });
+test('persists language',()=>{ const mem=new Map(); const storage={getItem:k=>mem.get(k)??null,setItem:(k,v)=>mem.set(k,v)}; const s=createLanguageStore(storage); s.set('tr'); assert.equal(s.get(),'tr'); });
+test('translates core UI',()=>{ assert.equal(t('tr','language.label'),'Dil'); assert.equal(t('en','chat.title'),'6006 Assistant'); assert.equal(t('de','vehicle.brand'),'Marke'); });
+test('missing translation falls back to German',()=>{ assert.equal(t('tr','vehicle.engine'),'Motor'); });
