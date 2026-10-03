@@ -52,4 +52,4 @@ jobs:
           npx wrangler rollback --message "Automatic rollback: production HTTP or session check failed"
           exit 1
 
-# deploy-trigger: 2026-10-03 youtube-learning-memory
+# deploy-trigger: 2026-10-03 persistent-youtube-learning
