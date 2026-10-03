@@ -32,11 +32,26 @@ struct ChatMessage: Identifiable, Codable {
     }
 }
 
+struct CloudToolJobResult: Decodable {
+    let learningStatus: String?
+    let learningSourceId: String?
+    let learningChunks: Int?
+    let queuedVideos: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case learningStatus = "learning_status"
+        case learningSourceId = "learning_source_id"
+        case learningChunks = "learning_chunks"
+        case queuedVideos = "queued_videos"
+    }
+}
+
 struct CloudToolJob: Decodable {
     let id: String
     let repo: String
     let status: String
     let error: String?
+    let result: CloudToolJobResult?
 }
 
 struct CloudToolJobStatus: Decodable {
