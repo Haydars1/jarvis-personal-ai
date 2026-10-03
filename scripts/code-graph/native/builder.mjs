@@ -4,6 +4,7 @@ import { discoverRepositoryFiles } from './discover.mjs';
 import { analyzeJavaScriptFile } from './javascript.mjs';
 import { analyzeSwiftFile } from './swift.mjs';
 import { analyzeSqlFile } from './sql.mjs';
+import { analyzeConfigFile } from './config.mjs';
 import { fileNodeId, normalizeRepoPath } from './ids.mjs';
 import { createNode, finalizeGraph } from './model.mjs';
 
@@ -24,6 +25,11 @@ function repositoryFileNode(file){
     name:path.posix.basename(normalized),
     file:normalized
   });
+}
+
+function isConfigFile(file){
+  const base=path.posix.basename(file).toLowerCase();
+  return base==='package.json'||base==='wrangler.jsonc'||base==='wrangler.toml'||(file.startsWith('.github/workflows/')&&/\.ya?ml$/i.test(file));
 }
 
 export function createLocalModuleResolver(files=[]){
@@ -59,7 +65,7 @@ export async function buildNativeCodeGraph({root,sourceCommit,generatedAt=new Da
 
   for(const file of files){
     const ext=path.posix.extname(file).toLowerCase();
-    if(!JS_EXTENSIONS.has(ext)&&ext!=='.swift'&&ext!=='.sql')continue;
+    if(!JS_EXTENSIONS.has(ext)&&ext!=='.swift'&&ext!=='.sql'&&!isConfigFile(file))continue;
     let source;
     try{source=await readFile(path.join(repositoryRoot,...file.split('/')),'utf8');}
     catch(error){diagnostics.push(`read error: ${file}: ${error.code||error.message||'unknown'}`);continue;}
@@ -67,8 +73,11 @@ export async function buildNativeCodeGraph({root,sourceCommit,generatedAt=new Da
       ? analyzeSwiftFile({file,source})
       : ext==='.sql'
         ? analyzeSqlFile({file,source})
-        : analyzeJavaScriptFile({file,source,resolveLocalModule});
-    nodes.push(...analyzed.nodes);
+        : isConfigFile(file)
+          ? analyzeConfigFile({file,source,availableFiles:files})
+          : analyzeJavaScriptFile({file,source,resolveLocalModule});
+    const fileId=fileNodeId(file);
+    nodes.push(...analyzed.nodes.filter(node=>node.id!==fileId));
     edges.push(...analyzed.edges);
     diagnostics.push(...analyzed.diagnostics);
   }
