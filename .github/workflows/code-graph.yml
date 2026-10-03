@@ -24,5 +24,7 @@ jobs:
         if: always()
         with:
           name: jarvis-code-graph
-          path: graphify-out/
+          path: |
+            graphify-out/
+            package-lock.json
           if-no-files-found: error
