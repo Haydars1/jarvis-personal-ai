@@ -107,6 +107,12 @@ Primary boundaries:
 
 ## Repository code graph
 
-JARVIS owns a normalized version-1 code-graph contract in `src/lib/code-graph.js`. Graphify is an optional local/CI producer only: Python and Graphify are not Cloudflare Worker runtime dependencies. Graph freshness is tied to the exact source commit; stale graphs do not advertise structural capabilities. The stable contract allows a native JARVIS parser to replace Graphify later without changing query consumers.
+JARVIS owns a normalized version-1 code-graph contract in `src/lib/code-graph.js` and now owns the default graph producer as well. The native engine under `scripts/code-graph/native/` performs bounded repository discovery and deterministic static analysis for JavaScript/TypeScript, Swift, SQL/D1 schema, `package.json`, GitHub Actions and Wrangler configuration without executing repository source files.
+
+`npm run graph:build` writes `graphify-out/code-graph.json` with `generator: "jarvis-native"`. Graph freshness is tied to the exact checked-out source commit; stale graphs do not advertise structural capabilities. Query consumers remain provider-independent and support node lookup, directional neighbors, path discovery and reverse-dependency impact ranking.
+
+The Cloudflare Worker and normal `npm run check` path have no Python or Graphify dependency. Runtime code-graph jobs also use the JARVIS-native builder and report `engine: jarvis-native`.
+
+Graphify is retained only as optional reference tooling. A separately produced Graphify JSON export can be normalized to `graphify-out/graphify-code-graph.json` and compared with the native graph; it cannot overwrite the native artifact and is not part of the required runtime or CI path.
 
 Graph generation and validation run through `scripts/code-graph/` and the dedicated `.github/workflows/code-graph.yml` workflow. Generated `graphify-out/` data is diagnostic/build output and is not committed to main automatically.
