@@ -26,18 +26,22 @@ test('learning retrieval ranks chunks that match the user question',()=>{
   assert.match(context,/youtube\.com\/watch/);
 });
 
-test('schema persists learned sources and transcript chunks',()=>{
-  const schema=read('schema.sql');
+test('migration persists learned sources and transcript chunks',()=>{
+  const schema=read('migrations/2026-10-03-youtube-learning.sql');
   assert.match(schema,/CREATE TABLE IF NOT EXISTS learning_sources/);
   assert.match(schema,/CREATE TABLE IF NOT EXISTS learning_chunks/);
   assert.match(schema,/source_url TEXT NOT NULL UNIQUE/);
+  const deploy=read('.github/workflows/deploy-cloudflare.yml');
+  assert.match(deploy,/2026-10-03-youtube-learning\.sql/);
 });
 
 test('completed YouTube jobs persist learning and channel jobs fan out to videos',()=>{
-  const cloud=read('src/application/capabilities/cloud-execution.js');
-  assert.match(cloud,/persistYouTubeLearning/);
-  assert.match(cloud,/queueChannelVideoLearning/);
-  assert.match(cloud,/row\.adapter_id==='youtube-teaching'/);
+  const capability=read('src/application/capabilities/youtube-learning.js');
+  assert.match(capability,/persistYouTubeLearning/);
+  assert.match(capability,/queueChannelVideoLearning/);
+  assert.match(capability,/job\.adapter_id !== 'youtube-teaching'/);
+  const app=read('src/app-entry.js');
+  assert.match(app,/createYouTubeLearningCapability/);
 });
 
 test('normal JARVIS chat retrieves learned video context',()=>{
