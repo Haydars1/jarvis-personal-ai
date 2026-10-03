@@ -1,7 +1,7 @@
 # JARVIS Free Integration Hub Design
 
 Date: 2026-10-03
-Status: Design for review
+Status: Approved design
 
 ## Objective
 Integrate the useful tools shown in the supplied plugin/MCP screenshots into JARVIS and ChatGPT without adding paid-only dependencies. JARVIS must distinguish real executable integrations from catalog-only references, required account connections, and unavailable providers.
@@ -19,6 +19,7 @@ The following screenshot-labelled paid tools are excluded from automatic install
 - Higgsfield MCP
 - Plaud
 - ManyChat
+- Sandcastles MCP
 
 Other tools that require payment at runtime must remain `paid-or-account-required` and inactive until the user explicitly chooses them later.
 
@@ -75,7 +76,7 @@ Use Firecrawl, connected Consensus, the existing YouTube Teaching system, source
 Use Notion, Google Drive, Slack when connected, and free/open workflow tooling. Do not route through paid-only Plaud.
 
 ### Scale / Social / Finance
-Use free-plan/open social or workflow capabilities when verified. Paid-only ManyChat is excluded. Payment providers such as iyzico are not auto-connected unless a free connector/API is verified and the user explicitly connects credentials.
+Use free-plan/open social or workflow capabilities when verified. Paid-only ManyChat and Sandcastles MCP are excluded. Payment providers such as iyzico are not auto-connected unless a free connector/API is verified and the user explicitly connects credentials.
 
 ## Runtime rules
 1. A task is classified into a specialist role.
