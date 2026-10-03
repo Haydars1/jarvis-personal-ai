@@ -4,7 +4,7 @@ on:
   pull_request:
     paths: ['src/**','ios/**','schema.sql','scripts/code-graph/**','package*.json','.github/workflows/code-graph.yml','.github/scripts/code-graph-job.mjs']
 permissions:
-  contents: read
+  contents: write
 jobs:
   graph:
     runs-on: ubuntu-latest
@@ -28,3 +28,20 @@ jobs:
             graphify-out/
             package-lock.json
           if-no-files-found: error
+      - name: Sync native graph lockfile
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'feature/native-code-graph-engine' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git fetch origin "refs/heads/$HEAD_REF:refs/remotes/origin/$HEAD_REF"
+          git checkout -B "$HEAD_REF" "origin/$HEAD_REF"
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json already synchronized"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: sync native graph package lock"
+          git push origin "HEAD:refs/heads/$HEAD_REF"
