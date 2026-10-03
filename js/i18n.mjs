@@ -86,3 +86,5 @@ export function mountLanguageSwitcher({root,storage,navigatorLanguage,onChange=(
   const render=()=>{root.innerHTML=languageSwitcherMarkup(lang); root.querySelectorAll?.('[data-lang]')?.forEach?.(button=>button.addEventListener('click',()=>{lang=saveLanguage(storage,button.dataset.lang);render();onChange(lang);}));};
   render(); return {getLanguage:()=>lang,setLanguage(next){lang=saveLanguage(storage,next);render();onChange(lang);}};
 }
+
+export function createLanguageStore(storage=globalThis.localStorage){return{get(browser=globalThis.navigator?.language){return loadLanguage(storage,browser)},set(lang){return saveLanguage(storage,lang)}}}
