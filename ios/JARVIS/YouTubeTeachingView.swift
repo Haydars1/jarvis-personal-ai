@@ -7,16 +7,27 @@ private struct YouTubeTeachingSource: Codable, Identifiable, Hashable {
     var status: String
     var answer: String?
     var error: String?
+    var learningStatus: String?
+    var learningChunks: Int?
+    var queuedVideos: Int?
     let createdAt: Date
 
     var statusLabel: String {
+        switch learningStatus?.lowercased() {
+        case "learned": return "Öğrenildi"
+        case "index-queued": return "Videolar öğreniliyor"
+        case "no-transcript": return "Transkript bulunamadı"
+        default: break
+        }
         switch status.lowercased() {
         case "queued", "running": return "Analiz ediliyor"
-        case "completed": return "Tamamlandı"
+        case "completed": return "İşlendi"
         case "failed": return "Hata"
         default: return status
         }
     }
+
+    var isLearned: Bool { learningStatus?.lowercased() == "learned" }
 }
 
 struct YouTubeTeachingView: View {
@@ -61,10 +72,10 @@ struct YouTubeTeachingView: View {
                 Text("JARVIS Öğrenme Kaynakları")
                     .font(.title2.bold())
             }
-            Text("YouTube video veya kanal bağlantısını kaynak olarak işle. JARVIS transkripti veya kanal indeksini çıkarır, sonucu kaynak geçmişinde saklar.")
+            Text("YouTube video veya kanal bağlantısını ekle. JARVIS transkripti çıkarır, kalıcı öğrenme hafızasına parçalar halinde kaydeder ve normal sohbetlerinde gerektiğinde bu bilgiyi kaynaklı olarak kullanır.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("Kaynak motoru: artemnovitckii/notebooklm-coach fikrinden türetilen JARVIS clean-room youtube-teaching adapterı. Üçüncü taraf loader kodu çalıştırılmaz.")
+            Text("Kanal bağlantısında bulunan videolar ayrı öğrenme işlerine dağıtılır. 'Öğrenildi' yalnız bilgi gerçekten kalıcı hafızaya yazıldığında gösterilir.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -89,7 +100,7 @@ struct YouTubeTeachingView: View {
                 HStack {
                     if isSubmitting { ProgressView().tint(.white) }
                     Image(systemName: "brain.head.profile")
-                    Text(isSubmitting ? "KAYNAK EKLENİYOR..." : "KAYNAĞI İŞLE")
+                    Text(isSubmitting ? "KAYNAK EKLENİYOR..." : "JARVIS'E ÖĞRET")
                         .fontWeight(.bold)
                 }
                 .frame(maxWidth: .infinity)
@@ -111,7 +122,7 @@ struct YouTubeTeachingView: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Kaynak Geçmişi")
+                Text("Öğrenme Geçmişi")
                     .font(.headline)
                 Spacer()
                 if !history.isEmpty {
@@ -124,7 +135,7 @@ struct YouTubeTeachingView: View {
             }
 
             if history.isEmpty {
-                Text("Henüz kaynak eklenmedi.")
+                Text("Henüz eğitim kaynağı eklenmedi.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -140,7 +151,7 @@ struct YouTubeTeachingView: View {
     private func sourceCard(_ item: YouTubeTeachingSource) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
-                Image(systemName: item.status == "completed" ? "checkmark.circle.fill" : item.status == "failed" ? "exclamationmark.triangle.fill" : "hourglass.circle.fill")
+                Image(systemName: item.isLearned ? "brain.fill" : item.status == "failed" ? "exclamationmark.triangle.fill" : item.status == "completed" ? "checkmark.circle.fill" : "hourglass.circle.fill")
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item.statusLabel)
                         .font(.subheadline.bold())
@@ -150,6 +161,18 @@ struct YouTubeTeachingView: View {
                         .lineLimit(2)
                 }
                 Spacer(minLength: 8)
+            }
+
+            if let chunks = item.learningChunks, chunks > 0 {
+                Label("\(chunks) kalıcı bilgi parçası", systemImage: "books.vertical.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let queued = item.queuedVideos, queued > 0 {
+                Label("\(queued) video öğrenme kuyruğuna eklendi", systemImage: "list.bullet.rectangle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if let answer = item.answer, !answer.isEmpty {
@@ -194,12 +217,15 @@ struct YouTubeTeachingView: View {
                 status: job.status,
                 answer: nil,
                 error: job.error,
+                learningStatus: job.result?.learningStatus,
+                learningChunks: job.result?.learningChunks,
+                queuedVideos: job.result?.queuedVideos,
                 createdAt: Date()
             )
             history.insert(source, at: 0)
             persistHistory()
             sourceURL = ""
-            statusText = "Kaynak kuyruğa alındı; analiz sonucu bu ekrana dönecek."
+            statusText = "Kaynak öğrenme kuyruğuna alındı."
             await monitor(sourceID: source.id, jobID: job.id)
         } catch {
             statusText = "Kaynak eklenemedi: \(error.localizedDescription)"
@@ -221,6 +247,9 @@ struct YouTubeTeachingView: View {
                 updateSource(sourceID) { item in
                     item.status = result.job.status
                     item.error = result.job.error
+                    item.learningStatus = result.job.result?.learningStatus
+                    item.learningChunks = result.job.result?.learningChunks
+                    item.queuedVideos = result.job.result?.queuedVideos
                     if let answer = result.answer, !answer.isEmpty {
                         item.answer = answer
                     }
@@ -229,7 +258,17 @@ struct YouTubeTeachingView: View {
 
                 let state = result.job.status.lowercased()
                 if state == "completed" {
-                    statusText = "Kaynak işlendi ve sonuç geçmişe kaydedildi."
+                    switch result.job.result?.learningStatus?.lowercased() {
+                    case "learned":
+                        statusText = "JARVIS bu videoyu öğrendi ve kalıcı bilgi hafızasına ekledi."
+                    case "index-queued":
+                        let count = result.job.result?.queuedVideos ?? 0
+                        statusText = "Kanal tarandı; \(count) video öğrenme kuyruğuna eklendi."
+                    case "no-transcript":
+                        statusText = "Video işlendi ancak öğrenilecek transkript bulunamadı."
+                    default:
+                        statusText = "Kaynak işlendi ancak kalıcı öğrenme doğrulanmadı."
+                    }
                     return
                 }
                 if state == "failed" {
