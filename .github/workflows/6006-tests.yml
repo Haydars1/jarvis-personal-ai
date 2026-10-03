@@ -1,0 +1,30 @@
+name: 6006 Tests
+
+on:
+  push:
+    branches: [6006-performance]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run test suite
+        run: npm test
+      - name: Syntax checks
+        run: |
+          node --check js/i18n.mjs
+          node --check js/site-i18n.mjs
+          node --check js/fault-localization.mjs
+          node --check js/fault-app.mjs
+          node --check js/support-chat.mjs
+          node --check js/ai-support.mjs
+          node --check js/admin-chat.mjs
+          node --check js/vehicle-selector-ui.mjs
