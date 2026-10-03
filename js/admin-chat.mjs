@@ -1,19 +1,5 @@
-function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-export function adminConversationCard(c={}){
-  const status=c.status==='human_active'?'Übernommen':'AI aktiv';
-  return `<button class="admin-conversation-card" data-conversation-id="${esc(c.id)}"><span><strong>${esc(c.faultCode||'Allgemein')}</strong><small>${esc(c.vehicleLabel||'Fahrzeug noch nicht gewählt')}</small></span><span><em>${status}</em>${c.unread?`<b>${Number(c.unread)}</b>`:''}</span></button>`;
-}
-export function adminChatMarkup(c={}){
-  return `<section class="admin-chat-view" data-conversation-id="${esc(c.id)}">
-  <aside class="admin-context"><small>Fahrzeugkontext</small><strong>${esc(c.vehicleLabel||'Noch nicht gewählt')}</strong><span>${esc(c.faultCode||'Kein Fehlercode')}</span></aside>
-  <header><span>Status: ${c.status==='human_active'?'Mensch aktiv':'AI aktiv'}</span><div><button type="button" data-takeover>Chat übernehmen</button><button type="button" data-release>AI wieder aktivieren</button></div></header>
-  <div class="admin-chat-messages"></div>
-  <form class="admin-chat-form"><textarea name="message" placeholder="Antwort an Kunden …"></textarea><button type="submit">Senden</button></form>
-  </section>`;
-}
-export function mountAdminChat({root=document.body,transport,conversation}={}){
-  root.innerHTML=adminChatMarkup(conversation||{});
-  root.querySelector('[data-takeover]')?.addEventListener('click',()=>transport?.takeOver?.(conversation.id));
-  root.querySelector('[data-release]')?.addEventListener('click',()=>transport?.releaseToAi?.(conversation.id));
-  root.querySelector('.admin-chat-form')?.addEventListener('submit',async e=>{e.preventDefault(); const text=String(e.currentTarget.elements.message.value||'').trim(); if(text) await transport?.sendOwnerMessage?.(conversation.id,text);});
-}
+import { normalizeLanguage, t } from './i18n.mjs';
+function esc(v=''){return String(v).replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
+export function adminConversationCard(c={}, {lang='de'}={}){ const language=normalizeLanguage(lang); const status=c.status==='human_active'?t(language,'admin.taken'):t(language,'admin.aiActive'); return `<button class="admin-conversation-card" data-conversation-id="${esc(c.id)}"><span><strong>${esc(c.faultCode||t(language,'admin.general'))}</strong><small>${esc(c.vehicleLabel||t(language,'admin.noVehicle'))}</small></span><span><em>${status}</em>${c.unread?`<b>${Number(c.unread)}</b>`:''}</span></button>`; }
+export function adminChatMarkup(c={}, {lang='de'}={}){ const language=normalizeLanguage(lang); const status=c.status==='human_active'?t(language,'admin.humanActive'):t(language,'admin.aiActive'); return `<section class="admin-chat-view" data-conversation-id="${esc(c.id)}"><aside class="admin-context"><small>${t(language,'admin.context')}</small><strong>${esc(c.vehicleLabel||t(language,'admin.notSelected'))}</strong><span>${esc(c.faultCode||t(language,'admin.noFault'))}</span></aside><header><span>${t(language,'admin.status',{value:status})}</span><div><button type="button" data-takeover>${t(language,'admin.takeover')}</button><button type="button" data-release>${t(language,'admin.release')}</button></div></header><div class="admin-chat-messages"></div><form class="admin-chat-form"><textarea name="message" placeholder="${t(language,'admin.replyPlaceholder')}"></textarea><button type="submit">${t(language,'admin.send')}</button></form></section>`; }
+export function mountAdminChat({root=document.body,transport,conversation,lang='de'}={}){ let language=normalizeLanguage(lang); const bind=()=>{root.querySelector('[data-takeover]')?.addEventListener('click',()=>transport?.takeOver?.(conversation.id));root.querySelector('[data-release]')?.addEventListener('click',()=>transport?.releaseToAi?.(conversation.id));root.querySelector('.admin-chat-form')?.addEventListener('submit',async e=>{e.preventDefault();const text=String(e.currentTarget.elements.message.value||'').trim();if(text)await transport?.sendOwnerMessage?.(conversation.id,text,{language});});};const render=()=>{root.innerHTML=adminChatMarkup(conversation||{},{lang:language});bind();};render();return{setLanguage(next){language=normalizeLanguage(next);render();}};}
