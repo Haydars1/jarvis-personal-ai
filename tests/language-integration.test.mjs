@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { getContextualGreeting, chatLauncherMarkup } from '../js/support-chat.mjs';
+import { buildSupportPrompt, createSafeFallbackReply } from '../js/ai-support.mjs';
+import { adminChatMarkup } from '../js/admin-chat.mjs';
+test('support chat can render in Turkish',()=>{const greeting=getContextualGreeting({faultCode:'P0299',lang:'tr'});const html=chatLauncherMarkup({greeting,lang:'tr'});assert.match(greeting,/turbo|basınç/i);assert.match(html,/Mesaj yaz/);assert.match(html,/Gönder/);});
+test('support chat can render in English',()=>{const html=chatLauncherMarkup({lang:'en'});assert.match(html,/Write a message/);assert.match(html,/Send/);});
+test('AI prompt enforces selected response language',()=>{assert.match(buildSupportPrompt({faultCode:'P0299',lang:'tr'}),/yalnızca Türkçe|yaln.?zca Türkçe/i);assert.match(buildSupportPrompt({faultCode:'P0299',lang:'en'}),/only in English/i);assert.match(buildSupportPrompt({faultCode:'P0299'}),/ausschließlich auf Deutsch/i);});
+test('safe fallback reply follows selected language',()=>{assert.match(createSafeFallbackReply({faultCode:'P0299',lang:'tr'}),/belirti/i);assert.match(createSafeFallbackReply({faultCode:'P0299',lang:'en'}),/symptoms/i);});
+test('admin takeover controls follow selected language',()=>{const tr=adminChatMarkup({id:'c1',status:'ai_active'},{lang:'tr'});const en=adminChatMarkup({id:'c1',status:'ai_active'},{lang:'en'});assert.match(tr,/Sohbeti devral/);assert.match(en,/Take over chat/);});
