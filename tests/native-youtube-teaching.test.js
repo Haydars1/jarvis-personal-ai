@@ -23,9 +23,10 @@ test('YT Öğretisi directly queues the clean-room teaching adapter instead of p
   assert.match(teaching,/cloudToolJob/);
 });
 
-test('YT Öğretisi validates a YouTube URL and persists source history with job status',()=>{
+test('YT Öğretisi validates a YouTube URL and persists truthful learning history with backend status',()=>{
   assert.match(teaching,/YouTube|youtu\.be/);
   assert.match(teaching,/UserDefaults/);
-  assert.match(teaching,/Kaynak Geçmişi/);
-  assert.match(teaching,/Analiz ediliyor|Öğrenildi|Tamamlandı/);
+  assert.match(teaching,/Öğrenme Geçmişi/);
+  assert.match(teaching,/learningStatus/);
+  assert.match(teaching,/Analiz ediliyor|Öğrenildi|İşlendi/);
 });
