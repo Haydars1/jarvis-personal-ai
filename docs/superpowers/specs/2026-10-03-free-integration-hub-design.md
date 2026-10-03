@@ -33,15 +33,17 @@ Other tools that require payment at runtime must remain `paid-or-account-require
 - Todoist
 - Gmail
 - Google Calendar
+- Consensus
 
 These should be reused rather than duplicated.
 
-## Missing ChatGPT integrations currently available for user installation
-- Consensus
-- Slack
-- HeyGen
+## Missing ChatGPT integrations currently eligible for user connection
+- Slack (free-plan use only)
 
-ChatGPT plugin installation/connection remains a user action. JARVIS must not pretend these are connected until their connector state confirms it.
+## Not admitted to free set yet
+- HeyGen (do not treat as free until usage/pricing eligibility is verified)
+
+ChatGPT plugin installation/connection remains a user action. JARVIS must not pretend a connector is connected until connector state confirms it.
 
 ## JARVIS architecture
 Add a Free Integration Hub on top of the existing repository catalog, cloud execution, native skill executor, and specialist-agent routing.
@@ -67,7 +69,7 @@ Use existing or free/open tooling such as Superpowers, GitHub, Playwright MCP, G
 Use installed Figma and Canva connectors plus open/free design skills. Paid-only visual providers remain disabled.
 
 ### Growth / Research
-Use Firecrawl, Consensus when connected, the existing YouTube Teaching system, source-backed research/search, and free/open repository skills.
+Use Firecrawl, connected Consensus, the existing YouTube Teaching system, source-backed research/search, and free/open repository skills.
 
 ### Operations
 Use Notion, Google Drive, Slack when connected, and free/open workflow tooling. Do not route through paid-only Plaud.
