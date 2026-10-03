@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#102F27" />
+  <title>6006 Performance</title>
+  <meta name="description" content="6006 PERFORMANCE – Fahrzeugdiagnose, Codierung und Softwareoptimierung" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true">
+    <symbol id="i-engine" viewBox="0 0 64 48"><path d="M8 18h8l5-7h18l5 7h7l5 7v13h-8l-4 6H17l-4-6H8zM22 11V6m16 5V6M3 24h5m48 3h5"/></symbol>
+    <symbol id="i-oil" viewBox="0 0 64 48"><path d="M10 28h29l8 8H14zM22 14h17l8 14H14zM36 14V8M48 12l7 5M53 33c0 4-3 7-7 7"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 64 48"><rect x="10" y="14" width="44" height="25" rx="2"/><path d="M20 10v4m24-4v4M20 26h8m-4-4v8M39 26h8"/></symbol>
+    <symbol id="i-brake" viewBox="0 0 64 64"><circle cx="32" cy="32" r="18"/><path d="M9 19a28 28 0 0 0 0 26M55 19a28 28 0 0 1 0 26M32 20v16m0 7v1"/></symbol>
+    <symbol id="i-tpms" viewBox="0 0 64 64"><path d="M13 44c-5-8-5-21 2-30m36 30c5-8 5-21-2-30M18 49h28"/><path d="M32 20v14m0 7v1"/></symbol>
+    <symbol id="i-coolant" viewBox="0 0 64 64"><path d="M28 12v25a10 10 0 1 0 8 0V12a4 4 0 0 0-8 0zM11 51c5-4 10 4 15 0s10 4 15 0 10 4 15 0"/></symbol>
+    <symbol id="i-airbag" viewBox="0 0 64 64"><circle cx="18" cy="18" r="7"/><path d="M13 28l9 8 8 17M23 32l9-8 8 18M42 19c9 0 14 6 14 14H42z"/></symbol>
+    <symbol id="i-dpf" viewBox="0 0 64 48"><path d="M8 19h10l5-6h19l5 6h9v17h-9l-5 6H23l-5-6H8z"/><path d="M28 20v15m7-15v15m7-15v15"/></symbol>
+    <symbol id="i-steer" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22"/><circle cx="32" cy="32" r="6"/><path d="M12 28h40M32 38v16"/></symbol>
+    <symbol id="i-abs" viewBox="0 0 64 64"><circle cx="32" cy="32" r="20"/><path d="M10 18a28 28 0 0 0 0 28M54 18a28 28 0 0 1 0 28"/></symbol>
+  </svg>
+
+  <div class="fault-grid" aria-label="Interaktiver Fehlercode-Hintergrund">
+    <a class="fault-cell amber" data-fault="P0299" href="fault.html?code=P0299" aria-label="P0299 Ladedruckregelung"><svg><use href="#i-engine"/></svg><span>P0299</span></a>
+    <a class="fault-cell dim" data-fault="P0401" href="fault.html?code=P0401" aria-label="P0401 AGR Durchfluss"><svg><use href="#i-engine"/></svg><span>P0401</span></a>
+    <a class="fault-cell red" data-fault="OIL" href="fault.html?code=OIL" aria-label="Öldruck Warnung"><svg><use href="#i-oil"/></svg><span>OIL</span></a>
+    <a class="fault-cell amber" data-fault="ABS" href="fault.html?code=ABS" aria-label="ABS Warnung"><svg><use href="#i-abs"/></svg><b>ABS</b></a>
+    <a class="fault-cell dim" data-fault="P2002" href="fault.html?code=P2002" aria-label="P2002 Partikelfilter"><svg><use href="#i-dpf"/></svg><span>P2002</span></a>
+    <a class="fault-cell amber" data-fault="TPMS" href="fault.html?code=TPMS" aria-label="Reifendruck Warnung"><svg><use href="#i-tpms"/></svg><span>TPMS</span></a>
+    <a class="fault-cell red" data-fault="BATTERY" href="fault.html?code=BATTERY" aria-label="Batterie Warnung"><svg><use href="#i-battery"/></svg><span>12V</span></a>
+    <a class="fault-cell dim" data-fault="U0100" href="fault.html?code=U0100" aria-label="U0100 Kommunikation"><svg><use href="#i-steer"/></svg><span>U0100</span></a>
+    <a class="fault-cell amber" data-fault="DPF" href="fault.html?code=DPF" aria-label="DPF Warnung"><svg><use href="#i-dpf"/></svg><span>DPF</span></a>
+    <a class="fault-cell dim" data-fault="P0171" href="fault.html?code=P0171" aria-label="P0171 Gemisch zu mager"><svg><use href="#i-engine"/></svg><span>P0171</span></a>
+    <a class="fault-cell red" data-fault="COOLANT" href="fault.html?code=COOLANT" aria-label="Kühlmitteltemperatur"><svg><use href="#i-coolant"/></svg><span>°C</span></a>
+    <a class="fault-cell amber" data-fault="AIRBAG" href="fault.html?code=AIRBAG" aria-label="Airbag Warnung"><svg><use href="#i-airbag"/></svg><span>SRS</span></a>
+    <a class="fault-cell dim" data-fault="P0300" href="fault.html?code=P0300" aria-label="P0300 Verbrennungsaussetzer"><svg><use href="#i-engine"/></svg><span>P0300</span></a>
+    <a class="fault-cell red" data-fault="BRAKE" href="fault.html?code=BRAKE" aria-label="Bremsanlage Warnung"><svg><use href="#i-brake"/></svg><span>BRAKE</span></a>
+    <a class="fault-cell amber" data-fault="EPC" href="fault.html?code=EPC" aria-label="EPC Warnung"><svg><use href="#i-engine"/></svg><span>EPC</span></a>
+    <a class="fault-cell dim" data-fault="P2453" href="fault.html?code=P2453" aria-label="P2453 DPF Differenzdruck"><svg><use href="#i-dpf"/></svg><span>P2453</span></a>
+    <a class="fault-cell amber" data-fault="STEERING" href="fault.html?code=STEERING" aria-label="Lenkung Warnung"><svg><use href="#i-steer"/></svg><span>EPS</span></a>
+    <a class="fault-cell dim" data-fault="P0420" href="fault.html?code=P0420" aria-label="P0420 Katalysator"><svg><use href="#i-engine"/></svg><span>P0420</span></a>
+    <a class="fault-cell amber" data-fault="P0299" href="fault.html?code=P0299" aria-label="P0299 Ladedruckregelung"><svg><use href="#i-engine"/></svg><span>P0299</span></a>
+    <a class="fault-cell dim" data-fault="P0401" href="fault.html?code=P0401" aria-label="P0401 AGR Durchfluss"><svg><use href="#i-engine"/></svg><span>P0401</span></a>
+    <a class="fault-cell red" data-fault="OIL" href="fault.html?code=OIL" aria-label="Öldruck Warnung"><svg><use href="#i-oil"/></svg><span>OIL</span></a>
+    <a class="fault-cell amber" data-fault="ABS" href="fault.html?code=ABS" aria-label="ABS Warnung"><svg><use href="#i-abs"/></svg><b>ABS</b></a>
+    <a class="fault-cell dim" data-fault="P2002" href="fault.html?code=P2002" aria-label="P2002 Partikelfilter"><svg><use href="#i-dpf"/></svg><span>P2002</span></a>
+    <a class="fault-cell amber" data-fault="TPMS" href="fault.html?code=TPMS" aria-label="Reifendruck Warnung"><svg><use href="#i-tpms"/></svg><span>TPMS</span></a>
+    <a class="fault-cell red" data-fault="BATTERY" href="fault.html?code=BATTERY" aria-label="Batterie Warnung"><svg><use href="#i-battery"/></svg><span>12V</span></a>
+    <a class="fault-cell dim" data-fault="U0100" href="fault.html?code=U0100" aria-label="U0100 Kommunikation"><svg><use href="#i-steer"/></svg><span>U0100</span></a>
+    <a class="fault-cell amber" data-fault="DPF" href="fault.html?code=DPF" aria-label="DPF Warnung"><svg><use href="#i-dpf"/></svg><span>DPF</span></a>
+    <a class="fault-cell dim" data-fault="P0171" href="fault.html?code=P0171" aria-label="P0171 Gemisch zu mager"><svg><use href="#i-engine"/></svg><span>P0171</span></a>
+    <a class="fault-cell red" data-fault="COOLANT" href="fault.html?code=COOLANT" aria-label="Kühlmitteltemperatur"><svg><use href="#i-coolant"/></svg><span>°C</span></a>
+    <a class="fault-cell amber" data-fault="AIRBAG" href="fault.html?code=AIRBAG" aria-label="Airbag Warnung"><svg><use href="#i-airbag"/></svg><span>SRS</span></a>
+    <a class="fault-cell dim" data-fault="P0300" href="fault.html?code=P0300" aria-label="P0300 Verbrennungsaussetzer"><svg><use href="#i-engine"/></svg><span>P0300</span></a>
+    <a class="fault-cell red" data-fault="BRAKE" href="fault.html?code=BRAKE" aria-label="Bremsanlage Warnung"><svg><use href="#i-brake"/></svg><span>BRAKE</span></a>
+    <a class="fault-cell amber" data-fault="EPC" href="fault.html?code=EPC" aria-label="EPC Warnung"><svg><use href="#i-engine"/></svg><span>EPC</span></a>
+    <a class="fault-cell dim" data-fault="P2453" href="fault.html?code=P2453" aria-label="P2453 DPF Differenzdruck"><svg><use href="#i-dpf"/></svg><span>P2453</span></a>
+    <a class="fault-cell amber" data-fault="STEERING" href="fault.html?code=STEERING" aria-label="Lenkung Warnung"><svg><use href="#i-steer"/></svg><span>EPS</span></a>
+    <a class="fault-cell dim" data-fault="P0420" href="fault.html?code=P0420" aria-label="P0420 Katalysator"><svg><use href="#i-engine"/></svg><span>P0420</span></a>
+  </div>
+
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand-mini" href="#" aria-label="6006 Performance Startseite"><span>6006</span><small>PERFORMANCE</small></a>
+      <nav>
+        <a href="#leistungen">Leistungen</a>
+        <a href="#fehlercodes">Fehlercodes</a>
+        <a href="#kontakt">Kontakt</a>
+      </nav>
+      <a class="contact-mini" href="https://wa.me/491788354756">WhatsApp</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow"><span></span> FAHRZEUGELEKTRONIK · DIAGNOSE · CODIERUNG</div>
+        <h1><span>6006</span> PERFORMANCE</h1>
+        <p class="lead">Technik verstehen.<br><em>Funktionen sichtbar machen.</em></p>
+        <p class="intro">Persönliche Fahrzeugdiagnose, Codierung und Softwareoptimierung. Kein Online-Shop – eine direkte Vorstellung meiner Arbeit und Möglichkeiten.</p>
+        <div class="actions">
+          <a class="primary" href="https://wa.me/491788354756">WhatsApp schreiben</a>
+          <a href="tel:+491788354756">0178 8354756</a>
+          <a href="mailto:6006performance@gmail.com">E-Mail</a>
+        </div>
+        <p class="hint">Die Symbole im Hintergrund sind anklickbar.</p>
+      </section>
+
+      <section class="services" id="leistungen">
+        <div><span>01</span><strong>Diagnose</strong><p>Fehlerspeicher, Live-Daten und systematische Fehlersuche.</p></div>
+        <div><span>02</span><strong>Codierung</strong><p>Fahrzeugfunktionen individuell anpassen und freischalten.</p></div>
+        <div><span>03</span><strong>Software</strong><p>Softwarebasierte Anpassungen passend zum Fahrzeug.</p></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
