@@ -1,286 +1,354 @@
 # JARVIS Free Integration Hub Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` (or subagent-driven development where available) and implement task-by-task with TDD.
 
-**Goal:** Extend the existing JARVIS Integration Hub so only verified free/free-plan integrations can be selected automatically, existing JARVIS capabilities are reused instead of duplicated, and the iPhone app truthfully shows what is active, connection-required, reference-only, excluded, or unavailable.
+**Goal:** Extend the existing JARVIS Integration Hub so only verified free/free-plan integrations can be selected automatically, existing capabilities are reused instead of duplicated, and the iPhone/web UI truthfully shows what is active, connection-required, external, reference-only, excluded, or unavailable.
 
-**Architecture:** Keep the existing `src/application/integrations/hub.js` as the authenticated integration entry point and add one focused registry/policy module plus one focused router module. Repository-backed capabilities continue to use the current repository/cloud/native execution stack; ChatGPT-only connectors are represented as external surfaces and are never falsely advertised as directly executable by the Worker. The existing web integration UI and the native iOS Settings surface consume the same normalized catalog/status payload.
+**Architecture:** Reuse `src/application/integrations/hub.js`, the repository/cloud/native execution stack, and `public/integrations-ui.js`. Add one canonical free-integration registry and one free-only router. ChatGPT-only connectors remain external surfaces unless JARVIS independently has a real adapter/auth path.
 
-**Tech Stack:** Cloudflare Workers, JavaScript ES modules, Node `node:test`, D1/KV-backed existing credential state, SwiftUI iOS client.
+**Tech stack:** Cloudflare Workers, JavaScript ES modules, Node `node:test`, existing D1/KV credential state, SwiftUI iOS client.
 
 **Spec:** `docs/superpowers/specs/2026-10-03-free-integration-hub-design.md`
 
 ## Global Constraints
-
 - Install/integrate free and free-plan tools only.
-- Do not install screenshot-labelled paid tools: ScreensDesign MCP, Higgsfield MCP, Plaud, ManyChat.
-- Do not spend money, start subscriptions, or change billing.
-- Do not claim an integration is active unless a working adapter/connector or explicitly connected surface proves it.
-- Existing installed integrations and existing repository seeds must be reused rather than duplicated.
-- Unknown pricing defaults to ineligible for automatic execution until verified as free/free-plan.
-- No production deploy, `main` merge, billing, subscription, or secret changes in this implementation branch.
+- Never auto-install/route screenshot-labelled paid tools: **ScreensDesign MCP, Higgsfield MCP, Plaud, ManyChat, Sandcastles MCP**.
+- Unknown pricing is non-routable until verified free/free-plan.
+- Do not spend money, start subscriptions, change billing, or add paid API usage.
+- Do not claim an integration is active unless a working adapter/connector proves it.
+- Existing installed integrations and repository seeds must be reused, not duplicated.
+- No production deploy, `main` merge, billing, subscription, or secret changes during implementation without separate explicit approval.
 - External account/OAuth connections remain user-controlled.
 
-## Review Focus
+## Branch Safety
+`main` and `feature/learning-engine` are heavily diverged (current comparison: learning branch hundreds of commits ahead and also substantially behind main). Do **not** merge/rebase them casually for this feature.
 
-- **Unknown or changed pricing:** an integration with `pricing='unknown'` or `pricing='paid'` must never be auto-selected; Task 1 pins this.
-- **Connection-required provider:** a free integration that needs OAuth/API credentials must show `connection-required`, not `ready`; Task 2 pins this.
-- **Duplicate capability source:** a repo/tool already present in `CURATED_CAPABILITY_SEEDS` must be referenced, not inserted again; Task 2 pins this.
-- **Adapter failure:** routing must record the failure and move to the next eligible free fallback without selecting a paid/unknown option; Task 3 pins this.
-- **Stale external ChatGPT connector state:** JARVIS must label ChatGPT-only tools as external/handoff unless its own runtime can execute them; Task 2 and Task 4 pin this.
+Use two implementation lines:
+1. **Backend/Web:** create `feature/free-integration-hub` from latest `main`.
+2. **iOS:** create `feature/free-integration-hub-ios` from latest `feature/learning-engine` after the API contract is green.
+
+Review them separately. Backend production deployment and merging remain outside this plan until separately approved. iOS can compile against the contract before production deploy, but the new live catalog will not be claimed active until the Worker endpoint is deployed later.
 
 ---
 
-### Task 1: Free Integration Registry and Eligibility Policy
+## Task 1 — Canonical Free Integration Registry + Eligibility Policy
 
-**Files:**
-- Create: `src/lib/free-integration-registry.js`
-- Create: `tests/free-integration-registry.test.js`
-- Modify: `package.json` (`check:syntax` adds the new module)
+**Backend branch:** `feature/free-integration-hub`
 
-**Interfaces:**
-- Produces: `FREE_INTEGRATION_TEAMS`, `FREE_INTEGRATION_SEEDS`, `normalizeIntegration(record, runtimeState = {})`, `isAutoExecutableIntegration(record)`, `integrationSummary(records)`.
-- Record fields: `id`, `name`, `team`, `surface`, `sourceType`, `capabilities`, `pricing`, `authState`, `runtimeState`, `adapterId`, `route`, `provenance`, `notes`.
-- Pricing values: `free`, `free-plan`, `unknown`, `paid`.
-- Runtime values: `ready`, `connection-required`, `degraded`, `reference-only`, `unavailable`, `excluded`.
+**Create:** `src/lib/free-integration-registry.js`  
+**Create:** `tests/free-integration-registry.test.js`  
+**Modify:** `package.json` to add new module(s) to explicit syntax checks if needed.
 
-- [ ] **Step 1: Write the failing policy tests**
+### 1.1 RED tests
+Require records with: `id`, `name`, `team`, `surface`, `sourceType`, `capabilities`, `pricing`, `authState`, `runtimeState`, `adapterId`, `route`, `provenance`, `notes`.
 
-Add tests asserting:
-- `free` + `ready` is auto-executable.
-- `free-plan` + `ready` is auto-executable.
-- `unknown`, `paid`, `connection-required`, `reference-only`, and `excluded` are never auto-executable.
-- ScreensDesign, Higgsfield, Plaud, and ManyChat normalize to `paid/excluded`.
-- Unknown pricing normalizes to non-executable instead of guessing free.
-- Team summary counts each runtime state correctly.
+Assert:
+- `free + ready` and `free-plan + ready` can be auto-executable.
+- `unknown`, `paid`, `connection-required`, `reference-only`, `excluded` cannot be auto-executable.
+- ScreensDesign, Higgsfield, Plaud, ManyChat, and Sandcastles normalize to `paid/excluded`.
+- Unknown pricing never silently becomes free.
+- Team summary counts Build / Design / Growth / Operations / Scale correctly.
 
-- [ ] **Step 2: Run the focused test and verify RED**
+Run:
+```bash
+node --test tests/free-integration-registry.test.js
+```
+Expected: FAIL because registry module does not exist.
 
-Run: `node --test tests/free-integration-registry.test.js`
-Expected: FAIL because `src/lib/free-integration-registry.js` does not exist.
+### 1.2 Minimal implementation
+Export at least:
+- `FREE_INTEGRATION_TEAMS`
+- `FREE_INTEGRATION_SEEDS`
+- `normalizeIntegration()`
+- `isAutoExecutableIntegration()`
+- `integrationSummary()`
 
-- [ ] **Step 3: Implement the registry/policy module**
+Seed only evidence-backed states. Do not turn screenshot presence into runtime capability.
 
-Create the exports above. Seed the screenshot tools only with states supported by evidence already present in the repo/spec; unverified pricing remains `unknown`. Explicitly mark the four screenshot-labelled paid tools as `paid` + `excluded`.
-
-- [ ] **Step 4: Run the focused test and syntax check**
-
-Run: `node --test tests/free-integration-registry.test.js && npm run check:syntax`
+### 1.3 GREEN
+```bash
+node --test tests/free-integration-registry.test.js
+npm run check:syntax
+```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
-
+### 1.4 Commit
 ```bash
 git add src/lib/free-integration-registry.js tests/free-integration-registry.test.js package.json
 git commit -m "feat: add free integration eligibility policy"
 ```
 
-### Task 2: Normalize Existing JARVIS and External Connector States
+---
 
-**Files:**
-- Modify: `src/lib/repository-integrations.js`
-- Modify: `src/lib/free-integration-registry.js`
-- Create: `tests/free-integration-state.test.js`
+## Task 2 — Normalize Existing JARVIS + External Connector States
 
-**Interfaces:**
-- Consumes: Task 1 registry functions.
-- Produces: `buildFreeIntegrationCatalog({ repositoryIntegrations, providerState }) -> IntegrationRecord[]`.
-- Existing repo execution states remain authoritative; the new catalog maps them rather than cloning seed entries.
+**Modify:** `src/lib/repository-integrations.js`  
+**Modify:** `src/lib/free-integration-registry.js`  
+**Create:** `tests/free-integration-state.test.js`
 
-- [ ] **Step 1: Write failing state-normalization tests**
-
+### 2.1 RED tests
 Cover:
-- Existing `microsoft/playwright-mcp`, `remotion-dev/remotion`, `apify/crawlee`, and `artemnovitckii/notebooklm-coach` are referenced through existing repository metadata rather than duplicated.
-- Existing `notebooklm-coach` stays `reference-only` because JARVIS uses its clean-room YouTube adapter instead of executing third-party code.
-- A free provider with missing OAuth/API setup becomes `connection-required`.
-- A ChatGPT-only connector such as Figma/Canva/Consensus is represented with `surface='chatgpt'` and is not marked Worker-executable merely because it exists in ChatGPT.
-- HeyGen remains outside automatic free routing while free-tier eligibility is unverified, even if connected in ChatGPT.
+- Existing `microsoft/playwright-mcp`, `remotion-dev/remotion`, `apify/crawlee`, `artemnovitckii/notebooklm-coach` are referenced through existing repository metadata, not duplicated.
+- `notebooklm-coach` stays reference/provenance-only; JARVIS executes its clean-room YouTube adapter.
+- A free integration that lacks OAuth/API setup is `connection-required`, not `ready`.
+- Figma/Canva/Consensus installed in ChatGPT are represented as `surface='chatgpt'` / external-handoff unless JARVIS has its own adapter.
+- HeyGen remains outside free auto-routing while free eligibility is unverified.
+- Existing JARVIS Google Drive / YouTube paths retain their actual connection states.
 
-- [ ] **Step 2: Verify RED**
+Run:
+```bash
+node --test tests/free-integration-state.test.js
+```
+Expected: FAIL.
 
-Run: `node --test tests/free-integration-state.test.js`
-Expected: FAIL because `buildFreeIntegrationCatalog` is missing.
+### 2.2 Implementation
+Add `buildFreeIntegrationCatalog({ repositoryIntegrations, providerState })` and join by canonical repo/provider ID.
 
-- [ ] **Step 3: Implement catalog composition**
+Rules:
+- Existing runtime status/adapter route is authoritative.
+- `source-only`, `reference`, `configuration-required`, `hardware-required` remain non-ready.
+- ChatGPT connector state never automatically becomes Worker executable state.
 
-Join the Task 1 seed metadata to `repositoryIntegrations()` by canonical repo/id. Reuse existing integration `status/mode/route` values. Never mutate `CURATED_CAPABILITY_SEEDS` just to make a second copy of an already-known repository.
-
-- [ ] **Step 4: Verify GREEN**
-
-Run: `node --test tests/free-integration-state.test.js tests/pdf-integrations.test.js tests/open-source-capabilities.test.js`
+### 2.3 GREEN
+```bash
+node --test tests/free-integration-state.test.js tests/pdf-integrations.test.js tests/open-source-capabilities.test.js
+```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
-
+### 2.4 Commit
 ```bash
 git add src/lib/free-integration-registry.js src/lib/repository-integrations.js tests/free-integration-state.test.js
 git commit -m "feat: normalize free integration states"
 ```
 
-### Task 3: Free-Only Router With Fallback Trace
+---
 
-**Files:**
-- Create: `src/application/integrations/free-router.js`
-- Create: `tests/free-integration-router.test.js`
-- Modify: `src/application/capabilities/runtime.js`
-- Modify: `package.json` (`check:syntax` adds the router)
+## Task 3 — Free-Only Router + Fallback Trace
 
-**Interfaces:**
-- Consumes: normalized `IntegrationRecord[]` from Task 2.
-- Produces: `selectFreeIntegration(task, records, failedIds = []) -> { selected, fallbacks, skipped }`.
-- `selected` is `null | IntegrationRecord`; `skipped` contains `{id, reason}`; `fallbacks` contains eligible records in priority order.
+**Create:** `src/application/integrations/free-router.js`  
+**Create:** `tests/free-integration-router.test.js`  
+**Modify:** `src/application/capabilities/runtime.js`  
+**Modify:** `package.json` syntax-check list as needed.
 
-- [ ] **Step 1: Write failing router tests**
-
+### 3.1 RED tests
 Assert:
-- Build/research/operations/design/scale tasks prefer matching team capabilities.
-- `paid`, `unknown`, `excluded`, `connection-required`, and `reference-only` records are skipped for execution.
-- If first ready adapter is in `failedIds`, the next ready free fallback is selected.
-- The trace explains every skipped candidate.
-- No ChatGPT-only connector is returned as Worker-executable unless an explicit JARVIS adapter state says `ready`.
+1. Paid and unknown-pricing integrations are never selected.
+2. `connection-required`, `reference-only`, and `excluded` are visible but not executable.
+3. A ready free adapter wins before degraded fallbacks.
+4. When first adapter fails, next verified free fallback is selected.
+5. Trace explains every skip/failure.
+6. Team/capability matching is deterministic.
+7. ChatGPT-only connectors are never returned as Worker-executable without an explicit JARVIS adapter.
 
-- [ ] **Step 2: Verify RED**
+Run:
+```bash
+node --test tests/free-integration-router.test.js
+```
+Expected: FAIL.
 
-Run: `node --test tests/free-integration-router.test.js`
-Expected: FAIL because the router does not exist.
+### 3.2 Implementation
+Export a pure selector, e.g. `selectFreeIntegration(task, records, failedIds=[])` returning `{selected, fallbacks, skipped}`. Keep selection logic testable without network calls.
 
-- [ ] **Step 3: Implement router and capability-runtime hook**
+Hook into capability runtime only at the integration handoff boundary; do not replace the existing AI-provider router or hijack ordinary chat.
 
-Add `selectFreeIntegration`. In `src/application/capabilities/runtime.js`, consult the free router only for Integration Hub routed work; preserve existing capability execution behavior for unrelated ECU/YouTube/repo flows.
-
-- [ ] **Step 4: Verify GREEN plus regressions**
-
-Run: `node --test tests/free-integration-router.test.js tests/cloud-capability-execution.test.js tests/orchestration.test.js tests/reliability-runtime.test.js`
+### 3.3 GREEN + regressions
+```bash
+node --test tests/free-integration-router.test.js tests/cloud-capability-execution.test.js tests/orchestration.test.js tests/reliability-runtime.test.js
+```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
-
+### 3.4 Commit
 ```bash
 git add src/application/integrations/free-router.js src/application/capabilities/runtime.js tests/free-integration-router.test.js package.json
 git commit -m "feat: route only verified free integrations"
 ```
 
-### Task 4: Extend the Existing Integration Hub API and Web Status UI
+---
 
-**Files:**
-- Modify: `src/application/integrations/hub.js`
-- Modify: `public/integrations-ui.js`
-- Create: `tests/free-integration-hub-api.test.js`
+## Task 4 — Extend Existing Integration Hub API
 
-**Interfaces:**
-- Consumes: `buildFreeIntegrationCatalog`, `integrationSummary`.
-- Produces authenticated `GET /api/integrations/catalog?team=<optional>&state=<optional>` returning `{ integrations, summary, filters }`.
-- Existing `GET /api/integrations/status` keeps Google/YouTube/Meta compatibility and adds `freeHub` summary without breaking current consumers.
+**Modify:** `src/application/integrations/hub.js`  
+**Create:** `tests/free-integration-hub-api.test.js`
 
-- [ ] **Step 1: Write failing API tests**
+### 4.1 RED API tests
+Require authenticated `GET /api/integrations/catalog?team=<optional>&state=<optional>` returning:
+- `integrations[]`
+- `summary`
+- `filters`
 
-Assert:
-- Unauthenticated catalog requests follow the existing auth behavior.
-- Catalog filters by team/state.
-- Paid/excluded items may be displayed for transparency but include `autoExecutable:false`.
-- Existing Google/YouTube/Facebook/Instagram keys remain unchanged.
-- ChatGPT-only entries render as external/handoff state, not JARVIS `ready`.
+Keep current `/api/integrations/status` Google/YouTube/Meta/Facebook/Instagram keys unchanged and add a `freeHub` summary additively.
 
-- [ ] **Step 2: Verify RED**
+Assert paid/excluded records may be displayed for transparency but always have `autoExecutable:false`. No secret/raw token may be returned.
 
-Run: `node --test tests/free-integration-hub-api.test.js`
-Expected: FAIL because `/api/integrations/catalog` is not implemented.
+Run:
+```bash
+node --test tests/free-integration-hub-api.test.js
+```
+Expected: FAIL.
 
-- [ ] **Step 3: Add the API endpoint and extend the existing web cards**
+### 4.2 Implementation
+Preserve all existing Meta/Google OAuth behavior. Add catalog/filter/status composition only.
 
-Keep current Meta/Google OAuth code intact. Add a second Integration Hub section grouped by Build / Design / Growth / Operations / Scale with state badges: Active, Connection needed, Free not adapted, Reference only, Paid/excluded, Unavailable.
-
-- [ ] **Step 4: Verify GREEN and existing integration regression**
-
-Run: `node --test tests/free-integration-hub-api.test.js && npm run check:syntax`
+### 4.3 GREEN
+```bash
+node --test tests/free-integration-hub-api.test.js tests/security.test.js
+```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
-
+### 4.4 Commit
 ```bash
-git add src/application/integrations/hub.js public/integrations-ui.js tests/free-integration-hub-api.test.js
+git add src/application/integrations/hub.js tests/free-integration-hub-api.test.js
 git commit -m "feat: expose free integration hub catalog"
 ```
 
-### Task 5: Native iPhone Integration Hub
+---
 
-**Files:**
-- Modify: `ios/JARVIS/JarvisAPI.swift`
-- Create: `ios/JARVIS/IntegrationHubView.swift`
-- Modify: `ios/JARVIS/SettingsView.swift`
-- Create: `tests/free-integration-ios.test.js`
+## Task 5 — Upgrade Existing Web Integration Hub UI
 
-**Interfaces:**
-- Consumes: `GET /api/integrations/catalog` from Task 4.
-- Produces Swift models `IntegrationHubRecord`, `IntegrationHubSummary`, `IntegrationHubCatalogResponse` and `JarvisAPI.integrationCatalog(team:state:) async throws -> IntegrationHubCatalogResponse`.
-- `IntegrationHubView` provides team and state filters and no direct paid-subscription action.
+**Modify:** `public/integrations-ui.js`  
+**Modify:** existing provider-card CSS file after inspection  
+**Create/Modify:** a focused UI source regression test.
 
-- [ ] **Step 1: Write failing native-contract test**
+### 5.1 RED assertions
+Require team filters and truthful states:
+- Aktif
+- Bağlantı gerekli
+- Ücretsiz / adapter bekliyor
+- Sadece kaynak
+- Ücretli / hariç
+- Kullanılamıyor
 
-Use Node file assertions to require:
-- `IntegrationHubView.swift` exists.
-- `JarvisAPI.swift` calls `/api/integrations/catalog`.
-- UI contains the five team filters and the truthful state labels.
-- UI has no button/text that starts a paid subscription for the excluded providers.
+Paid/excluded cards must not expose activation/subscription actions.
 
-- [ ] **Step 2: Verify RED**
+### 5.2 Implementation
+Reuse current `#integrationHub`, `#integrationCards`, status refresh, Google/YouTube/Meta actions. Add the free catalog beneath/alongside existing account cards rather than creating a duplicate hub.
 
-Run: `node --test tests/free-integration-ios.test.js`
-Expected: FAIL because the native view/API method is absent.
-
-- [ ] **Step 3: Implement the Swift models/API/view and add Settings navigation**
-
-Keep the existing Settings skill/capability status. Add an `Integration Hub` entry that opens the new view and displays server-returned states without locally inventing connection status.
-
-- [ ] **Step 4: Verify contract test**
-
-Run: `node --test tests/free-integration-ios.test.js`
+### 5.3 Verify
+```bash
+npm run check:syntax
+node --test tests/free-integration-hub-api.test.js tests/free-integration-registry.test.js
+```
 Expected: PASS.
 
-- [ ] **Step 5: Run native compile gates**
-
-Run the existing `Validate Native JARVIS iOS` workflow (or equivalent Xcode simulator + iPhone Release commands used by repository CI) on the feature branch.
-Expected: simulator and iPhone Release compile PASS.
-
-- [ ] **Step 6: Commit**
-
+### 5.4 Commit
 ```bash
-git add ios/JARVIS/JarvisAPI.swift ios/JARVIS/IntegrationHubView.swift ios/JARVIS/SettingsView.swift tests/free-integration-ios.test.js
-git commit -m "feat: show free integrations on iPhone"
+git add public/integrations-ui.js public/*.css tests/
+git commit -m "feat: show truthful free integration status in web hub"
 ```
 
-### Task 6: Whole-Branch Verification and Review Artifact
+---
 
-**Files:**
-- Modify only if a verification failure requires a scoped repair.
-- No production workflow or secret file changes.
+## Task 6 — Verify Real JARVIS Execution Matrix
 
-**Interfaces:**
-- Consumes: Tasks 1-5.
-- Produces: a feature branch whose API, router, web UI, and iOS UI agree on truthful free-only states.
+**Modify:** `tests/free-integration-router.test.js` and runtime tests only where real adapters exist.
 
-- [ ] **Step 1: Run full repository validation**
+Build a matrix for every screenshot tool with one status:
+- `verified-executable`
+- `chatgpt-external`
+- `connection-required`
+- `free-not-adapted`
+- `reference-only`
+- `paid-excluded`
+- `unavailable`
 
-Run: `npm run check`
-Expected: all syntax and Node tests PASS.
+Smoke at least one **real** free JARVIS execution path for each team that actually has a supported executable adapter. Examples, subject to current verified adapter state:
+- Build: repository tools / native code graph / Playwright.
+- Growth: YouTube Teaching; Firecrawl only if a JARVIS adapter/auth route exists.
+- Operations: Google Drive through existing Google OAuth only when configured.
 
-- [ ] **Step 2: Run focused free-integration suite together**
+Do not fabricate Design/Scale execution simply to make the matrix green; external-only/unsupported remains explicit.
 
-Run: `node --test tests/free-integration-registry.test.js tests/free-integration-state.test.js tests/free-integration-router.test.js tests/free-integration-hub-api.test.js tests/free-integration-ios.test.js`
-Expected: PASS with zero failures.
+Run:
+```bash
+npm run check
+npm run test:integration
+```
+Expected: PASS, or live credential-dependent checks truthfully report connection-required/skipped rather than false success.
 
-- [ ] **Step 3: Run native iOS validation again after any repairs**
+Commit any scoped test/runtime corrections.
 
-Expected: simulator + iPhone Release compile PASS.
+---
 
-- [ ] **Step 4: Inspect the final diff for forbidden changes**
+## Task 7 — Native iPhone Integration Hub
 
-Confirm the branch contains no billing/subscription action, no paid-provider auto-execution, no new secrets, no production deploy trigger, and no duplicate repository seeds.
+**iOS branch:** create `feature/free-integration-hub-ios` from current `feature/learning-engine` only after Task 4 API contract is green.
 
-- [ ] **Step 5: Open a review PR only**
+**Create:** `ios/JARVIS/IntegrationHubView.swift`  
+**Modify:** `ios/JARVIS/JarvisAPI.swift`  
+**Modify:** `ios/JARVIS/SettingsView.swift`  
+**Create:** `tests/free-integration-ios.test.js`
 
-Open a PR from the implementation branch without merging it to `main`. Include test evidence and list any integrations still `connection-required`, `reference-only`, or `unknown`.
+### 7.1 RED contract test
+Require:
+- native view exists
+- API calls `/api/integrations/catalog`
+- five team filters exist
+- truthful state labels exist
+- paid/excluded items expose no paid activation action
 
-## Execution Boundary
+Run:
+```bash
+node --test tests/free-integration-ios.test.js
+```
+Expected: FAIL.
 
-Completion of this plan means the feature branch and review PR are verified. Production deploy, merge to `main`, adding/changing secrets, starting paid plans, or connecting external accounts are deliberately outside this plan and require a separate explicit user action/approval.
+### 7.2 Implementation
+Add Swift models + API decoding, `IntegrationHubView`, and a compact Settings navigation entry. Use server-returned state; do not invent connection status locally.
+
+### 7.3 GREEN + native compile
+```bash
+node --test tests/free-integration-ios.test.js
+npm run check
+cd ios
+xcodegen generate
+xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project JARVIS.xcodeproj -scheme JARVIS -sdk iphoneos -configuration Release CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+```
+Expected: all PASS.
+
+### 7.4 Commit
+```bash
+git add ios/JARVIS/IntegrationHubView.swift ios/JARVIS/JarvisAPI.swift ios/JARVIS/SettingsView.swift tests/free-integration-ios.test.js
+git commit -m "feat: add iPhone free integration hub"
+```
+
+---
+
+## Task 8 — Final Verification + Review Artifacts
+
+### Backend/Web line
+Run:
+```bash
+npm run check
+node --test tests/free-integration-registry.test.js tests/free-integration-state.test.js tests/free-integration-router.test.js tests/free-integration-hub-api.test.js
+```
+Expected: zero failures.
+
+Inspect diff for:
+- paid/unknown accidentally eligible
+- ChatGPT connector misrepresented as JARVIS adapter
+- duplicate repo seed
+- secret leakage
+- billing/subscription action
+- Google/Meta regression
+
+Open a **review PR only** from `feature/free-integration-hub`; do not merge.
+
+### iOS line
+Run native regression plus simulator + iPhone Release compile again after any repair. Build an unsigned IPA using the existing Workshop Beta workflow only after the feature commit passes all gates. Verify artifact upload before sharing it.
+
+Open/retain the iOS feature branch for review; do not merge it to `main` as part of this plan.
+
+### Final handoff state
+Report:
+- exact verified backend commit
+- exact verified iOS commit
+- test/build results
+- unsigned IPA artifact
+- every screenshot integration grouped by final state/team
+- remaining account connection requirements
+
+Stop before production deploy, `main` merge, secret changes, billing changes, or paid-provider enablement.
+
+## Completion Definition
+This plan is complete when the two feature lines are verified and review-ready. “Installed/active” means a real executable adapter/connected surface was verified; catalog presence alone never counts.
