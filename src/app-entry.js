@@ -5,6 +5,8 @@ import { createRepositoryCatalog } from './application/capabilities/repository-c
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
+import { createCodeGraphChatRuntime } from './application/code-graph/chat-runtime.js';
+import { createCodeGraphJobPresenter } from './application/code-graph/job-presenter.js';
 import { createChatEnhancements } from './application/chat/enhancements.js';
 import { createChatOrchestrator } from './application/chat/orchestrator.js';
 import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
@@ -39,7 +41,8 @@ const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const cloudToolCore = createRepositoryCatalog(createSkillSeeding(createCloudCapabilityExecution(capabilityCore)));
+const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(createCloudCapabilityExecution(capabilityCore)));
+const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
   fetch(req, env, ctx) {
@@ -54,7 +57,8 @@ const mediaCore = {
 
 const ecuCore = createEcuChannelStore(createThinkdiagImport(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore))));
 const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
-const handleChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
+const nativeSkillChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
+const handleChat = createCodeGraphChatRuntime(nativeSkillChat);
 const handlePush = createPushApi(cloudToolCore);
 
 function shouldFlushPush(req, response) {
