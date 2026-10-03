@@ -44,17 +44,23 @@ The reference adapter writes `graphify-out/graphify-code-graph.json`; it cannot 
 
 GitHub Actions verified the native engine against the JARVIS repository on 2026-10-03.
 
-- PR head tested by full checks: `674ce67a2df6299059fccc00557b730f87c2e842`
-- exact PR merge checkout used by Code Graph artifact: `70145931d3e49fa0f82716a44606d6b14d308cb1`
+- verified code head: `9206d45ecdb075b2aedd57260d1bfd1a001d25ae`
+- exact PR merge checkout used by the latest Code Graph artifact: `4c0a3c23b4a2261bc7484f7ad61957d9f00153a2`
 - generator: `jarvis-native`
 - graph status: `ready`
-- normalized nodes: **5,407**
-- normalized edges: **7,761**
+- normalized nodes: **5,541**
+- normalized edges: **7,929**
 - focused Code Graph tests: **73 / 73 passed**
-- complete repository Node tests: **248 / 248 passed**
+- complete repository Node tests: **250 / 250 passed**
 - syntax verification: **114 JavaScript modules passed**
 - Cloudflare Worker dry-run: **passed**
+- Reliability workflow: **all steps passed**, including Worker HTTP/browser integration and Cloudflare bundle validation
+- uploaded-PDF repository audit: **214 total; 206 source-verified, 8 metadata-only, 0 unavailable**
 - generated graph artifact: uploaded by GitHub Actions, not committed to `main`
+
+The repository audit now safely handles the GitHub Actions repository-scoped token returning HTTP 403 for unrelated public repositories. It falls back to `git ls-remote` for an immutable public HEAD SHA and, when present, hashes a README fetched from that exact SHA on `raw.githubusercontent.com`. Upstream repository code is not executed. If both API and fallback verification fail, the repository remains `unavailable` rather than being reported as verified.
+
+The eight `metadata-only` repositories had an immutable public repository HEAD verified but no supported root README candidate at that commit. None of the 214 repositories were `unavailable` in the final audit.
 
 ## Runtime integration
 
@@ -64,6 +70,8 @@ Repository graph capabilities remain additive: existing repository skills do not
 
 ## CI behavior
 
-`.github/workflows/code-graph.yml` now installs Node dependencies, builds the native graph, validates exact-commit freshness, runs the focused graph test suite and uploads the artifact. Python and Graphify are not installed in the required workflow.
+`.github/workflows/code-graph.yml` installs Node dependencies, builds the native graph, validates exact-commit freshness, runs the focused graph test suite and uploads the artifact. Python and Graphify are not installed in the required workflow, and its repository permission is read-only (`contents: read`).
 
-The self-update workflow also passed its complete checks and Cloudflare dry-run. Its final merge command was intentionally blocked because PR #94 remains a draft; no main-branch merge or production deployment was performed by this work.
+The self-update workflow passed its complete checks and Cloudflare dry-run. Its final merge command is intentionally blocked because PR #94 remains a draft; no manual main-branch merge was performed in this work.
+
+The repository's connected Cloudflare Git integration independently reported automatic production deployments of branch commits during development. Those deployments were not manually triggered by this implementation session.
