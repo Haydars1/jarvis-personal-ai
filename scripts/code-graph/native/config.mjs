@@ -36,7 +36,7 @@ function stripJsonComments(source){
 function commandTargets(command,available){
   const found=[];
   const text=String(command??'');
-  const tokenRe=/(?:^|[\s;&|])(?:node\s+)?(\.?\/?[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)+\.(?:js|mjs|cjs|ts|tsx|sh|py))(?:\s|$|[;&|])/g;
+  const tokenRe=/(?:^|[\s;&|])(?:node\s+)?((?:\.?\/)?(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.(?:js|mjs|cjs|ts|tsx|sh|py))(?=\s|$|[;&|])/g;
   for(const match of text.matchAll(tokenRe)){
     const target=localFile(match[1],available);
     if(target)found.push(target);
