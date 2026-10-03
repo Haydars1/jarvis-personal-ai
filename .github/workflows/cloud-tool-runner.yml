@@ -14,6 +14,7 @@ on:
       - 'src/lib/repo-skill-compiler.js'
       - 'src/lib/skill-learning.js'
       - 'src/lib/native-skill-adapters.js'
+      - 'src/lib/youtube-teaching-runtime.js'
       - 'scripts/code-graph/**'
       - 'docs/releases/**'
   schedule:
@@ -43,7 +44,16 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install YouTube media tools
+        run: |
+          python3 -m pip install --user --disable-pip-version-check yt-dlp
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/yt-dlp" --version
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
       - name: Run queued cloud capability batch
         env:
           JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
+          PATH: /home/runner/.local/bin:/usr/local/bin:/usr/bin:/bin
         run: node .github/scripts/cloud-tool-runner.mjs
