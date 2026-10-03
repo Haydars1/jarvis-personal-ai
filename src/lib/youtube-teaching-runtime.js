@@ -10,6 +10,43 @@ function decodeXml(value=''){
     .replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'");
 }
 
+function compact(value=''){return String(value||'').replace(/\s+/g,' ').trim();}
+function hhmmss(totalSeconds=0){
+  const value=Math.max(0,Math.round(Number(totalSeconds)||0));
+  const h=Math.floor(value/3600),m=Math.floor((value%3600)/60),s=value%60;
+  return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+export function fuseYouTubeLearning({captionTranscript='',asrTranscript='',visualNotes=[]}={}){
+  const captions=compact(captionTranscript),asr=compact(asrTranscript);
+  const visuals=(Array.isArray(visualNotes)?visualNotes:[])
+    .map(item=>({timestamp_sec:Math.max(0,Number(item?.timestamp_sec)||0),text:compact(item?.text)}))
+    .filter(item=>item.text);
+  const modalities=[];
+  const sections=[];
+  if(asr){
+    modalities.push('audio');
+    sections.push(`[SES TRANSKRİPTİ — ana konuşma kaynağı]\n${asr}`);
+  }
+  if(visuals.length){
+    modalities.push('vision');
+    sections.push(`[GÖRSEL NOTLAR — ekrandaki yazı, şema, tablo ve arayüz]\n${visuals.map(item=>`[${hhmmss(item.timestamp_sec)}] ${item.text}`).join('\n')}`);
+  }
+  if(captions){
+    modalities.push('captions');
+    const same=asr&&compact(asr).toLocaleLowerCase('tr-TR')===captions.toLocaleLowerCase('tr-TR');
+    if(!same)sections.push(`[YOUTUBE ALTYAZISI — yardımcı/karşılaştırma kaynağı]\n${captions}`);
+  }
+  return {
+    transcript:sections.join('\n\n').trim(),
+    primary_transcript:asr?'audio-asr':captions?'captions':visuals.length?'vision':'none',
+    modalities,
+    captions_used:Boolean(captions),
+    audio_used:Boolean(asr),
+    vision_used:Boolean(visuals.length)
+  };
+}
+
 export function parseYouTubeResourceUrl(value=''){
   let url;
   try{url=new URL(String(value||'').trim());}catch{return null;}
