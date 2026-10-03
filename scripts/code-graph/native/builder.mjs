@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { discoverRepositoryFiles } from './discover.mjs';
 import { analyzeJavaScriptFile } from './javascript.mjs';
+import { analyzeSwiftFile } from './swift.mjs';
 import { fileNodeId, normalizeRepoPath } from './ids.mjs';
 import { createNode, finalizeGraph } from './model.mjs';
 
@@ -57,11 +58,13 @@ export async function buildNativeCodeGraph({root,sourceCommit,generatedAt=new Da
 
   for(const file of files){
     const ext=path.posix.extname(file).toLowerCase();
-    if(!JS_EXTENSIONS.has(ext))continue;
+    if(!JS_EXTENSIONS.has(ext)&&ext!=='.swift')continue;
     let source;
     try{source=await readFile(path.join(repositoryRoot,...file.split('/')),'utf8');}
     catch(error){diagnostics.push(`read error: ${file}: ${error.code||error.message||'unknown'}`);continue;}
-    const analyzed=analyzeJavaScriptFile({file,source,resolveLocalModule});
+    const analyzed=ext==='.swift'
+      ? analyzeSwiftFile({file,source})
+      : analyzeJavaScriptFile({file,source,resolveLocalModule});
     nodes.push(...analyzed.nodes);
     edges.push(...analyzed.edges);
     diagnostics.push(...analyzed.diagnostics);
