@@ -41,7 +41,7 @@ Ana repo: `Haydars1/jarvis-personal-ai`
 
 ## Code graph
 
-Repository dependency/impact analysis is local-first. Core graph queries do not require Graphify or a paid account.
+Repository dependency/impact analysis is local-first and JARVIS-owned. The default graph build uses the native deterministic parser and requires no Graphify installation, Python runtime, hosted account or paid API.
 
 ```bash
 npm run graph:build
@@ -50,4 +50,13 @@ npm run graph:query -- find orchestrator
 npm run graph:query -- impact src/worker.js
 ```
 
-`graph:build` uses the optional open-source Graphify CLI; normal `npm run check` and JARVIS runtime do not depend on it.
+The native engine scans supported repository files with bounded discovery and extracts JS/TS, Swift, SQL/D1 and repository config/workflow relationships into the normalized version-1 graph contract.
+
+Graphify remains optional reference tooling only. If a raw Graphify JSON export is available, it can be normalized separately and compared without overwriting the native artifact:
+
+```bash
+npm run graph:build:graphify -- path/to/graphify.json
+npm run graph:compare
+```
+
+Normal `npm run check`, Cloudflare Worker runtime and the required Code Graph CI path do not depend on Python or Graphify.
