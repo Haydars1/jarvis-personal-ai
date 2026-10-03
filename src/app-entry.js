@@ -3,6 +3,7 @@ import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createRepositoryCatalog } from './application/capabilities/repository-catalog.js';
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
+import { createYouTubeLearningCapability } from './application/capabilities/youtube-learning.js';
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
 import { createCodeGraphChatRuntime } from './application/code-graph/chat-runtime.js';
@@ -41,7 +42,8 @@ const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(createCloudCapabilityExecution(capabilityCore)));
+const cloudExecutionCore = createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore));
+const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(cloudExecutionCore));
 const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
@@ -69,6 +71,7 @@ function shouldFlushPush(req, response) {
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
   if (url.pathname.startsWith('/api/tools/cloud/')) return cloudToolCore.fetch(req, env, ctx);
+  if (url.pathname.startsWith('/api/learning/')) return cloudToolCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/') || url.pathname.startsWith('/api/ecu/thinkdiag/')) return ecuCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/mobile/push/')) {
     const response = await handlePush(req, env, ctx);
