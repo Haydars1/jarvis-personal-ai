@@ -5,16 +5,17 @@ import { fileNodeId } from '../scripts/code-graph/native/ids.mjs';
 
 function edge(result,type){return result.edges.filter(item=>item.type===type);}
 
-const files=['package.json','scripts/build.mjs','scripts/check.mjs','src/app-entry.js','.github/workflows/ci.yml','wrangler.jsonc','wrangler.toml'];
+const files=['package.json','server.js','scripts/build.mjs','scripts/check.mjs','src/app-entry.js','.github/workflows/ci.yml','wrangler.jsonc','wrangler.toml'];
 
 test('extracts package scripts and repository-local run targets',()=>{
-  const source=JSON.stringify({scripts:{build:'node scripts/build.mjs',check:'node scripts/check.mjs && node scripts/build.mjs',external:'tool --flag'}});
+  const source=JSON.stringify({scripts:{build:'node scripts/build.mjs',check:'node scripts/check.mjs && node scripts/build.mjs',start:'node server.js',external:'tool --flag'}});
   const result=analyzeConfigFile({file:'package.json',source,availableFiles:files});
   assert.equal(result.nodes.some(node=>node.kind==='script'&&node.name==='build'),true);
   assert.equal(result.nodes.some(node=>node.kind==='script'&&node.name==='check'),true);
   const runs=edge(result,'runs');
   assert.equal(runs.some(item=>item.target===fileNodeId('scripts/build.mjs')),true);
   assert.equal(runs.some(item=>item.target===fileNodeId('scripts/check.mjs')),true);
+  assert.equal(runs.some(item=>item.target===fileNodeId('server.js')),true);
   assert.equal(result.edges.some(item=>String(item.target).includes('tool')),false);
 });
 
