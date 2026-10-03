@@ -121,4 +121,4 @@ jobs:
           echo "- iPhone Release compile: passed" >> "$GITHUB_STEP_SUMMARY"
           echo "- Artifact: ${{ env.IPA_BASENAME }}" >> "$GITHUB_STEP_SUMMARY"
 
-# build-trigger: 2026-10-03 youtube-teaching
+# build-trigger: 2026-10-03 youtube-teaching-final
