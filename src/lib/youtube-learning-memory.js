@@ -2,6 +2,38 @@ import { execute, queryAll, queryOne } from './runtime.js';
 
 const normalize = value => String(value || '').replace(/\s+/g, ' ').trim();
 const now = () => Date.now();
+let schemaReady = false;
+
+async function ensureLearningSchema(env) {
+  if (schemaReady) return;
+  await execute(env, `CREATE TABLE IF NOT EXISTS learning_sources (
+    id TEXT PRIMARY KEY,
+    source_type TEXT NOT NULL DEFAULT 'youtube-video',
+    source_url TEXT NOT NULL UNIQUE,
+    external_id TEXT,
+    title TEXT NOT NULL DEFAULT '',
+    language TEXT,
+    status TEXT NOT NULL DEFAULT 'queued',
+    parent_source_id TEXT,
+    job_id TEXT,
+    meta_json TEXT NOT NULL DEFAULT '{}',
+    learned_at INTEGER,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`);
+  await execute(env, `CREATE TABLE IF NOT EXISTS learning_chunks (
+    id TEXT PRIMARY KEY,
+    source_id TEXT NOT NULL,
+    ordinal INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY(source_id) REFERENCES learning_sources(id) ON DELETE CASCADE,
+    UNIQUE(source_id, ordinal)
+  )`);
+  await execute(env, 'CREATE INDEX IF NOT EXISTS idx_learning_sources_status ON learning_sources(status, updated_at DESC)');
+  await execute(env, 'CREATE INDEX IF NOT EXISTS idx_learning_chunks_source ON learning_chunks(source_id, ordinal)');
+  schemaReady = true;
+}
 
 export function learningTokens(text, limit = 10) {
   const stop = new Set(['nasıl','nedir','neden','hangi','için','ile','bir','bu','şu','ve','veya','olan','olarak','yapılır','yapmak','jarvis']);
@@ -70,6 +102,7 @@ export function learningContextText(rows = []) {
 }
 
 export async function persistYouTubeLearning(env, result = {}, { jobId = null, parentSourceId = null } = {}) {
+  await ensureLearningSchema(env);
   const kind = String(result?.kind || 'video');
   const sourceUrl = String(result?.source_url || '').trim();
   if (!sourceUrl) return { source_id: null, learning_status: 'missing-source', learning_chunks: 0 };
@@ -104,6 +137,7 @@ export async function persistYouTubeLearning(env, result = {}, { jobId = null, p
 }
 
 export async function searchLearningMemory(env, query, { limit = 6 } = {}) {
+  await ensureLearningSchema(env);
   const tokens = learningTokens(query, 8);
   if (!tokens.length) return [];
   const clauses = tokens.slice(0, 6).map(() => '(lower(c.content) LIKE ? OR lower(s.title) LIKE ?)');
@@ -116,4 +150,10 @@ export async function searchLearningMemory(env, query, { limit = 6 } = {}) {
     WHERE s.status='learned' AND (${clauses.join(' OR ')})
     ORDER BY s.updated_at DESC,c.ordinal ASC LIMIT 100`, ...params);
   return rankLearningChunks(rows, query).slice(0, Math.max(1, Math.min(12, Number(limit) || 6)));
+}
+
+export async function listYouTubeLearningSources(env, limit = 100) {
+  await ensureLearningSchema(env);
+  return queryAll(env, `SELECT id,source_type,source_url,external_id,title,language,status,parent_source_id,job_id,learned_at,created_at,updated_at
+    FROM learning_sources ORDER BY updated_at DESC LIMIT ?`, Math.max(1, Math.min(300, Number(limit) || 100)));
 }
