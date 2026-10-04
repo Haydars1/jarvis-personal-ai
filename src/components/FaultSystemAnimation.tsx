@@ -3,6 +3,7 @@ import { getFaultVisual, type SystemSceneId } from "../domain/fault-visual";
 import type { Language } from "../i18n/language";
 import type { VehicleContext } from "../vehicle/catalog";
 import { resolveVehicleProfile, type Point } from "../vehicle/profile";
+import { VehicleBodyShell } from "./VehicleBodyShell";
 import "./FaultSystemAnimation.css";
 
 type Shape = "tank" | "sensor" | "module" | "filter" | "engine" | "wheel" | "pump" | "gear" | "battery";
@@ -242,6 +243,7 @@ export function FaultSystemAnimation({ code, language, vehicle }: { code: string
 
       <div className={`systemStage systemTone-${visual.tone}`}>
         <svg className="systemDiagram" viewBox="0 0 900 390" role="img" aria-label={`${code}: ${selected.label[language]}`}>
+          <VehicleBodyShell variant={profile.bodyVariant} />
           {paths.map((path, index) => (
             <g key={path.id}>
               <path d={path.d} className="systemTrack" />
