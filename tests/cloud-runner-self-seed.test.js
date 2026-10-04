@@ -27,6 +27,12 @@ test('cloud runner seeds learning queue before claiming jobs',()=>{
   assert.ok(seed>=0&&claim>seed);
 });
 
+test('cloud runner prints the exact Worker execution summary after a batch',()=>{
+  const runner=read('.github/scripts/cloud-tool-runner.mjs');
+  assert.match(runner,/\/api\/tools\/skills\/execution-summary/);
+  assert.match(runner,/SKILL_EXECUTION_SUMMARY/);
+});
+
 test('self-seeding uses existing GitHub OIDC and no paid AI secret',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
   assert.doesNotMatch(runner,/OPENAI_API_KEY|GEMINI_API_KEY|ANTHROPIC_API_KEY|OPENROUTER_API_KEY/);
