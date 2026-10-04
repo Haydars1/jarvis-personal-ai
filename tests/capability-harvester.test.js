@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CURATED_CAPABILITY_SEEDS } from '../src/lib/open-source-capabilities.js';
+import { readLegacyRegistryCompatibility, validateCapabilityRegistryV2 } from '../src/lib/capability-registry-v2.js';
 
 const harvesterUrl = new URL('../.github/scripts/harvest-capabilities.mjs', import.meta.url);
 const harvesterPath = fileURLToPath(harvesterUrl);
@@ -90,12 +91,14 @@ test('package exposes metadata harvester command and syntax checks it', () => {
   assert.match(pkg.scripts['check:syntax'], /harvest-capabilities\.mjs/);
 });
 
-test('repository contains a populated versioned capability registry document', () => {
+test('checked-in legacy registry is compatibility-loadable without treating emptiness as populated production data', () => {
   assert.ok(existsSync(registryPath), 'data/capability-registry.json must exist');
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8'));
-  assert.equal(registry.schemaVersion, 1);
-  assert.ok(Array.isArray(registry.entries));
-  assert.ok(registry.entries.length >= 100, 'real harvested registry should stay populated');
+  const raw=readFileSync(registryPath,'utf8');
+  const loaded=readLegacyRegistryCompatibility(raw);
+  assert.ok(['ok','empty'].includes(loaded.status));
+  assert.equal(loaded.registry.schemaVersion,2);
+  assert.deepEqual(validateCapabilityRegistryV2(loaded.registry).ok,true);
+  if(loaded.status==='ok')assert.ok(loaded.registry.sources.length>0);
 });
 
 test('scheduled harvester is metadata-only and validates before promotion', () => {

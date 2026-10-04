@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { repositoryIntegrations } from '../src/lib/repository-integrations.js';
 
 // Isolated local Worker: no AI binding, production credentials, external services or vehicle.
 const directory = mkdtempSync(join(tmpdir(), 'jarvis-http-test-'));
@@ -23,6 +24,7 @@ writeFileSync(config, JSON.stringify({
 let server, output = '';
 let count = 0;
 const env = { ...process.env, WRANGLER_SEND_METRICS: 'false' };
+const expectedRepositoryTotal = repositoryIntegrations().length;
 try {
   const schema = spawnSync(process.execPath, [cli, 'd1', 'execute', 'jarvis-test', '--local', '--config', config, '--persist-to', persistence, '--file', resolve('schema.sql')], { env, encoding: 'utf8', timeout: 60000 });
   assert.equal(schema.status, 0, schema.stderr || schema.stdout);
@@ -78,7 +80,7 @@ try {
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
   await call('/api/integrations/status', 200);
-  assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, 214);
+  assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
   const tcBase64 = readFileSync('tests/fixtures/thinkcar-subaru.tc.base64', 'utf8').trim();
   const tcImport = await (await call('/api/ecu/thinkdiag/import', 200, { base64: tcBase64 })).json();
@@ -133,13 +135,13 @@ try {
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
       await page.locator('[data-page="tools"]:visible').first().click();
       await page.locator('#repositoryRefresh').click();
-      await page.locator('#repositoryStatus').filter({ hasText: '214 repo' }).waitFor();
-      assert.equal(await page.locator('#repositoryRows article').count(), 214);
+      await page.locator('#repositoryStatus').filter({ hasText: `${expectedRepositoryTotal} repo` }).waitFor();
+      assert.equal(await page.locator('#repositoryRows article').count(), expectedRepositoryTotal);
       await page.locator('#repositorySearch').fill('thinkcar-tc-reader');
       assert.equal(await page.locator('#repositoryRows article').count(), 1);
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
       assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log('Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, 214-repo catalog, desktop/mobile rendering.');
+      console.log(`Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, ${expectedRepositoryTotal}-repo catalog, desktop/mobile rendering.`);
     } finally { await browser.close(); }
   }
   console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);

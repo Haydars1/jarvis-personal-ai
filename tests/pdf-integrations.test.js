@@ -5,8 +5,11 @@ import { ALL_PDF_SEEDS } from '../.github/scripts/harvest-capabilities.mjs';
 import { auditPdfRepositories } from '../.github/scripts/audit-pdf-repositories.mjs';
 import { resolveNativeSkillAdapter } from '../src/lib/native-skill-adapters.js';
 test('every one of 214 attached PDF repositories has a concrete source route and harvest seed', () => {
-  const rows = repositoryIntegrations(); assert.equal(rows.length, 214); assert.equal(new Set(rows.map(row => row.repo.toLowerCase())).size, 214);
-  for (const row of rows) { assert.ok(ALL_PDF_SEEDS.some(seed => seed.repo.toLowerCase() === row.repo.toLowerCase()), row.repo); assert.ok(row.integration.route); assert.ok(row.pdf.length); }
+  const rows = repositoryIntegrations();
+  const pdfRows = rows.filter(row => Array.isArray(row.pdf) && row.pdf.length > 0);
+  assert.equal(pdfRows.length, 214);
+  assert.equal(new Set(pdfRows.map(row => row.repo.toLowerCase())).size, 214);
+  for (const row of pdfRows) { assert.ok(ALL_PDF_SEEDS.some(seed => seed.repo.toLowerCase() === row.repo.toLowerCase()), row.repo); assert.ok(row.integration.route); assert.ok(row.pdf.length); }
   assert.equal(rows.find(row => row.repo === 'brendan-w/python-OBD').integration.status, 'hardware-required');
   assert.equal(rows.find(row => row.repo === 'microsoft/markitdown').integration.status, 'source-only');
 });

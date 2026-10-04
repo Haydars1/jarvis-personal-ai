@@ -1,4 +1,5 @@
 import { PDF_GUIDE_ADDITIONAL_SEEDS } from './pdf-guide-seeds.js';
+import { USER_CURATED_CAPABILITY_SEEDS } from './user-curated-capability-seeds.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -93,10 +94,25 @@ const BASE_CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'RallyPat/LibreTune', category: 'ecu-file-analysis', executionTarget: 'local-cpu' }
 ]);
 
-export const CURATED_CAPABILITY_SEEDS = Object.freeze([
-  ...BASE_CURATED_CAPABILITY_SEEDS,
-  ...PDF_GUIDE_ADDITIONAL_SEEDS
-]);
+function dedupeCapabilitySeeds(...groups) {
+  const seen = new Set();
+  const rows = [];
+  for (const group of groups) {
+    for (const row of Array.isArray(group) ? group : []) {
+      const key = String(row?.repo || '').trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+export const CURATED_CAPABILITY_SEEDS = Object.freeze(dedupeCapabilitySeeds(
+  BASE_CURATED_CAPABILITY_SEEDS,
+  PDF_GUIDE_ADDITIONAL_SEEDS,
+  USER_CURATED_CAPABILITY_SEEDS
+));
 
 const TASK_CATEGORY_PRIORITY = Object.freeze({
   chat: ['local-llm', 'voice-assistant'],

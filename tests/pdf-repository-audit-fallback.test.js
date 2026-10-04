@@ -26,6 +26,23 @@ test('falls back from cross-repository API 403 to immutable git/raw source evide
   assert.equal(requests.some(item=>item.url.includes('raw.githubusercontent.com')&&String(item.headers.authorization||'').length>0),false);
 });
 
+test('uses a pinned tracked source file when a repository has no README', async()=>{
+  const fetchImpl=async url=>{
+    if(String(url).startsWith('https://api.github.com/')) return {ok:false,status:403};
+    return {ok:false,status:404,text:async()=>''};
+  };
+  const gitProbe=async repo=>({canonical_repo:repo,default_branch:'main',source_commit:SHA});
+  const sourceProbe=async(repo,sha)=>({path:'src/main.c',text:'int main(void){return 0;}'});
+  const report=await auditPdfRepositories({'example/no-readme':['guide.pdf']},{fetchImpl,token:'repo-scoped-token',gitProbe,sourceProbe,concurrency:1});
+  const row=report.results[0];
+  assert.equal(row.status,'source-verified');
+  assert.equal(row.evidence_source,'git-source-fallback');
+  assert.equal(row.source_commit,SHA);
+  assert.equal(row.source_evidence_path,'src/main.c');
+  assert.equal(row.source_evidence_sha256,createHash('sha256').update('int main(void){return 0;}').digest('hex'));
+  assert.equal(row.readme_error,'README_NOT_FOUND');
+});
+
 test('does not masquerade failed API and git fallback as successful audit', async()=>{
   const fetchImpl=async()=>({ok:false,status:403});
   const gitProbe=async()=>{throw new Error('GIT_SOURCE_UNAVAILABLE');};
