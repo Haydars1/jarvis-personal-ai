@@ -1,64 +1,59 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { DiagnosticConsole } from "../components/DiagnosticConsole";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { PublicSupportChat } from "../components/PublicSupportChat";
-import { VehicleSelector } from "../components/VehicleSelector";
 import { loadLanguage, saveLanguage, t, type Language } from "../i18n/language";
-import type { VehicleContext } from "../vehicle/catalog";
 import "./HomePage.css";
 
 const processCopy: Record<Language, Array<{ no: string; title: string; text: string }>> = {
   de: [
-    { no: "01", title: "Kontext erfassen", text: "Fahrzeug, DTC, Warnsymbol und verfügbare Messwerte gemeinsam lesen." },
-    { no: "02", title: "System eingrenzen", text: "Betroffene Baugruppen logisch verbinden und wahrscheinliche Ursachen priorisieren." },
-    { no: "03", title: "Prüfen", text: "Live-Daten, Sensorik, Aktuatorik und mechanische Ursachen gezielt verifizieren." },
+    { no: "01", title: "Code verstehen", text: "DTC oder Warnsymbol identifizieren und den betroffenen Systembereich einordnen." },
+    { no: "02", title: "Ursachen priorisieren", text: "Typische Ursachen logisch ordnen statt vorschnell ein Bauteil zu verurteilen." },
+    { no: "03", title: "Prüfen", text: "Messwerte, Sensorik, Aktuatorik und mechanische Ursachen gezielt verifizieren." },
     { no: "04", title: "Handeln", text: "Erst nach der Prüfung reparieren, codieren oder Software anpassen." },
   ],
   tr: [
-    { no: "01", title: "Bağlamı topla", text: "Araç, DTC, uyarı sembolü ve mevcut ölçüm verilerini birlikte değerlendir." },
-    { no: "02", title: "Sistemi daralt", text: "İlgili bileşenleri mantıksal olarak bağla ve olası nedenleri önceliklendir." },
-    { no: "03", title: "Doğrula", text: "Canlı veri, sensör, aktüatör ve mekanik nedenleri hedefli olarak kontrol et." },
+    { no: "01", title: "Kodu anla", text: "DTC veya uyarı sembolünü belirle ve ilgili sistem bölgesini doğru konumlandır." },
+    { no: "02", title: "Nedenleri sırala", text: "Tek bir parçaya atlamadan tipik nedenleri mantıklı biçimde önceliklendir." },
+    { no: "03", title: "Doğrula", text: "Ölçüm verisi, sensör, aktüatör ve mekanik nedenleri hedefli kontrol et." },
     { no: "04", title: "Uygula", text: "Onarım, kodlama veya yazılım işlemini ancak doğrulamadan sonra yap." },
   ],
   en: [
-    { no: "01", title: "Capture context", text: "Read the vehicle, DTC, warning symbol and available measurements together." },
-    { no: "02", title: "Narrow the system", text: "Connect relevant components logically and prioritize likely causes." },
-    { no: "03", title: "Verify", text: "Check live data, sensors, actuators and mechanical causes with intent." },
+    { no: "01", title: "Understand the code", text: "Identify the DTC or warning and place it in the correct system context." },
+    { no: "02", title: "Prioritize causes", text: "Order likely causes logically instead of blaming one component too early." },
+    { no: "03", title: "Verify", text: "Check measurements, sensors, actuators and mechanical causes with intent." },
     { no: "04", title: "Act", text: "Repair, code or modify software only after the cause is verified." },
   ],
 };
 
 const copy: Record<Language, {
-  platform: string; hero: string; intro: string; vehicle: string; vehicleIntro: string; faults: string; faultIntro: string;
-  workflow: string; contact: string; contactIntro: string; services: string; phone: string; email: string; selected: string;
+  platform: string; hero: string; intro: string; faults: string; faultIntro: string;
+  workflow: string; contact: string; contactIntro: string; services: string; phone: string; email: string;
 }> = {
   de: {
     platform: "FAHRZEUGDIAGNOSE · CODIERUNG · SOFTWARE",
     hero: "Diagnose mit System. Nicht mit Vermutungen.",
-    intro: "6006 verbindet Fehlercodes, Fahrzeugkontext und technische Systemlogik zu einem nachvollziehbaren Prüfpfad – mit direktem Diagnose-Chat, wenn du weitergehen willst.",
-    vehicle: "FAHRZEUGKONTEXT", vehicleIntro: "Wähle dein Fahrzeug. Darstellungen und Hinweise werden nur so spezifisch, wie die hinterlegten Daten verifiziert sind.",
+    intro: "6006 erklärt Fehlercodes verständlich, ordnet sie dem richtigen System zu und zeigt einen sinnvollen Prüfweg. Für fahrzeugspezifische Details geht es danach direkt in den Diagnose-Chat.",
     faults: "DTC & WARNUNGEN", faultIntro: "Code suchen, Bedeutung verstehen, Systembezug prüfen und sinnvolle nächste Schritte ableiten.",
     workflow: "ARBEITSWEISE", contact: "DIREKTER KONTAKT", contactIntro: "Fahrzeugspezifische Frage? Direkt per WhatsApp, Telefon oder E-Mail.",
-    services: "LEISTUNGEN", phone: "Telefon", email: "E-Mail", selected: "Aktueller Fahrzeugkontext",
+    services: "LEISTUNGEN", phone: "Telefon", email: "E-Mail",
   },
   tr: {
     platform: "ARAÇ TEŞHİSİ · KODLAMA · YAZILIM",
     hero: "Tahminle değil, sistemle teşhis.",
-    intro: "6006; arıza kodunu, araç bilgisini ve teknik sistem mantığını tek bir doğrulanabilir kontrol akışında birleştirir. Gerektiğinde doğrudan teşhis sohbetiyle devam edersin.",
-    vehicle: "ARAÇ BAĞLAMI", vehicleIntro: "Aracını seç. Görseller ve teknik açıklamalar yalnızca doğrulanmış veri kadar araca özel hale gelir.",
+    intro: "6006 arıza kodlarını anlaşılır biçimde açıklar, doğru sistemle ilişkilendirir ve mantıklı kontrol yolunu gösterir. Araca özel ayrıntı gerekiyorsa teşhis sohbetinde devam edilir.",
     faults: "DTC & UYARILAR", faultIntro: "Kodu bul, anlamını öğren, ilgili sistemi gör ve mantıklı sonraki kontrol adımını belirle.",
     workflow: "ÇALIŞMA AKIŞI", contact: "DOĞRUDAN İLETİŞİM", contactIntro: "Araca özel sorun mu var? WhatsApp, telefon veya e-posta üzerinden doğrudan ulaş.",
-    services: "HİZMETLER", phone: "Telefon", email: "E-posta", selected: "Seçili araç bağlamı",
+    services: "HİZMETLER", phone: "Telefon", email: "E-posta",
   },
   en: {
     platform: "VEHICLE DIAGNOSTICS · CODING · SOFTWARE",
     hero: "Diagnose with a system, not a guess.",
-    intro: "6006 combines fault codes, vehicle context and technical system logic into a traceable verification path, with direct diagnostic chat when you need to go further.",
-    vehicle: "VEHICLE CONTEXT", vehicleIntro: "Choose the vehicle. Visuals and guidance become vehicle-specific only where the underlying data is verified.",
+    intro: "6006 explains fault codes clearly, connects them to the right system and shows a sensible verification path. Vehicle-specific details can continue in the diagnostic chat when needed.",
     faults: "DTC & WARNINGS", faultIntro: "Find the code, understand its meaning, inspect the related system and determine the next sensible test.",
     workflow: "WORKFLOW", contact: "DIRECT CONTACT", contactIntro: "Vehicle-specific question? Reach out directly by WhatsApp, phone or email.",
-    services: "SERVICES", phone: "Phone", email: "Email", selected: "Current vehicle context",
+    services: "SERVICES", phone: "Phone", email: "Email",
   },
 };
 
@@ -68,12 +63,7 @@ function deviceLanguage(): string {
 
 export function HomePage() {
   const [language, setLanguage] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
-  const [vehicle, setVehicle] = useState<VehicleContext>({});
   const text = copy[language];
-  const vehicleSummary = useMemo(
-    () => [vehicle.brand, vehicle.model, vehicle.body, vehicle.year, vehicle.engine].filter(Boolean).join(" · "),
-    [vehicle],
-  );
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -93,7 +83,6 @@ export function HomePage() {
           </a>
           <nav aria-label="Primary">
             <a href="#services">{t(language, "nav.services")}</a>
-            <a href="#vehicle">{language === "tr" ? "Araç" : language === "en" ? "Vehicle" : "Fahrzeug"}</a>
             <a href="#faults">{t(language, "nav.faults")}</a>
             <a href="#contact">{t(language, "nav.contact")}</a>
           </nav>
@@ -111,42 +100,34 @@ export function HomePage() {
               <p className="heroIntro">{text.intro}</p>
               <div className="heroActions">
                 <a className="primaryButton" href="#faults">{t(language, "nav.faults")}</a>
-                <a href="#vehicle">{language === "tr" ? "Araç seç" : language === "en" ? "Select vehicle" : "Fahrzeug wählen"}</a>
+                <a href="https://wa.me/491788354756">{language === "tr" ? "Sorunu anlat" : language === "en" ? "Describe the issue" : "Problem schildern"}</a>
               </div>
             </div>
 
             <aside className="heroStatus" aria-label="6006 platform status">
               <div className="heroStatusTop"><span>6006 / SYSTEM</span><b><i /> ONLINE</b></div>
               <div className="heroStatusRows">
-                <div><small>DTC</small><strong>Context-aware</strong></div>
-                <div><small>Vehicle</small><strong>Profile-based</strong></div>
+                <div><small>DTC</small><strong>System context</strong></div>
+                <div><small>Diagnosis</small><strong>Verification path</strong></div>
                 <div><small>Support</small><strong>AI + Live</strong></div>
               </div>
-              <p><span>{text.selected}</span>{vehicleSummary || t(language, "vehicle.general")}</p>
+              <p><span>6006</span>{language === "tr" ? "Genel arıza kodu bilgisi önce; araca özel detay gerektiğinde teşhis sohbetinde sorulur." : language === "en" ? "General fault-code context first; vehicle-specific detail is requested in chat only when needed." : "Zuerst allgemeiner Fehlercode-Kontext; Fahrzeugspezifika werden nur bei Bedarf im Chat abgefragt."}</p>
             </aside>
           </section>
 
           <section className="consoleSection" aria-label="6006 diagnostic console">
-            <DiagnosticConsole language={language} vehicle={vehicle} />
+            <DiagnosticConsole language={language} />
           </section>
 
           <section id="services" className="serviceSection">
             <div className="sectionHead">
-              <div><span>{text.services}</span><h2>{language === "tr" ? "Araç elektroniği ve diagnostik, tek akışta." : language === "en" ? "Vehicle electronics and diagnostics, in one workflow." : "Fahrzeugelektronik und Diagnose in einem Ablauf."}</h2></div>
+              <div><span>{text.services}</span><h2>{language === "tr" ? "Diagnostik, kodlama ve yazılım tek yerde." : language === "en" ? "Diagnostics, coding and software in one place." : "Diagnose, Codierung und Software an einem Ort."}</h2></div>
             </div>
             <div className="serviceGrid">
               <article><span>01</span><h3>{t(language, "service.diagnosis")}</h3><p>{t(language, "service.diagnosisText")}</p></article>
               <article><span>02</span><h3>{t(language, "service.coding")}</h3><p>{t(language, "service.codingText")}</p></article>
               <article><span>03</span><h3>{t(language, "service.software")}</h3><p>{t(language, "service.softwareText")}</p></article>
             </div>
-          </section>
-
-          <section id="vehicle" className="contentSection vehicleSection">
-            <div className="sectionHead splitHead">
-              <div><span>{text.vehicle}</span><h2>{t(language, "vehicle.choose")}</h2></div>
-              <p>{text.vehicleIntro}</p>
-            </div>
-            <VehicleSelector language={language} onChange={setVehicle} />
           </section>
 
           <section id="faults" className="contentSection faultSection">
@@ -158,7 +139,7 @@ export function HomePage() {
           </section>
 
           <section className="contentSection processSection">
-            <div className="sectionHead"><div><span>{text.workflow}</span><h2>{language === "tr" ? "Önce doğrula. Sonra işlem yap." : language === "en" ? "Verify first. Act second." : "Erst prüfen. Dann handeln."}</h2></div></div>
+            <div className="sectionHead"><div><span>{text.workflow}</span><h2>{language === "tr" ? "Önce kodu anla. Sonra doğrula." : language === "en" ? "Understand the code first. Then verify." : "Erst Code verstehen. Dann prüfen."}</h2></div></div>
             <div className="processGrid">
               {processCopy[language].map((item) => (
                 <article key={item.no}><span>{item.no}</span><h3>{item.title}</h3><p>{item.text}</p></article>
@@ -169,7 +150,7 @@ export function HomePage() {
           <section id="contact" className="contactSection">
             <div className="contactCopy">
               <span>{text.contact}</span>
-              <h2>{language === "tr" ? "Aracını anlat. Sistemi birlikte daraltalım." : language === "en" ? "Tell us the vehicle. Narrow the system with us." : "Fahrzeug nennen. System gemeinsam eingrenzen."}</h2>
+              <h2>{language === "tr" ? "Arızanı anlat. Beraber daraltalım." : language === "en" ? "Describe the fault. Narrow it down with us." : "Fehler schildern. Gemeinsam eingrenzen."}</h2>
               <p>{text.contactIntro}</p>
             </div>
             <div className="contactList">
@@ -187,7 +168,7 @@ export function HomePage() {
         </footer>
       </div>
 
-      <PublicSupportChat language={language} vehicle={vehicle} />
+      <PublicSupportChat language={language} vehicle={{}} />
     </div>
   );
 }
