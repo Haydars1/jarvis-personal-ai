@@ -15,7 +15,10 @@ export function json(data: unknown, status = 200, headers?: HeadersInit): Respon
 export function allowedOrigin(request: Request, env: Env): string | null | false {
   const origin = request.headers.get('origin');
   if (!origin) return null;
-  return origin === env.ALLOWED_ORIGIN ? origin : false;
+
+  const requestOrigin = new URL(request.url).origin;
+  if (origin === requestOrigin || origin === env.ALLOWED_ORIGIN) return origin;
+  return false;
 }
 
 export function corsHeaders(origin: string): Headers {
