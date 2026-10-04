@@ -1,8 +1,16 @@
+export interface D1RunResult {
+  success: boolean;
+  meta?: {
+    changes?: number;
+    [key: string]: unknown;
+  };
+}
+
 export interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
   first<T = Record<string, unknown>>(): Promise<T | null>;
   all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
-  run(): Promise<{ success: boolean; meta?: unknown }>;
+  run(): Promise<D1RunResult>;
 }
 
 export interface D1Database {
