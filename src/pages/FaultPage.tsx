@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FaultSystemAnimation } from "../components/FaultSystemAnimation";
-import { LanguageSwitch } from "../components/LanguageSwitch";
 import { PublicSupportChat } from "../components/PublicSupportChat";
-import { VehicleSelector } from "../components/VehicleSelector";
 import { faultByCode, localizeFault } from "../domain/faults";
-import { loadLanguage, saveLanguage, type Language } from "../i18n/language";
+import { loadLanguage, type Language } from "../i18n/language";
 import type { VehicleContext } from "../vehicle/catalog";
 import { loadVehicle } from "../vehicle/persistence";
 import "./FaultPage.css";
@@ -21,20 +19,19 @@ type Copy = {
   diagnosis: string;
   solutions: string;
   note: string;
-  vehicle: string;
   unknownTitle: string;
   unknownText: string;
 };
 
 const COPY: Record<Language, Copy> = {
   de: {
-    back: "Zur Fehlerübersicht", system: "System", severity: "Priorität", drive: "Weiterfahren", meaning: "Bedeutung", symptoms: "Mögliche Symptome", causes: "Mögliche Ursachen", diagnosis: "Diagnose", solutions: "Lösungen", note: "Hinweis", vehicle: "Fahrzeugkontext", unknownTitle: "Unbekannter Fehlercode", unknownText: "Dieser Code ist nicht in der 6006 Fehlerbibliothek. Es wird keine technische Diagnose erfunden; bitte Fahrzeug, Steuergerät und vollständigen Diagnosebericht prüfen.",
+    back: "Zur Fehlerübersicht", system: "System", severity: "Priorität", drive: "Weiterfahren", meaning: "Bedeutung", symptoms: "Mögliche Symptome", causes: "Mögliche Ursachen", diagnosis: "Diagnose", solutions: "Lösungen", note: "Hinweis", unknownTitle: "Unbekannter Fehlercode", unknownText: "Dieser Code ist nicht in der 6006 Fehlerbibliothek. Es wird keine technische Diagnose erfunden; bitte Fahrzeug, Steuergerät und vollständigen Diagnosebericht prüfen.",
   },
   tr: {
-    back: "Arıza listesine dön", system: "Sistem", severity: "Öncelik", drive: "Sürüş", meaning: "Anlamı", symptoms: "Olası belirtiler", causes: "Olası nedenler", diagnosis: "Teşhis", solutions: "Çözümler", note: "Not", vehicle: "Araç bilgisi", unknownTitle: "Bilinmeyen arıza kodu", unknownText: "Bu kod 6006 arıza kütüphanesinde bulunmuyor. Teknik teşhis uydurulmaz; araç, kontrol ünitesi ve tam teşhis raporu kontrol edilmelidir.",
+    back: "Arıza listesine dön", system: "Sistem", severity: "Öncelik", drive: "Sürüş", meaning: "Anlamı", symptoms: "Olası belirtiler", causes: "Olası nedenler", diagnosis: "Teşhis", solutions: "Çözümler", note: "Not", unknownTitle: "Bilinmeyen arıza kodu", unknownText: "Bu kod 6006 arıza kütüphanesinde bulunmuyor. Teknik teşhis uydurulmaz; araç, kontrol ünitesi ve tam teşhis raporu kontrol edilmelidir.",
   },
   en: {
-    back: "Back to fault library", system: "System", severity: "Priority", drive: "Driving", meaning: "Meaning", symptoms: "Possible symptoms", causes: "Possible causes", diagnosis: "Diagnosis", solutions: "Solutions", note: "Note", vehicle: "Vehicle context", unknownTitle: "Unknown fault code", unknownText: "This code is not in the 6006 fault library. No technical diagnosis is invented; check the vehicle, control unit and complete diagnostic report.",
+    back: "Back to fault library", system: "System", severity: "Priority", drive: "Driving", meaning: "Meaning", symptoms: "Possible symptoms", causes: "Possible causes", diagnosis: "Diagnosis", solutions: "Solutions", note: "Note", unknownTitle: "Unknown fault code", unknownText: "This code is not in the 6006 fault library. No technical diagnosis is invented; check the vehicle, control unit and complete diagnostic report.",
   },
 };
 
@@ -47,20 +44,22 @@ function DetailList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function deviceLanguage(): string {
+  return typeof navigator === "undefined" ? "de" : navigator.language || "de";
+}
+
 export function FaultPage() {
   const { code: routeCode } = useParams<{ code: string }>();
   const code = String(routeCode ?? "").trim().toUpperCase();
-  const [language, setLanguage] = useState<Language>(() => loadLanguage(localStorage, "de"));
-  const [vehicle, setVehicle] = useState<VehicleContext>(() => loadVehicle(localStorage));
+  const [language] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
+  const [vehicle] = useState<VehicleContext>(() => loadVehicle(localStorage));
   const source = faultByCode(code);
   const fault = source ? localizeFault(source, language) : undefined;
   const copy = COPY[language];
 
-  const changeLanguage = (next: Language) => {
-    const saved = saveLanguage(localStorage, next);
-    setLanguage(saved);
-    document.documentElement.lang = saved;
-  };
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   return (
     <div className="faultPage">
@@ -68,7 +67,6 @@ export function FaultPage() {
         <Link to="/" className="faultBrand" aria-label="6006 Performance home"><strong>6006</strong><span>PERFORMANCE</span></Link>
         <div className="faultHeaderActions">
           <Link to="/#faults" className="faultBack">← {copy.back}</Link>
-          <LanguageSwitch language={language} onChange={changeLanguage} />
         </div>
       </header>
 
@@ -99,14 +97,6 @@ export function FaultPage() {
               <article><span>{copy.system}</span><strong>{fault.system}</strong></article>
               <article><span>{copy.severity}</span><strong>{fault.severity}</strong></article>
               <article><span>{copy.drive}</span><strong>{fault.drive}</strong></article>
-            </section>
-
-            <section className="faultVehicleContext">
-              <div className="faultSectionHead">
-                <div><span>{copy.vehicle}</span><h2>{language === "tr" ? "Aracını seç" : language === "en" ? "Select your vehicle" : "Fahrzeug wählen"}</h2></div>
-                <p>{language === "tr" ? "Şema, yalnız doğrulanmış profil bulunduğunda araca özel konumlar kullanır." : language === "en" ? "The schematic only uses vehicle-specific positions when a verified profile is available." : "Die Darstellung nutzt fahrzeugspezifische Positionen nur bei verifiziertem Profil."}</p>
-              </div>
-              <VehicleSelector language={language} onChange={setVehicle} />
             </section>
 
             <FaultSystemAnimation code={fault.code ?? code} language={language} vehicle={vehicle} />
