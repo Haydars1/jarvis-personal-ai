@@ -164,7 +164,7 @@ export async function auditPdfRepositories(provenance,{fetchImpl=fetch,token=pro
           result.evidence_source='github-api';
           result.status='source-verified';
         }catch(error){
-          if(error.status===403){
+          if(error.status===403||error.status===404){
             await applyPublicFallback(repo,result,{gitProbe,sourceProbe,fetchImpl},error.message);
           }else{
             result.status='metadata-only';
