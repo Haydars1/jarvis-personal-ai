@@ -1,0 +1,114 @@
+name: Deploy 6006 to Cloudflare
+
+on:
+  push:
+    branches: [6006-performance]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 6006-cloudflare-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_NAME: 6006-performance-db
+      WORKER_NAME: 6006-performance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify app before deploy
+        run: |
+          npm test
+          npm run typecheck
+          npm run build
+          npm --prefix worker test
+          npm --prefix worker run typecheck
+
+      - name: Verify Cloudflare credentials exist
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Ensure dedicated D1 database exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@latest d1 list --json > /tmp/d1.json
+          DB_ID=$(node -e "const fs=require('fs');const xs=JSON.parse(fs.readFileSync('/tmp/d1.json','utf8'));const x=xs.find(v=>v.name===process.env.DB_NAME);if(x)process.stdout.write(x.uuid||x.id||'')")
+          if [ -z "$DB_ID" ]; then
+            npx --yes wrangler@latest d1 create "$DB_NAME" --jurisdiction eu --location weur
+            npx --yes wrangler@latest d1 list --json > /tmp/d1.json
+            DB_ID=$(node -e "const fs=require('fs');const xs=JSON.parse(fs.readFileSync('/tmp/d1.json','utf8'));const x=xs.find(v=>v.name===process.env.DB_NAME);if(!x)process.exit(2);process.stdout.write(x.uuid||x.id||'')")
+          fi
+          test -n "$DB_ID"
+          echo "DB_ID=$DB_ID" >> "$GITHUB_ENV"
+
+      - name: Apply idempotent D1 schema
+        run: npx --yes wrangler@latest d1 execute "$DB_NAME" --remote --file=worker/migrations/0001_chat_core.sql --yes
+
+      - name: Generate isolated Worker config
+        shell: bash
+        run: |
+          cat > worker/wrangler.deploy.jsonc <<EOF
+          {
+            "name": "$WORKER_NAME",
+            "main": "src/index.ts",
+            "compatibility_date": "2026-10-04",
+            "assets": {
+              "directory": "../dist",
+              "binding": "ASSETS",
+              "not_found_handling": "single-page-application",
+              "run_worker_first": ["/api/*"]
+            },
+            "d1_databases": [
+              {
+                "binding": "DB",
+                "database_name": "$DB_NAME",
+                "database_id": "$DB_ID"
+              }
+            ],
+            "vars": {
+              "ALLOWED_ORIGIN": ""
+            }
+          }
+          EOF
+          cat worker/wrangler.deploy.jsonc
+
+      - name: Deploy 6006 Worker
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd worker
+          npx --yes wrangler@latest deploy --config wrangler.deploy.jsonc 2>&1 | tee /tmp/6006-deploy.log
+          URL=$(grep -Eo 'https://[A-Za-z0-9._-]+\.workers\.dev' /tmp/6006-deploy.log | tail -n 1)
+          test -n "$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "6006_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Smoke test deployed site and API
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Testing $6006_URL"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/api/health" | tee /tmp/health.json
+          grep -q '"ok":true' /tmp/health.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/" | tee /tmp/home.html >/dev/null
+          grep -q '6006' /tmp/home.html
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/fehlercodes/P0299" | tee /tmp/fault.html >/dev/null
+          grep -q '6006' /tmp/fault.html
+          echo "6006 live: $6006_URL"
