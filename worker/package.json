@@ -1,0 +1,9 @@
+{
+  "name": "6006-performance-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "../node_modules/.bin/vitest run",
+    "typecheck": "../node_modules/.bin/tsc -p tsconfig.json --noEmit"
+  }
+}
