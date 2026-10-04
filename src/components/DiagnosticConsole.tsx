@@ -1,12 +1,10 @@
 import type { Language } from "../i18n/language";
-import type { VehicleContext } from "../vehicle/catalog";
 import "./DiagnosticConsole.css";
 
 type Copy = {
   kicker: string;
   title: string;
   sample: string;
-  vehicle: string;
   code: string;
   system: string;
   verification: string;
@@ -23,7 +21,6 @@ const COPY: Record<Language, Copy> = {
     kicker: "6006 / DIAGNOSE-WORKFLOW",
     title: "Vom Fehlercode zur belastbaren Prüfung.",
     sample: "Beispiel",
-    vehicle: "Fahrzeug",
     code: "DTC",
     system: "Systembezug",
     verification: "Prüfung",
@@ -38,7 +35,6 @@ const COPY: Record<Language, Copy> = {
     kicker: "6006 / TEŞHİS AKIŞI",
     title: "Arıza kodundan doğrulanabilir kontrole.",
     sample: "Örnek",
-    vehicle: "Araç",
     code: "DTC",
     system: "İlgili sistem",
     verification: "Doğrulama",
@@ -53,7 +49,6 @@ const COPY: Record<Language, Copy> = {
     kicker: "6006 / DIAGNOSTIC WORKFLOW",
     title: "From fault code to a verifiable test path.",
     sample: "Example",
-    vehicle: "Vehicle",
     code: "DTC",
     system: "System context",
     verification: "Verification",
@@ -66,11 +61,8 @@ const COPY: Record<Language, Copy> = {
   },
 };
 
-export function DiagnosticConsole({ language, vehicle }: { language: Language; vehicle: VehicleContext }) {
+export function DiagnosticConsole({ language }: { language: Language }) {
   const copy = COPY[language];
-  const vehicleSummary = [vehicle.brand, vehicle.model, vehicle.body, vehicle.year, vehicle.engine]
-    .filter(Boolean)
-    .join(" · ");
 
   return (
     <section className="diagnosticConsole" data-diagnostic-console="true" aria-label={copy.title}>
@@ -85,11 +77,6 @@ export function DiagnosticConsole({ language, vehicle }: { language: Language; v
           <strong>P0299</strong>
         </div>
         <p>{copy.title}</p>
-      </div>
-
-      <div className="diagnosticConsoleVehicle">
-        <span>{copy.vehicle}</span>
-        <strong>{vehicleSummary || "Mercedes-Benz E-Klasse · BMW 3er · VW Passat · Ford Focus"}</strong>
       </div>
 
       <div className="diagnosticFlow" aria-label="diagnostic process">
