@@ -56,6 +56,12 @@ const env = {
   ACCESS_TEAM_DOMAIN: 'https://example.cloudflareaccess.com', ACCESS_AUD: 'aud-123', ADMIN_EMAIL: 'owner@example.test',
 } as never;
 
+const nativeEnv = {
+  ADMIN_EMAIL: '6006performance@gmail.com',
+  ADMIN_PASSWORD_HASH: '37a92d392e3f5e918cd49434bc3cab65da32b5556e2436d7b04de98b6a27cecf',
+  ADMIN_SESSION_SECRET: 'test-session-secret-with-enough-entropy',
+} as never;
+
 const verifier: AccessTokenVerifier = {
   async verify() { return { email: 'owner@example.test', sub: 'user-1' }; },
 };
@@ -114,5 +120,34 @@ describe('admin chat API', () => {
     const store = new MemoryAdminStore();
     const response = await handleAdminRequest(new Request('https://api.example.test/api/admin/conversations'), store, env, verifier);
     expect(response.status).toBe(401);
+  });
+
+  it('logs in with native credentials and accepts the signed cookie on protected routes', async () => {
+    const store = new MemoryAdminStore();
+    const login = await handleAdminRequest(new Request('https://api.example.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: '6006performance@gmail.com', password: '6006-taO3gdZrmSemvQKxHE!J' }),
+    }), store, nativeEnv);
+
+    expect(login.status).toBe(200);
+    const setCookie = login.headers.get('set-cookie');
+    expect(setCookie).toContain('6006_admin_session=');
+    const cookie = setCookie!.split(';', 1)[0];
+
+    const list = await handleAdminRequest(new Request('https://api.example.test/api/admin/conversations', {
+      headers: { Cookie: cookie },
+    }), store, nativeEnv);
+    expect(list.status).toBe(200);
+  });
+
+  it('rejects wrong native credentials', async () => {
+    const store = new MemoryAdminStore();
+    const login = await handleAdminRequest(new Request('https://api.example.test/api/admin/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: '6006performance@gmail.com', password: 'wrong' }),
+    }), store, nativeEnv);
+    expect(login.status).toBe(401);
   });
 });
