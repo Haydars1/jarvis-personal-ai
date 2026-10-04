@@ -58,10 +58,10 @@ describe("FaultSystemAnimation", () => {
     expect(screen.getByText(/BMW 3er G20\/G21 · 320d B47/i)).toBeInTheDocument();
   });
 
-  it("renders an exact body drawing for the selected Mercedes profile", () => {
+  it("renders a model-specific Mercedes body drawing instead of the generic wedge", () => {
     render(<FaultSystemAnimation code="P0171" language="tr" vehicle={mercedes} />);
 
-    const shell = document.querySelector('[data-vehicle-body-profile="mercedes-w213-s213-e220d-om654"]');
+    const shell = document.querySelector('[data-vehicle-body-model="mercedes-s213"]');
     expect(shell).toBeTruthy();
     expect(shell).toHaveAttribute("data-vehicle-body", "estate-rwd-longnose");
     expect(shell?.querySelector(".vehicleBodyRoofRail")).toBeTruthy();
