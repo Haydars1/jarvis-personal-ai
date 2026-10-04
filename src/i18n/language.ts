@@ -3,6 +3,7 @@ import { translations } from './translations';
 export type Language = 'de' | 'tr' | 'en';
 export const SUPPORTED_LANGUAGES: readonly Language[] = ['de', 'tr', 'en'];
 export const LANGUAGE_STORAGE_KEY = '6006_language';
+export const LANGUAGE_MANUAL_OVERRIDE_KEY = '6006_language_manual';
 
 export function normalizeLanguage(value: unknown): Language {
   const code = String(value ?? '').trim().toLowerCase().split(/[-_]/)[0];
@@ -11,12 +12,14 @@ export function normalizeLanguage(value: unknown): Language {
 
 export function loadLanguage(storage: Pick<Storage, 'getItem'> | null | undefined, navigatorLanguage = 'de'): Language {
   const stored = storage?.getItem?.(LANGUAGE_STORAGE_KEY);
-  return stored ? normalizeLanguage(stored) : normalizeLanguage(navigatorLanguage);
+  const hasManualOverride = storage?.getItem?.(LANGUAGE_MANUAL_OVERRIDE_KEY) === '1';
+  return hasManualOverride && stored ? normalizeLanguage(stored) : normalizeLanguage(navigatorLanguage);
 }
 
 export function saveLanguage(storage: Pick<Storage, 'setItem'> | null | undefined, language: unknown): Language {
   const normalized = normalizeLanguage(language);
   storage?.setItem?.(LANGUAGE_STORAGE_KEY, normalized);
+  storage?.setItem?.(LANGUAGE_MANUAL_OVERRIDE_KEY, '1');
   return normalized;
 }
 
