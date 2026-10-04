@@ -1,3 +1,5 @@
+import "./DriftShowcase.css";
+
 const trackPath = "M 82 220 C 70 132 165 72 302 78 C 447 84 552 126 566 213 C 580 302 474 346 328 346 C 181 346 93 307 82 220 Z";
 
 const cars = [
@@ -11,7 +13,7 @@ const cars = [
 
 function DriftCar({ id, begin, drift, scale }: (typeof cars)[number]) {
   return (
-    <g className={`driftCar driftCar${id}`} data-drift-car={id}>
+    <g className={`driftVehicle driftVehicle${id}`} data-drift-car={id}>
       <animateMotion dur="13.5s" begin={begin} repeatCount="indefinite" rotate="auto" path={trackPath} />
       <g transform={`rotate(${drift}) scale(${scale})`}>
         <g className="driftSmokeCloud">
