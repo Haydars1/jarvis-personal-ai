@@ -24,6 +24,9 @@ export interface Env {
   AI_API_KEY?: string;
   VAPID_PUBLIC_KEY?: string;
   VAPID_PRIVATE_KEY?: string;
+  ACCESS_TEAM_DOMAIN?: string;
+  ACCESS_AUD?: string;
+  ADMIN_EMAIL?: string;
 }
 
 export interface ExecutionContextLike {
