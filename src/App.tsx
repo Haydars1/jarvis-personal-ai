@@ -1,16 +1,7 @@
-import { Route, Routes, useParams } from 'react-router-dom';
+import { Route, Routes, useParams } from "react-router-dom";
+import { HomePage } from "./pages/HomePage";
 
-function HomePage() {
-  return (
-    <main>
-      <p className="eyebrow">DIAGNOSE · CODIERUNG · SOFTWARE</p>
-      <h1>6006 PERFORMANCE</h1>
-      <p>Standalone Cloudflare runtime is active.</p>
-    </main>
-  );
-}
-
-function FaultPage() {
+function FaultPagePlaceholder() {
   const { code } = useParams<{ code: string }>();
   return (
     <main>
@@ -24,7 +15,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/fehlercodes/:code" element={<FaultPage />} />
+      <Route path="/fehlercodes/:code" element={<FaultPagePlaceholder />} />
     </Routes>
   );
 }
