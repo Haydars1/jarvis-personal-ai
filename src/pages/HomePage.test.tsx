@@ -42,6 +42,14 @@ describe("HomePage", () => {
     expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
+  it("shows four cars moving around the drift showcase", () => {
+    renderPage();
+
+    const track = document.querySelector('[data-drift-track="true"]');
+    expect(track).toBeTruthy();
+    expect(track?.querySelectorAll("[data-drift-car]")).toHaveLength(4);
+  });
+
   it("finds P0299 from the standalone fault library", () => {
     renderPage();
     const search = screen.getByRole("searchbox", { name: /fehlercode suchen/i });
