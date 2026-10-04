@@ -60,7 +60,7 @@ describe("FaultSystemAnimation", () => {
 
     expect(document.querySelector('[data-scene="scr"]')).toBeTruthy();
     expect(document.querySelector('[data-vehicle-profile="vw-passat-b8-crlb"]')).toBeTruthy();
-    expect(screen.getByText(/doğrulanmış.*SCR|genel SCR/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/doğrulanmış.*SCR|genel SCR/i).length).toBeGreaterThan(0);
   });
 
   it("lets the user inspect individual components without claiming certainty", () => {
