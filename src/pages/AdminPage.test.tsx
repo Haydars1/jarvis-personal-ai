@@ -63,4 +63,30 @@ describe('AdminChatPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /ai.*devret/i }));
     await waitFor(() => expect(release).toHaveBeenCalledWith('c1'));
   });
+
+  it('polls the active admin chat and shows new visitor messages without reloading', async () => {
+    const getConversation = vi.fn()
+      .mockResolvedValueOnce({
+        conversation: { ...conversation, status: 'human_active' as const },
+        messages: [{ id: 'm1', conversationId: 'c1', sender: 'visitor' as const, body: 'İlk mesaj', createdAt: '2026-10-04T12:05:00.000Z' }],
+      })
+      .mockResolvedValue({
+        conversation: { ...conversation, status: 'human_active' as const },
+        messages: [
+          { id: 'm1', conversationId: 'c1', sender: 'visitor' as const, body: 'İlk mesaj', createdAt: '2026-10-04T12:05:00.000Z' },
+          { id: 'm2', conversationId: 'c1', sender: 'visitor' as const, body: 'Yeni mesaj geldi', createdAt: '2026-10-04T12:06:00.000Z' },
+        ],
+      });
+    const api = adminApi({ getConversation });
+
+    render(
+      <MemoryRouter>
+        <AdminChatPage api={api} conversationId="c1" pollIntervalMs={20} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('İlk mesaj')).toBeInTheDocument();
+    await waitFor(() => expect(getConversation.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 800 });
+    expect(await screen.findByText('Yeni mesaj geldi')).toBeInTheDocument();
+  });
 });
