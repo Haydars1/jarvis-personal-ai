@@ -33,6 +33,14 @@ describe("FaultSystemAnimation", () => {
     expect(document.querySelector('[data-focus="abs-module"]')).toBeTruthy();
   });
 
+  it("maps P0171 lean-mixture faults to the intake path instead of a generic data bus", () => {
+    render(<FaultSystemAnimation code="P0171" language="tr" vehicle={bmw} />);
+
+    expect(document.querySelector('[data-scene="boost"]')).toBeTruthy();
+    expect(document.querySelector('[data-focus="intake-path"]')).toBeTruthy();
+    expect(document.querySelector('[data-scene="generic"]')).toBeFalsy();
+  });
+
   it("applies an exact supported vehicle profile and exposes its confidence", () => {
     render(<FaultSystemAnimation code="P0299" language="de" vehicle={bmw} />);
 
@@ -47,6 +55,8 @@ describe("FaultSystemAnimation", () => {
 
     expect(document.querySelector('[data-vehicle-body="sedan-rwd-longnose"]')).toBeTruthy();
     expect(document.querySelector(".vehicleBodyShell")).toBeTruthy();
+    expect(document.querySelector(".vehicleBodyLamp")).toBeTruthy();
+    expect(document.querySelector(".vehicleBodyRim")).toBeTruthy();
   });
 
   it("shows a generic vehicle note when no verified profile exists", () => {
