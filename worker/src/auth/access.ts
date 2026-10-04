@@ -1,4 +1,5 @@
 import type { Env } from '../env';
+import { nativeAdminConfigured, verifyAdminSession } from './native';
 
 export interface AdminIdentity {
   email: string;
@@ -115,19 +116,26 @@ export async function requireAdmin(
   env: Env,
   verifier: AccessTokenVerifier = remoteAccessTokenVerifier,
 ): Promise<AdminIdentity> {
-  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD || !env.ADMIN_EMAIL) {
-    throw new AccessAuthError(503, 'access_not_configured');
+  const accessConfigured = Boolean(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD && env.ADMIN_EMAIL);
+
+  if (accessConfigured) {
+    const token = request.headers.get('Cf-Access-Jwt-Assertion');
+    if (!token) throw new AccessAuthError(401, 'access_assertion_missing');
+
+    const identity = await verifier.verify(token, env);
+    if (!identity) throw new AccessAuthError(401, 'access_assertion_invalid');
+
+    if (identity.email.toLowerCase() !== env.ADMIN_EMAIL!.trim().toLowerCase()) {
+      throw new AccessAuthError(403, 'admin_not_allowed');
+    }
+    return identity;
   }
 
-  const token = request.headers.get('Cf-Access-Jwt-Assertion');
-  if (!token) throw new AccessAuthError(401, 'access_assertion_missing');
-
-  const identity = await verifier.verify(token, env);
-  if (!identity) throw new AccessAuthError(401, 'access_assertion_invalid');
-
-  if (identity.email.toLowerCase() !== env.ADMIN_EMAIL.trim().toLowerCase()) {
-    throw new AccessAuthError(403, 'admin_not_allowed');
+  if (nativeAdminConfigured(env)) {
+    const identity = await verifyAdminSession(request, env);
+    if (!identity) throw new AccessAuthError(401, 'admin_session_invalid');
+    return identity;
   }
 
-  return identity;
+  throw new AccessAuthError(503, 'admin_auth_not_configured');
 }
