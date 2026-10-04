@@ -26,7 +26,7 @@ describe("FaultPage", () => {
     renderFault();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/P0299/i);
-    expect(screen.getByText(/Turbo.*basınç|şarj basıncı|boost/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /Turbo basıncı kontrolü/i })).toBeInTheDocument();
     expect(document.querySelector('[data-scene="boost"]')).toBeTruthy();
     expect(document.querySelector('[data-vehicle-profile="bmw-g20-g21-320d-b47"]')).toBeTruthy();
   });
@@ -38,7 +38,7 @@ describe("FaultPage", () => {
     expect(screen.getByText(/Mögliche Ursachen/i)).toBeInTheDocument();
     expect(screen.getByText(/Diagnose/i)).toBeInTheDocument();
     expect(screen.getByText(/Lösung|Lösungen/i)).toBeInTheDocument();
-    expect(screen.getByText(/beweist nicht|nicht.*sicher defekt/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/beweist nicht|nicht.*sicher defekt/i).length).toBeGreaterThan(0);
   });
 
   it("handles an unknown code without inventing a technical diagnosis", () => {
