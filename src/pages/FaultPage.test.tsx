@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FaultPage } from "./FaultPage";
 
 function renderFault(path = "/fehlercodes/P0299") {
@@ -14,10 +14,24 @@ function renderFault(path = "/fehlercodes/P0299") {
 }
 
 describe("FaultPage", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("de-DE");
+  });
+
+  it("uses the phone/browser language and does not show a language switch outside the homepage", () => {
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("tr-TR");
+    renderFault();
+
+    expect(screen.getByRole("heading", { level: 2, name: /Turbo basıncı kontrolü/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "DE" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "TR" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "EN" })).not.toBeInTheDocument();
+  });
 
   it("renders the localized fault details and system animation for P0299", () => {
     localStorage.setItem("6006_language", "tr");
+    localStorage.setItem("6006_language_manual", "1");
     localStorage.setItem(
       "6006_vehicle",
       JSON.stringify({ brand: "BMW", model: "3er", body: "G20/G21", year: 2021, engine: "320d B47" }),
