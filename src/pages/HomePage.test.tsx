@@ -42,13 +42,15 @@ describe("HomePage", () => {
     expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
-  it("shows six cars drifting around a visible track surface", () => {
+  it("shows six cinematic side-profile cars drifting on a visible track", () => {
     renderPage();
 
     const track = document.querySelector('[data-drift-track="true"]');
     expect(track).toBeTruthy();
+    expect(track).toHaveAttribute("data-drift-perspective", "side");
     expect(track?.querySelector('[data-drift-surface="true"]')).toBeTruthy();
     expect(track?.querySelectorAll("[data-drift-car]")).toHaveLength(6);
+    expect(track?.querySelectorAll(".driftWheel")).toHaveLength(12);
   });
 
   it("finds P0299 from the standalone fault library", () => {
