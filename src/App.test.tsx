@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -11,8 +11,9 @@ describe('App routing', () => {
 
   it('renders the 6006 homepage with support chat', () => {
     render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: '6006 Performance home' })).toBeInTheDocument();
-    expect(screen.getByText('PERFORMANCE')).toBeInTheDocument();
+    const brand = screen.getByRole('link', { name: '6006 Performance home' });
+    expect(brand).toBeInTheDocument();
+    expect(within(brand).getByText('PERFORMANCE')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /diagnose-chat/i })).toBeInTheDocument();
   });
 
