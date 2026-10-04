@@ -134,14 +134,14 @@ jobs:
             exit 1
           fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "6006_URL=$URL" >> "$GITHUB_ENV"
+          echo "SITE_URL=$URL" >> "$GITHUB_ENV"
 
       - name: Smoke test deployed site and API
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 12); do
-            HEALTH=$(curl --fail --silent --show-error "$6006_URL/api/health" || true)
+            HEALTH=$(curl --fail --silent --show-error "$SITE_URL/api/health" || true)
             if printf '%s' "$HEALTH" | grep -q '"ok":true' && printf '%s' "$HEALTH" | grep -q '"service":"6006-api"'; then
               break
             fi
@@ -153,13 +153,13 @@ jobs:
             sleep 2
           done
 
-          curl --fail --silent --show-error "$6006_URL/" | grep -qi '<div id="root"'
-          curl --fail --silent --show-error -H 'Sec-Fetch-Mode: navigate' "$6006_URL/fehlercodes/P0299" | grep -qi '<div id="root"'
+          curl --fail --silent --show-error "$SITE_URL/" | grep -qi '<div id="root"'
+          curl --fail --silent --show-error -H 'Sec-Fetch-Mode: navigate' "$SITE_URL/fehlercodes/P0299" | grep -qi '<div id="root"'
 
-          CHAT_CODE=$(curl --silent --show-error -o /tmp/6006-chat-smoke.json -w '%{http_code}' "$6006_URL/api/chat/deploy-smoke-missing")
+          CHAT_CODE=$(curl --silent --show-error -o /tmp/6006-chat-smoke.json -w '%{http_code}' "$SITE_URL/api/chat/deploy-smoke-missing")
           test "$CHAT_CODE" = '404'
           grep -q 'conversation_not_found' /tmp/6006-chat-smoke.json
-          echo "6006 deployed: $6006_URL"
+          echo "6006 deployed: $SITE_URL"
 
       - name: Deployment summary
         shell: bash
@@ -167,8 +167,8 @@ jobs:
           {
             echo '## 6006 Performance Cloudflare deployment'
             echo
-            echo "- Site: $6006_URL"
-            echo "- Health: $6006_URL/api/health"
+            echo "- Site: $SITE_URL"
+            echo "- Health: $SITE_URL/api/health"
             echo "- D1: $DB_NAME (EU jurisdiction when newly created)"
             echo '- Runtime: one Cloudflare Worker serving React SPA + /api/*'
           } >> "$GITHUB_STEP_SUMMARY"
