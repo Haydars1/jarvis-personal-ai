@@ -33,7 +33,7 @@ function adminApi(overrides: Partial<AdminApi> = {}): AdminApi {
 describe('AdminPage', () => {
   it('renders conversation status, vehicle and fault context', async () => {
     render(<MemoryRouter><AdminPage api={adminApi()} /></MemoryRouter>);
-    expect(await screen.findByText('P0299')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 2, name: 'P0299' })).toBeInTheDocument();
     expect(screen.getByText(/Volkswagen · Passat · B8/)).toBeInTheDocument();
     expect(screen.getByText(/ai_active/i)).toBeInTheDocument();
   });
@@ -47,12 +47,13 @@ describe('AdminChatPage', () => {
     const api = adminApi({ takeover, release, reply });
 
     render(<MemoryRouter><AdminChatPage api={api} conversationId="c1" /></MemoryRouter>);
-    expect(await screen.findByText('P0299')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'P0299' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /devral/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /gönder/i })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /devral/i }));
-    await waitFor(() => expect(takeover).toHaveBeenCalledWith('c1'));
+    await waitFor(() => expect(screen.getByRole('button', { name: /ai.*devret/i })).toBeInTheDocument());
+    expect(takeover).toHaveBeenCalledWith('c1');
 
     const textbox = screen.getByRole('textbox', { name: /yanıt/i });
     fireEvent.change(textbox, { target: { value: 'Kontrol ediyorum.' } });
