@@ -12,6 +12,6 @@ describe('App routing', () => {
 
   it('resolves a direct fault detail route', () => {
     render(<MemoryRouter initialEntries={['/fehlercodes/P0299']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: 'Fehlercode P0299' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'P0299' })).toBeInTheDocument();
   });
 });
