@@ -7,6 +7,8 @@ import {
   queryOne,
   readJson
 } from '../../lib/runtime.js';
+import { buildFreeIntegrationCatalog, repositoryIntegrations } from '../../lib/repository-integrations.js';
+import { FREE_INTEGRATION_TEAMS, integrationSummary } from '../../lib/free-integration-registry.js';
 
 const encoder = new TextEncoder();
 const now = () => Date.now();
@@ -15,6 +17,7 @@ const GRAPH = 'https://graph.facebook.com/v24.0';
 const FB_DIALOG = 'https://www.facebook.com/v24.0/dialog/oauth';
 const META_SCOPES = ['pages_show_list','pages_read_engagement','pages_manage_posts','instagram_basic','instagram_content_publish'];
 const YT_SCOPES = ['https://www.googleapis.com/auth/youtube.readonly','https://www.googleapis.com/auth/youtube.upload'];
+const INTEGRATION_STATES = new Set(['ready','connection-required','degraded','reference-only','unavailable','excluded']);
 
 const textResponse = (text, status = 200) => new Response(text, { status, headers: { 'content-type': 'text/plain; charset=utf-8' } });
 
@@ -88,7 +91,6 @@ async function loadMetaPages(env) {
   if (value?.blob) {
     try { return JSON.parse(await decryptCredential(env, value.blob)).pages || []; } catch { return []; }
   }
-  // Backward-compatible migration from the old plaintext KV representation.
   if (Array.isArray(value?.pages)) {
     const pages = value.pages;
     if (pages.some(page => page.access_token)) await storeMetaPages(env, pages).catch(() => {});
@@ -136,20 +138,56 @@ async function selectMetaPage(req, env) {
   return jsonResponse({ ok: true, page: { id: page.id, name: page.name, instagram_business_id: page.instagram_business_account?.id || null } });
 }
 
-async function integrationStatus(env) {
+async function integrationStatusPayload(env) {
   const google = await kvGet(env, 'google_oauth', null), googleScope = String(google?.scope || '');
   const meta = await queryOne(env, "SELECT endpoint,model,meta,last_status,enabled FROM credentials WHERE provider='meta' ORDER BY created_at DESC LIMIT 1");
   const app = await metaApp(env), pages = await metaPages(env);
   let metaInfo = {}; try { metaInfo = JSON.parse(meta?.meta || '{}'); } catch {}
   const googleConfigured = !!(await queryOne(env, "SELECT id FROM credentials WHERE provider='google' AND enabled=1 LIMIT 1"));
   const metaConnected = !!meta && Number(meta.enabled) === 1;
-  return jsonResponse({
+  const youtubeConnected = !!google && googleScope.includes('youtube');
+  const base = {
     google: { configured: googleConfigured, connected: !!google, email: google?.email || '', youtube: googleScope.includes('youtube') },
-    youtube: { connected: !!google && googleScope.includes('youtube') },
+    youtube: { connected: youtubeConnected },
     meta: { configured: !!app, connected: metaConnected, status: meta?.last_status || null, page_id: meta?.endpoint || null, page_name: metaInfo.page_name || '', instagram_business_id: meta?.model || null, pages },
     facebook: { connected: metaConnected, page_id: meta?.endpoint || null, page_name: metaInfo.page_name || '' },
-    instagram: { connected: metaConnected && !!meta.model, business_id: meta?.model || null }
+    instagram: { connected: metaConnected && !!meta?.model, business_id: meta?.model || null }
+  };
+  const catalog = buildFreeIntegrationCatalog({
+    repositoryIntegrations: repositoryIntegrations(),
+    providerState: {
+      google: { connected: !!google, youtube: youtubeConnected },
+      youtube: { connected: youtubeConnected }
+    }
   });
+  return { ...base, freeHub: integrationSummary(catalog) };
+}
+
+async function integrationStatus(env) {
+  return jsonResponse(await integrationStatusPayload(env));
+}
+
+function validCatalogFilters(url) {
+  const team = String(url.searchParams.get('team') || '').trim();
+  const state = String(url.searchParams.get('state') || '').trim();
+  if (team && !FREE_INTEGRATION_TEAMS.includes(team)) return null;
+  if (state && !INTEGRATION_STATES.has(state)) return null;
+  return { team, state };
+}
+
+async function integrationCatalog(url, env) {
+  const filters = validCatalogFilters(url);
+  if (!filters) return jsonResponse({ error:'INVALID_INTEGRATION_FILTER' }, 400);
+  const status = await integrationStatusPayload(env);
+  const catalog = buildFreeIntegrationCatalog({
+    repositoryIntegrations: repositoryIntegrations(),
+    providerState: {
+      google: { connected: !!status.google?.connected, youtube: !!status.youtube?.connected },
+      youtube: { connected: !!status.youtube?.connected }
+    }
+  });
+  const integrations = catalog.filter(item => (!filters.team || item.team === filters.team) && (!filters.state || item.runtimeState === filters.state));
+  return jsonResponse({ filters, summary:integrationSummary(integrations), integrations });
 }
 
 async function googleConnectWithYouTube(core, req, env, ctx) {
@@ -184,6 +222,7 @@ export function createIntegrationHub(core) {
         if (path.startsWith('/api/integrations/') || path.startsWith('/api/meta/')) {
           if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
           if (path === '/api/integrations/status' && method === 'GET') return integrationStatus(env);
+          if (path === '/api/integrations/catalog' && method === 'GET') return integrationCatalog(url, env);
           if (path === '/api/meta/setup' && method === 'POST') return metaSetup(req, env);
           if (path === '/api/meta/connect' && method === 'GET') return metaConnect(req, env);
           if (path === '/api/meta/pages' && method === 'GET') return jsonResponse({ pages: await metaPages(env) });

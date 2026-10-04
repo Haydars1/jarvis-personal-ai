@@ -4,6 +4,8 @@
   let busy = false;
   const STATUS_MS = 60 * 1000;
   const DATA_MS = 5 * 60 * 1000;
+  const TEAMS = ['Build','Design','Growth','Operations','Scale'];
+  const STATES = ['ready','connection-required','degraded','reference-only','unavailable','excluded'];
 
   function ensureHub() {
     const page = document.querySelector('#communication');
@@ -15,6 +17,25 @@
       <h2>Hesap Bağlantıları</h2>
       <p class="muted">Google, YouTube, Facebook ve Instagram bağlantıları otomatik kontrol edilir. Gmail ve Drive içerikleri de arka planda yenilenir.</p>
       <div class="providerGrid" id="integrationCards"></div>
+      <hr>
+      <div class="providerHead"><div><h3 style="margin:0">Ücretsiz Entegrasyonlar</h3><small id="freeIntegrationSummary" class="muted">Katalog yükleniyor…</small></div></div>
+      <p class="muted">JARVIS yalnızca doğrulanmış ücretsiz veya ücretsiz-plan ve gerçekten hazır adaptörleri otomatik kullanır. Kaynak, dış ChatGPT bağlantısı, ücretli veya bağlantı bekleyen araçlar çalışıyormuş gibi gösterilmez.</p>
+      <div class="row" id="freeIntegrationFilters">
+        <select id="integrationTeamFilter" aria-label="Takım filtresi">
+          <option value="">Tüm takımlar</option>
+          ${TEAMS.map(team => `<option value="${team}">${team}</option>`).join('')}
+        </select>
+        <select id="integrationStateFilter" aria-label="Durum filtresi">
+          <option value="">Tüm durumlar</option>
+          <option value="ready">Aktif</option>
+          <option value="connection-required">Bağlantı gerekli</option>
+          <option value="degraded">Adapter sorunu</option>
+          <option value="reference-only">Kaynak / adapter bekliyor</option>
+          <option value="unavailable">Kullanılamıyor</option>
+          <option value="excluded">Hariç</option>
+        </select>
+      </div>
+      <div class="providerGrid" id="freeIntegrationCards"></div>
       <div id="metaSetupBox" class="googleSetup hidden">
         <hr><h3>Meta OAuth kurulumu</h3>
         <p class="muted">Facebook ve Instagram için Meta Developer uygulamasının App ID ve App Secret bilgilerini bir kez gir. Sonrasında normal Facebook giriş ekranı açılır.</p>
@@ -35,6 +56,8 @@
     };
     hub.querySelector('#metaSaveConnect').onclick = saveMetaAndConnect;
     hub.querySelector('#metaPageApply').onclick = selectMetaPage;
+    hub.querySelector('#integrationTeamFilter').onchange = refreshFreeCatalog;
+    hub.querySelector('#integrationStateFilter').onchange = refreshFreeCatalog;
   }
 
   function statusBadge(ok, textOk='● BAĞLI', textNo='○ BAĞLI DEĞİL') {
@@ -79,6 +102,69 @@
     host.querySelector('.facebookAction').onclick = () => connectMeta(s);
     host.querySelector('.instagramAction').onclick = () => connectMeta(s);
     renderMetaPages(s?.meta?.pages || []);
+    renderFreeSummary(s?.freeHub);
+  }
+
+  function integrationStateLabel(item) {
+    if (item.runtimeState === 'excluded' || item.pricing === 'paid') return 'Ücretli / hariç';
+    if (item.runtimeState === 'ready') return 'Aktif';
+    if (item.runtimeState === 'connection-required') return 'Bağlantı gerekli';
+    if (item.runtimeState === 'degraded') return 'Ücretsiz / adapter bekliyor';
+    if (item.runtimeState === 'reference-only') {
+      if ((item.pricing === 'free' || item.pricing === 'free-plan') && item.sourceType === 'github-skill') return 'Ücretsiz / adapter bekliyor';
+      return 'Sadece kaynak';
+    }
+    return 'Kullanılamıyor';
+  }
+
+  function integrationCardClass(item) {
+    return item.runtimeState === 'ready' && item.autoExecutable ? 'ok' : 'bad';
+  }
+
+  function renderFreeSummary(summary) {
+    const target = document.querySelector('#freeIntegrationSummary');
+    if (!target || !summary) return;
+    target.textContent = `${Number(summary.total || 0)} kayıt • ${Number(summary.autoExecutable || 0)} otomatik çalıştırılabilir`;
+  }
+
+  function renderFreeCatalog(payload) {
+    const host = document.querySelector('#freeIntegrationCards');
+    if (!host) return;
+    const items = Array.isArray(payload?.integrations) ? payload.integrations : [];
+    const summary = payload?.summary || null;
+    renderFreeSummary(summary);
+    if (!items.length) {
+      host.innerHTML = '<div class="providerCard bad"><b>Eşleşen entegrasyon yok</b><small>Filtreleri değiştir.</small></div>';
+      return;
+    }
+    host.innerHTML = items.map(item => {
+      const label = integrationStateLabel(item);
+      const canRun = !!item.autoExecutable && item.runtimeState === 'ready' && item.pricing !== 'paid';
+      const provenance = item?.provenance?.repo ? ` • ${esc(item.provenance.repo)}` : '';
+      const capabilities = Array.isArray(item.capabilities) && item.capabilities.length ? item.capabilities.slice(0, 4).map(esc).join(' • ') : esc(item.sourceType || 'integration');
+      return `<div class="providerCard ${integrationCardClass(item)}" data-free-integration="${esc(item.id)}">
+        <div class="providerHead"><b>${esc(item.name)}</b><span class="providerBadge ${canRun ? 'ok' : 'bad'}">${esc(label)}</span></div>
+        <small>${esc(item.team || '')}${provenance}</small>
+        <div class="providerModel">${capabilities}</div>
+        <small>${canRun ? 'Otomatik yönlendirmeye hazır' : esc(item.notes || 'Otomatik çalıştırma kapalı')}</small>
+      </div>`;
+    }).join('');
+  }
+
+  async function refreshFreeCatalog() {
+    ensureHub();
+    const team = document.querySelector('#integrationTeamFilter')?.value || '';
+    const state = document.querySelector('#integrationStateFilter')?.value || '';
+    const params = new URLSearchParams();
+    if (team && TEAMS.includes(team)) params.set('team', team);
+    if (state && STATES.includes(state)) params.set('state', state);
+    try {
+      const payload = await api(`/api/integrations/catalog${params.size ? `?${params}` : ''}`);
+      renderFreeCatalog(payload);
+    } catch (error) {
+      const host = document.querySelector('#freeIntegrationCards');
+      if (host) host.innerHTML = `<div class="providerCard bad"><b>Katalog yüklenemedi</b><small>${esc(error.message || 'Bilinmeyen hata')}</small></div>`;
+    }
   }
 
   async function connectGoogle(s) {
@@ -178,6 +264,7 @@
       ensureHub();
       const s = await api('/api/integrations/status');
       renderCards(s);
+      await refreshFreeCatalog();
       const gi = document.querySelector('#googleInfo');
       if (gi) gi.textContent = s.google.connected ? `Google bağlı${s.google.email ? ' • '+s.google.email : ''}${s.youtube.connected ? ' • YouTube bağlı' : ''}` : (s.google.configured ? 'Google OAuth hazır, giriş gerekli' : 'Google OAuth kurulumu gerekli');
       lastStatusRefresh = t;
