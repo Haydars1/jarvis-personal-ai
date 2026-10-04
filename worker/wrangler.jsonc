@@ -1,0 +1,8 @@
+{
+  "name": "6006-performance-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-04",
+  "vars": {
+    "ALLOWED_ORIGIN": "http://localhost:5173"
+  }
+}
