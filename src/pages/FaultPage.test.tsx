@@ -19,7 +19,7 @@ describe("FaultPage", () => {
     vi.spyOn(window.navigator, "language", "get").mockReturnValue("de-DE");
   });
 
-  it("uses the phone/browser language and keeps language and vehicle selectors on the homepage only", () => {
+  it("uses the phone/browser language and exposes no public vehicle selector", () => {
     vi.spyOn(window.navigator, "language", "get").mockReturnValue("tr-TR");
     renderFault();
 
@@ -36,7 +36,7 @@ describe("FaultPage", () => {
     expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
   });
 
-  it("renders the localized fault details and system animation for P0299", () => {
+  it("renders localized P0299 details without a model-specific car drawing", () => {
     localStorage.setItem("6006_language", "tr");
     localStorage.setItem("6006_language_manual", "1");
     localStorage.setItem(
@@ -48,8 +48,8 @@ describe("FaultPage", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/P0299/i);
     expect(screen.getByRole("heading", { level: 2, name: /Turbo basıncı kontrolü/i })).toBeInTheDocument();
-    expect(document.querySelector('[data-scene="boost"]')).toBeTruthy();
-    expect(document.querySelector('[data-vehicle-profile="bmw-g20-g21-320d-b47"]')).toBeTruthy();
+    expect(document.querySelector("[data-vehicle-profile]")).toBeFalsy();
+    expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
   });
 
   it("renders safety-oriented diagnostic sections without claiming one failed part", () => {
