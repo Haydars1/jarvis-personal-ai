@@ -1,7 +1,6 @@
 import type {
   ChatApi,
   ChatConversation,
-  ChatMessage,
   SendMessagePayload,
   StartConversationPayload,
 } from './types';
@@ -46,7 +45,7 @@ export function createChatApi({ baseUrl, fetchImpl = fetch }: ChatApiOptions): C
     },
 
     sendMessage(conversationId: string, payload: SendMessagePayload) {
-      return request<ChatMessage>(`/chat/${encodeURIComponent(conversationId)}/messages`, {
+      return request<ChatConversation>(`/chat/${encodeURIComponent(conversationId)}/messages`, {
         method: 'POST',
         headers: { 'idempotency-key': crypto.randomUUID() },
         body: JSON.stringify(payload),
