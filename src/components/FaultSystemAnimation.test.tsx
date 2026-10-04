@@ -42,6 +42,13 @@ describe("FaultSystemAnimation", () => {
     expect(screen.getByText(/BMW 3er G20\/G21 · 320d B47/i)).toBeInTheDocument();
   });
 
+  it("renders the selected vehicle body schematic behind the system nodes", () => {
+    render(<FaultSystemAnimation code="P0299" language="de" vehicle={bmw} />);
+
+    expect(document.querySelector('[data-vehicle-body="sedan-rwd-longnose"]')).toBeTruthy();
+    expect(document.querySelector(".vehicleBodyShell")).toBeTruthy();
+  });
+
   it("shows a generic vehicle note when no verified profile exists", () => {
     render(
       <FaultSystemAnimation
