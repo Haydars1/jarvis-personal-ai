@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { FaultSystemAnimation } from "../components/FaultSystemAnimation";
 import { LanguageSwitch } from "../components/LanguageSwitch";
+import { PublicSupportChat } from "../components/PublicSupportChat";
 import { VehicleSelector } from "../components/VehicleSelector";
 import { faultByCode, localizeFault } from "../domain/faults";
 import { loadLanguage, saveLanguage, type Language } from "../i18n/language";
@@ -131,6 +132,8 @@ export function FaultPage() {
           </>
         )}
       </main>
+
+      <PublicSupportChat language={language} vehicle={vehicle} faultCode={code || undefined} />
     </div>
   );
 }
