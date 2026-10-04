@@ -75,12 +75,8 @@ export function SupportChat({
         setConversationId(conversation.id);
         setMessages(conversation.messages ?? []);
       } else {
-        const reply = await api.sendMessage(conversationId, { ...context, message });
-        setMessages((current) => [
-          ...current,
-          { id: `visitor-${Date.now()}`, sender: 'visitor', body: message },
-          reply,
-        ]);
+        const conversation = await api.sendMessage(conversationId, { ...context, message });
+        setMessages(conversation.messages ?? []);
       }
       setDraft('');
     } catch {
