@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createChatApi } from '../chat/api';
 import type { ChatApi, ChatConversation, ChatMessage } from '../chat/types';
 import { SupportChat } from './SupportChat';
@@ -19,6 +19,10 @@ function conversation(messages: ChatMessage[] = []): ChatConversation {
     messages,
   };
 }
+
+beforeEach(() => {
+  window.sessionStorage.clear();
+});
 
 describe('backend neutral chat API', () => {
   it('prefixes requests with the configured API root', async () => {
@@ -93,6 +97,7 @@ describe('SupportChat', () => {
       faultCode: 'P0299',
       message: 'Turbo basıncı düşük.',
     })));
+    expect(window.sessionStorage.getItem('6006_chat_conversation')).toBe('conv-1');
     expect(await screen.findByText('Belirtileri biraz daha anlatır mısınız?')).toBeInTheDocument();
 
     fireEvent.change(input, { target: { value: 'Yokuşta güç düşüyor.' } });
@@ -105,6 +110,36 @@ describe('SupportChat', () => {
       message: 'Yokuşta güç düşüyor.',
     })));
     expect(await screen.findByText('Önce basınç hattı ve kaçak kontrolü yapılmalı.')).toBeInTheDocument();
+  });
+
+  it('restores an active conversation and polls owner replies without another visitor message', async () => {
+    window.sessionStorage.setItem('6006_chat_conversation', 'conv-1');
+    const getConversation = vi.fn()
+      .mockResolvedValueOnce(conversation([{ id: 'm1', sender: 'visitor', body: 'Merhaba' }]))
+      .mockResolvedValue(conversation([
+        { id: 'm1', sender: 'visitor', body: 'Merhaba' },
+        { id: 'm2', sender: 'owner', body: 'Merhaba, aracınızın detaylarını görüyorum.' },
+      ]));
+    const api: ChatApi = {
+      startConversation: vi.fn(),
+      sendMessage: vi.fn(),
+      getConversation,
+    };
+
+    render(
+      <SupportChat
+        api={api}
+        language="tr"
+        vehicle={vehicle}
+        faultCode="P0299"
+        pollIntervalMs={20}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /teşhis sohbet/i }));
+    expect(await screen.findByText('Merhaba')).toBeInTheDocument();
+    await waitFor(() => expect(getConversation.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 800 });
+    expect(await screen.findByText('Merhaba, aracınızın detaylarını görüyorum.')).toBeInTheDocument();
   });
 
   it('keeps typed text when the API fails and shows a recoverable status', async () => {
