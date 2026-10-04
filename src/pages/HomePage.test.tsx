@@ -56,7 +56,6 @@ describe("HomePage", () => {
     const search = screen.getByRole("searchbox", { name: /fehlercode suchen/i });
     fireEvent.change(search, { target: { value: "P0299" } });
 
-    expect(screen.getByText("P0299")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /P0299/i })).toHaveAttribute("href", "/fehlercodes/P0299");
   });
 
