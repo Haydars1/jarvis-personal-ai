@@ -19,7 +19,7 @@ describe("FaultPage", () => {
     vi.spyOn(window.navigator, "language", "get").mockReturnValue("de-DE");
   });
 
-  it("uses the phone/browser language and does not show a language switch outside the homepage", () => {
+  it("uses the phone/browser language and keeps language and vehicle selectors on the homepage only", () => {
     vi.spyOn(window.navigator, "language", "get").mockReturnValue("tr-TR");
     renderFault();
 
@@ -27,6 +27,7 @@ describe("FaultPage", () => {
     expect(screen.queryByRole("button", { name: "DE" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "TR" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "EN" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("renders the localized fault details and system animation for P0299", () => {
