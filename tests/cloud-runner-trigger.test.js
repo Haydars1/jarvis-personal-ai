@@ -9,6 +9,7 @@ test('cloud runner can run immediately after relevant main changes',()=>{
   assert.match(workflow,/branches:\s*\n\s*- main/);
   assert.match(workflow,/src\/application\/capabilities\/\*\*/);
   assert.match(workflow,/\.github\/scripts\/cloud-tool-runner\.mjs/);
+  assert.match(workflow,/\.github\/workflows\/cloud-tool-runner\.yml/);
   assert.match(workflow,/docs\/releases\/\*\*/);
 });
 
