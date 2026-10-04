@@ -8,7 +8,12 @@ function vehicleLabel(conversation: AdminConversation): string {
   return [vehicle?.brand, vehicle?.model, vehicle?.body, vehicle?.year, vehicle?.engine].filter(Boolean).join(' · ') || 'Araç bilgisi yok';
 }
 
-export function AdminPage({ api: injectedApi }: { api?: AdminApi }) {
+interface AdminPageProps {
+  api?: AdminApi;
+  pollIntervalMs?: number;
+}
+
+export function AdminPage({ api: injectedApi, pollIntervalMs = 5_000 }: AdminPageProps) {
   const defaultApi = useMemo(() => createAdminApi(configuredApiBaseUrl()), []);
   const api = injectedApi ?? defaultApi;
   const [items, setItems] = useState<AdminConversation[]>([]);
@@ -17,12 +22,34 @@ export function AdminPage({ api: injectedApi }: { api?: AdminApi }) {
 
   useEffect(() => {
     let active = true;
-    api.listConversations()
-      .then((rows) => { if (active) setItems(rows); })
-      .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'admin_load_failed'); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [api]);
+    let refreshing = false;
+
+    const refresh = async (initial = false) => {
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const rows = await api.listConversations();
+        if (!active) return;
+        setItems(rows);
+        if (initial) setError(undefined);
+      } catch (reason) {
+        if (active && initial) setError(reason instanceof Error ? reason.message : 'admin_load_failed');
+      } finally {
+        if (active && initial) setLoading(false);
+        refreshing = false;
+      }
+    };
+
+    void refresh(true);
+    const timer = pollIntervalMs > 0
+      ? window.setInterval(() => { void refresh(false); }, pollIntervalMs)
+      : undefined;
+
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [api, pollIntervalMs]);
 
   return (
     <main className="adminPage">
