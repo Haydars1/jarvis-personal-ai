@@ -93,7 +93,7 @@ describe('public chat API', () => {
     expect(store.conversations.get(body.id)?.vehicle?.body).toBe('B8');
   });
 
-  it('deduplicates repeated visitor message writes by Idempotency-Key', async () => {
+  it('deduplicates repeated visitor message writes by Idempotency-Key and returns current conversation state', async () => {
     const store = new MemoryChatStore();
     await store.createConversation({ id: 'c1', language: 'de' });
     const request = () => jsonRequest('/api/chat/c1/messages', {
@@ -107,7 +107,23 @@ describe('public chat API', () => {
     expect(first.status).toBe(201);
     expect(second.status).toBe(200);
     expect(store.messages).toHaveLength(1);
-    expect((await second.json() as Message).body).toBe('Motor lambası yanıyor.');
+    const body = await second.json() as { messages: Message[] };
+    expect(body.messages).toHaveLength(1);
+    expect(body.messages[0].body).toBe('Motor lambası yanıyor.');
+  });
+
+  it('runs the post-write hook once for a new visitor write, but not for a duplicate', async () => {
+    const store = new MemoryChatStore();
+    await store.createConversation({ id: 'c1', language: 'de' });
+    let calls = 0;
+    const hooks = { afterVisitorMessage: async () => { calls += 1; } };
+    const request = () => jsonRequest('/api/chat/c1/messages', {
+      language: 'de', message: 'Motor lambası yanıyor.',
+    }, { 'Idempotency-Key': 'msg-2' });
+
+    await handleChatRequest(request(), store, hooks);
+    await handleChatRequest(request(), store, hooks);
+    expect(calls).toBe(1);
   });
 
   it('rejects malformed and oversized payloads before touching storage', async () => {
@@ -133,7 +149,7 @@ describe('public chat API', () => {
       faultCode: 'P0299',
       vehicle: { brand: 'BMW', model: '3er', body: 'G20/G21', year: 2021, engine: '320d B47' },
       message: 'Power drops uphill.',
-    }, { 'Idempotency-Key': 'msg-2' }), store);
+    }, { 'Idempotency-Key': 'msg-3' }), store);
 
     expect(response.status).toBe(201);
     expect(store.contextPatches.at(-1)).toEqual(expect.objectContaining({ language: 'en', faultCode: 'P0299' }));
