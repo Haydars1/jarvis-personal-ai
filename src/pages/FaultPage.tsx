@@ -145,7 +145,7 @@ export function FaultPage() {
               <article><span>{copy.drive}</span><strong>{fault.drive}</strong></article>
             </section>
 
-            <FaultSystemAnimation code={fault.code} language={language} vehicle={vehicle} />
+            <FaultSystemAnimation code={fault.code ?? code} language={language} vehicle={vehicle} />
 
             <section className="faultWorkspace" data-fault-workspace="true">
               <div className="faultWorkspaceTopline">
