@@ -1,0 +1,12 @@
+# Copy to worker/.dev.vars for local development only. Never commit .dev.vars.
+ALLOWED_ORIGIN=http://localhost:5173
+
+# Cloudflare Access admin protection (identifiers, not passwords).
+ACCESS_TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+ACCESS_AUD=replace-with-access-application-audience
+ADMIN_EMAIL=owner@example.com
+
+# Optional external providers. Keep real values only in Cloudflare secrets/local .dev.vars.
+# AI_API_KEY=
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY=
