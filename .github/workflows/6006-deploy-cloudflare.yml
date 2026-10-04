@@ -86,7 +86,6 @@ jobs:
             }
           }
           EOF
-          cat worker/wrangler.deploy.jsonc
 
       - name: Deploy 6006 Worker
         id: deploy
@@ -98,17 +97,32 @@ jobs:
           URL=$(grep -Eo 'https://[A-Za-z0-9._-]+\.workers\.dev' /tmp/6006-deploy.log | tail -n 1)
           test -n "$URL"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "6006_URL=$URL" >> "$GITHUB_ENV"
+          echo "SITE_URL=$URL" >> "$GITHUB_ENV"
 
       - name: Smoke test deployed site and API
         shell: bash
         run: |
           set -euo pipefail
-          echo "Testing $6006_URL"
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/api/health" | tee /tmp/health.json
+          echo "Testing $SITE_URL"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$SITE_URL/api/health" | tee /tmp/health.json
           grep -q '"ok":true' /tmp/health.json
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/" | tee /tmp/home.html >/dev/null
-          grep -q '6006' /tmp/home.html
-          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$6006_URL/fehlercodes/P0299" | tee /tmp/fault.html >/dev/null
-          grep -q '6006' /tmp/fault.html
-          echo "6006 live: $6006_URL"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$SITE_URL/" | tee /tmp/home.html >/dev/null
+          grep -q '<div id="root"' /tmp/home.html
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 -H 'Sec-Fetch-Mode: navigate' "$SITE_URL/fehlercodes/P0299" | tee /tmp/fault.html >/dev/null
+          grep -q '<div id="root"' /tmp/fault.html
+          CHAT_CODE=$(curl --silent --show-error -o /tmp/chat.json -w '%{http_code}' "$SITE_URL/api/chat/deploy-smoke-missing")
+          test "$CHAT_CODE" = '404'
+          grep -q 'conversation_not_found' /tmp/chat.json
+          echo "6006 live: $SITE_URL"
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          {
+            echo '## 6006 Performance'
+            echo
+            echo "- Site: $SITE_URL"
+            echo "- Health: $SITE_URL/api/health"
+            echo "- D1: $DB_NAME"
+            echo '- Runtime: one Cloudflare Worker serving React SPA + /api/*'
+          } >> "$GITHUB_STEP_SUMMARY"
