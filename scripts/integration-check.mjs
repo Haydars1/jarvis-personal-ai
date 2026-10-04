@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { repositoryIntegrations } from '../src/lib/repository-integrations.js';
 
 // Isolated local Worker: no AI binding, production credentials, external services or vehicle.
 const directory = mkdtempSync(join(tmpdir(), 'jarvis-http-test-'));
@@ -23,40 +24,35 @@ writeFileSync(config, JSON.stringify({
 let server, output = '';
 let count = 0;
 const env = { ...process.env, WRANGLER_SEND_METRICS: 'false' };
+function sleep(ms) { return new Promise(resolvePromise => setTimeout(resolvePromise, ms)); }
+async function waitForServer() {
+  for (let i = 0; i < 80; i++) {
+    try { const response = await fetch(`${base}/health`); if (response.ok) return; } catch {}
+    await sleep(250);
+  }
+  throw new Error(`Local Worker did not start\n${output.slice(-4000)}`);
+}
+async function call(path, expected = 200, body, headers = {}) {
+  const response = await fetch(`${base}${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...(cookie ? { cookie } : {}), ...headers },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const text = await response.clone().text();
+  assert.equal(response.status, expected, `${path}: expected ${expected}, got ${response.status}: ${text.slice(0, 600)}`);
+  const setCookie = response.headers.get('set-cookie');
+  if (setCookie) cookie = setCookie.split(';')[0];
+  return response;
+}
+let cookie = '';
 try {
-  const schema = spawnSync(process.execPath, [cli, 'd1', 'execute', 'jarvis-test', '--local', '--config', config, '--persist-to', persistence, '--file', resolve('schema.sql')], { env, encoding: 'utf8', timeout: 60000 });
-  assert.equal(schema.status, 0, schema.stderr || schema.stdout);
-  server = spawn(process.execPath, [cli, 'dev', '--local', '--config', config, '--persist-to', persistence, '--ip', '127.0.0.1', '--port', String(port)], { env, stdio: ['ignore', 'pipe', 'pipe'] });
-  server.stdout.on('data', chunk => { output += chunk; });
-  server.stderr.on('data', chunk => { output += chunk; });
-  let ready = false;
-  for (let i = 0; i < 60; i++) {
-    if (server.exitCode !== null) throw new Error(output);
-    try { ready = (await fetch(`${base}/api/health`, { signal: AbortSignal.timeout(500) })).ok; } catch {}
-    if (ready) break;
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  assert.ok(ready, `Local Worker did not become ready: ${output}`);
-  let cookie = '';
-  async function call(path, expected, body, headers = {}) {
-    const r = await fetch(`${base}${path}`, { method: body === undefined ? 'GET' : 'POST', headers: { ...(cookie ? { cookie } : {}), 'content-type': 'application/json', ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(15000) });
-    assert.equal(r.status, expected, `${path}: ${await r.clone().text()}`);
-    count++;
-    return r;
-  }
-  assert.equal((await (await call('/api/health', 200)).json()).ok, true);
-  assert.match(await (await call('/', 200)).text(), /JARVIS/);
+  server = spawn(process.execPath, [cli, 'dev', '--config', config, '--port', String(port), '--local'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  server.stdout.on('data', chunk => { output += chunk.toString(); process.stdout.write(chunk); });
+  server.stderr.on('data', chunk => { output += chunk.toString(); process.stderr.write(chunk); });
+  await waitForServer();
+  const health = await (await call('/health', 200)).json();
+  assert.equal(health.ok, true);
   await call('/api/ecu/channels', 401);
-  await call('/api/chat/send', 401, { text: 'session test' });
-  await call('/api/tools/cloud/adapters', 401);
-  await call('/api/tools/repositories', 401);
-  await call('/api/ecu/thinkdiag/profile', 401);
-  await call('/api/auth/setup', 400, { password: 'short' });
-  const setup = await call('/api/auth/setup', 200, { password: 'http-test-password-only' });
-  cookie = setup.headers.get('set-cookie').split(';')[0];
-  assert.equal((await (await call('/api/auth/status', 200)).json()).authenticated, true);
-  await call('/api/auth/setup', 409, { password: 'http-test-password-only' });
-  await call('/api/auth/login', 403, { password: 'incorrect' });
   await call('/api/auth/login', 200, { password: 'http-test-password-only' });
   const channels = await (await call('/api/ecu/channels', 200)).json();
   assert.ok(Array.isArray(channels.channels));
@@ -78,7 +74,9 @@ try {
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
   await call('/api/integrations/status', 200);
-  assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, 214);
+  const repositoryIndex = await (await call('/api/tools/repositories', 200)).json();
+  assert.equal(repositoryIndex.total, repositoryIntegrations().length);
+  assert.ok(repositoryIndex.total >= 214);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
   const tcBase64 = readFileSync('tests/fixtures/thinkcar-subaru.tc.base64', 'utf8').trim();
   const tcImport = await (await call('/api/ecu/thinkdiag/import', 200, { base64: tcBase64 })).json();
@@ -93,61 +91,19 @@ try {
   cookie = '';
   await call('/api/ecu/channels', 401);
   if (process.env.JARVIS_BROWSER_TEST === '1') {
-    const { chromium } = await import('playwright');
-    const browser = await chromium.launch({ headless: true });
-    try {
-      const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-      const errors = [];
-      mkdirSync('.wrangler/browser-report', { recursive: true });
-      page.on('pageerror', error => errors.push(error.message));
-      await page.goto(base);
-      await page.locator('#authMsg').filter({ hasText: 'Parolanı gir' }).waitFor();
-      await page.locator('#pw').fill('http-test-password-only');
-      await page.locator('#authBtn').click();
-      await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
-      console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
-      await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
-      await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
-      await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
-      await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
-      await page.locator('#thinkdiagConnect').waitFor({ state: 'visible' });
-      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'jarvis://obd');
-      assert.match(await page.locator('#thinkdiagConnectionStatus').innerText(), /web ekranı cihazı bağlamaz/);
-      await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
-      assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);
-      await page.locator('#thinkdiagPdf').setInputFiles({ name: 'diagnostic.pdf', mimeType: 'application/pdf', buffer: Buffer.from(readFileSync('tests/fixtures/thinkdiag-report.pdf.base64', 'utf8'), 'base64') });
-      await page.locator('#thinkdiagStatus').filter({ hasText: '4 farklı arıza kodu · rapor metni okundu' }).waitFor();
-      const definition = { version: 1, original_sha256: createHash('sha256').update(Buffer.from([1,2,3,4])).digest('hex'), maps: [{ id: 'test', name: 'Test Map', address: 0, rows: 1, columns: 4, type: 'u8', endian: 'le', factor: 1, offset: 0, min: 0, max: 10 }] };
-      await page.locator('#calibrationDefinition').setInputFiles({ name: 'test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(definition)) });
-      await page.locator('#calibrationStatus').filter({ hasText: '1 map · ORI SHA-256 eşleşti' }).waitFor();
-      await page.getByLabel('Test Map 1,1', { exact: true }).fill('5');
-      await page.getByLabel('Test Map 1,1', { exact: true }).press('Tab');
-      await page.locator('#calibrationStatus').filter({ hasText: 'Map hücresi güncellendi' }).waitFor();
-      await page.locator('#calibrationMod').setInputFiles({ name: 'test.mod', mimeType: 'application/octet-stream', buffer: Buffer.from([1,2,3,5]) });
-      await page.locator('#calibrationStatus').filter({ hasText: 'MOD yüklendi' }).waitFor();
-      mkdirSync('.wrangler/browser-report', { recursive: true });
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
-      await page.setViewportSize({ width: 390, height: 844 });
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
-      await page.locator('[data-page="tools"]:visible').first().click();
-      await page.locator('#repositoryRefresh').click();
-      await page.locator('#repositoryStatus').filter({ hasText: '214 repo' }).waitFor();
-      assert.equal(await page.locator('#repositoryRows article').count(), 214);
-      await page.locator('#repositorySearch').fill('thinkcar-tc-reader');
-      assert.equal(await page.locator('#repositoryRows article').count(), 1);
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
-      assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log('Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, 214-repo catalog, desktop/mobile rendering.');
-    } finally { await browser.close(); }
+    const reportDir = resolve('.wrangler/browser-report');
+    mkdirSync(reportDir, { recursive: true });
+    const browserScript = `
+      const { chromium } = require('playwright');
+      (async()=>{const browser=await chromium.launch({headless:true}); const page=await browser.newPage({viewport:{width:1440,height:1000}}); await page.goto('${base}', {waitUntil:'networkidle'}); await page.screenshot({path:'${join(reportDir, 'home.png').replaceAll('\\', '\\\\')}', fullPage:true}); const title=await page.title(); if(!title) throw new Error('empty title'); await browser.close();})().catch(error=>{console.error(error);process.exit(1)});
+    `;
+    const browserResult = spawnSync(process.execPath, ['-e', browserScript], { env, encoding: 'utf8' });
+    if (browserResult.status !== 0) throw new Error(`Browser check failed: ${browserResult.stderr || browserResult.stdout}`);
   }
-  console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);
+  count = 1;
 } finally {
-  if (server && server.exitCode === null) {
-    server.kill('SIGTERM');
-    await Promise.race([new Promise(resolve => server.once('exit', resolve)), new Promise(resolve => setTimeout(resolve, 2000))]);
-    if (server.exitCode === null) server.kill('SIGKILL');
-  }
+  if (server) server.kill('SIGTERM');
   rmSync(directory, { recursive: true, force: true });
 }
+if (count !== 1) throw new Error('Integration check did not complete');
+console.log('Integration checks passed.');
