@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import { HomePage } from "./HomePage";
@@ -18,16 +18,17 @@ describe("HomePage", () => {
 
   it("switches the public navigation and fault-library copy between DE TR EN", () => {
     renderPage();
-    expect(screen.getByText("Leistungen")).toBeInTheDocument();
-    expect(screen.getByText("Fehlercodes")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Leistungen" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Fehlercodes" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "TR" }));
-    expect(screen.getByText("Hizmetler")).toBeInTheDocument();
-    expect(screen.getByText("Arıza Kodları")).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Hizmetler" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Arıza Kodları" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "EN" }));
-    expect(screen.getByText("Services")).toBeInTheDocument();
-    expect(screen.getByText("Fault Codes")).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Services" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
   it("finds P0299 from the standalone fault library", () => {
@@ -56,6 +57,7 @@ describe("HomePage", () => {
     localStorage.setItem("6006_vehicle", "{broken-json");
 
     expect(() => renderPage()).not.toThrow();
-    expect(screen.getByText("Leistungen")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Leistungen" })).toBeInTheDocument();
   });
 });
