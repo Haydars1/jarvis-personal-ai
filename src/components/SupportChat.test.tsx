@@ -46,7 +46,7 @@ describe('backend neutral chat API', () => {
   it('sends visitor messages to the Worker route with an idempotency key', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ id: 'm1', sender: 'ai', body: 'reply' }),
+      json: async () => conversation([{ id: 'm1', sender: 'ai', body: 'reply' }]),
     });
     const api = createChatApi({ baseUrl: 'https://chat.example.test', fetchImpl: fetchMock as typeof fetch });
 
@@ -69,11 +69,11 @@ describe('SupportChat', () => {
     const startConversation = vi.fn().mockResolvedValue(conversation([
       { id: 'm1', sender: 'ai', body: 'Belirtileri biraz daha anlatır mısınız?' },
     ]));
-    const sendMessage = vi.fn().mockResolvedValue({
-      id: 'm2',
-      sender: 'ai',
-      body: 'Önce basınç hattı ve kaçak kontrolü yapılmalı.',
-    });
+    const sendMessage = vi.fn().mockResolvedValue(conversation([
+      { id: 'm1', sender: 'ai', body: 'Belirtileri biraz daha anlatır mısınız?' },
+      { id: 'm2', sender: 'visitor', body: 'Yokuşta güç düşüyor.' },
+      { id: 'm3', sender: 'ai', body: 'Önce basınç hattı ve kaçak kontrolü yapılmalı.' },
+    ]));
     const api: ChatApi = {
       startConversation,
       sendMessage,
