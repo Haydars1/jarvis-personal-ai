@@ -1,0 +1,168 @@
+name: 6006 Cloudflare Deploy
+
+on:
+  push:
+    branches: [6006-performance]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 6006-cloudflare-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      DB_NAME: 6006-performance-db
+      WORKER_NAME: 6006-performance
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Require Cloudflare credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify 6006 before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-domain-data.mjs
+          git diff --exit-code -- src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts
+          npm test
+          npm run typecheck
+          npm --prefix worker test
+          npm --prefix worker run typecheck
+          npm run build
+          test -f dist/index.html
+          if grep -R -n -E '@floot/|floot\\.app|service_role|VAPID_PRIVATE_KEY|AI_API_KEY|CLOUDFLARE_API_TOKEN|ACCESS_CLIENT_SECRET|sk-[A-Za-z0-9_-]{16,}' dist; then
+            echo 'Unsafe runtime/dependency marker found in production bundle.'
+            exit 1
+          fi
+
+      - name: Find or create EU D1 database
+        id: d1
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          API="https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database"
+
+          LIST_JSON=$(curl --fail --silent --show-error "$API?per_page=100" -H "$AUTH")
+          echo "$LIST_JSON" | jq -e '.success == true' >/dev/null
+          DB_ID=$(echo "$LIST_JSON" | jq -r --arg name "$DB_NAME" '.result[] | select(.name == $name) | .uuid' | head -n1)
+
+          if [ -z "$DB_ID" ] || [ "$DB_ID" = "null" ]; then
+            CREATE_JSON=$(curl --fail --silent --show-error -X POST "$API" \
+              -H "$AUTH" \
+              -H 'Content-Type: application/json' \
+              --data "{\"name\":\"$DB_NAME\",\"jurisdiction\":\"eu\"}")
+            echo "$CREATE_JSON" | jq -e '.success == true' >/dev/null
+            DB_ID=$(echo "$CREATE_JSON" | jq -r '.result.uuid')
+          fi
+
+          test -n "$DB_ID"
+          test "$DB_ID" != "null"
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Generate ephemeral Wrangler config
+        shell: bash
+        env:
+          DB_ID: ${{ steps.d1.outputs.database_id }}
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg dbid "$DB_ID" \
+            --arg dbname "$DB_NAME" \
+            --arg worker "$WORKER_NAME" \
+            '{
+              name: $worker,
+              main: "src/index.ts",
+              compatibility_date: "2026-10-04",
+              vars: {
+                ALLOWED_ORIGIN: "https://6006.invalid"
+              },
+              d1_databases: [{
+                binding: "DB",
+                database_name: $dbname,
+                database_id: $dbid
+              }],
+              assets: {
+                directory: "../dist",
+                binding: "ASSETS",
+                not_found_handling: "single-page-application",
+                run_worker_first: ["/api/*"]
+              }
+            }' > worker/wrangler.deploy.jsonc
+
+      - name: Apply D1 schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler@latest d1 execute DB --remote \
+            --file=worker/migrations/0001_chat_core.sql \
+            --config=worker/wrangler.deploy.jsonc
+          npx wrangler@latest d1 execute DB --remote \
+            --command="SELECT name FROM sqlite_master WHERE type='table' AND name IN ('conversations','messages','notification_milestones','push_subscriptions') ORDER BY name;" \
+            --config=worker/wrangler.deploy.jsonc
+
+      - name: Deploy 6006 Worker and static site
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler@latest deploy --config=worker/wrangler.deploy.jsonc 2>&1 | tee deploy.log
+          URL=$(grep -Eo 'https://[A-Za-z0-9._-]+\\.workers\\.dev' deploy.log | tail -n1 || true)
+          if [ -z "$URL" ]; then
+            echo 'Could not determine workers.dev deployment URL.'
+            cat deploy.log
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "6006_URL=$URL" >> "$GITHUB_ENV"
+
+      - name: Smoke test deployed site and API
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 12); do
+            if curl --fail --silent --show-error "$6006_URL/api/health" | jq -e '.ok == true and .service == "6006-api"' >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 12 ]; then
+              echo 'Health check failed.'
+              exit 1
+            fi
+            sleep 2
+          done
+
+          curl --fail --silent --show-error "$6006_URL/" | grep -qi '6006'
+          curl --fail --silent --show-error -H 'Sec-Fetch-Mode: navigate' "$6006_URL/fehlercodes/P0299" | grep -qi '6006'
+          echo "6006 deployed: $6006_URL"
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          {
+            echo '## 6006 Performance Cloudflare deployment'
+            echo
+            echo "- Site: $6006_URL"
+            echo "- Health: $6006_URL/api/health"
+            echo "- D1: $DB_NAME (EU jurisdiction when newly created)"
+            echo '- Runtime: one Cloudflare Worker serving React SPA + /api/*'
+          } >> "$GITHUB_STEP_SUMMARY"
