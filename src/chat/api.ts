@@ -10,14 +10,21 @@ export interface ChatApiOptions {
   fetchImpl?: typeof fetch;
 }
 
+export class ChatApiError extends Error {
+  constructor(public readonly status: number, message = 'Chat API request failed') {
+    super(message);
+    this.name = 'ChatApiError';
+  }
+}
+
 function normalizeApiRoot(value: string): string {
   const root = value.trim().replace(/\/+$/, '');
   return root.endsWith('/api') ? root : `${root}/api`;
 }
 
-async function readJson<T>(response: Response | { ok: boolean; json(): Promise<unknown> }): Promise<T> {
+async function readJson<T>(response: Response | { ok: boolean; status?: number; json(): Promise<unknown> }): Promise<T> {
   if (!response.ok) {
-    throw new Error('Chat API request failed');
+    throw new ChatApiError(response.status ?? 0);
   }
   return response.json() as Promise<T>;
 }
