@@ -37,6 +37,28 @@ describe('AdminPage', () => {
     expect(screen.getByText(/Volkswagen · Passat · B8/)).toBeInTheDocument();
     expect(screen.getByText(/ai_active/i)).toBeInTheDocument();
   });
+
+  it('polls the list so newly started customer conversations appear without reloading', async () => {
+    const second = {
+      ...conversation,
+      id: 'c2',
+      faultCode: 'P0401',
+      updatedAt: '2026-10-04T12:07:00.000Z',
+    };
+    const listConversations = vi.fn()
+      .mockResolvedValueOnce([conversation])
+      .mockResolvedValue([second, conversation]);
+
+    render(
+      <MemoryRouter>
+        <AdminPage api={adminApi({ listConversations })} pollIntervalMs={20} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'P0299' })).toBeInTheDocument();
+    await waitFor(() => expect(listConversations.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 800 });
+    expect(await screen.findByRole('heading', { level: 2, name: 'P0401' })).toBeInTheDocument();
+  });
 });
 
 describe('AdminChatPage', () => {
