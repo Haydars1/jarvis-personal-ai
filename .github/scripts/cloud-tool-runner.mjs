@@ -17,6 +17,7 @@ export const ALLOWED_ADAPTERS=Object.freeze({
 
 const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
 const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
+const MAX_BATCHES=Math.max(1,Math.min(12,Number(process.env.JARVIS_CLOUD_MAX_BATCHES||1)));
 const TEXT_EXT=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1','.json','.yml','.yaml','.toml','.xml','.md','.txt','.ini','.cfg','.sql']);
 const MAX_AUDIO_CHUNKS=24;
 const MAX_VISUAL_FRAMES=48;
@@ -226,29 +227,38 @@ async function executeJob(job,ctx,token){
 
 async function main(){
   const token=await oidcToken();let processed=0,failed=0;
-  try{
-    const seeded=await api('/api/tools/cloud/runner/seed-learning',{method:'POST',body:{limit:MAX_JOBS},token});
-    console.log(`Seeded ${Number(seeded.queued||0)} repository skill jobs.`);
-  }catch(error){
-    console.warn('Skill seeding failed; continuing with existing queue:',error?.message||error);
-  }
-  for(let index=0;index<MAX_JOBS;index++){
-    const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
-    if(!job){console.log('No more queued cloud tool jobs.');break;}
-    processed++;
-    console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
+  for(let batch=0;batch<MAX_BATCHES;batch++){
+    let seededCount=0,batchProcessed=0;
     try{
-      const ctx=job.adapter_id==='youtube-teaching'?null:await cloneJob(job);
-      const result=await executeJob(job,ctx,token);
-      await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:true,result},token});
-      console.log(`Completed ${job.id}`);
+      const seeded=await api('/api/tools/cloud/runner/seed-learning',{method:'POST',body:{limit:MAX_JOBS},token});
+      seededCount=Number(seeded.queued||0);
+      console.log(`Batch ${batch+1}/${MAX_BATCHES}: seeded ${seededCount} repository skill jobs.`);
     }catch(error){
-      failed++;
-      console.error(`Failed ${job.id}:`,error);
-      await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:false,error:String(error?.message||error)},token}).catch(()=>{});
+      console.warn(`Batch ${batch+1}/${MAX_BATCHES}: skill seeding failed; continuing with existing queue:`,error?.message||error);
     }
+    for(let index=0;index<MAX_JOBS;index++){
+      const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
+      if(!job){console.log(`Batch ${batch+1}/${MAX_BATCHES}: no more queued cloud tool jobs.`);break;}
+      processed++;batchProcessed++;
+      console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
+      let ctx=null;
+      try{
+        ctx=job.adapter_id==='youtube-teaching'?null:await cloneJob(job);
+        const result=await executeJob(job,ctx,token);
+        await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:true,result},token});
+        console.log(`Completed ${job.id}`);
+      }catch(error){
+        failed++;
+        console.error(`Failed ${job.id}:`,error);
+        await api(`/api/tools/cloud/runner/jobs/${encodeURIComponent(job.id)}/result`,{method:'POST',body:{ok:false,error:String(error?.message||error)},token}).catch(()=>{});
+      }finally{
+        if(ctx?.root)await rm(ctx.root,{recursive:true,force:true}).catch(()=>{});
+      }
+    }
+    console.log(`Batch ${batch+1}/${MAX_BATCHES} finished. processed=${batchProcessed} seeded=${seededCount}.`);
+    if(seededCount===0&&batchProcessed===0)break;
   }
-  console.log(`Cloud runner batch finished. processed=${processed} failed=${failed} max=${MAX_JOBS}`);
+  console.log(`Cloud runner finished. processed=${processed} failed=${failed} max_jobs_per_batch=${MAX_JOBS} max_batches=${MAX_BATCHES}`);
 }
 
 if(import.meta.url===new URL(`file://${process.argv[1]}`).href)main();
