@@ -8,7 +8,7 @@ const vehicle = {
   brand: 'Volkswagen',
   model: 'Passat',
   body: 'B8',
-  year: '2017',
+  year: 2017,
   engine: '2.0 TDI CRLB',
 };
 
