@@ -29,6 +29,13 @@ jobs:
         run: npm run typecheck
       - name: Production build
         run: npm run build
+      - name: Verify standalone production bundle
+        run: |
+          test -f dist/index.html
+          if grep -R -n -E '@floot/|floot\.app' dist; then
+            echo 'Floot runtime reference found in dist/'
+            exit 1
+          fi
       - name: Syntax checks for legacy modules
         run: |
           node --check js/i18n.mjs
