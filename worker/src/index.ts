@@ -1,5 +1,7 @@
+import { ChatRepository } from './db/chat-repository';
 import type { Env, ExecutionContextLike } from './env';
 import { allowedOrigin, corsHeaders, json, withCors } from './http';
+import { handleChatRequest } from './routes/chat';
 
 const worker = {
   async fetch(request: Request, env: Env, _ctx: ExecutionContextLike): Promise<Response> {
@@ -21,6 +23,11 @@ const worker = {
     if (request.method === 'OPTIONS') {
       if (!origin) return new Response(null, { status: 204 });
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
+    }
+
+    if (url.pathname.startsWith('/api/chat/')) {
+      const response = await handleChatRequest(request, new ChatRepository(env.DB));
+      return withCors(response, origin);
     }
 
     return withCors(json({ error: 'not_found' }, 404), origin);
