@@ -10,6 +10,14 @@ const bmw = {
   engine: "320d B47",
 };
 
+const mercedes = {
+  brand: "Mercedes-Benz",
+  model: "E-Klasse",
+  body: "W213/S213",
+  year: 2020,
+  engine: "E 220 d OM654",
+};
+
 const passatCrlb = {
   brand: "Volkswagen",
   model: "Passat",
@@ -48,6 +56,16 @@ describe("FaultSystemAnimation", () => {
     expect(root).toBeTruthy();
     expect(root).toHaveAttribute("data-vehicle-confidence", "exact");
     expect(screen.getByText(/BMW 3er G20\/G21 · 320d B47/i)).toBeInTheDocument();
+  });
+
+  it("renders an exact body drawing for the selected Mercedes profile", () => {
+    render(<FaultSystemAnimation code="P0171" language="tr" vehicle={mercedes} />);
+
+    const shell = document.querySelector('[data-vehicle-body-profile="mercedes-w213-s213-e220d-om654"]');
+    expect(shell).toBeTruthy();
+    expect(shell).toHaveAttribute("data-vehicle-body", "estate-rwd-longnose");
+    expect(shell?.querySelector(".vehicleBodyRoofRail")).toBeTruthy();
+    expect(shell?.querySelector(".vehicleBodyCharacterLine")).toBeTruthy();
   });
 
   it("renders the selected vehicle body schematic behind the system nodes", () => {
