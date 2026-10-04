@@ -1,7 +1,13 @@
+import { FallbackAiProvider } from './ai/fallback-provider';
+import { AccessAuthError, requireAdmin } from './auth/access';
+import { runAiTurn } from './chat/ai-turn';
 import { ChatRepository } from './db/chat-repository';
 import type { Env, ExecutionContextLike } from './env';
 import { allowedOrigin, corsHeaders, json, withCors } from './http';
+import { D1PushSubscriptionStore } from './notifications/push';
+import { handleAdminRequest } from './routes/admin';
 import { handleChatRequest } from './routes/chat';
+import { handlePushRequest } from './routes/push';
 
 const worker = {
   async fetch(request: Request, env: Env, _ctx: ExecutionContextLike): Promise<Response> {
@@ -25,8 +31,32 @@ const worker = {
       return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
 
+    const repository = new ChatRepository(env.DB);
+
     if (url.pathname.startsWith('/api/chat/')) {
-      const response = await handleChatRequest(request, new ChatRepository(env.DB));
+      const response = await handleChatRequest(request, repository, {
+        afterVisitorMessage: async (conversationId) => {
+          await runAiTurn(repository, new FallbackAiProvider(), conversationId);
+        },
+      });
+      return withCors(response, origin);
+    }
+
+    if (url.pathname === '/api/admin/push/subscriptions') {
+      try {
+        await requireAdmin(request, env);
+      } catch (error) {
+        if (error instanceof AccessAuthError) {
+          return withCors(json({ error: error.message }, error.status), origin);
+        }
+        return withCors(json({ error: 'admin_auth_failed' }, 401), origin);
+      }
+      const response = await handlePushRequest(request, new D1PushSubscriptionStore(env.DB));
+      return withCors(response, origin);
+    }
+
+    if (url.pathname.startsWith('/api/admin/')) {
+      const response = await handleAdminRequest(request, repository, env);
       return withCors(response, origin);
     }
 
