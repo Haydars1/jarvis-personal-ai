@@ -1,8 +1,10 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChatApi, ChatMessage } from '../chat/types';
 import { t, type Language } from '../i18n/language';
 import type { VehicleContext } from '../vehicle/catalog';
 import './SupportChat.css';
+
+const CHAT_SESSION_KEY = '6006_chat_conversation';
 
 interface SupportChatProps {
   api: ChatApi;
@@ -10,6 +12,7 @@ interface SupportChatProps {
   vehicle: VehicleContext;
   faultCode?: string;
   pagePath?: string;
+  pollIntervalMs?: number;
 }
 
 const statusCopy: Record<Language, { failed: string; sending: string; online: string }> = {
@@ -34,16 +37,37 @@ function messageKey(message: ChatMessage, index: number): string {
   return message.id || `${message.sender}-${index}-${message.body}`;
 }
 
+function storedConversationId(): string | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    return window.sessionStorage.getItem(CHAT_SESSION_KEY) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function saveConversationId(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(CHAT_SESSION_KEY, id);
+  } catch {
+    // Chat still works when storage is unavailable.
+  }
+}
+
 export function SupportChat({
   api,
   language,
   vehicle,
   faultCode,
   pagePath = typeof window === 'undefined' ? '/' : window.location.pathname,
+  pollIntervalMs = 4_000,
 }: SupportChatProps) {
+  const initialConversationId = useMemo(() => storedConversationId(), []);
+  const restoredConversationId = useRef(initialConversationId);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
-  const [conversationId, setConversationId] = useState<string>();
+  const [conversationId, setConversationId] = useState<string | undefined>(initialConversationId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
@@ -61,6 +85,37 @@ export function SupportChat({
     pagePath,
   }), [faultCode, language, pagePath, vehicle]);
 
+  useEffect(() => {
+    if (!open || !conversationId || pollIntervalMs <= 0) return;
+
+    let active = true;
+    let polling = false;
+
+    const refresh = async () => {
+      if (polling) return;
+      polling = true;
+      try {
+        const conversation = await api.getConversation(conversationId);
+        if (active) setMessages(conversation.messages ?? []);
+      } catch {
+        // A transient polling failure must not erase the visible conversation.
+      } finally {
+        polling = false;
+      }
+    };
+
+    if (restoredConversationId.current === conversationId) {
+      restoredConversationId.current = undefined;
+      void refresh();
+    }
+
+    const timer = window.setInterval(() => { void refresh(); }, pollIntervalMs);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [api, conversationId, open, pollIntervalMs]);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     const message = draft.trim();
@@ -72,6 +127,7 @@ export function SupportChat({
     try {
       if (!conversationId) {
         const conversation = await api.startConversation({ ...context, message });
+        saveConversationId(conversation.id);
         setConversationId(conversation.id);
         setMessages(conversation.messages ?? []);
       } else {
