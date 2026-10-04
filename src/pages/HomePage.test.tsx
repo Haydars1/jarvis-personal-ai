@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HomePage } from "./HomePage";
 
 function renderPage() {
@@ -14,6 +14,17 @@ function renderPage() {
 describe("HomePage", () => {
   beforeEach(() => {
     localStorage.clear();
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("de-DE");
+  });
+
+  it("uses the phone/browser language automatically on first load", () => {
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("tr-TR");
+    renderPage();
+
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    expect(within(nav).getByRole("link", { name: "Hizmetler" })).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "Arıza Kodları" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "TR" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("switches the public navigation and fault-library copy between DE TR EN", () => {
