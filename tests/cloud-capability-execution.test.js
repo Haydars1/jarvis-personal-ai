@@ -92,6 +92,8 @@ test('worker exposes authenticated execution summary endpoint',()=>{
 });
 
 test('trusted GitHub OIDC runner can read the execution summary without an owner session',()=>{
-  const source=read('src/application/capabilities/cloud-execution.js');
-  assert.match(source,/execution-summary[\s\S]{0,700}runnerAuth\(req\)/);
+  const source=read('src/application/capabilities/skill-seeding.js');
+  assert.match(source,/\/api\/tools\/skills\/execution-summary[\s\S]{0,500}verifyRunnerJwt\(bearer\(req\)\)/);
+  assert.match(source,/runnerExecutionSummary/);
+  assert.match(source,/summarizeExecutionStates/);
 });
