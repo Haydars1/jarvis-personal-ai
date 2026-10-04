@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createChatApi } from '../chat/api';
+import { ChatApiError, createChatApi } from '../chat/api';
 import type { ChatApi, ChatConversation, ChatMessage } from '../chat/types';
 import { SupportChat } from './SupportChat';
 
@@ -65,6 +65,20 @@ describe('backend neutral chat API', () => {
         headers: expect.objectContaining({ 'idempotency-key': expect.any(String) }),
       }),
     );
+  });
+
+  it('exposes HTTP status when the Worker rejects a request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'conversation_not_found' }),
+    });
+    const api = createChatApi({ baseUrl: 'https://chat.example.test', fetchImpl: fetchMock as typeof fetch });
+
+    await expect(api.getConversation('expired')).rejects.toMatchObject({
+      name: 'ChatApiError',
+      status: 404,
+    });
   });
 });
 
@@ -140,6 +154,29 @@ describe('SupportChat', () => {
     expect(await screen.findByText('Merhaba')).toBeInTheDocument();
     await waitFor(() => expect(getConversation.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 800 });
     expect(await screen.findByText('Merhaba, aracınızın detaylarını görüyorum.')).toBeInTheDocument();
+  });
+
+  it('clears an expired restored conversation and lets the next message start a fresh chat', async () => {
+    window.sessionStorage.setItem('6006_chat_conversation', 'expired-conv');
+    const startConversation = vi.fn().mockResolvedValue(conversation([
+      { id: 'm-new', sender: 'visitor', body: 'Yeni sohbet başlasın.' },
+    ]));
+    const api: ChatApi = {
+      startConversation,
+      sendMessage: vi.fn(),
+      getConversation: vi.fn().mockRejectedValue(new ChatApiError(404, 'conversation_not_found')),
+    };
+
+    render(<SupportChat api={api} language="tr" vehicle={vehicle} pollIntervalMs={20} />);
+    fireEvent.click(screen.getByRole('button', { name: /teşhis sohbet/i }));
+
+    await waitFor(() => expect(window.sessionStorage.getItem('6006_chat_conversation')).toBeNull());
+    const input = screen.getByRole('textbox', { name: /mesaj/i });
+    fireEvent.change(input, { target: { value: 'Yeni sohbet başlasın.' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Gönder' }));
+
+    await waitFor(() => expect(startConversation).toHaveBeenCalledTimes(1));
+    expect(window.sessionStorage.getItem('6006_chat_conversation')).toBe('conv-1');
   });
 
   it('keeps typed text when the API fails and shows a recoverable status', async () => {
