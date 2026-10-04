@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { USER_CURATED_CAPABILITY_SEEDS } from '../src/lib/user-curated-capability-seeds.js';
 import { CURATED_CAPABILITY_SEEDS } from '../src/lib/open-source-capabilities.js';
+import { repositoryIntegrations } from '../src/lib/repository-integrations.js';
 
 const byRepo = new Map(USER_CURATED_CAPABILITY_SEEDS.map(row => [row.repo.toLowerCase(), row]));
 
@@ -124,4 +125,13 @@ test('high-risk and prerequisite-heavy screenshot repos are not blindly auto exe
   assert.match(policy('ShawnPana/phone-harness').restriction, /mac|adb|device|host/i);
   assert.equal(policy('Ryze-AI-Agent/open-seo-mcp-skills').autoExecute, false);
   assert.match(policy('Ryze-AI-Agent/open-seo-mcp-skills').restriction, /credential|service|mcp|external/i);
+});
+
+test('integration hub exposes non-PDF screenshot repositories without duplicating PDF-backed entries', () => {
+  const integrations = repositoryIntegrations();
+  const keys = integrations.map(row => row.repo.toLowerCase());
+  assert.ok(keys.includes('leonxlnx/unlazy'));
+  assert.ok(keys.includes('shawnpana/phone-harness'));
+  assert.equal(keys.filter(key => key === 'google-gemini/gemini-cli').length, 1);
+  assert.equal(new Set(keys).size, keys.length);
 });
