@@ -20,7 +20,8 @@ function compatibleManifest(manifest,request={}){
   if(manifest.requires_confirmation===true&&request.confirmed!==true)return {ok:false,reason:'confirmation_required'};
   if(manifest?.cost?.paid_api===true&&request.allow_paid!==true)return {ok:false,reason:'paid_api_not_allowed'};
   const platform=compact(request.platform).toLowerCase();
-  if(platform&&Array.isArray(manifest.platforms)&&manifest.platforms.length&&!manifest.platforms.map(value=>compact(value).toLowerCase()).includes(platform))return {ok:false,reason:'platform_mismatch'};
+  const platforms=(Array.isArray(manifest.platforms)?manifest.platforms:[]).map(value=>compact(value).toLowerCase()).filter(Boolean);
+  if(platforms.length&&(!platform||!platforms.includes(platform)))return {ok:false,reason:'platform_mismatch'};
   const available=new Set((Array.isArray(request.available_requirements)?request.available_requirements:[]).map(value=>compact(value).toLowerCase()));
   for(const requirement of Array.isArray(manifest.requirements)?manifest.requirements:[]){
     const normalized=compact(requirement).toLowerCase();
