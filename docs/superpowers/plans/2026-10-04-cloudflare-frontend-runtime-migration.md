@@ -210,10 +210,11 @@
 - Create: `src/components/SupportChat.test.tsx`
 
 **Interfaces:**
-- Produces: `ChatApi` interface with `startConversation`, `sendMessage`, `getConversation`; default implementation calls `/api/chat/*` but contains no backend-specific or secret logic.
+- Produces: `ChatApi` interface with `startConversation`, `sendMessage`, `getConversation`; `createChatApi({ baseUrl }): ChatApi` where `baseUrl` is supplied by environment/config and may point to a separate Worker host.
 
 - [ ] **Step 1: Write failing chat-shell tests**
   - Selected language and vehicle/fault context are included in start/send payloads.
+  - Configured `baseUrl` prefixes chat requests correctly.
   - UI renders API replies.
   - API failure shows a recoverable status instead of losing typed text.
 
@@ -223,6 +224,7 @@
 - [ ] **Step 3: Implement the backend-neutral shell**
   - No Floot SDK/imports.
   - No AI key or secret in client code.
+  - Read only a public API base URL from Vite environment/config; secrets never use `VITE_` variables.
 
 - [ ] **Step 4: Verify GREEN**
   - Run: `npm test -- --run src/components/SupportChat.test.tsx && npm run typecheck`
