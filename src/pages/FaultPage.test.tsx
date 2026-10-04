@@ -30,6 +30,12 @@ describe("FaultPage", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("renders the v2 fault workspace", () => {
+    renderFault();
+    expect(document.querySelector('[data-fault-layout="6006-v2"]')).toBeTruthy();
+    expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
+  });
+
   it("renders the localized fault details and system animation for P0299", () => {
     localStorage.setItem("6006_language", "tr");
     localStorage.setItem("6006_language_manual", "1");
