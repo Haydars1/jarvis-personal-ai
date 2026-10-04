@@ -156,4 +156,28 @@ describe('public chat API', () => {
     expect(store.contextPatches.at(-1)).not.toHaveProperty('contactPhone');
     expect(store.conversations.get('c1')?.contactPhone).toBe('+491788354756');
   });
+
+  it('captures explicit contact details from visitor text without mistaking DTC/year numbers for a phone', async () => {
+    const store = new MemoryChatStore();
+    const start = await handleChatRequest(jsonRequest('/api/chat/start', {
+      language: 'tr',
+      faultCode: 'P0299',
+      message: 'Adım Haydar Özer. WhatsApp: +49 178 8354756, e-posta 6006performance@gmail.com',
+    }), store);
+    expect(start.status).toBe(201);
+    const started = await start.json() as { id: string };
+    expect(store.conversations.get(started.id)).toEqual(expect.objectContaining({
+      contactName: 'Haydar Özer',
+      contactPhone: '+491788354756',
+      contactEmail: '6006performance@gmail.com',
+      preferredContact: 'whatsapp',
+    }));
+
+    await store.createConversation({ id: 'c2', language: 'de' });
+    await handleChatRequest(jsonRequest('/api/chat/c2/messages', {
+      language: 'de',
+      message: 'P0299 beim Passat Baujahr 2017, Leistung fehlt bergauf.',
+    }, { 'Idempotency-Key': 'msg-4' }), store);
+    expect(store.conversations.get('c2')?.contactPhone).toBeUndefined();
+  });
 });
