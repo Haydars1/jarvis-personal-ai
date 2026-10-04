@@ -36,7 +36,7 @@ describe("FaultPage", () => {
 
     expect(screen.getByText(/Bedeutung/i)).toBeInTheDocument();
     expect(screen.getByText(/Mögliche Ursachen/i)).toBeInTheDocument();
-    expect(screen.getByText(/Diagnose/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /^Diagnose$/i })).toBeInTheDocument();
     expect(screen.getByText(/Lösung|Lösungen/i)).toBeInTheDocument();
     expect(screen.getAllByText(/beweist nicht|nicht.*sicher defekt/i).length).toBeGreaterThan(0);
   });
