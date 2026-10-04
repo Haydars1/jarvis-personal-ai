@@ -42,14 +42,26 @@ describe("HomePage", () => {
     expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
-  it("renders the diagnostic console together with the animated drift circuit and multiple cars", () => {
+  it("renders the diagnostic console, animated drift circuit and vehicle selector", () => {
     renderPage();
 
     expect(document.querySelector('[data-ui-version="6006-v2"]')).toBeTruthy();
     expect(document.querySelector('[data-diagnostic-console="true"]')).toBeTruthy();
     expect(document.querySelector('[data-drift-track="true"]')).toBeTruthy();
     expect(document.querySelectorAll('[data-drift-car]').length).toBeGreaterThanOrEqual(4);
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("combobox")).toHaveLength(5);
+  });
+
+  it("persists a complete catalog vehicle so fault pages can render its schematic", () => {
+    renderPage();
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Marke" }), { target: { value: "Volkswagen" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Modell" }), { target: { value: "Passat" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Baureihe / Karosserie" }), { target: { value: "B8" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Baujahr" }), { target: { value: "2017" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "Motor" }), { target: { value: "2.0 TDI CRLB" } });
+
+    expect(localStorage.getItem("6006_vehicle")).toContain("2.0 TDI CRLB");
   });
 
   it("finds P0299 from the standalone fault library", () => {
