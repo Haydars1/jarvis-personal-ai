@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
@@ -19,6 +19,8 @@ jobs:
           cache: 'npm'
       - name: Install locked dependencies
         run: npm ci --ignore-scripts
+      - name: Generate typed fault datasets
+        run: node scripts/generate-domain-data.mjs
       - name: Run legacy and UI tests
         run: npm test
       - name: TypeScript check
@@ -35,3 +37,15 @@ jobs:
           node --check js/ai-support.mjs
           node --check js/admin-chat.mjs
           node --check js/vehicle-selector-ui.mjs
+      - name: Commit generated domain datasets after verification
+        if: github.ref_name == '6006-cloudflare-work'
+        run: |
+          if git diff --quiet -- src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts && git ls-files --error-unmatch src/domain/fault-data.generated.ts >/dev/null 2>&1; then
+            echo "Generated domain datasets already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts
+          git commit -m "build(6006): generate typed fault datasets"
+          git push
