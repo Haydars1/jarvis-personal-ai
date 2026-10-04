@@ -1,9 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
 describe('App routing', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.spyOn(window.navigator, 'language', 'get').mockReturnValue('de-DE');
+  });
+
   it('renders the 6006 homepage with support chat', () => {
     render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>);
     expect(screen.getByRole('link', { name: '6006 Performance home' })).toBeInTheDocument();
