@@ -43,6 +43,25 @@ test('uses a pinned tracked source file when a repository has no README', async(
   assert.equal(row.readme_error,'README_NOT_FOUND');
 });
 
+test('falls back to pinned source evidence when GitHub metadata works but README is 404', async()=>{
+  const fetchImpl=async url=>{
+    const value=String(url);
+    if(value==='https://api.github.com/repos/example/no-readme')return {ok:true,status:200,json:async()=>({full_name:'example/no-readme',default_branch:'main',license:{spdx_id:'MIT'},archived:false,language:'C'})};
+    if(value==='https://api.github.com/repos/example/no-readme/commits/main')return {ok:true,status:200,json:async()=>({sha:SHA})};
+    if(value===`https://api.github.com/repos/example/no-readme/readme?ref=${SHA}`)return {ok:false,status:404};
+    if(value.startsWith('https://raw.githubusercontent.com/'))return {ok:false,status:404,text:async()=>''};
+    throw new Error('UNEXPECTED_URL '+value);
+  };
+  const gitProbe=async repo=>({canonical_repo:repo,default_branch:'main',source_commit:SHA});
+  const sourceProbe=async()=>({path:'app.py',text:'print("verified")'});
+  const report=await auditPdfRepositories({'example/no-readme':['guide.pdf']},{fetchImpl,token:'repo-scoped-token',gitProbe,sourceProbe,concurrency:1});
+  const row=report.results[0];
+  assert.equal(row.status,'source-verified');
+  assert.equal(row.evidence_source,'git-source-fallback');
+  assert.equal(row.source_evidence_path,'app.py');
+  assert.equal(row.source_commit,SHA);
+});
+
 test('does not masquerade failed API and git fallback as successful audit', async()=>{
   const fetchImpl=async()=>({ok:false,status:403});
   const gitProbe=async()=>{throw new Error('GIT_SOURCE_UNAVAILABLE');};

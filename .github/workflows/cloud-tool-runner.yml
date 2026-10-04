@@ -6,7 +6,9 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/cloud-tool-runner.yml'
       - '.github/scripts/cloud-tool-runner.mjs'
+      - '.github/scripts/cloud-skill-summary.mjs'
       - '.github/scripts/code-graph-job.mjs'
       - 'src/application/capabilities/**'
       - 'src/application/code-graph/**'
@@ -64,3 +66,8 @@ jobs:
           JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
           PATH: /home/runner/.local/bin:/usr/local/bin:/usr/bin:/bin
         run: node .github/scripts/cloud-tool-runner.mjs
+
+      - name: Report production skill execution summary
+        env:
+          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
+        run: node .github/scripts/cloud-skill-summary.mjs

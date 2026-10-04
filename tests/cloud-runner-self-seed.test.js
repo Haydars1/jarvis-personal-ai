@@ -27,18 +27,30 @@ test('cloud runner seeds learning queue before claiming jobs',()=>{
   assert.ok(seed>=0&&claim>seed);
 });
 
-test('self-seeding uses existing GitHub OIDC and no paid AI secret',()=>{
+test('cloud workflow prints the exact Worker execution summary after a batch',()=>{
+  const reporter=read('.github/scripts/cloud-skill-summary.mjs');
+  const workflow=read('.github/workflows/cloud-tool-runner.yml');
+  assert.match(reporter,/\/api\/tools\/skills\/execution-summary/);
+  assert.match(reporter,/SKILL_EXECUTION_SUMMARY/);
+  assert.match(workflow,/node \.github\/scripts\/cloud-skill-summary\.mjs/);
+});
+
+test('self-seeding and summary reporting use existing GitHub OIDC and no paid AI secret',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
-  assert.doesNotMatch(runner,/OPENAI_API_KEY|GEMINI_API_KEY|ANTHROPIC_API_KEY|OPENROUTER_API_KEY/);
+  const reporter=read('.github/scripts/cloud-skill-summary.mjs');
+  assert.doesNotMatch(runner+reporter,/OPENAI_API_KEY|GEMINI_API_KEY|ANTHROPIC_API_KEY|OPENROUTER_API_KEY/);
   assert.match(runner,/oidcToken/);
+  assert.match(reporter,/oidcToken/);
 });
 
 test('cloud runner targets the canonical deployed Worker hostname',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
+  const reporter=read('.github/scripts/cloud-skill-summary.mjs');
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
   const canonical='https://jarvis-personal-ai.haydojarvis.workers.dev';
-  assert.match(runner,new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
-  assert.match(workflow,new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
-  assert.doesNotMatch(runner,/https:\/\/haydojarvis\.workers\.dev/);
-  assert.doesNotMatch(workflow,/https:\/\/haydojarvis\.workers\.dev/);
+  const escaped=new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+  assert.match(runner,escaped);
+  assert.match(reporter,escaped);
+  assert.match(workflow,escaped);
+  assert.doesNotMatch(runner+reporter+workflow,/https:\/\/haydojarvis\.workers\.dev/);
 });
