@@ -21,7 +21,7 @@ function conversation(messages: ChatMessage[] = []): ChatConversation {
 }
 
 describe('backend neutral chat API', () => {
-  it('prefixes requests with the configured baseUrl', async () => {
+  it('prefixes requests with the configured API root', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => conversation(),
@@ -37,10 +37,30 @@ describe('backend neutral chat API', () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://chat.example.test/api/chat/conversations',
+      'https://chat.example.test/api/chat/start',
       expect.objectContaining({ method: 'POST' }),
     );
     vi.unstubAllGlobals();
+  });
+
+  it('sends visitor messages to the Worker route with an idempotency key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'm1', sender: 'ai', body: 'reply' }),
+    });
+    const api = createChatApi({ baseUrl: 'https://chat.example.test', fetchImpl: fetchMock as typeof fetch });
+
+    await api.sendMessage('conv-1', {
+      language: 'en', vehicle, faultCode: 'P0299', message: 'Power drops uphill.',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://chat.example.test/api/chat/conv-1/messages',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ 'idempotency-key': expect.any(String) }),
+      }),
+    );
   });
 });
 
