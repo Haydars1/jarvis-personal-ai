@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { FaultField } from "../components/FaultField";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
+import { PublicSupportChat } from "../components/PublicSupportChat";
 import { VehicleSelector } from "../components/VehicleSelector";
 import { loadLanguage, saveLanguage, t, type Language } from "../i18n/language";
 import type { VehicleContext } from "../vehicle/catalog";
@@ -181,6 +182,8 @@ export function HomePage() {
           <span>© 6006 Performance</span>
         </footer>
       </div>
+
+      <PublicSupportChat language={language} vehicle={vehicle} />
     </div>
   );
 }
