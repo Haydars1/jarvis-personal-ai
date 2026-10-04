@@ -14,6 +14,7 @@ export interface ChatMessage {
 export interface ChatConversation {
   id: string;
   status: ChatStatus;
+  language?: Language;
   messages: ChatMessage[];
 }
 
@@ -34,6 +35,6 @@ export interface SendMessagePayload extends ChatContextPayload {
 
 export interface ChatApi {
   startConversation(payload: StartConversationPayload): Promise<ChatConversation>;
-  sendMessage(conversationId: string, payload: SendMessagePayload): Promise<ChatMessage>;
+  sendMessage(conversationId: string, payload: SendMessagePayload): Promise<ChatConversation>;
   getConversation(conversationId: string): Promise<ChatConversation>;
 }
