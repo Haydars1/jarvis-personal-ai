@@ -4,7 +4,8 @@ import { runAiTurn } from './chat/ai-turn';
 import { ChatRepository } from './db/chat-repository';
 import type { Env, ExecutionContextLike } from './env';
 import { allowedOrigin, corsHeaders, json, withCors } from './http';
-import { D1PushSubscriptionStore } from './notifications/push';
+import { notifyOwnerMilestones } from './notifications/milestones';
+import { D1PushSubscriptionStore, NoopPushSender } from './notifications/push';
 import { handleAdminRequest } from './routes/admin';
 import { handleChatRequest } from './routes/chat';
 import { handlePushRequest } from './routes/push';
@@ -37,6 +38,10 @@ const worker = {
       const response = await handleChatRequest(request, repository, {
         afterVisitorMessage: async (conversationId) => {
           await runAiTurn(repository, new FallbackAiProvider(), conversationId);
+          const conversation = await repository.getConversation(conversationId);
+          if (!conversation) return;
+          const messages = await repository.listMessages(conversationId);
+          await notifyOwnerMilestones(repository, new NoopPushSender(), conversation, messages);
         },
       });
       return withCors(response, origin);
