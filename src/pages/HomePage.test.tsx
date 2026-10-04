@@ -42,12 +42,13 @@ describe("HomePage", () => {
     expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
-  it("renders the v2 diagnostic console without drift or a public vehicle selector", () => {
+  it("renders the diagnostic console together with the animated drift circuit and multiple cars", () => {
     renderPage();
 
     expect(document.querySelector('[data-ui-version="6006-v2"]')).toBeTruthy();
     expect(document.querySelector('[data-diagnostic-console="true"]')).toBeTruthy();
-    expect(document.querySelector('[data-drift-track="true"]')).toBeFalsy();
+    expect(document.querySelector('[data-drift-track="true"]')).toBeTruthy();
+    expect(document.querySelectorAll('[data-drift-car]').length).toBeGreaterThanOrEqual(4);
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
