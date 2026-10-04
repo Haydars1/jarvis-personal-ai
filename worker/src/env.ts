@@ -27,6 +27,8 @@ export interface Env {
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
   ADMIN_EMAIL?: string;
+  ADMIN_PASSWORD_HASH?: string;
+  ADMIN_SESSION_SECRET?: string;
 }
 
 export interface ExecutionContextLike {
