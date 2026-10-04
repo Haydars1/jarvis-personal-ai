@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChatApiError } from '../chat/api';
 import type { ChatApi, ChatMessage } from '../chat/types';
 import { t, type Language } from '../i18n/language';
 import type { VehicleContext } from '../vehicle/catalog';
@@ -55,6 +56,19 @@ function saveConversationId(id: string): void {
   }
 }
 
+function clearConversationId(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(CHAT_SESSION_KEY);
+  } catch {
+    // Chat still works when storage is unavailable.
+  }
+}
+
+function isExpiredConversation(error: unknown): boolean {
+  return error instanceof ChatApiError && (error.status === 404 || error.status === 410);
+}
+
 export function SupportChat({
   api,
   language,
@@ -97,8 +111,14 @@ export function SupportChat({
       try {
         const conversation = await api.getConversation(conversationId);
         if (active) setMessages(conversation.messages ?? []);
-      } catch {
-        // A transient polling failure must not erase the visible conversation.
+      } catch (reason) {
+        if (active && isExpiredConversation(reason)) {
+          clearConversationId();
+          restoredConversationId.current = undefined;
+          setConversationId(undefined);
+          setMessages([]);
+        }
+        // Other transient polling failures must not erase the visible conversation.
       } finally {
         polling = false;
       }
@@ -135,7 +155,11 @@ export function SupportChat({
         setMessages(conversation.messages ?? []);
       }
       setDraft('');
-    } catch {
+    } catch (reason) {
+      if (isExpiredConversation(reason)) {
+        clearConversationId();
+        setConversationId(undefined);
+      }
       setError(status.failed);
     } finally {
       setSending(false);
