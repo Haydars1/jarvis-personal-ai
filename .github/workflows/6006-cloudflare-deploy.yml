@@ -141,18 +141,24 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in $(seq 1 12); do
-            if curl --fail --silent --show-error "$6006_URL/api/health" | jq -e '.ok == true and .service == "6006-api"' >/dev/null; then
+            HEALTH=$(curl --fail --silent --show-error "$6006_URL/api/health" || true)
+            if printf '%s' "$HEALTH" | grep -q '"ok":true' && printf '%s' "$HEALTH" | grep -q '"service":"6006-api"'; then
               break
             fi
             if [ "$attempt" -eq 12 ]; then
               echo 'Health check failed.'
+              printf '%s\n' "$HEALTH"
               exit 1
             fi
             sleep 2
           done
 
-          curl --fail --silent --show-error "$6006_URL/" | grep -qi '6006'
-          curl --fail --silent --show-error -H 'Sec-Fetch-Mode: navigate' "$6006_URL/fehlercodes/P0299" | grep -qi '6006'
+          curl --fail --silent --show-error "$6006_URL/" | grep -qi '<div id="root"'
+          curl --fail --silent --show-error -H 'Sec-Fetch-Mode: navigate' "$6006_URL/fehlercodes/P0299" | grep -qi '<div id="root"'
+
+          CHAT_CODE=$(curl --silent --show-error -o /tmp/6006-chat-smoke.json -w '%{http_code}' "$6006_URL/api/chat/deploy-smoke-missing")
+          test "$CHAT_CODE" = '404'
+          grep -q 'conversation_not_found' /tmp/6006-chat-smoke.json
           echo "6006 deployed: $6006_URL"
 
       - name: Deployment summary
