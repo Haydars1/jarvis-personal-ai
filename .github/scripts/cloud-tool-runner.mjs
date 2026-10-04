@@ -18,10 +18,14 @@ export const ALLOWED_ADAPTERS=Object.freeze({
 const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
 const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
 const MAX_BATCHES=Math.max(1,Math.min(12,Number(process.env.JARVIS_CLOUD_MAX_BATCHES||1)));
+const API_TIMEOUT_MS=Math.max(5000,Math.min(60000,Number(process.env.JARVIS_CLOUD_API_TIMEOUT_MS||20000)));
+const MAX_CONSECUTIVE_CLAIM_FAILURES=Math.max(1,Math.min(6,Number(process.env.JARVIS_CLOUD_MAX_CLAIM_FAILURES||3)));
+const RETRYABLE_STATUS=new Set([408,425,429,500,502,503,504]);
 const TEXT_EXT=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1','.json','.yml','.yaml','.toml','.xml','.md','.txt','.ini','.cfg','.sql']);
 const MAX_AUDIO_CHUNKS=24;
 const MAX_VISUAL_FRAMES=48;
 const AUDIO_CHUNK_SECONDS=300;
+let apiRetryCount=0;
 
 function run(command,args,{cwd,quiet=true}={}){
   return new Promise((resolve,reject)=>{
@@ -35,14 +39,31 @@ async function oidcToken(){
   const url=process.env.ACTIONS_ID_TOKEN_REQUEST_URL,token=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
   if(!url||!token)throw new Error('GITHUB_OIDC_UNAVAILABLE');
   const sep=url.includes('?')?'&':'?';
-  const response=await fetch(`${url}${sep}audience=jarvis-cloud-tool-runner`,{headers:{Authorization:`bearer ${token}`}});
+  const response=await fetch(`${url}${sep}audience=jarvis-cloud-tool-runner`,{headers:{Authorization:`bearer ${token}`},signal:AbortSignal.timeout(API_TIMEOUT_MS)});
   if(!response.ok)throw new Error(`OIDC_REQUEST_${response.status}`);
   const payload=await response.json();return payload.value;
 }
-async function api(pathname,{method='GET',body,token}={}){
-  const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
-  const text=await response.text();let payload={};try{payload=text?JSON.parse(text):{}}catch{payload={raw:text}}
-  if(!response.ok)throw new Error(payload.error||`HTTP_${response.status}`);return payload;
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function api(pathname,{method='GET',body,token,retries=3}={}){
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(API_TIMEOUT_MS)});
+      const text=await response.text();let payload={};try{payload=text?JSON.parse(text):{}}catch{payload={raw:text}}
+      if(response.ok)return payload;
+      const error=new Error(payload.error||`HTTP_${response.status}`);
+      error.status=response.status;
+      if(!RETRYABLE_STATUS.has(response.status))throw error;
+      lastError=error;
+    }catch(error){
+      lastError=error;
+      if(error?.status&&!RETRYABLE_STATUS.has(error.status))throw error;
+    }
+    if(attempt===retries)throw lastError||new Error('API_REQUEST_FAILED');
+    apiRetryCount++;
+    await sleep(Math.min(8000,500*(2**attempt)));
+  }
+  throw lastError||new Error('API_REQUEST_FAILED');
 }
 function safeRepo(repo){
   if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(repo||'')))throw new Error('INVALID_REPOSITORY');return String(repo);
@@ -226,8 +247,8 @@ async function executeJob(job,ctx,token){
 }
 
 async function main(){
-  const token=await oidcToken();let processed=0,failed=0;
-  for(let batch=0;batch<MAX_BATCHES;batch++){
+  const token=await oidcToken();let processed=0,failed=0,claimFailures=0,consecutiveClaimFailures=0;
+  batchLoop: for(let batch=0;batch<MAX_BATCHES;batch++){
     let seededCount=0,batchProcessed=0;
     try{
       const seeded=await api('/api/tools/cloud/runner/seed-learning',{method:'POST',body:{limit:MAX_JOBS},token});
@@ -237,7 +258,20 @@ async function main(){
       console.warn(`Batch ${batch+1}/${MAX_BATCHES}: skill seeding failed; continuing with existing queue:`,error?.message||error);
     }
     for(let index=0;index<MAX_JOBS;index++){
-      const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
+      let claimed;
+      try{
+        claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token});
+        consecutiveClaimFailures=0;
+      }catch(error){
+        failed++;claimFailures++;consecutiveClaimFailures++;
+        console.error(`Batch ${batch+1}/${MAX_BATCHES}: claim failed after retries; isolating batch (consecutive=${consecutiveClaimFailures}):`,error?.message||error);
+        if(consecutiveClaimFailures>=MAX_CONSECUTIVE_CLAIM_FAILURES){
+          console.error(`Stopping cloud queue after ${consecutiveClaimFailures} consecutive claim failures.`);
+          break batchLoop;
+        }
+        break;
+      }
+      const job=claimed.job;
       if(!job){console.log(`Batch ${batch+1}/${MAX_BATCHES}: no more queued cloud tool jobs.`);break;}
       processed++;batchProcessed++;
       console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
@@ -255,10 +289,11 @@ async function main(){
         if(ctx?.root)await rm(ctx.root,{recursive:true,force:true}).catch(()=>{});
       }
     }
-    console.log(`Batch ${batch+1}/${MAX_BATCHES} finished. processed=${batchProcessed} seeded=${seededCount}.`);
+    console.log(`Batch ${batch+1}/${MAX_BATCHES} finished. processed=${batchProcessed} seeded=${seededCount} claim_failures=${claimFailures} api_retries=${apiRetryCount}.`);
     if(seededCount===0&&batchProcessed===0)break;
   }
-  console.log(`Cloud runner finished. processed=${processed} failed=${failed} max_jobs_per_batch=${MAX_JOBS} max_batches=${MAX_BATCHES}`);
+  console.log(`Cloud runner finished. processed=${processed} failed=${failed} claim_failures=${claimFailures} api_retries=${apiRetryCount} max_jobs_per_batch=${MAX_JOBS} max_batches=${MAX_BATCHES}`);
+  if(failed>0)process.exitCode=1;
 }
 
 if(import.meta.url===new URL(`file://${process.argv[1]}`).href)main();
