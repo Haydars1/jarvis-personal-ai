@@ -30,9 +30,8 @@ type JwtPayload = {
   sub?: string;
 };
 
-type JwksResponse = {
-  keys?: JsonWebKey[];
-};
+type AccessJwk = JsonWebKey & { kid?: string };
+type JwksResponse = { keys?: AccessJwk[] };
 
 function decodeBase64Url(value: string): Uint8Array {
   const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '=');
