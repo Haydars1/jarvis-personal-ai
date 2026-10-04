@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FaultSystemAnimation } from "../components/FaultSystemAnimation";
 import { PublicSupportChat } from "../components/PublicSupportChat";
 import { faultByCode, localizeFault } from "../domain/faults";
 import { loadLanguage, type Language } from "../i18n/language";
+import { loadVehicle } from "../vehicle/persistence";
 import "./FaultPage.css";
 
 type Copy = {
@@ -98,6 +100,7 @@ export function FaultPage() {
   const { code: routeCode } = useParams<{ code: string }>();
   const code = String(routeCode ?? "").trim().toUpperCase();
   const [language] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
+  const [vehicle] = useState(() => loadVehicle(localStorage));
   const source = faultByCode(code);
   const fault = source ? localizeFault(source, language) : undefined;
   const copy = COPY[language];
@@ -141,6 +144,8 @@ export function FaultPage() {
               <article><span>{copy.severity}</span><strong>{fault.severity}</strong></article>
               <article><span>{copy.drive}</span><strong>{fault.drive}</strong></article>
             </section>
+
+            <FaultSystemAnimation code={fault.code} language={language} vehicle={vehicle} />
 
             <section className="faultWorkspace" data-fault-workspace="true">
               <div className="faultWorkspaceTopline">
@@ -197,7 +202,7 @@ export function FaultPage() {
         )}
       </main>
 
-      <PublicSupportChat language={language} vehicle={{}} faultCode={code || undefined} />
+      <PublicSupportChat language={language} vehicle={vehicle} faultCode={code || undefined} />
     </div>
   );
 }
