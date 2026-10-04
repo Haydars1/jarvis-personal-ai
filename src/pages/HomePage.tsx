@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { DriftShowcase } from "../components/DriftShowcase";
 import { FaultField } from "../components/FaultField";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
@@ -150,12 +151,7 @@ export function HomePage() {
           </section>
 
           <section className="storySection" aria-label="6006 diagnostic flow">
-            <div className="storyGraphic" aria-hidden="true">
-              <span className="storyRing storyRingOuter" />
-              <span className="storyRing storyRingInner" />
-              <span className="storyBeam" />
-              <span className="storyDot" />
-            </div>
+            <DriftShowcase />
             <div className="storyCopy">
               <span>6006 / {fixed.signalPath}</span>
               <h2>{fixed.code} → <em>{fixed.system}</em> → {fixed.cause}</h2>
