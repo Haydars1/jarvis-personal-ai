@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { DiagnosticConsole } from "../components/DiagnosticConsole";
+import { DriftShowcase } from "../components/DriftShowcase";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { PublicSupportChat } from "../components/PublicSupportChat";
@@ -73,6 +74,17 @@ export function HomePage() {
     setLanguage(saveLanguage(localStorage, next));
   };
 
+  const driftTitle = language === "tr"
+    ? "Performans sadece rakam değil. Kontrol de onun parçası."
+    : language === "en"
+      ? "Performance is not only numbers. Control is part of it."
+      : "Performance ist nicht nur eine Zahl. Kontrolle gehört dazu.";
+  const driftText = language === "tr"
+    ? "6006 pist sahnesinde farklı gövde tipleri aynı hat üzerinde akarken sistemin hareket, denge ve araç karakteri tarafını görselleştirir."
+    : language === "en"
+      ? "The 6006 circuit visual puts different body styles on the same line to express motion, balance and vehicle character."
+      : "Die 6006 Streckenszene zeigt verschiedene Karosserieformen auf derselben Linie und verbindet Bewegung, Balance und Fahrzeugcharakter.";
+
   return (
     <div className="homePage" data-ui-version="6006-v2">
       <div className="homeBackdrop" aria-hidden="true" />
@@ -117,6 +129,15 @@ export function HomePage() {
 
           <section className="consoleSection" aria-label="6006 diagnostic console">
             <DiagnosticConsole language={language} />
+          </section>
+
+          <section className="storySection" aria-label="6006 performance circuit">
+            <div className="storyCopy">
+              <span>6006 / PERFORMANCE LOOP</span>
+              <h2>{driftTitle}</h2>
+              <p>{driftText}</p>
+            </div>
+            <DriftShowcase />
           </section>
 
           <section id="services" className="serviceSection">
