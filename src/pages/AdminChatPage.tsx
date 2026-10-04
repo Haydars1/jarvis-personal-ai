@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   configuredApiBaseUrl,
@@ -14,7 +14,13 @@ function vehicleLabel(conversation?: AdminConversation): string {
   return [vehicle?.brand, vehicle?.model, vehicle?.body, vehicle?.year, vehicle?.engine].filter(Boolean).join(' · ') || 'Araç bilgisi yok';
 }
 
-export function AdminChatPage({ api: injectedApi, conversationId }: { api?: AdminApi; conversationId?: string }) {
+interface AdminChatPageProps {
+  api?: AdminApi;
+  conversationId?: string;
+  pollIntervalMs?: number;
+}
+
+export function AdminChatPage({ api: injectedApi, conversationId, pollIntervalMs = 3_000 }: AdminChatPageProps) {
   const params = useParams<{ conversationId: string }>();
   const id = conversationId ?? params.conversationId ?? '';
   const defaultApi = useMemo(() => createAdminApi(configuredApiBaseUrl()), []);
@@ -23,44 +29,69 @@ export function AdminChatPage({ api: injectedApi, conversationId }: { api?: Admi
   const [messages, setMessages] = useState<AdminMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const [error, setError] = useState<string>();
 
   useEffect(() => {
     if (!id) return;
     let active = true;
-    api.getConversation(id)
-      .then((detail) => {
+    let loading = false;
+
+    const refresh = async (reportError = false) => {
+      if (loading || busyRef.current) return;
+      loading = true;
+      try {
+        const detail = await api.getConversation(id);
         if (!active) return;
         setConversation(detail.conversation);
         setMessages(detail.messages);
-      })
-      .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : 'admin_load_failed'); });
-    return () => { active = false; };
-  }, [api, id]);
+        if (reportError) setError(undefined);
+      } catch (reason) {
+        if (active && reportError) setError(reason instanceof Error ? reason.message : 'admin_load_failed');
+      } finally {
+        loading = false;
+      }
+    };
+
+    void refresh(true);
+    const timer = pollIntervalMs > 0
+      ? window.setInterval(() => { void refresh(false); }, pollIntervalMs)
+      : undefined;
+
+    return () => {
+      active = false;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [api, id, pollIntervalMs]);
+
+  const setActionBusy = (value: boolean) => {
+    busyRef.current = value;
+    setBusy(value);
+  };
 
   const takeover = async () => {
     if (!conversation || busy) return;
-    setBusy(true);
+    setActionBusy(true);
     setError(undefined);
     try {
       setConversation(await api.takeover(conversation.id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'takeover_failed');
     } finally {
-      setBusy(false);
+      setActionBusy(false);
     }
   };
 
   const release = async () => {
     if (!conversation || busy) return;
-    setBusy(true);
+    setActionBusy(true);
     setError(undefined);
     try {
       setConversation(await api.release(conversation.id));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'release_failed');
     } finally {
-      setBusy(false);
+      setActionBusy(false);
     }
   };
 
@@ -68,7 +99,7 @@ export function AdminChatPage({ api: injectedApi, conversationId }: { api?: Admi
     event.preventDefault();
     if (!conversation || conversation.status !== 'human_active' || busy || !draft.trim()) return;
     const message = draft.trim();
-    setBusy(true);
+    setActionBusy(true);
     setError(undefined);
     try {
       const stored = await api.reply(conversation.id, message);
@@ -77,7 +108,7 @@ export function AdminChatPage({ api: injectedApi, conversationId }: { api?: Admi
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'reply_failed');
     } finally {
-      setBusy(false);
+      setActionBusy(false);
     }
   };
 
