@@ -90,3 +90,8 @@ test('worker exposes authenticated execution summary endpoint',()=>{
   assert.match(source,/\/api\/tools\/skills\/execution-summary/);
   assert.match(source,/summarizeExecutionStates/);
 });
+
+test('trusted GitHub OIDC runner can read the execution summary without an owner session',()=>{
+  const source=read('src/application/capabilities/cloud-execution.js');
+  assert.match(source,/execution-summary[\s\S]{0,700}runnerAuth\(req\)/);
+});
