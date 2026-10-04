@@ -27,6 +27,17 @@ test('cloud runner seeds learning queue before claiming jobs',()=>{
   assert.ok(seed>=0&&claim>seed);
 });
 
+test('cloud runner can drain repository learning through bounded multi-batches without reinstalling the runner',()=>{
+  const runner=read('.github/scripts/cloud-tool-runner.mjs');
+  const workflow=read('.github/workflows/cloud-tool-runner.yml');
+  assert.match(runner,/JARVIS_CLOUD_MAX_BATCHES/);
+  assert.match(runner,/MAX_BATCHES/);
+  assert.match(runner,/for\s*\(let batch=0;batch<MAX_BATCHES;batch\+\+\)/);
+  assert.match(runner,/seededCount===0&&batchProcessed===0/);
+  assert.match(workflow,/JARVIS_CLOUD_MAX_JOBS:\s*['"]?8['"]?/);
+  assert.match(workflow,/JARVIS_CLOUD_MAX_BATCHES:\s*['"]?12['"]?/);
+});
+
 test('cloud workflow prints the exact Worker execution summary after a batch',()=>{
   const reporter=read('.github/scripts/cloud-skill-summary.mjs');
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
