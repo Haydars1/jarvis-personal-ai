@@ -1,0 +1,26 @@
+.supportChat { position: fixed; right: 20px; bottom: 20px; z-index: 50; font-family: inherit; }
+.supportChatLauncher { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 18px; border: 1px solid rgba(176,138,79,.42); border-radius: 999px; background: rgba(16,47,39,.96); color: #F2EBDD; box-shadow: 0 18px 50px rgba(0,0,0,.34); cursor: pointer; }
+.supportChatPulse { width: 9px; height: 9px; border-radius: 50%; background: #78947F; box-shadow: 0 0 0 6px rgba(120,148,127,.12); }
+.supportChatPanel { width: min(380px, calc(100vw - 28px)); max-height: min(640px, calc(100vh - 36px)); overflow: auto; border: 1px solid rgba(242,235,221,.12); border-radius: 22px; background: rgba(8,10,9,.98); color: #F2EBDD; box-shadow: 0 28px 80px rgba(0,0,0,.52); }
+.supportChatHeader { display: flex; justify-content: space-between; gap: 18px; padding: 20px 20px 14px; border-bottom: 1px solid rgba(242,235,221,.08); }
+.supportChatHeader small { color: #B08A4F; letter-spacing: .16em; font-size: 10px; }
+.supportChatHeader h2 { margin: 6px 0 3px; font-size: 20px; }
+.supportChatHeader p { margin: 0; font-size: 12px; color: rgba(242,235,221,.56); }
+.supportChatClose { align-self: flex-start; width: 34px; height: 34px; border: 1px solid rgba(242,235,221,.12); border-radius: 50%; background: transparent; color: #F2EBDD; font-size: 22px; cursor: pointer; }
+.supportChatContext { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 20px; border-bottom: 1px solid rgba(242,235,221,.08); font-size: 11px; color: rgba(242,235,221,.62); }
+.supportChatContext strong { color: #B08A4F; }
+.supportChatMessages { display: grid; gap: 10px; min-height: 120px; padding: 18px 20px 8px; }
+.supportChatMessage { margin: 0; max-width: 88%; padding: 10px 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
+.supportChatMessage-ai, .supportChatMessage-owner { justify-self: start; background: rgba(24,88,68,.42); color: #F2EBDD; }
+.supportChatMessage-visitor { justify-self: end; background: rgba(176,138,79,.16); color: #F2EBDD; }
+.supportChatMessage-system { justify-self: center; background: rgba(242,235,221,.06); color: rgba(242,235,221,.62); }
+.supportChatError, .supportChatSending { margin: 6px 20px; font-size: 12px; }
+.supportChatError { color: #F0A29A; }
+.supportChatSending { color: #78947F; }
+.supportChatForm { display: grid; gap: 10px; padding: 12px 20px 10px; }
+.supportChatForm textarea { width: 100%; resize: vertical; min-height: 78px; border: 1px solid rgba(242,235,221,.13); border-radius: 14px; background: rgba(242,235,221,.035); color: #F2EBDD; padding: 12px; font: inherit; }
+.supportChatForm textarea:focus { outline: 1px solid #B08A4F; border-color: #B08A4F; }
+.supportChatForm button { justify-self: end; border: 0; border-radius: 999px; background: #F2EBDD; color: #102F27; padding: 9px 16px; font-weight: 700; cursor: pointer; }
+.supportChatForm button:disabled { opacity: .42; cursor: default; }
+.supportChatPrivacy { margin: 0; padding: 0 20px 18px; font-size: 10px; line-height: 1.5; color: rgba(242,235,221,.38); }
+@media (max-width: 520px) { .supportChat { right: 10px; bottom: 10px; } .supportChatPanel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); } }
