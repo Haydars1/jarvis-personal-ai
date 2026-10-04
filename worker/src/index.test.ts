@@ -47,4 +47,17 @@ describe('6006 Worker bootstrap', () => {
     expect(response.headers.get('access-control-allow-origin')).toBe('https://6006-performance.example');
     expect(response.headers.get('vary')).toContain('Origin');
   });
+
+  it('allows the deployed site to call its own api without knowing the workers.dev hostname in advance', async () => {
+    const response = await worker.fetch(
+      new Request('https://6006-performance.workers.dev/api/unknown', {
+        headers: { Origin: 'https://6006-performance.workers.dev' },
+      }),
+      env as never,
+      ctx as never,
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.headers.get('access-control-allow-origin')).toBe('https://6006-performance.workers.dev');
+  });
 });
