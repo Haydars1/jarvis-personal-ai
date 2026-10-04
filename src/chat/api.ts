@@ -11,8 +11,9 @@ export interface ChatApiOptions {
   fetchImpl?: typeof fetch;
 }
 
-function normalizeBaseUrl(value: string): string {
-  return value.trim().replace(/\/+$/, '');
+function normalizeApiRoot(value: string): string {
+  const root = value.trim().replace(/\/+$/, '');
+  return root.endsWith('/api') ? root : `${root}/api`;
 }
 
 async function readJson<T>(response: Response | { ok: boolean; json(): Promise<unknown> }): Promise<T> {
@@ -23,7 +24,7 @@ async function readJson<T>(response: Response | { ok: boolean; json(): Promise<u
 }
 
 export function createChatApi({ baseUrl, fetchImpl = fetch }: ChatApiOptions): ChatApi {
-  const root = normalizeBaseUrl(baseUrl);
+  const root = normalizeApiRoot(baseUrl);
 
   const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
     const response = await fetchImpl(`${root}${path}`, {
@@ -38,21 +39,22 @@ export function createChatApi({ baseUrl, fetchImpl = fetch }: ChatApiOptions): C
 
   return {
     startConversation(payload: StartConversationPayload) {
-      return request<ChatConversation>('/chat/conversations', {
+      return request<ChatConversation>('/chat/start', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
     },
 
     sendMessage(conversationId: string, payload: SendMessagePayload) {
-      return request<ChatMessage>(`/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      return request<ChatMessage>(`/chat/${encodeURIComponent(conversationId)}/messages`, {
         method: 'POST',
+        headers: { 'idempotency-key': crypto.randomUUID() },
         body: JSON.stringify(payload),
       });
     },
 
     getConversation(conversationId: string) {
-      return request<ChatConversation>(`/chat/conversations/${encodeURIComponent(conversationId)}`);
+      return request<ChatConversation>(`/chat/${encodeURIComponent(conversationId)}`);
     },
   };
 }
