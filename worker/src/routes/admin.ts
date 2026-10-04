@@ -1,5 +1,11 @@
 import type { AccessTokenVerifier } from '../auth/access';
 import { AccessAuthError, requireAdmin } from '../auth/access';
+import {
+  clearAdminSessionCookie,
+  createAdminSessionCookie,
+  nativeAdminConfigured,
+  verifyAdminCredentials,
+} from '../auth/native';
 import type { Env } from '../env';
 import { json } from '../http';
 import type { AppendMessageInput, Conversation, Message } from '../db/types';
@@ -22,6 +28,15 @@ function safeMessageBody(value: unknown): string | null {
   return trimmed;
 }
 
+function safeCredentials(value: unknown): { email: string; password: string } | null {
+  if (!value || typeof value !== 'object') return null;
+  const { email, password } = value as { email?: unknown; password?: unknown };
+  if (typeof email !== 'string' || typeof password !== 'string') return null;
+  const normalizedEmail = email.trim();
+  if (!normalizedEmail || !password || normalizedEmail.length > 254 || password.length > 256) return null;
+  return { email: normalizedEmail, password };
+}
+
 async function parseJson(request: Request): Promise<unknown | null> {
   try {
     return await request.json();
@@ -36,6 +51,23 @@ export async function handleAdminRequest(
   env: Env,
   verifier?: AccessTokenVerifier,
 ): Promise<Response> {
+  const url = new URL(request.url);
+  const path = url.pathname;
+
+  if (request.method === 'POST' && path === '/api/admin/login') {
+    if (!nativeAdminConfigured(env)) return json({ error: 'native_admin_login_disabled' }, 404);
+    const credentials = safeCredentials(await parseJson(request));
+    if (!credentials || !(await verifyAdminCredentials(credentials.email, credentials.password, env))) {
+      return json({ error: 'invalid_admin_credentials' }, 401);
+    }
+    const cookie = await createAdminSessionCookie(credentials.email, env);
+    return json({ ok: true, email: credentials.email.toLowerCase() }, 200, { 'set-cookie': cookie });
+  }
+
+  if (request.method === 'POST' && path === '/api/admin/logout') {
+    return json({ ok: true }, 200, { 'set-cookie': clearAdminSessionCookie() });
+  }
+
   let identity;
   try {
     identity = await requireAdmin(request, env, verifier);
@@ -46,8 +78,9 @@ export async function handleAdminRequest(
     return json({ error: 'admin_auth_failed' }, 401);
   }
 
-  const url = new URL(request.url);
-  const path = url.pathname;
+  if (request.method === 'GET' && path === '/api/admin/session') {
+    return json({ ok: true, email: identity.email });
+  }
 
   if (request.method === 'GET' && path === '/api/admin/conversations') {
     return json(await store.listConversations());
