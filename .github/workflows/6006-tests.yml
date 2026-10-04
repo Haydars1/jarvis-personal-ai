@@ -36,6 +36,16 @@ jobs:
             echo 'Floot runtime reference found in dist/'
             exit 1
           fi
+      - name: Verify frontend contains no backend secrets
+        run: |
+          if git ls-files | grep -E '(^|/)(\.env|\.dev\.vars)$'; then
+            echo 'Tracked environment/secrets file found. Commit only .example templates.'
+            exit 1
+          fi
+          if grep -R -n -E 'service_role|VAPID_PRIVATE_KEY|AI_API_KEY|CLOUDFLARE_API_TOKEN|ACCESS_CLIENT_SECRET|sk-[A-Za-z0-9_-]{16,}' dist; then
+            echo 'Backend secret marker found in frontend production bundle.'
+            exit 1
+          fi
       - name: Run Worker tests
         run: npm --prefix worker test
       - name: Worker TypeScript check
