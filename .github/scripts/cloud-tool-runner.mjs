@@ -39,10 +39,25 @@ async function oidcToken(){
   if(!response.ok)throw new Error(`OIDC_REQUEST_${response.status}`);
   const payload=await response.json();return payload.value;
 }
-async function api(pathname,{method='GET',body,token}={}){
-  const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
-  const text=await response.text();let payload={};try{payload=text?JSON.parse(text):{}}catch{payload={raw:text}}
-  if(!response.ok)throw new Error(payload.error||`HTTP_${response.status}`);return payload;
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+async function api(pathname,{method='GET',body,token,retries=3}={}){
+  let lastError;
+  for(let attempt=0;attempt<=retries;attempt++){
+    try{
+      const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
+      const text=await response.text();let payload={};try{payload=text?JSON.parse(text):{}}catch{payload={raw:text}}
+      if(response.ok)return payload;
+      const error=new Error(payload.error||`HTTP_${response.status}`);
+      error.status=response.status;
+      if(![408,425,429,500,502,503,504].includes(response.status)||attempt===retries)throw error;
+      lastError=error;
+    }catch(error){
+      lastError=error;
+      if(attempt===retries)throw error;
+    }
+    await sleep(Math.min(8000,500*(2**attempt)));
+  }
+  throw lastError||new Error('API_REQUEST_FAILED');
 }
 function safeRepo(repo){
   if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(repo||'')))throw new Error('INVALID_REPOSITORY');return String(repo);
@@ -237,7 +252,15 @@ async function main(){
       console.warn(`Batch ${batch+1}/${MAX_BATCHES}: skill seeding failed; continuing with existing queue:`,error?.message||error);
     }
     for(let index=0;index<MAX_JOBS;index++){
-      const claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token}),job=claimed.job;
+      let claimed;
+      try{
+        claimed=await api('/api/tools/cloud/runner/claim',{method:'POST',body:{},token});
+      }catch(error){
+        failed++;
+        console.error(`Batch ${batch+1}/${MAX_BATCHES}: claim failed after retries; isolating batch:`,error?.message||error);
+        break;
+      }
+      const job=claimed.job;
       if(!job){console.log(`Batch ${batch+1}/${MAX_BATCHES}: no more queued cloud tool jobs.`);break;}
       processed++;batchProcessed++;
       console.log(`Claimed ${job.id} ${job.adapter_id} ${job.repo}`);
@@ -259,6 +282,7 @@ async function main(){
     if(seededCount===0&&batchProcessed===0)break;
   }
   console.log(`Cloud runner finished. processed=${processed} failed=${failed} max_jobs_per_batch=${MAX_JOBS} max_batches=${MAX_BATCHES}`);
+  if(failed>0)process.exitCode=1;
 }
 
 if(import.meta.url===new URL(`file://${process.argv[1]}`).href)main();
