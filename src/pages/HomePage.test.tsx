@@ -55,11 +55,11 @@ describe("HomePage", () => {
   it("persists a complete catalog vehicle so fault pages can render its schematic", () => {
     renderPage();
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Marke" }), { target: { value: "Volkswagen" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Modell" }), { target: { value: "Passat" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Baureihe / Karosserie" }), { target: { value: "B8" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Baujahr" }), { target: { value: "2017" } });
-    fireEvent.change(screen.getByRole("combobox", { name: "Motor" }), { target: { value: "2.0 TDI CRLB" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /marke/i }), { target: { value: "Volkswagen" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /modell/i }), { target: { value: "Passat" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /baureihe|generation/i }), { target: { value: "B8" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /baujahr/i }), { target: { value: "2017" } });
+    fireEvent.change(screen.getByRole("combobox", { name: /motor/i }), { target: { value: "2.0 TDI CRLB" } });
 
     expect(localStorage.getItem("6006_vehicle")).toContain("2.0 TDI CRLB");
   });
