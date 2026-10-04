@@ -117,6 +117,16 @@ export class ChatRepository {
     return row ? mapConversation(row) : null;
   }
 
+  async listConversations(): Promise<Conversation[]> {
+    const { results } = await this.db.prepare(`
+      /* chat:list-conversations */
+      SELECT * FROM conversations
+      ORDER BY updated_at DESC
+      LIMIT 200
+    `).all<ConversationRow>();
+    return results.map(mapConversation);
+  }
+
   async appendMessage(input: AppendMessageInput): Promise<boolean> {
     const now = new Date().toISOString();
     const result = await this.db.prepare(`
@@ -135,6 +145,25 @@ export class ChatRepository {
     return changes(result) > 0;
   }
 
+  async appendOwnerMessageIfHuman(input: AppendMessageInput): Promise<boolean> {
+    const now = new Date().toISOString();
+    const result = await this.db.prepare(`
+      /* chat:append-owner-message-if-human */
+      INSERT INTO messages (id, conversation_id, sender, body, created_at, idempotency_key)
+      SELECT ?, ?, 'owner', ?, ?, ?
+      FROM conversations
+      WHERE id = ? AND status = 'human_active'
+    `).bind(
+      input.id,
+      input.conversationId,
+      input.body,
+      now,
+      input.idempotencyKey ?? null,
+      input.conversationId,
+    ).run();
+    return changes(result) > 0;
+  }
+
   async listMessages(conversationId: string): Promise<Message[]> {
     const { results } = await this.db.prepare(`
       /* chat:list-messages */
@@ -143,6 +172,16 @@ export class ChatRepository {
       ORDER BY created_at ASC, id ASC
     `).bind(conversationId).all<MessageRow>();
     return results.map(mapMessage);
+  }
+
+  async findMessageByIdempotency(conversationId: string, key: string): Promise<Message | null> {
+    const row = await this.db.prepare(`
+      /* chat:find-message-idempotency */
+      SELECT * FROM messages
+      WHERE conversation_id = ? AND idempotency_key = ?
+      LIMIT 1
+    `).bind(conversationId, key).first<MessageRow>();
+    return row ? mapMessage(row) : null;
   }
 
   async updateConversationContext(id: string, patch: ConversationContextPatch): Promise<boolean> {
