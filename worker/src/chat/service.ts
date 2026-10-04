@@ -5,6 +5,7 @@ import type {
   CreateConversationInput,
   Message,
 } from '../db/types';
+import { extractContactPatch } from './contact-extraction';
 import type { StartChatPayload, VisitorMessagePayload } from './schemas';
 
 export interface ChatStore {
@@ -46,12 +47,16 @@ function byIdempotency(messages: Message[], key: string): Message | undefined {
   return messages.find((message) => message.idempotencyKey === key);
 }
 
+function hasPatchValues(patch: ConversationContextPatch): boolean {
+  return Object.values(patch).some((value) => value !== undefined);
+}
+
 export class ChatService {
   constructor(private readonly store: ChatStore) {}
 
   async start(payload: StartChatPayload): Promise<VisitorConversation> {
     const id = crypto.randomUUID();
-    const conversation = await this.store.createConversation({
+    await this.store.createConversation({
       id,
       language: payload.language,
       pagePath: payload.pagePath,
@@ -59,12 +64,21 @@ export class ChatService {
       vehicle: payload.vehicle,
       visitorSessionId: payload.visitorSessionId,
     });
+
+    const contactPatch = extractContactPatch(payload.message);
+    if (hasPatchValues(contactPatch)) {
+      await this.store.updateConversationContext(id, contactPatch);
+    }
+
     await this.store.appendMessage({
       id: crypto.randomUUID(),
       conversationId: id,
       sender: 'visitor',
       body: payload.message,
     });
+
+    const conversation = await this.store.getConversation(id);
+    if (!conversation) throw new Error('conversation_missing_after_create');
     return visitorSafe(conversation, await this.store.listMessages(id));
   }
 
@@ -82,7 +96,10 @@ export class ChatService {
     const conversation = await this.store.getConversation(conversationId);
     if (!conversation) return null;
 
-    const patch: ConversationContextPatch = { language: payload.language };
+    const patch: ConversationContextPatch = {
+      language: payload.language,
+      ...extractContactPatch(payload.message),
+    };
     if (payload.pagePath) patch.pagePath = payload.pagePath;
     if (payload.faultCode) patch.faultCode = payload.faultCode;
     if (payload.vehicle) patch.vehicle = payload.vehicle;
