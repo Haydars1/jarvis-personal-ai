@@ -50,7 +50,7 @@ jobs:
           npm --prefix worker run typecheck
           npm run build
           test -f dist/index.html
-          if grep -R -n -E '@floot/|floot\\.app|service_role|VAPID_PRIVATE_KEY|AI_API_KEY|CLOUDFLARE_API_TOKEN|ACCESS_CLIENT_SECRET|sk-[A-Za-z0-9_-]{16,}' dist; then
+          if grep -R -n -E '@floot/|floot\.app|service_role|VAPID_PRIVATE_KEY|AI_API_KEY|CLOUDFLARE_API_TOKEN|ACCESS_CLIENT_SECRET|sk-[A-Za-z0-9_-]{16,}' dist; then
             echo 'Unsafe runtime/dependency marker found in production bundle.'
             exit 1
           fi
@@ -127,7 +127,7 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler@latest deploy --config=worker/wrangler.deploy.jsonc 2>&1 | tee deploy.log
-          URL=$(grep -Eo 'https://[A-Za-z0-9._-]+\\.workers\\.dev' deploy.log | tail -n1 || true)
+          URL=$(grep -Eo 'https://[^[:space:]]+[.]workers[.]dev' deploy.log | tail -n1 || true)
           if [ -z "$URL" ]; then
             echo 'Could not determine workers.dev deployment URL.'
             cat deploy.log
