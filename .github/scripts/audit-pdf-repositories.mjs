@@ -1,13 +1,16 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
+import { resolve, basename } from 'node:path';
 
 const execFileAsync=promisify(execFile);
 const README_CANDIDATES=['README.md','README.rst','README.txt','README','readme.md','Readme.md'];
+const SOURCE_MANIFESTS=new Set(['package.json','pyproject.toml','setup.py','setup.cfg','cargo.toml','go.mod','pom.xml','build.gradle','build.gradle.kts','cmakelists.txt','makefile','requirements.txt','configure','configure.py']);
+const SOURCE_EXTENSIONS=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1']);
+const SKIP_SOURCE_PARTS=/(^|\/)(?:node_modules|vendor|dist|build|target|third_party|third-party|external|deps|generated)(?:\/|$)/i;
 
 function assertRepoName(repo){
   if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(String(repo||''))) throw new Error('INVALID_REPOSITORY_NAME');
@@ -36,6 +39,43 @@ async function defaultGitProbe(repo){
   }
 }
 
+function sourcePriority(file){
+  const normalized=String(file||'').replace(/\\/g,'/');
+  const name=basename(normalized).toLowerCase();
+  const extension=name.includes('.')?'.'+name.split('.').pop():'';
+  if(SOURCE_MANIFESTS.has(name))return normalized.includes('/')?5:0;
+  if(SOURCE_EXTENSIONS.has(extension))return normalized.includes('/')?20:10;
+  return 100;
+}
+
+async function defaultGitSourceProbe(repo,sha){
+  const safeRepo=assertRepoName(repo);
+  if(!/^[0-9a-f]{40,64}$/i.test(String(sha||'')))throw new Error('INVALID_SOURCE_COMMIT');
+  const root=await mkdtemp(resolve(process.env.RUNNER_TEMP||tmpdir(),'jarvis-pdf-source-'));
+  const gitOptions={cwd:root,encoding:'utf8',timeout:30000,maxBuffer:2*1024*1024,env:{...process.env,GIT_TERMINAL_PROMPT:'0',GIT_LFS_SKIP_SMUDGE:'1'}};
+  try{
+    await execFileAsync('git',['init','--quiet'],gitOptions);
+    await execFileAsync('git',['remote','add','origin',`https://github.com/${safeRepo}.git`],gitOptions);
+    await execFileAsync('git',['fetch','--quiet','--depth','1','--filter=blob:none','--no-tags','origin',String(sha)],gitOptions);
+    const {stdout}=await execFileAsync('git',['ls-tree','-r','--name-only','FETCH_HEAD'],gitOptions);
+    const candidates=String(stdout||'').split(/\r?\n/).map(file=>file.trim()).filter(file=>{
+      if(!file||SKIP_SOURCE_PARTS.test(file))return false;
+      const name=basename(file).toLowerCase();
+      const extension=name.includes('.')?'.'+name.split('.').pop():'';
+      return SOURCE_MANIFESTS.has(name)||SOURCE_EXTENSIONS.has(extension);
+    }).sort((a,b)=>sourcePriority(a)-sourcePriority(b)||a.localeCompare(b));
+    for(const file of candidates.slice(0,40)){
+      try{
+        const {stdout:text}=await execFileAsync('git',['show',`FETCH_HEAD:${file}`],{...gitOptions,maxBuffer:1024*1024});
+        if(String(text||'').trim())return {path:file,text:String(text)};
+      }catch{}
+    }
+    return null;
+  }finally{
+    await rm(root,{recursive:true,force:true}).catch(()=>{});
+  }
+}
+
 async function fetchRawReadme(repo,sha,fetchImpl){
   for(const candidate of README_CANDIDATES){
     const url=`https://raw.githubusercontent.com/${repo}/${sha}/${candidate}`;
@@ -52,7 +92,7 @@ async function fetchRawReadme(repo,sha,fetchImpl){
   return null;
 }
 
-async function applyPublicFallback(repo,result,{gitProbe,fetchImpl},apiError){
+async function applyPublicFallback(repo,result,{gitProbe,sourceProbe,fetchImpl},apiError){
   const evidence=await gitProbe(repo);
   const canonical=assertRepoName(evidence.canonical_repo||repo);
   const sha=String(evidence.source_commit||'').trim();
@@ -63,18 +103,31 @@ async function applyPublicFallback(repo,result,{gitProbe,fetchImpl},apiError){
   result.evidence_source='git-raw-fallback';
   result.api_error=apiError;
   const readme=await fetchRawReadme(canonical,sha,fetchImpl);
-  if(!readme){
-    result.status='metadata-only';
-    result.readme_error='README_NOT_FOUND';
+  if(readme){
+    result.readme_sha256=createHash('sha256').update(readme.text).digest('hex');
+    result.readme_path=readme.path;
+    result.readme_bytes=Buffer.byteLength(readme.text);
+    result.status='source-verified';
     return;
   }
-  result.readme_sha256=createHash('sha256').update(readme.text).digest('hex');
-  result.readme_path=readme.path;
-  result.readme_bytes=Buffer.byteLength(readme.text);
-  result.status='source-verified';
+  result.readme_error='README_NOT_FOUND';
+  try{
+    const source=await sourceProbe(canonical,sha);
+    if(source?.path&&String(source.text||'').length){
+      result.evidence_source='git-source-fallback';
+      result.source_evidence_path=source.path;
+      result.source_evidence_sha256=createHash('sha256').update(source.text).digest('hex');
+      result.source_evidence_bytes=Buffer.byteLength(source.text);
+      result.status='source-verified';
+      return;
+    }
+  }catch(error){
+    result.source_evidence_error=String(error?.message||error);
+  }
+  result.status='metadata-only';
 }
 
-export async function auditPdfRepositories(provenance,{fetchImpl=fetch,token=process.env.GITHUB_TOKEN,concurrency=4,gitProbe=defaultGitProbe}={}){
+export async function auditPdfRepositories(provenance,{fetchImpl=fetch,token=process.env.GITHUB_TOKEN,concurrency=4,gitProbe=defaultGitProbe,sourceProbe=defaultGitSourceProbe}={}){
   const repos=Object.keys(provenance).sort();
   const results=[];
   let next=0;
@@ -112,7 +165,7 @@ export async function auditPdfRepositories(provenance,{fetchImpl=fetch,token=pro
           result.status='source-verified';
         }catch(error){
           if(error.status===403){
-            await applyPublicFallback(repo,result,{gitProbe,fetchImpl},error.message);
+            await applyPublicFallback(repo,result,{gitProbe,sourceProbe,fetchImpl},error.message);
           }else{
             result.status='metadata-only';
             result.readme_error=error.message;
@@ -121,7 +174,7 @@ export async function auditPdfRepositories(provenance,{fetchImpl=fetch,token=pro
       }catch(error){
         if(error.status===403){
           try{
-            await applyPublicFallback(repo,result,{gitProbe,fetchImpl},error.message);
+            await applyPublicFallback(repo,result,{gitProbe,sourceProbe,fetchImpl},error.message);
           }catch(fallbackError){
             result.api_error=error.message;
             result.error=String(fallbackError?.message||fallbackError);
