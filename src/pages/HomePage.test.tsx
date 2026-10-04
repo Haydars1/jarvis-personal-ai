@@ -42,12 +42,13 @@ describe("HomePage", () => {
     expect(within(nav).getByRole("link", { name: "Fault Codes" })).toBeInTheDocument();
   });
 
-  it("renders the v2 diagnostic console and removes the old drift-showcase UI", () => {
+  it("renders the v2 diagnostic console without drift or a public vehicle selector", () => {
     renderPage();
 
     expect(document.querySelector('[data-ui-version="6006-v2"]')).toBeTruthy();
     expect(document.querySelector('[data-diagnostic-console="true"]')).toBeTruthy();
     expect(document.querySelector('[data-drift-track="true"]')).toBeFalsy();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("finds P0299 from the standalone fault library", () => {
@@ -59,22 +60,8 @@ describe("HomePage", () => {
     expect(screen.getByRole("link", { name: /P0299/i })).toHaveAttribute("href", "/fehlercodes/P0299");
   });
 
-  it("cascades make model body year and engine", () => {
-    renderPage();
-
-    fireEvent.change(screen.getByLabelText("MARKE"), { target: { value: "BMW" } });
-    fireEvent.change(screen.getByLabelText("MODELL"), { target: { value: "3er" } });
-    fireEvent.change(screen.getByLabelText("BAUREIHE / GENERATION"), { target: { value: "G20/G21" } });
-    fireEvent.change(screen.getByLabelText("BAUJAHR"), { target: { value: "2021" } });
-
-    expect(screen.getByLabelText("MOTORISIERUNG")).toHaveDisplayValue("Motor wählen");
-    expect(screen.getByRole("option", { name: "320d B47" })).toBeInTheDocument();
-  });
-
-  it("recovers from corrupt stored language and vehicle state", () => {
+  it("recovers from corrupt stored language state", () => {
     localStorage.setItem("6006_language", "xx-INVALID");
-    localStorage.setItem("6006_vehicle", "{broken-json");
-
     expect(() => renderPage()).not.toThrow();
     const nav = screen.getByRole("navigation", { name: "Primary" });
     expect(within(nav).getByRole("link", { name: "Leistungen" })).toBeInTheDocument();
