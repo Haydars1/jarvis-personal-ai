@@ -66,15 +66,29 @@ export function normalizeIntegration(record = {}, runtimeState = {}) {
   return normalized;
 }
 
+const chatgptConnector = (id, name, team) => ({
+  id: `${id}-chatgpt`, name, team, surface:'chatgpt', sourceType:'connector', pricing:'free-plan', runtimeState:'reference-only',
+  notes:'Installed ChatGPT connector. It stays external to the JARVIS Worker until JARVIS has its own verified adapter/auth path.'
+});
+
 export const FREE_INTEGRATION_SEEDS = Object.freeze([
   { id:'screensdesign-mcp', name:'ScreensDesign MCP', team:'Design', surface:'external', sourceType:'screenshot', pricing:'paid', runtimeState:'excluded', notes:'Paid screenshot-labelled tool; never auto-routed.' },
   { id:'higgsfield-mcp', name:'Higgsfield MCP', team:'Design', surface:'external', sourceType:'screenshot', pricing:'paid', runtimeState:'excluded', notes:'Paid screenshot-labelled tool; never auto-routed.' },
   { id:'plaud', name:'Plaud', team:'Operations', surface:'external', sourceType:'screenshot', pricing:'paid', runtimeState:'excluded', notes:'Paid screenshot-labelled tool; never auto-routed.' },
   { id:'manychat', name:'ManyChat', team:'Growth', surface:'external', sourceType:'screenshot', pricing:'paid', runtimeState:'excluded', notes:'Paid screenshot-labelled tool; never auto-routed.' },
   { id:'sandcastles-mcp', name:'Sandcastles MCP', team:'Design', surface:'external', sourceType:'screenshot', pricing:'paid', runtimeState:'excluded', notes:'Paid screenshot-labelled tool; never auto-routed.' },
-  { id:'figma-chatgpt', name:'Figma', team:'Design', surface:'chatgpt', sourceType:'connector', pricing:'unknown', runtimeState:'reference-only', notes:'Visible as an external ChatGPT surface until JARVIS has its own verified adapter.' },
-  { id:'canva-chatgpt', name:'Canva', team:'Design', surface:'chatgpt', sourceType:'connector', pricing:'unknown', runtimeState:'reference-only', notes:'Visible as an external ChatGPT surface until JARVIS has its own verified adapter.' },
-  { id:'consensus-chatgpt', name:'Consensus', team:'Operations', surface:'chatgpt', sourceType:'connector', pricing:'unknown', runtimeState:'reference-only', notes:'Visible as an external ChatGPT surface until JARVIS has its own verified adapter.' },
+  chatgptConnector('figma','Figma','Design'),
+  chatgptConnector('canva','Canva','Design'),
+  chatgptConnector('notion','Notion','Operations'),
+  chatgptConnector('google-drive','Google Drive','Operations'),
+  chatgptConnector('vercel','Vercel','Build'),
+  chatgptConnector('github','GitHub','Build'),
+  chatgptConnector('firecrawl','Firecrawl','Growth'),
+  chatgptConnector('todoist','Todoist','Operations'),
+  chatgptConnector('gmail','Gmail','Operations'),
+  chatgptConnector('google-calendar','Google Calendar','Operations'),
+  chatgptConnector('consensus','Consensus','Growth'),
+  { id:'slack-chatgpt', name:'Slack', team:'Operations', surface:'chatgpt', sourceType:'connector', pricing:'free-plan', authState:'required', runtimeState:'connection-required', notes:'Eligible free-plan connector; connection remains a user action.' },
   { id:'heygen-chatgpt', name:'HeyGen', team:'Growth', surface:'chatgpt', sourceType:'connector', pricing:'unknown', runtimeState:'reference-only', notes:'Free-tier eligibility is not assumed; excluded from automatic free routing until verified.' }
 ].map(seed => Object.freeze(normalizeIntegration(seed))));
 
