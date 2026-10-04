@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaultField } from "../components/FaultField";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
@@ -59,19 +59,45 @@ const sectionCopy: Record<Language, { services: string; vehicle: string; faults:
   },
 };
 
+const fixedCopy: Record<Language, { status: string; diagnosis: string; coding: string; software: string; ready: string; signalPath: string; code: string; system: string; cause: string; contactHeadline: string; phone: string; email: string; footer: string }> = {
+  de: {
+    status: "SYSTEMSTATUS", diagnosis: "DIAGNOSE", coding: "CODIERUNG", software: "SOFTWARE", ready: "BEREIT",
+    signalPath: "SIGNALWEG", code: "Code", system: "System", cause: "Ursache", contactHeadline: "Direkt. Persönlich. 6006.",
+    phone: "Telefon", email: "E-Mail", footer: "Diagnose · Codierung · Softwareoptimierung · individuelle Fahrzeuganpassung",
+  },
+  tr: {
+    status: "SİSTEM DURUMU", diagnosis: "TEŞHİS", coding: "KODLAMA", software: "YAZILIM", ready: "HAZIR",
+    signalPath: "SİNYAL YOLU", code: "Kod", system: "Sistem", cause: "Neden", contactHeadline: "Doğrudan. Kişisel. 6006.",
+    phone: "Telefon", email: "E-posta", footer: "Teşhis · Kodlama · Yazılım optimizasyonu · araca özel uyarlama",
+  },
+  en: {
+    status: "SYSTEM STATUS", diagnosis: "DIAGNOSIS", coding: "CODING", software: "SOFTWARE", ready: "READY",
+    signalPath: "SIGNAL PATH", code: "Code", system: "System", cause: "Cause", contactHeadline: "Direct. Personal. 6006.",
+    phone: "Phone", email: "Email", footer: "Diagnostics · Coding · Software optimization · individual vehicle adaptation",
+  },
+};
+
+function deviceLanguage(): string {
+  return typeof navigator === "undefined" ? "de" : navigator.language || "de";
+}
+
 export function HomePage() {
-  const [language, setLanguage] = useState<Language>(() => loadLanguage(localStorage, "de"));
+  const [language, setLanguage] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
   const [vehicle, setVehicle] = useState<VehicleContext>({});
   const section = sectionCopy[language];
+  const fixed = fixedCopy[language];
   const vehicleSummary = useMemo(
     () => [vehicle.brand, vehicle.model, vehicle.body, vehicle.year, vehicle.engine].filter(Boolean).join(" · "),
     [vehicle],
   );
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const changeLanguage = (next: Language) => {
     const saved = saveLanguage(localStorage, next);
     setLanguage(saved);
-    document.documentElement.lang = saved;
   };
 
   return (
@@ -108,10 +134,10 @@ export function HomePage() {
               <p className="heroHint">↗ {t(language, "home.hint")}</p>
             </div>
             <aside className="heroStatus" aria-label="6006 services status">
-              <span>6006 / SYSTEM STATUS</span>
-              <div><small>DIAGNOSE</small><b>READY</b></div>
-              <div><small>CODIERUNG</small><b>READY</b></div>
-              <div><small>SOFTWARE</small><b>READY</b></div>
+              <span>6006 / {fixed.status}</span>
+              <div><small>{fixed.diagnosis}</small><b>{fixed.ready}</b></div>
+              <div><small>{fixed.coding}</small><b>{fixed.ready}</b></div>
+              <div><small>{fixed.software}</small><b>{fixed.ready}</b></div>
               <p>{vehicleSummary || t(language, "vehicle.general")}</p>
             </aside>
           </section>
@@ -131,8 +157,8 @@ export function HomePage() {
               <span className="storyDot" />
             </div>
             <div className="storyCopy">
-              <span>6006 / SIGNAL PATH</span>
-              <h2>Code → <em>System</em> → Ursache</h2>
+              <span>6006 / {fixed.signalPath}</span>
+              <h2>{fixed.code} → <em>{fixed.system}</em> → {fixed.cause}</h2>
               <p>{section.faultIntro}</p>
             </div>
           </section>
@@ -165,20 +191,20 @@ export function HomePage() {
           <section id="contact" className="contactSection">
             <div className="contactCopy">
               <span>{section.contact}</span>
-              <h2>Direkt. Persönlich. 6006.</h2>
+              <h2>{fixed.contactHeadline}</h2>
               <p>{section.contactIntro}</p>
             </div>
             <div className="contactList">
               <a href="https://wa.me/491788354756"><span>WhatsApp</span><strong>+49 178 8354756</strong><b>↗</b></a>
-              <a href="tel:+491788354756"><span>Telefon</span><strong>0178 8354756</strong><b>↗</b></a>
-              <a href="mailto:6006performance@gmail.com"><span>E-Mail</span><strong>6006performance@gmail.com</strong><b>↗</b></a>
+              <a href="tel:+491788354756"><span>{fixed.phone}</span><strong>0178 8354756</strong><b>↗</b></a>
+              <a href="mailto:6006performance@gmail.com"><span>{fixed.email}</span><strong>6006performance@gmail.com</strong><b>↗</b></a>
             </div>
           </section>
         </main>
 
         <footer className="siteFooter">
           <strong>6006 PERFORMANCE</strong>
-          <p>Diagnose · Codierung · Softwareoptimierung · individuelle Fahrzeuganpassung</p>
+          <p>{fixed.footer}</p>
           <span>© 6006 Performance</span>
         </footer>
       </div>
