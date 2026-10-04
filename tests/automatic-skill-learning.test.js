@@ -51,7 +51,7 @@ test('cloud runner processes more than one queued skill job per run',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
   assert.match(runner,/MAX_JOBS/);
   assert.match(runner,/for\s*\(/);
-  assert.match(runner,/No more queued cloud tool jobs/);
+  assert.match(runner,/no more queued cloud tool jobs/i);
 });
 
 test('automatic repository learning needs no third-party AI credential',()=>{
