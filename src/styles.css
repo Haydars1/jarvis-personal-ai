@@ -1,17 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root {
-  font-family: 'Manrope', system-ui, sans-serif;
-  color: #F2EBDD;
-  background: #080A09;
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #F3F1EB;
+  background: #0B0C0D;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; background: #0B0C0D; }
 html, body, #root { min-height: 100%; margin: 0; }
-body { min-width: 320px; background: #080A09; }
-main { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 88px 0; }
-h1 { margin: 16px 0; font: 400 clamp(44px, 8vw, 92px)/.94 'Instrument Serif', Georgia, serif; letter-spacing: -.045em; }
-p { color: rgba(242,235,221,.62); }
-.eyebrow { font: 600 10px/1 'IBM Plex Mono', monospace; letter-spacing: .18em; color: #B08A4F; }
+body { min-width: 320px; background: #0B0C0D; }
+button, input, select, textarea { font: inherit; }
+a, button { -webkit-tap-highlight-color: transparent; }
+p { color: #989A98; }
+::selection { background: rgba(189,146,84,.28); color: #fff; }
