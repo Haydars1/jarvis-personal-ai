@@ -12,7 +12,6 @@ export interface ChatStore {
   getConversation(id: string): Promise<Conversation | null>;
   appendMessage(input: AppendMessageInput): Promise<boolean>;
   listMessages(conversationId: string): Promise<Message[]>;
-  findMessageByIdempotency(conversationId: string, key: string): Promise<Message | null>;
   updateConversationContext(id: string, patch: ConversationContextPatch): Promise<boolean>;
 }
 
@@ -41,6 +40,10 @@ function visitorSafe(conversation: Conversation, messages: Message[]): VisitorCo
     vehicle: conversation.vehicle,
     messages: messages.map(publicMessage),
   };
+}
+
+function byIdempotency(messages: Message[], key: string): Message | undefined {
+  return messages.find((message) => message.idempotencyKey === key);
 }
 
 export class ChatService {
@@ -86,7 +89,8 @@ export class ChatService {
     if (payload.visitorSessionId) patch.visitorSessionId = payload.visitorSessionId;
     await this.store.updateConversationContext(conversationId, patch);
 
-    const existing = await this.store.findMessageByIdempotency(conversationId, idempotencyKey);
+    const before = await this.store.listMessages(conversationId);
+    const existing = byIdempotency(before, idempotencyKey);
     if (existing) return { message: publicMessage(existing), duplicate: true };
 
     const input: AppendMessageInput = {
@@ -97,11 +101,9 @@ export class ChatService {
       idempotencyKey,
     };
     const inserted = await this.store.appendMessage(input);
-    const stored = await this.store.findMessageByIdempotency(conversationId, idempotencyKey);
-    if (!stored) {
-      if (!inserted) throw new Error('idempotent_message_lookup_failed');
-      throw new Error('message_persist_failed');
-    }
+    const after = await this.store.listMessages(conversationId);
+    const stored = byIdempotency(after, idempotencyKey);
+    if (!stored) throw new Error(inserted ? 'message_persist_failed' : 'idempotent_message_lookup_failed');
     return { message: publicMessage(stored), duplicate: !inserted };
   }
 }
