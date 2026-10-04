@@ -2,6 +2,7 @@ import { CURATED_CAPABILITY_SEEDS } from './open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from './obd-pdf-seeds.js';
 import { CODE_GRAPH_CAPABILITIES } from './code-graph.js';
 import { FREE_INTEGRATION_SEEDS, normalizeIntegration } from './free-integration-registry.js';
+import { SCREENSHOT_INTEGRATION_SEEDS } from './screenshot-integration-matrix.js';
 import provenance from '../../data/pdf-repository-provenance.json' with { type: 'json' };
 import registry from '../../data/capability-registry.json' with { type: 'json' };
 import audit from '../../data/pdf-repository-audit.json' with { type: 'json' };
@@ -117,6 +118,7 @@ function nativeGoogleRecords(providerState = {}) {
 export function buildFreeIntegrationCatalog({ repositoryIntegrations: repositoryRows = repositoryIntegrations(), providerState = {} } = {}) {
   const byKey = new Map();
   for (const seed of FREE_INTEGRATION_SEEDS) byKey.set(seed.id, connectorState(seed, providerState));
+  for (const seed of SCREENSHOT_INTEGRATION_SEEDS) byKey.set(seed.id, seed);
   for (const record of nativeGoogleRecords(providerState)) byKey.set(record.id, record);
   const seenRepos = new Set();
   for (const row of repositoryRows || []) {
