@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-visual-rebuild]
   workflow_dispatch:
 
 permissions:
