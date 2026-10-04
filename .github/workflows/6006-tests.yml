@@ -36,6 +36,10 @@ jobs:
             echo 'Floot runtime reference found in dist/'
             exit 1
           fi
+      - name: Run Worker tests
+        run: npm --prefix worker test
+      - name: Worker TypeScript check
+        run: npm --prefix worker run typecheck
       - name: Syntax checks for legacy modules
         run: |
           node --check js/i18n.mjs
