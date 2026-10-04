@@ -6,7 +6,8 @@ import { App } from './App';
 describe('App routing', () => {
   it('renders the 6006 homepage', () => {
     render(<MemoryRouter initialEntries={['/']}><App /></MemoryRouter>);
-    expect(screen.getByRole('heading', { name: '6006 PERFORMANCE' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '6006 Performance home' })).toBeInTheDocument();
+    expect(screen.getByText('PERFORMANCE')).toBeInTheDocument();
   });
 
   it('resolves a direct fault detail route', () => {
