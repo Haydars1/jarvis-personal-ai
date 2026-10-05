@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp]
   workflow_dispatch:
 
 permissions:
@@ -31,7 +31,12 @@ jobs:
         run: npm run build
       - name: Verify standalone production bundle
         run: |
+          set -euo pipefail
           test -f dist/index.html
+          test -f dist/assets/6006/p0299-xray.webp
+          test "$(xxd -p -l 4 dist/assets/6006/p0299-xray.webp)" = "52494646"
+          test "$(xxd -p -s 8 -l 4 dist/assets/6006/p0299-xray.webp)" = "57454250"
+          test "$(wc -c < dist/assets/6006/p0299-xray.webp)" -gt 10000
           if grep -R -n -E '@floot/|floot\.app' dist; then
             echo 'Floot runtime reference found in dist/'
             exit 1
