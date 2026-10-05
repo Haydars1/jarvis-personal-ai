@@ -30,13 +30,16 @@ describe("FaultPage", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
-  it("renders the v2 fault workspace", () => {
+  it("renders P0299 with the new generic boost visualization", () => {
     renderFault();
+
     expect(document.querySelector('[data-fault-layout="6006-v2"]')).toBeTruthy();
-    expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
+    expect(document.querySelector('[data-fault-visual="true"][data-scene="boost"]')).toBeTruthy();
+    expect(document.querySelector('[data-generic-vehicle="true"]')).toBeTruthy();
+    expect(document.querySelector('[data-vehicle-profile]')).toBeFalsy();
   });
 
-  it("renders localized P0299 details without a model-specific car drawing", () => {
+  it("ignores persisted brand/model identity on the public fault visual", () => {
     localStorage.setItem("6006_language", "tr");
     localStorage.setItem("6006_language_manual", "1");
     localStorage.setItem(
@@ -48,13 +51,15 @@ describe("FaultPage", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/P0299/i);
     expect(screen.getByRole("heading", { level: 2, name: /Turbo basıncı kontrolü/i })).toBeInTheDocument();
+    expect(document.querySelector('[data-fault-visual="true"][data-scene="boost"]')).toBeTruthy();
+    expect(document.querySelector('[data-generic-vehicle="true"]')).toBeTruthy();
     expect(document.querySelector("[data-vehicle-profile]")).toBeFalsy();
-    expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
   });
 
-  it("renders safety-oriented diagnostic sections without claiming one failed part", () => {
+  it("renders the oil scene while preserving safety-oriented diagnostic sections", () => {
     renderFault("/fehlercodes/OIL");
 
+    expect(document.querySelector('[data-fault-visual="true"][data-scene="oil"]')).toBeTruthy();
     expect(screen.getAllByText(/Bedeutung/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Mögliche Ursachen/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/^Diagnose$/i).length).toBeGreaterThan(0);
@@ -62,10 +67,11 @@ describe("FaultPage", () => {
     expect(screen.getAllByText(/beweist nicht|nicht.*sicher defekt/i).length).toBeGreaterThan(0);
   });
 
-  it("handles an unknown code without inventing a technical diagnosis", () => {
+  it("handles an unknown code without inventing a technical diagnosis or visual scene", () => {
     renderFault("/fehlercodes/ZZ999");
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("ZZ999");
     expect(screen.getByText(/nicht in der 6006 Fehlerbibliothek|not in the 6006 fault library|6006 arıza kütüphanesinde/i)).toBeInTheDocument();
+    expect(document.querySelector('[data-fault-visual="true"]')).toBeFalsy();
   });
 });
