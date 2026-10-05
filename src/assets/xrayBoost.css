@@ -1,42 +1,22 @@
-.genericVehicle.genericVehiclePhotoreal {
-  aspect-ratio: 16 / 9 !important;
-  background: #050505 !important;
-  filter: none !important;
-  transform: none !important;
-  isolation: auto !important;
-  will-change: auto;
+.genericVehiclePhotoreal {
+  aspect-ratio: 16 / 9;
+  background: #050505;
 }
 
-.genericVehicle.genericVehiclePhotoreal .genericVehiclePhotorealImage {
-  object-fit: contain !important;
-  object-position: center !important;
+.genericVehiclePhotorealImage {
+  object-fit: contain;
+  object-position: center;
   transform: none !important;
   animation: none !important;
-  filter: none !important;
-  backface-visibility: visible;
-}
-
-.genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoFlow {
-  filter: none !important;
 }
 
 @media (max-width: 620px) {
-  .genericVehicle.genericVehiclePhotoreal {
-    aspect-ratio: 16 / 9 !important;
-    filter: none !important;
-    transform: none !important;
-    isolation: auto !important;
+  .genericVehiclePhotoreal {
+    aspect-ratio: 16 / 9;
   }
 
-  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotorealImage {
-    object-fit: contain !important;
-    object-position: center !important;
+  .genericVehiclePhotorealImage {
+    object-fit: contain;
     transform: none !important;
-    animation: none !important;
-  }
-
-  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoGrid,
-  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoVignette {
-    display: none;
   }
 }
