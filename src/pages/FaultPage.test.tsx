@@ -36,7 +36,7 @@ describe("FaultPage", () => {
     expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
   });
 
-  it("renders localized P0299 details with the saved vehicle-specific car schematic", () => {
+  it("renders localized P0299 details without a model-specific car drawing", () => {
     localStorage.setItem("6006_language", "tr");
     localStorage.setItem("6006_language_manual", "1");
     localStorage.setItem(
@@ -48,8 +48,7 @@ describe("FaultPage", () => {
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(/P0299/i);
     expect(screen.getByRole("heading", { level: 2, name: /Turbo basıncı kontrolü/i })).toBeInTheDocument();
-    expect(document.querySelector("[data-vehicle-profile]")).toBeTruthy();
-    expect(document.querySelector(".vehicleBodyShell")).toBeTruthy();
+    expect(document.querySelector("[data-vehicle-profile]")).toBeFalsy();
     expect(document.querySelector('[data-fault-workspace="true"]')).toBeTruthy();
   });
 
