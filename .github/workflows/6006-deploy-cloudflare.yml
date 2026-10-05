@@ -35,9 +35,7 @@ jobs:
           npm test
           npm run typecheck
           npm run build
-          test -f dist/assets/6006/p0299-xray.webp
-          test "$(xxd -p -l 4 dist/assets/6006/p0299-xray.webp)" = "52494646"
-          test "$(xxd -p -s 8 -l 4 dist/assets/6006/p0299-xray.webp)" = "57454250"
+          node -e "const fs=require('fs');const p='dist/assets/6006/p0299-xray.webp';const b=fs.readFileSync(p);if(b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP'||b.readUInt32LE(4)+8!==b.length||b.length<=10000){console.error('Invalid or truncated WebP',b.length,b.readUInt32LE(4)+8);process.exit(1)}"
           npm --prefix worker test
           npm --prefix worker run typecheck
 
@@ -114,9 +112,7 @@ jobs:
           curl --fail --silent --show-error --retry 5 --retry-delay 2 -H 'Sec-Fetch-Mode: navigate' "$SITE_URL/fehlercodes/P0299" | tee /tmp/fault.html >/dev/null
           grep -q '<div id="root"' /tmp/fault.html
           curl --fail --silent --show-error --retry 5 --retry-delay 2 "$SITE_URL/assets/6006/p0299-xray.webp" -o /tmp/p0299-xray.webp
-          test "$(xxd -p -l 4 /tmp/p0299-xray.webp)" = "52494646"
-          test "$(xxd -p -s 8 -l 4 /tmp/p0299-xray.webp)" = "57454250"
-          test "$(wc -c < /tmp/p0299-xray.webp)" -gt 10000
+          node -e "const fs=require('fs');const p='/tmp/p0299-xray.webp';const b=fs.readFileSync(p);if(b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP'||b.readUInt32LE(4)+8!==b.length||b.length<=10000){console.error('Invalid or truncated live WebP',b.length,b.readUInt32LE(4)+8);process.exit(1)}"
           CHAT_CODE=$(curl --silent --show-error -o /tmp/chat.json -w '%{http_code}' "$SITE_URL/api/chat/deploy-smoke-missing")
           test "$CHAT_CODE" = '404'
           grep -q 'conversation_not_found' /tmp/chat.json
