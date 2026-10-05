@@ -2,6 +2,7 @@ import type { FaultScene } from "../domain/fault-scenes";
 import type { Language } from "../i18n/language";
 import { FaultFlowDiagram } from "./FaultFlowDiagram";
 import { GenericVehicleSilhouette } from "./GenericVehicleSilhouette";
+import { MobileBoostDiagnosticPanel } from "./MobileBoostDiagnosticPanel";
 import "./FaultVisualCard.css";
 
 const COPY: Record<Language, { kicker: string; location: string; note: string }> = {
@@ -24,6 +25,21 @@ const COPY: Record<Language, { kicker: string; location: string; note: string }>
 
 export function FaultVisualCard({ scene, language }: { scene: FaultScene; language: Language }) {
   const copy = COPY[language];
+  const isBoost = scene.id === "boost";
+
+  const desktopVisual = (
+    <div className={isBoost ? "faultVisualDesktopExperience" : undefined}>
+      <div className="faultVisualVehicleStage">
+        <div className="faultVisualStageLabel">
+          <span>{copy.location}</span>
+          <b>{scene.title[language]}</b>
+        </div>
+        <GenericVehicleSilhouette region={scene.region} tone={scene.tone} />
+      </div>
+
+      <FaultFlowDiagram scene={scene} language={language} />
+    </div>
+  );
 
   return (
     <section
@@ -40,15 +56,8 @@ export function FaultVisualCard({ scene, language }: { scene: FaultScene; langua
         <p>{scene.caption[language]}</p>
       </div>
 
-      <div className="faultVisualVehicleStage">
-        <div className="faultVisualStageLabel">
-          <span>{copy.location}</span>
-          <b>{scene.title[language]}</b>
-        </div>
-        <GenericVehicleSilhouette region={scene.region} tone={scene.tone} />
-      </div>
-
-      <FaultFlowDiagram scene={scene} language={language} />
+      {desktopVisual}
+      {isBoost && <MobileBoostDiagnosticPanel scene={scene} language={language} />}
 
       <p className="faultVisualNeutralNote">{copy.note}</p>
     </section>
