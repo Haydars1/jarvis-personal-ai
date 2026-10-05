@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import type { FaultScene } from "../domain/fault-scenes";
 import type { Language } from "../i18n/language";
 import "./FaultFlowDiagram.css";
@@ -15,10 +15,11 @@ export function FaultFlowDiagram({ scene, language }: { scene: FaultScene; langu
     [scene],
   );
   const focusedNode = orderedNodes.find((node) => node.id === focusedId) ?? orderedNodes[0];
+  const flowStyle = { "--flow-count": orderedNodes.length } as CSSProperties;
 
   return (
     <div className="faultFlowDiagram" data-flow-scene={scene.id}>
-      <div className="faultFlowTrack" role="list" aria-label={scene.title[language]}>
+      <div className="faultFlowTrack" role="list" aria-label={scene.title[language]} style={flowStyle}>
         {orderedNodes.map((node, index) => {
           const focused = node.id === focusedNode?.id;
           return (
