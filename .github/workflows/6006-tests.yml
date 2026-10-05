@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp, fix/6006-p0299-jpeg-final, fix/6006-ios-xray-compositor]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp, fix/6006-p0299-jpeg-final, fix/6006-ios-xray-compositor, fix/6006-p0299-webp-decode]
   workflow_dispatch:
 
 permissions:
