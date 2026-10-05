@@ -1,0 +1,22 @@
+.genericVehiclePhotoreal {
+  aspect-ratio: 16 / 9;
+  background: #050505;
+}
+
+.genericVehiclePhotorealImage {
+  object-fit: contain;
+  object-position: center;
+  transform: none !important;
+  animation: none !important;
+}
+
+@media (max-width: 620px) {
+  .genericVehiclePhotoreal {
+    aspect-ratio: 16 / 9;
+  }
+
+  .genericVehiclePhotorealImage {
+    object-fit: contain;
+    transform: none !important;
+  }
+}
