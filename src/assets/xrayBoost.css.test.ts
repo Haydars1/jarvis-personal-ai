@@ -1,8 +1,5 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-
-const css = readFileSync(join(process.cwd(), "src/assets/xrayBoost.css"), "utf8");
+import css from "./xrayBoost.css?raw";
 
 describe("P0299 photoreal Safari compositor guard", () => {
   it("forces the photoreal scene off nested GPU filter/transform layers", () => {
