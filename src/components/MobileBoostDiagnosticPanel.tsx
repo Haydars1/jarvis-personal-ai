@@ -2,10 +2,24 @@ import type { FaultScene } from "../domain/fault-scenes";
 import type { Language } from "../i18n/language";
 import "./MobileBoostDiagnosticPanel.css";
 
-const COPY: Record<Language, { fault: string; explanation: string }> = {
-  de: { fault: "Ladedruck zu niedrig", explanation: "Der angeforderte Ladedruck wird nicht erreicht." },
-  tr: { fault: "Turbo basıncı düşük", explanation: "İstenen turbo basıncına ulaşılamıyor." },
-  en: { fault: "Boost pressure too low", explanation: "Requested boost pressure is not reached." },
+const REAL_TURBO_SRC = "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/M271_turbo.JPG/960px-M271_turbo.JPG";
+
+const COPY: Record<Language, { fault: string; explanation: string; alt: string }> = {
+  de: {
+    fault: "Ladedruck zu niedrig",
+    explanation: "Der angeforderte Ladedruck wird nicht erreicht.",
+    alt: "Echter Turbolader",
+  },
+  tr: {
+    fault: "Turbo basıncı düşük",
+    explanation: "İstenen turbo basıncına ulaşılamıyor.",
+    alt: "Gerçek turboşarj",
+  },
+  en: {
+    fault: "Boost pressure too low",
+    explanation: "Requested boost pressure is not reached.",
+    alt: "Real turbocharger",
+  },
 };
 
 export function MobileBoostDiagnosticPanel({ scene, language }: { scene: FaultScene; language: Language }) {
@@ -18,14 +32,28 @@ export function MobileBoostDiagnosticPanel({ scene, language }: { scene: FaultSc
   return (
     <div className="mobileBoostPanel" data-mobile-diagnostic-panel="boost">
       <div className="mobileBoostSchematic" data-mobile-boost-schematic="true">
-        <svg className="mobileBoostShell" viewBox="0 0 640 220" aria-hidden="true">
-          <path d="M58 152 C82 126 118 116 170 111 L224 66 C244 49 269 40 307 40 L400 40 C438 41 469 55 495 79 L539 115 C563 120 582 132 591 152" />
-          <path d="M112 152 H530" />
-          <circle cx="158" cy="154" r="28" />
-          <circle cx="492" cy="154" r="28" />
-        </svg>
-
-        <div className="mobileBoostFault">P0299 · {copy.fault}</div>
+        <div className="mobileBoostTurboStage">
+          <img
+            className="mobileBoostTurboPhoto"
+            src={REAL_TURBO_SRC}
+            alt={copy.alt}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+            data-real-turbo="true"
+          />
+          <span className="mobileBoostPhotoShade" aria-hidden="true" />
+          <span className="mobileBoostRotor" data-mobile-turbo-rotor="true" aria-hidden="true">
+            <i /><i /><i /><i /><i /><i />
+          </span>
+          <span className="mobileBoostAir mobileBoostAirIntake" data-mobile-airflow="intake" aria-hidden="true">
+            <i /><i /><i />
+          </span>
+          <span className="mobileBoostAir mobileBoostAirBoost" data-mobile-airflow="boost" aria-hidden="true">
+            <i /><i /><i />
+          </span>
+          <div className="mobileBoostFault">P0299 · {copy.fault}</div>
+        </div>
 
         <div className="mobileBoostPath" aria-label={scene.title[language]}>
           {nodes.map((node, index) => {
