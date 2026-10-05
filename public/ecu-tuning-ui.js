@@ -432,9 +432,48 @@
     }
   }
 
-  // Ayarlar açıldığında rulepack listesini yükle
+  async function loadEcuRepoList() {
+    const el = $('#ecuRepoList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/ecu/related-repos');
+      const data = await res.json();
+      const accepted = data.accepted || [];
+      const quarantine = data.quarantine || [];
+      el.innerHTML = `
+        <div class="rulepackItem" style="border-color:#35df9a44">
+          <b>✓ Accepted — adapter yazılmaya hazır (${accepted.length})</b>
+          <div style="margin-top:8px;display:grid;gap:6px">
+            ${accepted.map(r => `
+              <div style="padding:8px;background:#060a15;border:1px solid #203653;border-radius:8px">
+                <a href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener" style="color:#9fe3ff;font-weight:700;font-size:12px;text-decoration:none">${esc(r.repo)}</a>
+                <small style="display:block;color:#9fb6c9;margin-top:3px;font-size:11px;line-height:1.4">${esc(r.purpose || '')}</small>
+                <small style="color:#8ba4b7;font-size:10px">Konular: ${(r.hits||[]).join(', ')}</small>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        ${quarantine.length ? `
+        <div class="rulepackItem" style="border-color:#ffbe5544;margin-top:10px">
+          <b>⚠ Quarantine — gözden geçirilmeli (${quarantine.length})</b>
+          <div style="margin-top:8px;display:grid;gap:6px">
+            ${quarantine.slice(0,20).map(r => `
+              <div style="padding:8px;background:#060a15;border:1px solid #2a2010;border-radius:8px">
+                <a href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener" style="color:#ffd38a;font-weight:700;font-size:12px;text-decoration:none">${esc(r.repo)}</a>
+                <small style="display:block;color:#9fb6c9;margin-top:3px;font-size:11px;line-height:1.4">${esc(r.purpose || '')}</small>
+              </div>
+            `).join('')}
+          </div>
+        </div>` : ''}
+      `;
+    } catch (err) {
+      el.innerHTML = '<div class="muted">Repo listesi yüklenemedi: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  // Ayarlar açıldığında listeleri yükle
   const settingsBtn = document.querySelector('[data-page="settings"]');
-  if (settingsBtn) settingsBtn.addEventListener('click', () => setTimeout(loadRulepackList, 300));
+  if (settingsBtn) settingsBtn.addEventListener('click', () => setTimeout(() => { loadRulepackList(); loadEcuRepoList(); }, 300));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

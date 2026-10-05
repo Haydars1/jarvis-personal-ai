@@ -696,6 +696,11 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,packs:RULEPACKS.map(p=>({family:p.family,familyName:p.familyName,description:p.description,sourceCount:(p.sources||[]).length,firmwareCount:Object.keys(p.firmwares||{}).length,mapCount:(p.familyMaps||[]).length,notes:p.notes})),sources:allSources()});
  }catch(e){return j({error:e.message||'RULEPACKS_FAILED'},500)}}
 
+ if(p==='/api/ecu/related-repos'&&m==='GET'){try{
+   const data=(await import('../data/ecu-registry-filtered.json',{with:{type:'json'}})).default;
+   return j({ok:true,total:data.total,accepted:data.accepted||[],quarantine:data.quarantine||[]});
+ }catch(e){return j({ok:true,total:0,accepted:[],quarantine:[],error:e.message},200)}}
+
  if(p==='/api/ecu/ai-suggest'&&m==='POST'){try{
    const b=await body(req);
    const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
