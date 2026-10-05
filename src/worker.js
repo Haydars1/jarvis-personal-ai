@@ -672,10 +672,85 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);const ts=now();try{if(/ai.*(durum|test|kontrol|diag)|sağlayıcı.*(durum|test|kontrol)|saglayici.*(durum|test|kontrol)/i.test(text)){const d=await aiDiagnostics(env);const reply=d.ok?('AI sistemi çalışıyor. Çalışan sağlayıcı sayısı: '+d.working+'/'+d.total+'. '+d.recommendation):('AI sistemi çalışmıyor. '+d.recommendation);return j({reply,action:'ai_diagnostics',provider:'JARVIS Diagnostics',diagnostics:d,history:[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Diagnostics',created_at:now()}]})}const r=await withTimeout(quickCommand(env,text),9500,'QUICK_COMMAND_TIMEOUT');const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:r.reply,provider:r.provider||null,created_at:now()}];const persist=async()=>{try{await addChat(env,'user',text,null);await addChat(env,'assistant',r.reply,r.provider||null);await log(env,'jarvis-fast',r.reply,{provider:r.provider,action:r.action})}catch(e){await recordRuntimeError(env,e,'chat.persist')}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({...r,history})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Cevap motoru zamanında dönemedi. İsteğini kaydettim; teknik hata detayını sana dökmüyorum.';const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Local',created_at:now()}];const persist=async()=>{try{await recordRuntimeError(env,e,'chat.send');await addChat(env,'user',text,null);await addChat(env,'assistant',reply,'JARVIS Local')}catch{}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({reply,action:'local_fallback',provider:'JARVIS Local',history})}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
 
- // ECU Tuning
- if(p==='/api/ecu/upload'&&m==='POST'){try{const b=await body(req),fileData=typeof b.fileData==='string'?Uint8Array.from(atob(b.fileData),c=>c.charCodeAt(0)):new Uint8Array(b.fileData),{detectFileFormat,identifyVehicle}=await import('./lib/tuning-engine.js'),fmt=detectFileFormat(fileData),upload_id=id(),file_hash=(await Promise.all([...fileData].map((_,i)=>String.fromCharCode(_)))).join('');await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,created_at) VALUES(?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,'Unknown',file_hash,fileData.length,btoa(String.fromCharCode(...fileData)),now());const candidates=identifyVehicle(fileData);return j({ok:true,upload_id,format:fmt.format,size:fileData.length,vehicles:candidates})}catch(e){return j({error:e.message||'UPLOAD_FAILED'},400)}}
- if(p==='/api/ecu/generate'&&m==='POST'){try{const b=await body(req),upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.upload_id);if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);const original_data=Uint8Array.from(atob(upload.binary_data),c=>c.charCodeAt(0)),{generateProposals,applyTuning,validateTunedFile}=await import('./lib/tuning-engine.js'),vehicle_id=b.vehicle_id||'bosch_me7',proposals=generateProposals(vehicle_id),selected=Array.isArray(b.selected_proposals)?b.selected_proposals:[],result=applyTuning(original_data,selected.filter(p=>proposals.some(x=>x.id===p)),vehicle_id),valid=validateTunedFile(original_data,result.tuned,vehicle_id);if(!valid.valid)return j({error:'VALIDATION_FAILED',detail:valid.error},400);const tuned_id=id();await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,b.upload_id,vehicle_id,JSON.stringify(selected),result.hash,result.tuned.length,btoa(String.fromCharCode(...result.tuned)),now());return j({ok:true,tuned_id,size:result.tuned.length,hash:result.hash})}catch(e){return j({error:e.message||'GENERATE_FAILED'},400)}}
- if(p==='/api/ecu/download'){const m2=p.match(/\?tunedId=(.+)/);if(!m2)return j({error:'TUNED_ID_REQUIRED'},400);const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',decodeURIComponent(m2[1]));if(!tuned)return j({error:'TUNED_FILE_NOT_FOUND'},404);const binary=Uint8Array.from(atob(tuned.tuned_binary_data),c=>c.charCodeAt(0));return new Response(binary.buffer,{headers:{'content-type':'application/octet-stream','content-disposition':`attachment; filename="tuned-${tuned.id.slice(0,8)}.bin"`}})}
+ // ECU Tuning v2 — R2 + scan-based regions + AI compare
+ if(p==='/api/ecu/upload'&&m==='POST'){try{
+   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
+   const b=await body(req);
+   const fileData=typeof b.fileData==='string'?Uint8Array.from(atob(b.fileData),c=>c.charCodeAt(0)):new Uint8Array(b.fileData||[]);
+   if(!fileData.length)return j({error:'EMPTY_FILE'},400);
+   if(fileData.length>25*1024*1024)return j({error:'FILE_TOO_LARGE'},413);
+   const mod=await import('./lib/tuning-engine.js');
+   const fmt=mod.detectFileFormat(fileData);
+   const stats=mod.fileStats(fileData);
+   const regions=mod.scanRegions(fileData);
+   const upload_id=id();
+   const file_hash=await mod.sha256Hex(fileData);
+   const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
+   await env.FILES.put(key,fileData,{httpMetadata:{contentType:'application/octet-stream'}});
+   await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,created_at) VALUES(?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,now());
+   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))]});
+ }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
+
+ if(p==='/api/ecu/ai-suggest'&&m==='POST'){try{
+   const b=await body(req);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
+   const obj=await env.FILES.get(upload.binary_data);
+   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   const regions=mod.scanRegions(bytes);
+   const summary=mod.summarizeForAI(bytes,regions);
+   const sys='Sen bir ECU tuning uzmanısın. Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. SADECE JSON array döndür, başka metin yok. Format: [{"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı","risk":"low"}]. En fazla 8 öneri.';
+   const userMsg='DOSYA ÖZETİ:\n'+JSON.stringify(summary,null,2);
+   let aiSuggestions=[],provider='unknown',rawText='';
+   try{
+     const a=await withTimeout(aiFallback(env,[{role:'system',content:sys},{role:'user',content:userMsg}],{userText:userMsg,mode:'fast'}),15000,'AI_SUGGEST_TIMEOUT');
+     rawText=a?.text||'';
+     provider=a?.provider||'unknown';
+     const jsonMatch=rawText.match(/\[[\s\S]*\]/);
+     if(jsonMatch){try{aiSuggestions=JSON.parse(jsonMatch[0])}catch(err){aiSuggestions=[{system:'AI',action:'JSON parse hatası',result:rawText.slice(0,400),risk:'unknown'}]}}
+     else if(rawText){aiSuggestions=[{system:'AI',action:'JSON formatı yok',result:rawText.slice(0,400),risk:'unknown'}]}
+   }catch(err){return j({ok:false,error:'AI_UNAVAILABLE',detail:err.message,suggestions:[]},200)}
+   return j({ok:true,suggestions:aiSuggestions,provider,raw:rawText.slice(0,2000)});
+ }catch(e){return j({error:e.message||'AI_SUGGEST_FAILED'},500)}}
+
+ if(p==='/api/ecu/generate'&&m==='POST'){try{
+   const b=await body(req);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
+   const obj=await env.FILES.get(upload.binary_data);
+   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const original=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   const regions=mod.scanRegions(original);
+   const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
+   const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
+   const toApply=allActions.filter(a=>selectedIds.includes(a.id));
+   if(!toApply.length)return j({error:'NO_ACTIONS_SELECTED'},400);
+   const result=await mod.applyActions(original,toApply);
+   const tuned_id=id();
+   const outKey='ecu/'+tuned_id+'/tuned-'+String(upload.filename||'file.bin').replace(/[\\/]/g,'_');
+   await env.FILES.put(outKey,result.tuned,{httpMetadata:{contentType:'application/octet-stream'}});
+   await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,upload.id,'scan-v2',JSON.stringify(result.applied),result.hash,result.size,outKey,now());
+   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied});
+ }catch(e){return j({error:e.message||'GENERATE_FAILED'},500)}}
+
+ if(p.startsWith('/api/ecu/download')){try{
+   const u=new URL(req.url);
+   const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_FILE_NOT_FOUND'},404);
+   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
+   const obj=await env.FILES.get(tuned.tuned_binary_data);
+   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const upload=await q1(env,'SELECT filename FROM ecu_uploads WHERE id=?',tuned.upload_id);
+   const name=(upload?.filename||'tuned.bin').replace(/(\.[^.]+)$/,'_tuned$1');
+   return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+name+'"'}});
+ }catch(e){return j({error:e.message||'DOWNLOAD_FAILED'},500)}}
 
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/ai/diagnose')return j(await aiDiagnostics(env));

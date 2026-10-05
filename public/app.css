@@ -192,3 +192,48 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 
 /* reduced motion */
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* === v2 ECU · bölge/aksiyon/AI === */
+.ecuStatRow{display:flex;flex-wrap:wrap;gap:14px;padding:10px 12px;background:#060a15;border:1px solid var(--line);border-radius:10px;margin-bottom:14px;font-size:12px;color:var(--muted)}
+.ecuStatRow b{color:#dbeaf5;font-weight:700}
+
+.ecuTabs{display:flex;gap:6px;margin-bottom:12px;border-bottom:1px solid var(--line);padding-bottom:0}
+.ecuTab{flex:1;background:transparent;color:#8ba4b7;border:0;border-bottom:2px solid transparent;border-radius:0;padding:10px 8px;font-size:12px;font-weight:700;letter-spacing:.04em;min-height:0;cursor:pointer}
+.ecuTab:hover{color:#fff}
+.ecuTab.active{color:#31dfff;border-bottom-color:#31dfff}
+
+.ecuTabPanel{display:block}
+.ecuTabPanel.hidden{display:none!important}
+
+.ecuSysGroup{margin-bottom:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#060a15}
+.ecuSysHead{padding:10px 12px;background:#0b1a31;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px}
+.ecuSysHead b{font-size:13px;color:#31dfff}
+.ecuSysHead small{color:var(--muted);font-size:11px}
+
+.ecuRegion{padding:10px 12px;border-top:1px solid rgba(255,255,255,.04)}
+.ecuRegion:first-child{border-top:0}
+.ecuRegionMeta{display:flex;gap:10px;align-items:baseline;margin-bottom:6px;font-size:11px}
+.ecuRegionAddr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#ffbe55;font-weight:700}
+.ecuRegionStr{color:var(--muted);font-style:italic}
+.ecuRegionBytes{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#9fb6c9;background:#040812;padding:6px 8px;border-radius:6px;overflow-x:auto;white-space:nowrap;margin-bottom:8px}
+
+.ecuActionRow{display:flex;align-items:flex-start;gap:10px;padding:10px;background:#081226;border:1px solid rgba(255,255,255,.06);border-radius:10px;margin-top:6px;cursor:pointer}
+.ecuActionRow:hover{background:#0b1a31}
+.ecuActionRow input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:#31dfff;flex:0 0 18px;cursor:pointer}
+.ecuActionBody{flex:1;min-width:0}
+.ecuActionHead{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.ecuActionHead b{font-size:13px}
+.ecuRiskPill{font-size:9px;padding:2px 7px;border-radius:999px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.ecuActionBody small{color:var(--muted);font-size:11px;line-height:1.5}
+
+.ecuAISugg{background:#081226;border:1px solid var(--line);border-radius:11px;padding:11px;margin-bottom:8px}
+.ecuAISuggHead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ecuAISuggHead b{color:#a071ff}
+.ecuAISuggBody{display:grid;gap:3px;font-size:12px}
+.ecuAISuggBody small{color:var(--muted);font-size:10px;letter-spacing:.03em;text-transform:uppercase}
+.ecuAISuggBody code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#040812;padding:1px 5px;border-radius:4px;font-size:11px;color:#ffbe55}
+
+@media(max-width:600px){
+  .ecuRegionBytes{font-size:9px}
+  .ecuStatRow{gap:10px;font-size:11px}
+}
