@@ -28,6 +28,21 @@ jobs:
           set -euo pipefail
           test -s public/assets/6006/p0299-xray.jpg
           file public/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
+      - name: Inspect P0299 raster pixel coverage
+        run: |
+          set -euo pipefail
+          command -v identify
+          command -v convert
+          for f in public/assets/6006/p0299-xray.jpg public/assets/6006/p0299-xray.webp; do
+            echo "--- $f ---"
+            identify "$f"
+            printf 'top: '
+            convert "$f" -crop 640x180+0+0 +repage -colorspace RGB -format 'mean=%[fx:mean] sd=%[fx:standard_deviation]\n' info:
+            printf 'bottom: '
+            convert "$f" -crop 640x180+0+180 +repage -colorspace RGB -format 'mean=%[fx:mean] sd=%[fx:standard_deviation]\n' info:
+            echo '8x5 sample:'
+            convert "$f" -resize 8x5! -depth 8 txt:- | tail -n +2
+          done
       - name: Verify P0299 Safari compositor CSS
         run: |
           set -euo pipefail
