@@ -34,9 +34,7 @@ jobs:
           set -euo pipefail
           test -f dist/index.html
           test -f dist/assets/6006/p0299-xray.webp
-          test "$(xxd -p -l 4 dist/assets/6006/p0299-xray.webp)" = "52494646"
-          test "$(xxd -p -s 8 -l 4 dist/assets/6006/p0299-xray.webp)" = "57454250"
-          test "$(wc -c < dist/assets/6006/p0299-xray.webp)" -gt 10000
+          node -e "const fs=require('fs');const p='dist/assets/6006/p0299-xray.webp';const b=fs.readFileSync(p);if(b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP'||b.readUInt32LE(4)+8!==b.length||b.length<=10000){console.error('Invalid or truncated WebP',b.length,b.readUInt32LE(4)+8);process.exit(1)}"
           if grep -R -n -E '@floot/|floot\.app' dist; then
             echo 'Floot runtime reference found in dist/'
             exit 1
