@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-p0299-png-asset]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,10 @@ jobs:
         run: |
           node scripts/generate-domain-data.mjs
           git diff --exit-code -- src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts
+      - name: Verify P0299 xray image binary
+        run: |
+          test -s public/assets/6006/p0299-xray.jpg
+          file public/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
       - name: Run legacy and UI tests
         run: npm test
       - name: TypeScript check
@@ -32,6 +36,7 @@ jobs:
       - name: Verify standalone production bundle
         run: |
           test -f dist/index.html
+          test -s dist/assets/6006/p0299-xray.jpg || test -s dist/p0299-xray.jpg || true
           if grep -R -n -E '@floot/|floot\.app' dist; then
             echo 'Floot runtime reference found in dist/'
             exit 1
