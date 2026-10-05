@@ -23,11 +23,19 @@ jobs:
         run: |
           node scripts/generate-domain-data.mjs
           git diff --exit-code -- src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts
-      - name: Verify P0299 JPEG source binary
+      - name: Verify P0299 visual fully decodes
         run: |
           set -euo pipefail
-          test -s public/assets/6006/p0299-xray.jpg
-          file public/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
+          test -s public/assets/6006/p0299-xray.webp
+          python -m pip install --disable-pip-version-check --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          path = 'public/assets/6006/p0299-xray.webp'
+          image = Image.open(path)
+          image.load()
+          assert image.width >= 400 and image.height >= 200, image.size
+          print('P0299 source decoded:', image.size, image.mode)
+          PY
       - name: Verify P0299 Safari compositor CSS
         run: |
           set -euo pipefail
@@ -50,8 +58,15 @@ jobs:
         run: |
           set -euo pipefail
           test -f dist/index.html
-          test -s dist/assets/6006/p0299-xray.jpg
-          file dist/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
+          test -s dist/assets/6006/p0299-xray.webp
+          python - <<'PY'
+          from PIL import Image
+          path = 'dist/assets/6006/p0299-xray.webp'
+          image = Image.open(path)
+          image.load()
+          assert image.width >= 400 and image.height >= 200, image.size
+          print('P0299 dist asset decoded:', image.size, image.mode)
+          PY
           if grep -R -n -E '@floot/|floot\.app' dist; then
             echo 'Floot runtime reference found in dist/'
             exit 1
