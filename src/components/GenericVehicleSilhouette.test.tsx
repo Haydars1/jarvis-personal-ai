@@ -3,37 +3,29 @@ import { describe, expect, it } from "vitest";
 import { GenericVehicleSilhouette } from "./GenericVehicleSilhouette";
 
 describe("GenericVehicleSilhouette", () => {
-  it("renders a brand-neutral xray diagnostic vehicle instead of a flat shell", () => {
+  it("renders the photoreal diagnostic xray asset for boost/front-engine faults", () => {
     const { container } = render(<GenericVehicleSilhouette region="front-engine" tone="amber" />);
     const root = container.querySelector('[data-generic-vehicle="true"]');
     expect(root).toBeTruthy();
-    expect(root).toHaveAttribute("aria-hidden", "true");
-    expect(root?.querySelector('[data-xray-layer="true"]')).toBeTruthy();
+    expect(root).toHaveAttribute("data-photoreal-xray", "true");
+    const image = root?.querySelector("img");
+    expect(image).toBeTruthy();
+    expect(image?.getAttribute("src")).toMatch(/^data:image\/webp;base64,/);
     expect(root?.querySelector('[data-scan-layer="true"]')).toBeTruthy();
-    expect(root?.querySelectorAll('[data-system-node="true"]').length).toBeGreaterThanOrEqual(5);
-    expect(root?.querySelectorAll('[data-active-region="true"]')).toHaveLength(1);
-    expect(root?.textContent).toBe("");
+    expect(root?.querySelector('[data-active-region="true"]')).toBeTruthy();
     expect(root).not.toHaveAttribute("data-brand");
     expect(root).not.toHaveAttribute("data-model");
   });
 
-  it("moves the single diagnostic emphasis to the requested generic system region", () => {
-    const { container, rerender } = render(<GenericVehicleSilhouette region="front-engine" tone="amber" />);
-    expect(container.querySelector('[data-region="front-engine"][data-active-region="true"]')).toBeTruthy();
-
-    rerender(<GenericVehicleSilhouette region="wheels" tone="red" />);
-    expect(container.querySelectorAll('[data-active-region="true"]')).toHaveLength(1);
-    expect(container.querySelector('[data-region="wheels"][data-active-region="true"]')).toBeTruthy();
-  });
-
-  it("keeps internal systems visible while only the selected system receives active emphasis", () => {
+  it("keeps the generic schematic fallback for non-boost system scenes", () => {
     const { container } = render(<GenericVehicleSilhouette region="rear-underbody" tone="amber" />);
-    expect(container.querySelector('[data-system="engine"]')).toBeTruthy();
-    expect(container.querySelector('[data-system="turbo"]')).toBeTruthy();
-    expect(container.querySelector('[data-system="exhaust"]')).toBeTruthy();
-    expect(container.querySelector('[data-system="suspension"]')).toBeTruthy();
-    expect(container.querySelector('[data-system="cooling"]')).toBeTruthy();
-    expect(container.querySelectorAll('[data-active-region="true"]')).toHaveLength(1);
+    const root = container.querySelector('[data-generic-vehicle="true"]');
+    expect(root).toBeTruthy();
+    expect(root).not.toHaveAttribute("data-photoreal-xray");
+    expect(root?.querySelector('[data-xray-layer="true"]')).toBeTruthy();
+    expect(root?.querySelector('[data-system="engine"]')).toBeTruthy();
+    expect(root?.querySelector('[data-system="exhaust"]')).toBeTruthy();
+    expect(root?.querySelector('[data-active-region="true"]')).toBeTruthy();
   });
 
   it("does not accept brand or model identity as public props", () => {

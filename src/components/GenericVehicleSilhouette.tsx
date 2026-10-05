@@ -1,5 +1,6 @@
 import type { FaultSceneRegion } from "../domain/fault-scenes";
 import type { FaultTone } from "../domain/faults.types";
+import { XRAY_BOOST_SRC } from "../assets/xrayBoost";
 import "./GenericVehicleSilhouette.css";
 
 export interface GenericVehicleSilhouetteProps {
@@ -70,7 +71,41 @@ function RegionMarker({ region, active }: { region: FaultSceneRegion; active: bo
   );
 }
 
+function PhotorealBoostVehicle({ tone }: { tone: FaultTone }) {
+  return (
+    <div
+      className={`genericVehicle genericVehiclePhotoreal genericVehicleTone-${tone}`}
+      data-generic-vehicle="true"
+      data-photoreal-xray="true"
+      data-active-system-region="front-engine"
+      aria-hidden="true"
+      role="presentation"
+    >
+      <img className="genericVehiclePhotorealImage" src={XRAY_BOOST_SRC} alt="" draggable={false} />
+      <div className="genericVehiclePhotoVignette" />
+      <div className="genericVehiclePhotoGrid" />
+      <div className="genericVehiclePhotoScan" data-scan-layer="true"><i /></div>
+      <div
+        className="genericVehiclePhotoActive"
+        data-region="front-engine"
+        data-active-region="true"
+      >
+        <span className="genericVehiclePhotoTurboPulse" />
+        <span className="genericVehiclePhotoFlow genericVehiclePhotoFlowA" />
+        <span className="genericVehiclePhotoFlow genericVehiclePhotoFlowB" />
+        <span className="genericVehiclePhotoDot genericVehiclePhotoDotA" />
+        <span className="genericVehiclePhotoDot genericVehiclePhotoDotB" />
+        <span className="genericVehiclePhotoDot genericVehiclePhotoDotC" />
+      </div>
+    </div>
+  );
+}
+
 export function GenericVehicleSilhouette({ region, tone }: GenericVehicleSilhouetteProps) {
+  if (region === "front-engine") {
+    return <PhotorealBoostVehicle tone={tone} />;
+  }
+
   return (
     <svg
       className={`genericVehicle genericVehicleTone-${tone}`}
