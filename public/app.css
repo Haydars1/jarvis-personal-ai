@@ -13,3 +13,58 @@
 .ytStudio{max-width:1320px;margin:0 auto;padding:4px}.ytHero{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;background:linear-gradient(135deg,rgba(255,0,70,.10),rgba(28,53,99,.45))}.ytHero h2{margin:4px 0 8px;font-size:28px}.ytHero p{margin:0;max-width:780px;line-height:1.5}.ytEyebrow{font-size:10px;letter-spacing:.18em;color:#ff7b9f;font-weight:800}.ytLayout{display:grid;grid-template-columns:255px minmax(0,1fr);gap:14px}.ytModesPane{position:sticky;top:14px;align-self:start;max-height:calc(100vh - 40px);overflow:auto}.ytModes{display:flex;flex-direction:column;gap:7px}.ytMode{display:grid;grid-template-columns:32px 1fr;text-align:left;gap:2px 9px;padding:11px 12px;background:#091428;border:1px solid rgba(255,255,255,.08);border-radius:13px;color:inherit;cursor:pointer}.ytMode>span{grid-row:1/3;align-self:center;font-size:17px;color:#ff799b}.ytMode b{font-size:12px}.ytMode small{font-size:9px;color:var(--muted);line-height:1.25}.ytMode.active{border-color:#ff477566;background:linear-gradient(135deg,#261224,#0b1830);box-shadow:0 0 0 1px #ff477522 inset}.ytMain{min-width:0}.ytComposerCard label{display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--muted);margin:10px 0}.ytComposerHead{display:flex;justify-content:space-between;align-items:end;gap:12px}.ytComposerHead h3{margin:3px 0}.ytComposerHead select{max-width:360px}.ytGrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.ytUpload{display:flex;align-items:center;gap:10px;padding:10px;border:1px dashed rgba(255,255,255,.14);border-radius:12px;margin:10px 0;color:var(--muted);font-size:11px}.ytUpload input{max-width:260px}.ytActions{display:flex;gap:9px;margin-top:10px}.ytActions button{min-height:42px}.ytLabGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}.ytLabGrid .row{align-items:center}.ytLabGrid .row b{min-width:95px;text-align:center}.ytOutputHead{display:flex;justify-content:space-between;align-items:center}.ytOutputCard pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.55;margin:0;padding:15px;background:#050b17;border-radius:13px;min-height:220px;max-height:620px;overflow:auto;border:1px solid rgba(255,255,255,.07)}.ytSourceCard{margin-top:14px}.ytFeatureGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.ytFeatureGrid span{padding:9px 10px;border-radius:10px;background:rgba(255,255,255,.035);font-size:11px;color:#b9c7df}.ytSourceCard h3{margin-bottom:12px}
 @media(max-width:1050px){.ytLayout{grid-template-columns:1fr}.ytModesPane{position:static;max-height:none}.ytModes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.ytFeatureGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.ytStudio{padding-bottom:80px}.ytHero{align-items:flex-start;flex-direction:column}.ytHero h2{font-size:23px}.ytModes{grid-template-columns:1fr 1fr}.ytMode{padding:9px}.ytMode small{display:none}.ytGrid2,.ytLabGrid{grid-template-columns:1fr}.ytComposerHead{align-items:stretch;flex-direction:column}.ytComposerHead select{max-width:none;width:100%}.ytActions{flex-direction:column}.ytFeatureGrid{grid-template-columns:1fr 1fr}.ytUpload{align-items:flex-start;flex-direction:column}}
+
+/* === UI CLEANUP v1 — tutarlı düğme hiyerarşisi === */
+/* Ghost / secondary buttons */
+button.ghost{background:transparent;color:#cce3f3;border:1px solid #294466;font-weight:600}
+button.ghost:hover{border-color:#31dfff66;background:#0d1b33;color:#fff}
+button.ghost.danger{color:#ff9ab0;border-color:#ff5a7a55;background:transparent}
+button.ghost.danger:hover{background:#2a0f18;color:#ffb8c7}
+button.softBtn{padding:7px 10px;font-size:11px;background:transparent;color:#9fb6c9;border:1px solid #294466;font-weight:600}
+button.softBtn:hover{color:#fff;border-color:#31dfff66;background:#0d1b33}
+button.softBtn.danger{color:#ff9ab0;border-color:#ff5a7a55;background:transparent}
+button.softBtn.danger:hover{background:#2a0f18;color:#ffb8c7}
+
+/* Card footer: tüm aksiyonlar sağda hizalanır */
+.cardFooter{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.cardFooter button{min-height:40px}
+.cardFooter .primary,.cardFooter .face{margin-left:auto}
+@media(max-width:600px){.cardFooter{justify-content:stretch}.cardFooter button{flex:1}}
+
+/* Sidebar nav grupları */
+aside nav .navLabel{font-size:9px;letter-spacing:.22em;color:#5a7190;padding:14px 10px 2px;text-transform:uppercase;pointer-events:none}
+aside nav .navLabel:first-child{padding-top:4px}
+
+/* Bottom nav: 7 düğme için düzelt */
+@media(max-width:1050px){.bottomNav{grid-template-columns:repeat(7,1fr)}.bottomNav small{font-size:9px}.bottomNav button{padding:7px 2px}}
+@media(max-width:420px){.bottomNav small{font-size:8px}}
+
+/* Row içindeki tüm butonlar tutarlı yükseklik */
+.row button{min-height:38px}
+
+/* AI control bar label caps */
+.aiControlBar label{font-weight:700}
+
+/* ECU tuning panel (dark tema) */
+.ecuTuning{display:grid;gap:12px}
+.ecuTuningDrop{border:2px dashed #294466;border-radius:14px;padding:28px;text-align:center;background:#060a15;cursor:pointer;transition:border-color .15s,background .15s}
+.ecuTuningDrop:hover{border-color:#31dfff88;background:#081327}
+.ecuTuningDrop.has{border-style:solid;border-color:#35df9a66;background:#07140e}
+.ecuTuningDrop p{margin:4px 0;color:var(--muted)}
+.ecuTuningDrop b{color:var(--text);display:block;margin-bottom:4px}
+.ecuVehicleGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px}
+.ecuVehicleCard{padding:12px;border:1px solid #294466;border-radius:12px;background:#081226;cursor:pointer;transition:border-color .15s}
+.ecuVehicleCard:hover{border-color:#31dfff66}
+.ecuVehicleCard.selected{border-color:#31dfff;background:#0d1b33;box-shadow:0 0 0 1px #31dfff44 inset}
+.ecuVehicleCard b{display:block;font-size:14px}
+.ecuVehicleCard small{color:var(--muted);font-size:11px}
+.ecuProposalGrid{display:grid;gap:8px}
+.ecuProposal{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #294466;border-radius:12px;background:#081226;cursor:pointer}
+.ecuProposal input[type=checkbox]{width:18px;height:18px;margin-top:2px;accent-color:#31dfff}
+.ecuProposal b{display:block;font-size:13px;margin-bottom:3px}
+.ecuProposal small{color:var(--muted);font-size:11px;line-height:1.4}
+.ecuTuningWarn{padding:12px;border-radius:12px;background:#2a1a08;border:1px solid #ffbe5566;color:#ffd38a;font-size:12px;line-height:1.5}
+.ecuTuningDone{padding:14px;border-radius:12px;background:#07140e;border:1px solid #35df9a66;color:#9df0c5}
+
+/* YouTube ytModes görsel düzen */
+@media(min-width:1050px){.ytModes{padding-right:4px}}

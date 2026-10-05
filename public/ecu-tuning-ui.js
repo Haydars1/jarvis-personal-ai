@@ -1,289 +1,252 @@
-// ECU Tuning UI Module
-// Upload, vehicle detection, proposal review, download tuned file
+// ECU Tuning UI — mevcut ECU Studio bölümüne yeni "TUNING" kanalı olarak eklenir.
+// Backend: /api/ecu/upload, /api/ecu/generate, /api/ecu/download
+(() => {
+  const state = {
+    uploadId: null,
+    fileName: '',
+    fileSize: 0,
+    detections: [],
+    selectedVehicle: null,
+    proposals: [],
+    selectedProposals: new Set(),
+    tunedId: null
+  };
 
-export function initEcuTuningUI() {
-  const html = `
-    <div id="ecu-tuning-panel" style="padding:20px; background:#f5f5f5; border-radius:8px; margin:10px 0;">
-      <h2>🔧 ECU Tuning Studio</h2>
-      
-      <!-- Upload Section -->
-      <div id="ecu-upload-section" style="margin-bottom:20px;">
-        <div style="border:2px dashed #ccc; padding:20px; border-radius:8px; text-align:center; cursor:pointer;" id="ecu-drop-zone">
-          <p>📁 Drag ECU file here or <span style="color:blue; cursor:pointer;">click to upload</span></p>
-          <input type="file" id="ecu-file-input" accept=".hex,.bin" style="display:none;">
+  const q = s => document.querySelector(s);
+  const toast = t => { const e = q('#toast'); if (!e) return; e.textContent = t; e.classList.remove('hidden'); setTimeout(() => e.classList.add('hidden'), 2800); };
+
+  function mount() {
+    const ecuShell = document.querySelector('#ecu .ecuShell');
+    if (!ecuShell) { setTimeout(mount, 300); return; }
+    if (document.querySelector('[data-ecu-channel="tuning"]')) return;
+
+    // 1) Kanal butonu ekle (sekme listesinde)
+    const channels = document.querySelector('#ecu .ecuChannels');
+    if (channels && !channels.querySelector('[data-ecu-channel="tuning"]')) {
+      const btn = document.createElement('button');
+      btn.dataset.ecuChannel = 'tuning';
+      btn.textContent = 'TUNING';
+      channels.appendChild(btn);
+      btn.addEventListener('click', () => activateChannel('tuning'));
+    }
+
+    // 2) Panel ekle
+    const panel = document.createElement('div');
+    panel.className = 'card ecuPanel hidden';
+    panel.dataset.ecuPanel = 'tuning';
+    panel.innerHTML = `
+      <h3>Otomatik Tuning · Stage 1 / EGR Off</h3>
+      <p class="muted">Dosyayı yükle → araç tespit → öneri seç → tuned dosyayı indir. Üretim için gerçek adres haritası gereklidir; şu an deneysel.</p>
+
+      <div class="ecuTuning">
+        <div id="ecuTuningDrop" class="ecuTuningDrop">
+          <b>ECU dosyasını buraya bırak</b>
+          <p>veya tıkla · .bin / .hex kabul edilir · max 12 MB</p>
+          <input type="file" id="ecuTuningFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">
         </div>
-      </div>
-      
-      <!-- Detection Results -->
-      <div id="ecu-detection-results" style="display:none; margin-bottom:20px;">
-        <div style="background:white; padding:15px; border-radius:8px;">
-          <h3>🚗 Vehicle Detection</h3>
-          <div id="ecu-vehicles-list"></div>
-          <p id="ecu-detection-status"></p>
+
+        <div id="ecuTuningDetect" class="hidden">
+          <h3>Tespit Edilen Araçlar</h3>
+          <div id="ecuTuningVehicles" class="ecuVehicleGrid"></div>
         </div>
-      </div>
-      
-      <!-- Proposals Review -->
-      <div id="ecu-proposals-section" style="display:none; margin-bottom:20px;">
-        <div style="background:white; padding:15px; border-radius:8px;">
-          <h3>✅ Tuning Proposals</h3>
-          <p style="color:#666; font-size:0.9em;">Select which tuning modifications to apply:</p>
-          <div id="ecu-proposals-list"></div>
+
+        <div id="ecuTuningProposals" class="hidden">
+          <h3>Tuning Önerileri</h3>
+          <div id="ecuTuningList" class="ecuProposalGrid"></div>
+          <div class="ecuTuningWarn">⚠ Uygulamadan önce dosyayı yedekle. Üretim seviyesi değildir — gerçek Bosch ME7 / Siemens MSE7 adres haritası henüz entegre değil.</div>
+          <div class="cardFooter">
+            <button id="ecuTuningReset" class="ghost">SIFIRLA</button>
+            <button id="ecuTuningApply">UYGULA VE OLUŞTUR</button>
+          </div>
         </div>
-      </div>
-      
-      <!-- Confirmation -->
-      <div id="ecu-confirmation-section" style="display:none; margin-bottom:20px;">
-        <div style="background:#fff3cd; border-left:4px solid #ffc107; padding:15px; border-radius:4px;">
-          <p style="margin:0; font-weight:bold;">⚠️ Manual Review Required</p>
-          <p style="margin:5px 0 0 0; font-size:0.9em;">
-            You are about to apply tuning modifications. This is your responsibility.<br>
-            Please review the selected changes and confirm.
-          </p>
-          <div style="margin-top:10px;">
-            <button id="ecu-confirm-btn" style="background:#28a745; color:white; padding:8px 16px; border:none; border-radius:4px; cursor:pointer; margin-right:10px;">
-              ✓ Confirm & Generate Tuned File
-            </button>
-            <button id="ecu-cancel-btn" style="background:#dc3545; color:white; padding:8px 16px; border:none; border-radius:4px; cursor:pointer;">
-              ✗ Cancel
-            </button>
+
+        <div id="ecuTuningResult" class="hidden">
+          <div class="ecuTuningDone">
+            <b>✓ Tuned dosya hazır</b>
+            <div id="ecuTuningResultInfo" style="margin-top:6px;font-size:12px"></div>
+          </div>
+          <div class="cardFooter">
+            <button id="ecuTuningNew" class="ghost">YENİ DOSYA</button>
+            <button id="ecuTuningDownload">İNDİR</button>
           </div>
         </div>
       </div>
-      
-      <!-- Output -->
-      <div id="ecu-output-section" style="display:none; margin-bottom:20px;">
-        <div style="background:#d4edda; border-left:4px solid #28a745; padding:15px; border-radius:4px;">
-          <p style="margin:0; font-weight:bold;">✅ Tuning Complete</p>
-          <div id="ecu-output-info"></div>
-          <button id="ecu-download-btn" style="background:#007bff; color:white; padding:10px 20px; border:none; border-radius:4px; cursor:pointer; margin-top:10px;">
-            📥 Download Tuned File
-          </button>
-        </div>
-      </div>
-      
-      <!-- Status -->
-      <div id="ecu-status-msg" style="margin-top:20px; padding:10px; border-radius:4px; display:none;"></div>
-    </div>
-  `;
-  
-  return html;
-}
+    `;
+    ecuShell.appendChild(panel);
 
-export function setupEcuTuningHandlers(sendMessage) {
-  const dropZone = document.getElementById('ecu-drop-zone');
-  const fileInput = document.getElementById('ecu-file-input');
-  const statusMsg = document.getElementById('ecu-status-msg');
-  
-  let currentUploadId = null;
-  let currentProposals = [];
-  
-  function showStatus(msg, type = 'info') {
-    statusMsg.textContent = msg;
-    statusMsg.style.display = 'block';
-    statusMsg.style.background = type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1';
-    statusMsg.style.color = type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460';
+    bind();
   }
-  
-  // Drag & drop
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.style.background = '#e0e0e0';
-  });
-  
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.style.background = '';
-  });
-  
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.style.background = '';
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFileSelect(files[0]);
-    }
-  });
-  
-  dropZone.addEventListener('click', () => fileInput.click());
-  
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileSelect(e.target.files[0]);
-    }
-  });
-  
-  async function handleFileSelect(file) {
-    showStatus(`📂 Uploading ${file.name}...`, 'info');
-    
+
+  function activateChannel(channelName) {
+    document.querySelectorAll('[data-ecu-channel]').forEach(b => b.classList.toggle('active', b.dataset.ecuChannel === channelName));
+    document.querySelectorAll('[data-ecu-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.ecuPanel !== channelName));
+  }
+
+  function bind() {
+    const drop = q('#ecuTuningDrop');
+    const fileInput = q('#ecuTuningFile');
+    drop.addEventListener('click', () => fileInput.click());
+    drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#31dfff'; });
+    drop.addEventListener('dragleave', () => drop.style.borderColor = '');
+    drop.addEventListener('drop', e => { e.preventDefault(); drop.style.borderColor = ''; if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    q('#ecuTuningReset').addEventListener('click', resetFlow);
+    q('#ecuTuningNew').addEventListener('click', resetFlow);
+    q('#ecuTuningApply').addEventListener('click', applyTuning);
+    q('#ecuTuningDownload').addEventListener('click', downloadTuned);
+  }
+
+  async function handleFile(file) {
+    if (file.size > 12 * 1024 * 1024) { toast('Dosya 12 MB sınırını aşıyor'); return; }
+    state.fileName = file.name;
+    state.fileSize = file.size;
+    q('#ecuTuningDrop').classList.add('has');
+    q('#ecuTuningDrop').innerHTML = `<b>✓ ${esc(file.name)}</b><p>${(file.size / 1024).toFixed(1)} KB · yüklendi, araç tespit ediliyor...</p>`;
+
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      const formData = new FormData();
-      formData.append('file', new Blob([arrayBuffer]), file.name);
-      
-      const response = await fetch('/api/ecu/upload', {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      const b64 = btoa(bin);
+
+      const res = await fetch('/api/ecu/upload', {
         method: 'POST',
-        body: formData
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ filename: file.name, fileData: b64 })
       });
-      
-      const data = await response.json();
-      if (!data.ok) {
-        showStatus(`Error: ${data.error}`, 'error');
-        return;
-      }
-      
-      currentUploadId = data.uploadId;
-      showDetectionResults(data.detections, data.format);
-    } catch (e) {
-      showStatus(`Upload error: ${e.message}`, 'error');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
+
+      state.uploadId = data.uploadId;
+      state.detections = data.detections || [];
+      renderDetections();
+    } catch (err) {
+      toast('Yükleme: ' + err.message);
+      q('#ecuTuningDrop').classList.remove('has');
+      q('#ecuTuningDrop').innerHTML = `<b>ECU dosyasını buraya bırak</b><p>Hata: ${esc(err.message)} · tekrar dene</p>`;
     }
   }
-  
-  function showDetectionResults(detections, format) {
-    const resultDiv = document.getElementById('ecu-detection-results');
-    const vehiclesList = document.getElementById('ecu-vehicles-list');
-    const statusDiv = document.getElementById('ecu-detection-status');
-    
-    vehiclesList.innerHTML = '';
-    
-    if (detections.length === 0) {
-      statusDiv.innerHTML = '⚠️ No vehicle detected. Manual selection:';
-      const manualSelect = document.createElement('select');
-      manualSelect.id = 'ecu-manual-vehicle';
-      manualSelect.innerHTML = `
-        <option value="">-- Select Vehicle --</option>
-        <option value="bosch_me7">Bosch ME7</option>
-        <option value="siemens_mse7">Siemens MSE7</option>
-      `;
-      statusDiv.appendChild(manualSelect);
-      
-      manualSelect.addEventListener('change', (e) => {
-        if (e.target.value) {
-          showProposals(e.target.value);
-        }
-      });
-    } else {
-      detections.forEach(det => {
-        const div = document.createElement('div');
-        div.style.cssText = 'padding:10px; background:#f9f9f9; margin:5px 0; border-radius:4px; cursor:pointer; border-left:4px solid #007bff;';
-        div.innerHTML = `
-          <strong>${det.name}</strong> (${det.confidence.toFixed(0)}% match)<br>
-          <small>Size: ${det.fileSize} bytes | Expected: ${det.expectedSize} bytes</small>
-        `;
-        div.addEventListener('click', () => showProposals(det.vehicleId));
-        vehiclesList.appendChild(div);
-      });
-      statusDiv.innerHTML = '🎯 Click a vehicle to see tuning options';
-    }
-    
-    resultDiv.style.display = 'block';
-    showStatus(`✓ File uploaded (${format})`, 'success');
-  }
-  
-  function showProposals(vehicleId) {
-    const proposalDiv = document.getElementById('ecu-proposals-section');
-    const proposalsList = document.getElementById('ecu-proposals-list');
-    
-    proposalsList.innerHTML = '';
-    
-    // Mock proposals — replace with actual backend call
-    currentProposals = [
-      {
-        id: 'stage1',
-        name: 'Stage 1 Tuning',
-        description: 'Boost pressure +0.2 bar, fuel timing +2°',
-        risk: 'medium'
-      },
-      {
-        id: 'egr_off',
-        name: 'EGR Disable',
-        description: 'Disable EGR system',
-        risk: 'low'
-      }
-    ];
-    
-    currentProposals.forEach(prop => {
-      const label = document.createElement('label');
-      label.style.cssText = 'display:block; padding:10px; background:#f9f9f9; margin:5px 0; border-radius:4px; cursor:pointer;';
-      
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = prop.id;
-      checkbox.style.marginRight = '10px';
-      
-      const text = document.createElement('span');
-      text.innerHTML = `
-        <strong>${prop.name}</strong> [${prop.risk}]<br>
-        <small>${prop.description}</small>
-      `;
-      
-      label.appendChild(checkbox);
-      label.appendChild(text);
-      proposalsList.appendChild(label);
-    });
-    
-    proposalDiv.style.display = 'block';
-    
-    // Show confirmation button
-    const confirmSection = document.getElementById('ecu-confirmation-section');
-    confirmSection.style.display = 'block';
-  }
-  
-  // Confirm button
-  document.getElementById('ecu-confirm-btn').addEventListener('click', async () => {
-    const selected = Array.from(document.querySelectorAll('#ecu-proposals-list input[type="checkbox"]:checked')).map(x => x.value);
-    
-    if (selected.length === 0) {
-      showStatus('Select at least one tuning option', 'error');
+
+  function renderDetections() {
+    const section = q('#ecuTuningDetect');
+    const list = q('#ecuTuningVehicles');
+    section.classList.remove('hidden');
+    list.innerHTML = '';
+
+    if (!state.detections.length) {
+      list.innerHTML = '<div class="muted" style="padding:12px">Araç tespit edilemedi · dosya bilinmeyen format</div>';
       return;
     }
-    
-    showStatus('🔄 Generating tuned file...', 'info');
-    
+
+    state.detections.forEach(v => {
+      const card = document.createElement('div');
+      card.className = 'ecuVehicleCard';
+      card.innerHTML = `<b>${esc(v.type || v.id || 'Bilinmeyen')}</b><small>Güven: ${((v.confidence || 0) * 100).toFixed(0)}%</small>`;
+      card.addEventListener('click', () => selectVehicle(v, card));
+      list.appendChild(card);
+    });
+
+    if (state.detections.length === 1) selectVehicle(state.detections[0], list.firstChild);
+  }
+
+  async function selectVehicle(v, cardEl) {
+    document.querySelectorAll('.ecuVehicleCard').forEach(c => c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+    state.selectedVehicle = v.type || v.id;
+    state.proposals = v.proposals || [];
+    state.selectedProposals.clear();
+    renderProposals();
+  }
+
+  function renderProposals() {
+    const section = q('#ecuTuningProposals');
+    const list = q('#ecuTuningList');
+    section.classList.remove('hidden');
+    list.innerHTML = '';
+
+    if (!state.proposals.length) {
+      list.innerHTML = '<div class="muted" style="padding:12px">Bu araç için öneri yok</div>';
+      return;
+    }
+
+    state.proposals.forEach(p => {
+      const row = document.createElement('label');
+      row.className = 'ecuProposal';
+      row.innerHTML = `<input type="checkbox" data-pid="${esc(p.id)}"><div><b>${esc(p.label || p.id)}</b><small>${esc(p.description || '')}</small></div>`;
+      row.querySelector('input').addEventListener('change', e => {
+        if (e.target.checked) state.selectedProposals.add(p.id);
+        else state.selectedProposals.delete(p.id);
+      });
+      list.appendChild(row);
+    });
+  }
+
+  async function applyTuning() {
+    if (!state.uploadId || !state.selectedVehicle) { toast('Önce dosya yükle ve araç seç'); return; }
+    if (!state.selectedProposals.size) { toast('En az bir öneri seç'); return; }
+
+    const btn = q('#ecuTuningApply');
+    btn.disabled = true;
+    btn.textContent = 'OLUŞTURULUYOR...';
+
     try {
-      const response = await fetch('/api/ecu/generate', {
+      const res = await fetch('/api/ecu/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          uploadId: currentUploadId,
-          selectedProposals: selected
+          uploadId: state.uploadId,
+          vehicleId: state.selectedVehicle,
+          proposals: [...state.selectedProposals]
         })
       });
-      
-      const data = await response.json();
-      if (!data.ok) {
-        showStatus(`Error: ${data.error}`, 'error');
-        return;
-      }
-      
-      showTunedOutput(data);
-    } catch (e) {
-      showStatus(`Generation error: ${e.message}`, 'error');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
+
+      state.tunedId = data.tunedId;
+      q('#ecuTuningProposals').classList.add('hidden');
+      q('#ecuTuningResult').classList.remove('hidden');
+      q('#ecuTuningResultInfo').innerHTML = `Dosya: ${esc(state.fileName)}<br>Uygulanan yama sayısı: ${(data.appliedPatches || []).length}<br>Boyut: ${data.size || state.fileSize} bayt`;
+      toast('Tuned dosya hazır');
+    } catch (err) {
+      toast('Hata: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'UYGULA VE OLUŞTUR';
     }
-  });
-  
-  // Cancel button
-  document.getElementById('ecu-cancel-btn').addEventListener('click', () => {
-    location.reload();
-  });
-  
-  function showTunedOutput(data) {
-    const outputSection = document.getElementById('ecu-output-section');
-    const outputInfo = document.getElementById('ecu-output-info');
-    
-    outputInfo.innerHTML = `
-      <p style="margin:10px 0;">Applied: <strong>${data.appliedPatches.length}</strong> patches</p>
-      <p style="margin:0;">File size: <strong>${data.size}</strong> bytes | Hash: <code style="font-size:0.8em;">${data.hash.slice(0, 16)}...</code></p>
-    `;
-    
-    outputSection.style.display = 'block';
-    
-    document.getElementById('ecu-download-btn').addEventListener('click', () => {
-      const link = document.createElement('a');
-      link.href = `/api/ecu/download?tunedId=${data.tunedId}`;
-      link.download = `tuned_${data.uploadId}.bin`;
-      link.click();
-    });
-    
-    showStatus('✅ Tuning complete! Ready to download.', 'success');
   }
-}
+
+  function downloadTuned() {
+    if (!state.tunedId) return;
+    const a = document.createElement('a');
+    a.href = `/api/ecu/download?tunedId=${encodeURIComponent(state.tunedId)}`;
+    a.download = state.fileName.replace(/\.(bin|hex|rom|ori)$/i, '_tuned.$1');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function resetFlow() {
+    state.uploadId = null;
+    state.fileName = '';
+    state.detections = [];
+    state.selectedVehicle = null;
+    state.proposals = [];
+    state.selectedProposals.clear();
+    state.tunedId = null;
+    q('#ecuTuningDrop').classList.remove('has');
+    q('#ecuTuningDrop').innerHTML = '<b>ECU dosyasını buraya bırak</b><p>veya tıkla · .bin / .hex kabul edilir · max 12 MB</p><input type="file" id="ecuTuningFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">';
+    q('#ecuTuningDetect').classList.add('hidden');
+    q('#ecuTuningProposals').classList.add('hidden');
+    q('#ecuTuningResult').classList.add('hidden');
+    bind();
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>'"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[m]));
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+  else mount();
+})();
