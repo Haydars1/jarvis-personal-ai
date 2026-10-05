@@ -16,14 +16,28 @@ export function FaultFlowDiagram({ scene, language }: { scene: FaultScene; langu
   );
   const focusedNode = orderedNodes.find((node) => node.id === focusedId) ?? orderedNodes[0];
   const flowStyle = { "--flow-count": orderedNodes.length } as CSSProperties;
+  const compactBoostMobile = scene.id === "boost";
 
   return (
     <div className="faultFlowDiagram" data-flow-scene={scene.id}>
-      <div className="faultFlowTrack" role="list" aria-label={scene.title[language]} style={flowStyle}>
+      <div
+        className="faultFlowTrack"
+        role="list"
+        aria-label={scene.title[language]}
+        style={flowStyle}
+        data-mobile-layout={compactBoostMobile ? "2x2" : undefined}
+      >
         {orderedNodes.map((node, index) => {
           const focused = node.id === focusedNode?.id;
+          const mobileSecondary = compactBoostMobile && node.id === "engine";
           return (
-            <div className="faultFlowStep" role="listitem" key={node.id}>
+            <div
+              className="faultFlowStep"
+              role="listitem"
+              key={node.id}
+              data-flow-step={node.id}
+              data-mobile-secondary={mobileSecondary ? "true" : undefined}
+            >
               <button
                 type="button"
                 className={`faultFlowNode${focused ? " isFocused" : ""}`}
