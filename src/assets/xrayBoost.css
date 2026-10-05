@@ -26,9 +26,13 @@
     filter: none !important;
     transform: none !important;
     isolation: auto !important;
+    border-radius: 10px;
   }
 
   .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotorealImage {
+    inset: 5% 4% !important;
+    width: 92% !important;
+    height: 90% !important;
     object-fit: contain !important;
     object-position: center !important;
     transform: none !important;
@@ -36,7 +40,19 @@
   }
 
   .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoGrid,
-  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoVignette {
-    display: none;
+  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoVignette,
+  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoScan,
+  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoFlow,
+  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoDot {
+    display: none !important;
+  }
+
+  .genericVehicle.genericVehiclePhotoreal .genericVehiclePhotoTurboPulse {
+    left: 27.5%;
+    top: 36%;
+    width: 15%;
+    border-width: 1px;
+    box-shadow: 0 0 8px rgba(224,166,78,.5), 0 0 18px rgba(224,166,78,.18);
+    animation-duration: 3.2s;
   }
 }
