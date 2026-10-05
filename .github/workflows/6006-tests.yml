@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp, fix/6006-p0299-jpeg-final]
   workflow_dispatch:
 
 permissions:
@@ -23,6 +23,11 @@ jobs:
         run: |
           node scripts/generate-domain-data.mjs
           git diff --exit-code -- src/domain/fault-data.generated.ts src/domain/fault-localizations.generated.ts
+      - name: Verify P0299 JPEG source binary
+        run: |
+          set -euo pipefail
+          test -s public/assets/6006/p0299-xray.jpg
+          file public/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
       - name: Run legacy and UI tests
         run: npm test
       - name: TypeScript check
@@ -33,8 +38,8 @@ jobs:
         run: |
           set -euo pipefail
           test -f dist/index.html
-          test -f dist/assets/6006/p0299-xray.webp
-          node -e "const fs=require('fs');const p='dist/assets/6006/p0299-xray.webp';const b=fs.readFileSync(p);if(b.toString('ascii',0,4)!=='RIFF'||b.toString('ascii',8,12)!=='WEBP'||b.readUInt32LE(4)+8!==b.length||b.length<=10000){console.error('Invalid or truncated WebP',b.length,b.readUInt32LE(4)+8);process.exit(1)}"
+          test -s dist/assets/6006/p0299-xray.jpg
+          file dist/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
           if grep -R -n -E '@floot/|floot\.app' dist; then
             echo 'Floot runtime reference found in dist/'
             exit 1
