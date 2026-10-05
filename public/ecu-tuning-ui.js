@@ -86,9 +86,11 @@
       state.regions = data.regions || [];
       state.systems = data.systems || [];
       state.stats = data.stats || null;
+      state.rulepackMatches = data.rulepackMatches || [];
       state.selectedActions.clear();
 
-      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge, ${state.systems.length} sistem bulundu`;
+      const rpInfo = state.rulepackMatches.length ? ` · ✓ ${state.rulepackMatches[0].familyName}` : '';
+      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge${rpInfo}`;
       renderStep2();
       // AI arka planda başlasın
       requestAISuggestions();
@@ -110,8 +112,24 @@
     step2.classList.remove('hidden');
 
     // Önce step2'nin içeriğini sıfırdan yaz
+    const rpBanner = state.rulepackMatches && state.rulepackMatches.length ? `
+      <div class="ecuRulepackHit">
+        <div class="ecuRulepackHead">
+          <b>✓ ${esc(state.rulepackMatches[0].familyName)}</b>
+          <small>${esc(state.rulepackMatches[0].description || '')}</small>
+        </div>
+        ${state.rulepackMatches[0].firmware ? `<div class="ecuFirmwareHit">◉ Firmware eşleşmesi: <b>${esc(state.rulepackMatches[0].firmware.name)}</b></div>` : ''}
+        <div class="ecuRulepackSources">
+          Kaynaklar: ${(state.rulepackMatches[0].sources || []).slice(0,3).map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>`).join(' · ')}
+        </div>
+        ${state.rulepackMatches[0].notes ? `<div class="ecuRulepackNotes">${esc(state.rulepackMatches[0].notes)}</div>` : ''}
+      </div>
+    ` : '';
+
     step2.innerHTML = `
       <div class="stepHead"><span class="stepNum">2</span><h2>Bölgeler ve öneriler</h2></div>
+
+      ${rpBanner}
 
       ${state.stats ? `<div class="ecuStatRow">
         <span>Boyut: <b>${fmtSize(state.stats.size)}</b></span>
@@ -189,18 +207,24 @@
               <span class="ecuRegionStr">"${esc(r.foundString.slice(0,32))}"</span>
             </div>
             <div class="ecuRegionBytes">${esc(r.windowHex)}</div>
-            ${r.actions.length ? r.actions.map(a => `
+            ${r.actions.length ? r.actions.map(a => {
+              const isRulepack = a.source && a.source.startsWith('rulepack:');
+              const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
+              const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
+              return `
               <label class="ecuActionRow">
                 <input type="checkbox" class="ecuActionCheck" data-id="${esc(a.id)}">
                 <div class="ecuActionBody">
                   <div class="ecuActionHead">
                     <b>${esc(a.label)}</b>
+                    <span class="ecuRiskPill" style="background:${srcColor}22;color:${srcColor}">${srcLabel}</span>
                     <span class="ecuRiskPill" style="background:${riskColor(a.risk)}22;color:${riskColor(a.risk)}">${esc(a.risk||'?')}</span>
                   </div>
                   <small>${esc(a.detail)}</small>
+                  ${a.sourceUrl ? `<small style="margin-top:4px"><a href="${esc(a.sourceUrl)}" target="_blank" rel="noopener" style="color:#9fb6c9">→ kaynak</a></small>` : ''}
                 </div>
               </label>
-            `).join('') : '<div class="muted" style="padding:8px;font-size:11px">Bu bölge için otomatik aksiyon yok</div>'}
+            `;}).join('') : '<div class="muted" style="padding:8px;font-size:11px">Bu bölge için otomatik aksiyon yok</div>'}
           </div>
         `).join('')}
       </div>
@@ -380,6 +404,37 @@
       loadBridges();
     } catch (err) { toast('Token: ' + err.message); }
   }
+
+  async function loadRulepackList() {
+    const el = $('#rulepackList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/ecu/rulepacks');
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'FAILED');
+      el.innerHTML = data.packs.map(p => `
+        <div class="rulepackItem">
+          <b>${esc(p.familyName)}</b>
+          <small>${esc(p.description)}</small>
+          <div class="meta">${p.sourceCount} kaynak · ${p.firmwareCount} firmware tanımı · ${p.mapCount} harita</div>
+          ${p.notes ? `<small style="margin-top:6px">${esc(p.notes)}</small>` : ''}
+        </div>
+      `).join('') + `
+        <div class="rulepackItem" style="border-color:#31dfff44">
+          <b>Tüm kaynaklar</b>
+          <div class="rulepackSourceList">
+            ${data.sources.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} <small style="color:#8ba4b7">· ${esc(s.family)}${s.license ? ' · ' + esc(s.license) : ''}</small></a>`).join('')}
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      el.innerHTML = '<div class="muted">Rulepack listesi yüklenemedi: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  // Ayarlar açıldığında rulepack listesini yükle
+  const settingsBtn = document.querySelector('[data-page="settings"]');
+  if (settingsBtn) settingsBtn.addEventListener('click', () => setTimeout(loadRulepackList, 300));
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

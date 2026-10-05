@@ -237,11 +237,57 @@ function buildActions(system, offset, bytes) {
 }
 
 // ---------- Ana tarama ----------
-export function scanRegions(bytes) {
+export async function scanRegions(bytes) {
   const strings = extractStrings(bytes, 4, 48);
   const regions = [];
   const perSystem = new Map();
 
+  // 1) Önce rulepack araması — biliniyor mu bu dosya?
+  let rulepackMatches = [];
+  let knownActions = [];
+  try {
+    const { identifyRulepacks, rulepackActions } = await import('./ecu-rulepacks.js');
+    rulepackMatches = identifyRulepacks(bytes, strings);
+    knownActions = rulepackActions(rulepackMatches);
+  } catch (err) {
+    // Rulepack yüklenemezse sorun değil, scanner devam eder
+  }
+
+  // Rulepack aksiyonlarını region'lara dönüştür (eşleşen her firmware için)
+  for (const action of knownActions) {
+    const ofs = action.offset;
+    const windowStart = Math.max(0, ofs - 8);
+    const windowEnd = Math.min(bytes.length, ofs + 24);
+    const windowBytes = bytes.subarray(windowStart, windowEnd);
+    const currentByte = bytes[ofs];
+
+    regions.push({
+      id: 'rp_' + action.id,
+      system: action.system,
+      desc: '✓ Doğrulanmış kaynak (rulepack)',
+      foundString: action.label,
+      offset: ofs,
+      offsetHex: hexAddr(ofs),
+      windowHex: hexDump(windowBytes),
+      windowStart,
+      source: action.source,
+      sourceUrl: action.sourceUrl,
+      actions: [{
+        id: action.id,
+        label: action.label,
+        detail: action.detail,
+        offset: ofs,
+        currentByte,
+        newByte: action.newByte,
+        risk: action.risk,
+        confidence: 'high',
+        source: action.source,
+        sourceUrl: action.sourceUrl
+      }]
+    });
+  }
+
+  // 2) Scanner heuristiği — string tabanlı
   for (const s of strings) {
     for (const sys of SYSTEMS) {
       if (!sys.re.test(s.text)) continue;
@@ -249,7 +295,7 @@ export function scanRegions(bytes) {
       const key = sys.system + ':' + s.offset;
       if (perSystem.has(key)) continue;
 
-      // En fazla sistem başına 4 hit — spam önler
+      // En fazla sistem başına 4 hit
       const sysHits = [...perSystem.values()].filter(r => r.system === sys.system).length;
       if (sysHits >= 4) continue;
 
@@ -257,16 +303,24 @@ export function scanRegions(bytes) {
       const windowEnd = Math.min(bytes.length, s.offset + s.text.length + 24);
       const windowBytes = bytes.subarray(windowStart, windowEnd);
 
+      const heuristicActions = buildActions(sys.system, s.offset, bytes).map(a => ({
+        ...a,
+        confidence: 'low',
+        source: 'scanner-heuristic',
+        sourceUrl: null
+      }));
+
       const region = {
         id: sys.system.toLowerCase().replace(/[^a-z]/g, '_') + '_' + s.offset.toString(16),
         system: sys.system,
-        desc: sys.desc,
+        desc: sys.desc + ' (heuristik)',
         foundString: s.text,
         offset: s.offset,
         offsetHex: hexAddr(s.offset),
         windowHex: hexDump(windowBytes),
         windowStart,
-        actions: buildActions(sys.system, s.offset, bytes)
+        source: 'scanner-heuristic',
+        actions: heuristicActions
       };
       perSystem.set(key, region);
       regions.push(region);
@@ -274,6 +328,9 @@ export function scanRegions(bytes) {
   }
 
   regions.sort((a, b) => a.offset - b.offset);
+
+  // Metadata eklentisi
+  regions._rulepackMatches = rulepackMatches;
   return regions;
 }
 

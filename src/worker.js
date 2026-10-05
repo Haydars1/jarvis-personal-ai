@@ -682,14 +682,19 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const mod=await import('./lib/tuning-engine.js');
    const fmt=mod.detectFileFormat(fileData);
    const stats=mod.fileStats(fileData);
-   const regions=mod.scanRegions(fileData);
+   const regions=await mod.scanRegions(fileData);
    const upload_id=id();
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
    await env.FILES.put(key,fileData,{httpMetadata:{contentType:'application/octet-stream'}});
    await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,created_at) VALUES(?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,now());
-   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))]});
+   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))],rulepackMatches:regions._rulepackMatches||[]});
  }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
+
+ if(p==='/api/ecu/rulepacks'&&m==='GET'){try{
+   const {RULEPACKS,allSources}=await import('./lib/ecu-rulepacks.js');
+   return j({ok:true,packs:RULEPACKS.map(p=>({family:p.family,familyName:p.familyName,description:p.description,sourceCount:(p.sources||[]).length,firmwareCount:Object.keys(p.firmwares||{}).length,mapCount:(p.familyMaps||[]).length,notes:p.notes})),sources:allSources()});
+ }catch(e){return j({error:e.message||'RULEPACKS_FAILED'},500)}}
 
  if(p==='/api/ecu/ai-suggest'&&m==='POST'){try{
    const b=await body(req);
@@ -700,7 +705,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
    const bytes=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
-   const regions=mod.scanRegions(bytes);
+   const regions=await mod.scanRegions(bytes);
    const summary=mod.summarizeForAI(bytes,regions);
    const sys='Sen bir ECU tuning uzmanısın. Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. SADECE JSON array döndür, başka metin yok. Format: [{"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı","risk":"low"}]. En fazla 8 öneri.';
    const userMsg='DOSYA ÖZETİ:\n'+JSON.stringify(summary,null,2);
@@ -725,7 +730,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
    const original=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
-   const regions=mod.scanRegions(original);
+   const regions=await mod.scanRegions(original);
    const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
    const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
    const toApply=allActions.filter(a=>selectedIds.includes(a.id));

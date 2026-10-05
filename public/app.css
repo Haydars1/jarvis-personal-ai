@@ -237,3 +237,28 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
   .ecuRegionBytes{font-size:9px}
   .ecuStatRow{gap:10px;font-size:11px}
 }
+
+/* === Rulepack match banner === */
+.ecuRulepackHit{background:linear-gradient(135deg,#07140e,#0a2a1a);border:1px solid #35df9a66;border-radius:12px;padding:12px 14px;margin-bottom:14px}
+.ecuRulepackHead{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.ecuRulepackHead b{color:#9df0c5;font-size:14px}
+.ecuRulepackHead small{color:#8ba4b7;font-size:11px}
+.ecuFirmwareHit{color:#31dfff;font-size:12px;margin-bottom:6px}
+.ecuFirmwareHit b{color:#9fe3ff}
+.ecuRulepackSources{font-size:11px;color:var(--muted);margin-top:4px}
+.ecuRulepackSources a{color:#9fe3ff;text-decoration:none;border-bottom:1px dotted #31dfff55}
+.ecuRulepackSources a:hover{color:#fff}
+.ecuRulepackNotes{font-size:11px;color:#b0c4d4;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05);line-height:1.5}
+
+.ecuActionBody a{color:#9fe3ff;text-decoration:none;font-size:10px}
+.ecuActionBody a:hover{color:#fff;text-decoration:underline}
+
+/* Rulepack list in settings */
+.rulepackList{display:grid;gap:10px}
+.rulepackItem{padding:12px;background:#081226;border:1px solid var(--line);border-radius:10px}
+.rulepackItem b{display:block;color:#31dfff;margin-bottom:4px}
+.rulepackItem small{color:var(--muted);font-size:11px;line-height:1.5;display:block;margin-bottom:4px}
+.rulepackItem .meta{font-size:10px;color:#9fb6c9;margin-top:6px}
+.rulepackSourceList{display:grid;gap:4px;margin-top:8px;font-size:11px}
+.rulepackSourceList a{color:#9fe3ff;text-decoration:none}
+.rulepackSourceList a:hover{text-decoration:underline}
