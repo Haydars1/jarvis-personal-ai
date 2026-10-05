@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FaultVisualCard } from "../components/FaultVisualCard";
 import { PublicSupportChat } from "../components/PublicSupportChat";
+import { resolveFaultScene } from "../domain/fault-scene-resolver";
 import { faultByCode, localizeFault } from "../domain/faults";
 import { loadLanguage, type Language } from "../i18n/language";
 import "./FaultPage.css";
@@ -18,10 +20,6 @@ type Copy = {
   note: string;
   unknownTitle: string;
   unknownText: string;
-  workspace: string;
-  path: string;
-  verify: string;
-  next: string;
 };
 
 const COPY: Record<Language, Copy> = {
@@ -38,10 +36,6 @@ const COPY: Record<Language, Copy> = {
     note: "Hinweis",
     unknownTitle: "Unbekannter Fehlercode",
     unknownText: "Dieser Code ist nicht in der 6006 Fehlerbibliothek. Es wird keine technische Diagnose erfunden; bitte vollständigen Diagnosebericht und Steuergerät prüfen.",
-    workspace: "Diagnose-Arbeitsbereich",
-    path: "Systempfad",
-    verify: "Prüfung",
-    next: "Nächster Schritt",
   },
   tr: {
     back: "Arıza kütüphanesi",
@@ -56,10 +50,6 @@ const COPY: Record<Language, Copy> = {
     note: "Not",
     unknownTitle: "Bilinmeyen arıza kodu",
     unknownText: "Bu kod 6006 arıza kütüphanesinde bulunmuyor. Teknik teşhis uydurulmaz; tam teşhis raporu ve kontrol ünitesi kontrol edilmelidir.",
-    workspace: "Teşhis çalışma alanı",
-    path: "Sistem yolu",
-    verify: "Doğrulama",
-    next: "Sonraki adım",
   },
   en: {
     back: "Fault library",
@@ -74,10 +64,6 @@ const COPY: Record<Language, Copy> = {
     note: "Note",
     unknownTitle: "Unknown fault code",
     unknownText: "This code is not in the 6006 fault library. No technical diagnosis is invented; review the complete diagnostic report and control unit.",
-    workspace: "Diagnostic workspace",
-    path: "System path",
-    verify: "Verification",
-    next: "Next step",
   },
 };
 
@@ -100,6 +86,7 @@ export function FaultPage() {
   const [language] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
   const source = faultByCode(code);
   const fault = source ? localizeFault(source, language) : undefined;
+  const scene = fault ? resolveFaultScene(fault) : undefined;
   const copy = COPY[language];
 
   useEffect(() => {
@@ -142,38 +129,7 @@ export function FaultPage() {
               <article><span>{copy.drive}</span><strong>{fault.drive}</strong></article>
             </section>
 
-            <section className="faultWorkspace" data-fault-workspace="true">
-              <div className="faultWorkspaceTopline">
-                <span>6006 / {copy.workspace}</span>
-                <b>{fault.code}</b>
-              </div>
-              <div className="faultWorkspaceGrid">
-                <article>
-                  <span>01 / {copy.path}</span>
-                  <strong>{fault.system}</strong>
-                  <p>{fault.meaning}</p>
-                </article>
-                <article>
-                  <span>02 / {copy.causes}</span>
-                  <strong>{fault.causes[0] ?? fault.note}</strong>
-                  {fault.causes[1] && <p>{fault.causes[1]}</p>}
-                </article>
-                <article>
-                  <span>03 / {copy.verify}</span>
-                  <strong>{fault.diagnosis[0] ?? fault.note}</strong>
-                  {fault.diagnosis[1] && <p>{fault.diagnosis[1]}</p>}
-                </article>
-                <article>
-                  <span>04 / {copy.next}</span>
-                  <strong>{fault.solutions[0] ?? fault.note}</strong>
-                  {fault.solutions[1] && <p>{fault.solutions[1]}</p>}
-                </article>
-              </div>
-              <div className="faultWorkspaceNote">
-                <i />
-                <p>{language === "tr" ? "Bu çalışma alanı arıza kodunu genel sistem bağlamında açıklar. Araca özel ölçüm değerleri veya üreticiye özel bilgi gerekiyorsa teşhis sohbetinde araç bilgisi sorulur." : language === "en" ? "This workspace explains the fault code in general system context. Vehicle details are requested in diagnostic chat only when manufacturer-specific data or measurements are needed." : "Dieser Arbeitsbereich erklärt den Fehlercode im allgemeinen Systemkontext. Fahrzeugspezifische Daten werden im Diagnose-Chat nur dann abgefragt, wenn sie wirklich benötigt werden."}</p>
-              </div>
-            </section>
+            {scene && <FaultVisualCard scene={scene} language={language} />}
 
             <section className="faultMeaningSection">
               <span>{copy.meaning}</span>
