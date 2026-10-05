@@ -31,18 +31,26 @@ jobs:
       - name: Inspect P0299 raster pixel coverage
         run: |
           set -euo pipefail
-          command -v identify
-          command -v convert
-          for f in public/assets/6006/p0299-xray.jpg public/assets/6006/p0299-xray.webp; do
-            echo "--- $f ---"
-            identify "$f"
-            printf 'top: '
-            convert "$f" -crop 640x180+0+0 +repage -colorspace RGB -format 'mean=%[fx:mean] sd=%[fx:standard_deviation]\n' info:
-            printf 'bottom: '
-            convert "$f" -crop 640x180+0+180 +repage -colorspace RGB -format 'mean=%[fx:mean] sd=%[fx:standard_deviation]\n' info:
-            echo '8x5 sample:'
-            convert "$f" -resize 8x5! -depth 8 txt:- | tail -n +2
-          done
+          python -m pip install --disable-pip-version-check --quiet pillow
+          python - <<'PY'
+          from PIL import Image, ImageStat
+          files = [
+              'public/assets/6006/p0299-xray.jpg',
+              'public/assets/6006/p0299-xray.webp',
+          ]
+          for path in files:
+              print(f'--- {path} ---')
+              im = Image.open(path).convert('RGB')
+              im.load()
+              print('size=', im.size, 'format-decoded=RGB')
+              w, h = im.size
+              for label, box in [('top', (0, 0, w, h//2)), ('bottom', (0, h//2, w, h))]:
+                  stat = ImageStat.Stat(im.crop(box))
+                  print(label, 'mean=', [round(v, 2) for v in stat.mean], 'std=', [round(v, 2) for v in stat.stddev])
+              sample = im.resize((8, 5))
+              for y in range(5):
+                  print('row', y, [sample.getpixel((x, y)) for x in range(8)])
+          PY
       - name: Verify P0299 Safari compositor CSS
         run: |
           set -euo pipefail
