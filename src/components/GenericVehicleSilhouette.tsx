@@ -75,6 +75,7 @@ export function GenericVehicleSilhouette({ region, tone }: GenericVehicleSilhoue
     <svg
       className={`genericVehicle genericVehicleTone-${tone}`}
       data-generic-vehicle="true"
+      data-active-system-region={region}
       aria-hidden="true"
       viewBox="0 0 960 430"
       role="presentation"
@@ -132,9 +133,9 @@ export function GenericVehicleSilhouette({ region, tone }: GenericVehicleSilhoue
 
         <g className="genericVehicleSystem genericVehicleSystem-exhaust" data-system="exhaust" data-system-node="true">
           <path className="genericVehicleFlowLine genericVehicleExhaustPipe" d="M618 259 C574 277 542 289 502 298 C442 312 375 316 311 319 C262 321 219 318 178 310" />
-          <rect x="435" y="284" width="92" height="42" rx="15" />
-          <path d="M448 293 L514 317 M448 317 L514 293" />
-          <rect x="249" y="296" width="94" height="37" rx="17" />
+          <rect className="genericVehicleDpf" x="435" y="284" width="92" height="42" rx="15" />
+          <path className="genericVehicleDpf" d="M448 293 L514 317 M448 317 L514 293" />
+          <rect className="genericVehicleRearTreatment" x="249" y="296" width="94" height="37" rx="17" />
           <circle cx="383" cy="307" r="9" />
           <circle cx="361" cy="311" r="6" />
         </g>
@@ -166,10 +167,7 @@ export function GenericVehicleSilhouette({ region, tone }: GenericVehicleSilhoue
         </g>
       </g>
 
-      <path
-        className="genericVehicleShell"
-        d="M116 274 C137 222 199 188 292 170 L382 104 C426 72 479 62 546 68 L665 84 C716 91 757 111 793 145 L839 189 C874 199 899 220 908 250 L913 275 C917 291 906 303 886 304 H817 C808 251 778 225 738 225 C694 225 661 255 654 306 H352 C345 254 312 226 268 226 C225 226 193 255 184 306 H132 C107 306 101 289 116 274 Z"
-      />
+      <path className="genericVehicleShell" d="M116 274 C137 222 199 188 292 170 L382 104 C426 72 479 62 546 68 L665 84 C716 91 757 111 793 145 L839 189 C874 199 899 220 908 250 L913 275 C917 291 906 303 886 304 H817 C808 251 778 225 738 225 C694 225 661 255 654 306 H352 C345 254 312 226 268 226 C225 226 193 255 184 306 H132 C107 306 101 289 116 274 Z" />
       <path className="genericVehicleShellLine" d="M292 170 L839 189" />
       <path className="genericVehicleShellLine" d="M382 104 L405 266 M546 68 L552 267 M665 84 L637 267" />
       <path className="genericVehicleShellLine" d="M184 306 L352 306 M654 306 L817 304" />
