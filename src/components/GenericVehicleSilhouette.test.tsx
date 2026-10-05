@@ -10,7 +10,7 @@ describe("GenericVehicleSilhouette", () => {
     expect(root).toHaveAttribute("data-photoreal-xray", "true");
     const image = root?.querySelector("img");
     expect(image).toBeTruthy();
-    expect(image?.getAttribute("src")).toBe("/assets/6006/p0299-xray.jpg");
+    expect(image?.getAttribute("src")).toBe("/assets/6006/p0299-xray.webp");
     expect(image?.getAttribute("src")).not.toMatch(/^data:/);
     expect(root?.querySelector('[data-scan-layer="true"]')).toBeTruthy();
     expect(root?.querySelector('[data-active-region="true"]')).toBeTruthy();
