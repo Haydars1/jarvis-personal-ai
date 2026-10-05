@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { DiagnosticConsole } from "../components/DiagnosticConsole";
-import { DriftShowcase } from "../components/DriftShowcase";
 import { FaultLibrary } from "../components/FaultLibrary";
 import { LanguageSwitch } from "../components/LanguageSwitch";
 import { PublicSupportChat } from "../components/PublicSupportChat";
-import { VehicleSelector } from "../components/VehicleSelector";
 import { loadLanguage, saveLanguage, t, type Language } from "../i18n/language";
-import type { VehicleContext } from "../vehicle/catalog";
 import "./HomePage.css";
 
 const processCopy: Record<Language, Array<{ no: string; title: string; text: string }>> = {
@@ -33,7 +30,6 @@ const processCopy: Record<Language, Array<{ no: string; title: string; text: str
 const copy: Record<Language, {
   platform: string; hero: string; intro: string; faults: string; faultIntro: string;
   workflow: string; contact: string; contactIntro: string; services: string; phone: string; email: string;
-  vehicle: string; vehicleTitle: string; vehicleIntro: string;
 }> = {
   de: {
     platform: "FAHRZEUGDIAGNOSE · CODIERUNG · SOFTWARE",
@@ -42,7 +38,6 @@ const copy: Record<Language, {
     faults: "DTC & WARNUNGEN", faultIntro: "Code suchen, Bedeutung verstehen, Systembezug prüfen und sinnvolle nächste Schritte ableiten.",
     workflow: "ARBEITSWEISE", contact: "DIREKTER KONTAKT", contactIntro: "Fahrzeugspezifische Frage? Direkt per WhatsApp, Telefon oder E-Mail.",
     services: "LEISTUNGEN", phone: "Telefon", email: "E-Mail",
-    vehicle: "FAHRZEUGPROFIL", vehicleTitle: "Fahrzeug wählen. Schaltbild passend anzeigen.", vehicleIntro: "Marke, Modell, Baureihe, Baujahr und Motor werden gespeichert. Unterstützte Fahrzeuge erhalten ein verifiziertes, modellspezifisches Systemschaltbild; unbekannte Varianten bleiben klar als generisch markiert.",
   },
   tr: {
     platform: "ARAÇ TEŞHİSİ · KODLAMA · YAZILIM",
@@ -51,7 +46,6 @@ const copy: Record<Language, {
     faults: "DTC & UYARILAR", faultIntro: "Kodu bul, anlamını öğren, ilgili sistemi gör ve mantıklı sonraki kontrol adımını belirle.",
     workflow: "ÇALIŞMA AKIŞI", contact: "DOĞRUDAN İLETİŞİM", contactIntro: "Araca özel sorun mu var? WhatsApp, telefon veya e-posta üzerinden doğrudan ulaş.",
     services: "HİZMETLER", phone: "Telefon", email: "E-posta",
-    vehicle: "ARAÇ PROFİLİ", vehicleTitle: "Aracı seç. Şemayı araca göre göster.", vehicleIntro: "Marka, model, kasa/seri, yıl ve motor kaydedilir. Desteklenen araçlarda doğrulanmış model-özel sistem şeması gösterilir; bilinmeyen varyantlarda genel şema olduğu açıkça belirtilir.",
   },
   en: {
     platform: "VEHICLE DIAGNOSTICS · CODING · SOFTWARE",
@@ -60,7 +54,6 @@ const copy: Record<Language, {
     faults: "DTC & WARNINGS", faultIntro: "Find the code, understand its meaning, inspect the related system and determine the next sensible test.",
     workflow: "WORKFLOW", contact: "DIRECT CONTACT", contactIntro: "Vehicle-specific question? Reach out directly by WhatsApp, phone or email.",
     services: "SERVICES", phone: "Phone", email: "Email",
-    vehicle: "VEHICLE PROFILE", vehicleTitle: "Choose the vehicle. Show the matching schematic.", vehicleIntro: "Make, model, body/series, year and engine are stored. Supported vehicles get a verified model-specific system schematic; unknown variants remain clearly marked as generic.",
   },
 };
 
@@ -70,12 +63,7 @@ function deviceLanguage(): string {
 
 export function HomePage() {
   const [language, setLanguage] = useState<Language>(() => loadLanguage(localStorage, deviceLanguage()));
-  const [vehicle, setVehicle] = useState<VehicleContext>({});
   const text = copy[language];
-  const vehicleSummary = useMemo(
-    () => [vehicle.brand, vehicle.model, vehicle.body, vehicle.year, vehicle.engine].filter(Boolean).join(" · "),
-    [vehicle],
-  );
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -84,17 +72,6 @@ export function HomePage() {
   const changeLanguage = (next: Language) => {
     setLanguage(saveLanguage(localStorage, next));
   };
-
-  const driftTitle = language === "tr"
-    ? "Performans sadece rakam değil. Kontrol de onun parçası."
-    : language === "en"
-      ? "Performance is not only numbers. Control is part of it."
-      : "Performance ist nicht nur eine Zahl. Kontrolle gehört dazu.";
-  const driftText = language === "tr"
-    ? "6006 pist sahnesinde farklı gövde tipleri aynı hat üzerinde akarken sistemin hareket, denge ve araç karakteri tarafını görselleştirir."
-    : language === "en"
-      ? "The 6006 circuit visual puts different body styles on the same line to express motion, balance and vehicle character."
-      : "Die 6006 Streckenszene zeigt verschiedene Karosserieformen auf derselben Linie und verbindet Bewegung, Balance und Fahrzeugcharakter.";
 
   return (
     <div className="homePage" data-ui-version="6006-v2">
@@ -106,7 +83,6 @@ export function HomePage() {
           </a>
           <nav aria-label="Primary">
             <a href="#services">{t(language, "nav.services")}</a>
-            <a href="#vehicle">{language === "tr" ? "Araç" : language === "en" ? "Vehicle" : "Fahrzeug"}</a>
             <a href="#faults">{t(language, "nav.faults")}</a>
             <a href="#contact">{t(language, "nav.contact")}</a>
           </nav>
@@ -135,21 +111,12 @@ export function HomePage() {
                 <div><small>Diagnosis</small><strong>Verification path</strong></div>
                 <div><small>Support</small><strong>AI + Live</strong></div>
               </div>
-              <p><span>6006</span>{vehicleSummary || (language === "tr" ? "Araç seçildiğinde arıza şeması profile göre uyarlanır." : language === "en" ? "Select a vehicle to adapt fault schematics to its verified profile." : "Fahrzeug wählen, damit Fehlerbilder an das verifizierte Profil angepasst werden.")}</p>
+              <p><span>6006</span>{language === "tr" ? "Genel arıza kodu bilgisi önce; araca özel detay gerektiğinde teşhis sohbetinde sorulur." : language === "en" ? "General fault-code context first; vehicle-specific detail is requested in chat only when needed." : "Zuerst allgemeiner Fehlercode-Kontext; Fahrzeugspezifika werden nur bei Bedarf im Chat abgefragt."}</p>
             </aside>
           </section>
 
           <section className="consoleSection" aria-label="6006 diagnostic console">
             <DiagnosticConsole language={language} />
-          </section>
-
-          <section className="storySection" aria-label="6006 performance circuit">
-            <div className="storyCopy">
-              <span>6006 / PERFORMANCE LOOP</span>
-              <h2>{driftTitle}</h2>
-              <p>{driftText}</p>
-            </div>
-            <DriftShowcase />
           </section>
 
           <section id="services" className="serviceSection">
@@ -161,14 +128,6 @@ export function HomePage() {
               <article><span>02</span><h3>{t(language, "service.coding")}</h3><p>{t(language, "service.codingText")}</p></article>
               <article><span>03</span><h3>{t(language, "service.software")}</h3><p>{t(language, "service.softwareText")}</p></article>
             </div>
-          </section>
-
-          <section id="vehicle" className="contentSection vehicleSection">
-            <div className="sectionHead splitHead">
-              <div><span>{text.vehicle}</span><h2>{text.vehicleTitle}</h2></div>
-              <p>{text.vehicleIntro}</p>
-            </div>
-            <VehicleSelector language={language} onChange={setVehicle} />
           </section>
 
           <section id="faults" className="contentSection faultSection">
@@ -209,7 +168,7 @@ export function HomePage() {
         </footer>
       </div>
 
-      <PublicSupportChat language={language} vehicle={vehicle} />
+      <PublicSupportChat language={language} vehicle={{}} />
     </div>
   );
 }
