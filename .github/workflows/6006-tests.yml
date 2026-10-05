@@ -2,7 +2,7 @@ name: 6006 Tests
 
 on:
   push:
-    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp, fix/6006-p0299-jpeg-final]
+    branches: [6006-performance, 6006-cloudflare-work, fix/6006-v2-final, feat/6006-fault-visual-v3, fix/6006-xray-diagnostic-visual, fix/6006-photoreal-xray-boost, fix/6006-xray-static-asset, fix/6006-xray-valid-webp, fix/6006-p0299-jpeg-final, fix/6006-ios-xray-compositor]
   workflow_dispatch:
 
 permissions:
@@ -28,6 +28,18 @@ jobs:
           set -euo pipefail
           test -s public/assets/6006/p0299-xray.jpg
           file public/assets/6006/p0299-xray.jpg | grep -q 'JPEG image data'
+      - name: Verify P0299 Safari compositor CSS
+        run: |
+          set -euo pipefail
+          CSS=src/assets/xrayBoost.css
+          grep -Fq '.genericVehicle.genericVehiclePhotoreal' "$CSS"
+          grep -Eq 'filter:[[:space:]]*none[[:space:]]*!important' "$CSS"
+          grep -Eq 'transform:[[:space:]]*none[[:space:]]*!important' "$CSS"
+          grep -Eq 'isolation:[[:space:]]*auto[[:space:]]*!important' "$CSS"
+          grep -Eq 'aspect-ratio:[[:space:]]*16[[:space:]]*/[[:space:]]*9[[:space:]]*!important' "$CSS"
+          grep -Eq 'object-fit:[[:space:]]*contain[[:space:]]*!important' "$CSS"
+          grep -Eq 'object-position:[[:space:]]*center[[:space:]]*!important' "$CSS"
+          grep -Eq 'animation:[[:space:]]*none[[:space:]]*!important' "$CSS"
       - name: Run legacy and UI tests
         run: npm test
       - name: TypeScript check
