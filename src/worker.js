@@ -574,6 +574,43 @@ function needsLiveLookupText(text){
 }
 async function quickCommand(env,text){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
+
+ // YouTube URL otomatik öğrenme
+ const ytMatch=text.match(/https?:\/\/(?:(?:www|m)\.)?(?:youtube\.com\/watch\?[^\s]*v=[A-Za-z0-9_-]+|youtu\.be\/[A-Za-z0-9_-]+)/i);
+ if(ytMatch&&/öğren|learn|izle|watch|kaydet|öğret|analiz/i.test(l)){
+   try{
+     const{parseYouTubeResourceUrl,fetchYouTubeTranscript}=await import('./lib/youtube-teaching-runtime.js');
+     const{persistYouTubeLearning}=await import('./lib/youtube-learning-memory.js');
+     const parsed=parseYouTubeResourceUrl(ytMatch[0]);
+     if(parsed?.videoId){
+       const result=await fetchYouTubeTranscript(ytMatch[0]);
+       if(result?.transcript){
+         const lr=await persistYouTubeLearning(env,{kind:'video',source_url:ytMatch[0],video_id:parsed.videoId,title:result.title||'',language:result.language||'',transcript:result.transcript},{});
+         return{reply:`✓ Video öğrenildi: "${result.title||'Video'}"\n\n${lr.learning_chunks} parça hafızaya kaydedildi (${result.transcript.length} karakter). Artık bu konuda sorduğun sorularda bu videodan öğrendiğim bilgiyi kullanacağım.`,action:'youtube_learn',provider:'JARVIS Skill'};
+       }
+     }
+   }catch(e){
+     return{reply:`YouTube transcript çekilemedi: ${e.message}. Video'da altyazı kapalı olabilir.`,action:'youtube_learn_error',provider:'JARVIS Skill'};
+   }
+ }
+
+ // Sadece DTC kodu sorulmuşsa direkt veritabanından cevapla (AI çağırmadan)
+ const dtcOnly=text.match(/^\s*([PBCU][0-3]\d{3})\s*$/i);
+ if(dtcOnly){
+   try{
+     const code=dtcOnly[1].toUpperCase();
+     const row=await q1(env,'SELECT * FROM dtc_codes WHERE code=?',code);
+     if(row){
+       const causes=(safeJsonParse(row.causes,[])||[]).map((c,i)=>`${i+1}. [${c.p||'?'}] ${c.de||c.en||c.id}`).join('\n');
+       const repair=safeJsonParse(row.repair,{});
+       let reply=`**${code}** — ${row.title_de||row.title_en}\n\n${row.desc_de||row.desc_en}`;
+       if(causes)reply+=`\n\nOlası sebepler:\n${causes}`;
+       if(repair.difficulty)reply+=`\n\nTamir: ${repair.difficulty}${repair.diy_possible?' · DIY mümkün':''}${repair.estimated_cost_eur?` · €${repair.estimated_cost_eur[0]}–${repair.estimated_cost_eur[1]}`:''}`;
+       return{reply,action:'dtc_lookup',provider:'JARVIS DTC Database'};
+     }
+   }catch{}
+ }
+
  if(needsLiveLookupText(text)){
   let results=[];try{results=await withTimeout(liveResearch(text,isSportsQuestion(text)?2300:2800),3000,'LIVE_RESEARCH_TOTAL_TIMEOUT')}catch{}
   const system='Sen JARVIS adlı Türkçe asistansın. Kullanıcıya doğrudan ve işe yarar cevap ver. Google’a yönlendirme, “kendin bak” deme. '+responsePolicy(text)+' Canlı/web sonuçları varsa değerlendir; tek cümleyle geçiştirme. Sonuçlarda video/klip/ürün/resmi kaynak bağlantısı varsa cevabın sonuna “İlgili video/kaynak” diye ekle. Bugünkü/şimdiki sorularda eski/sonraki sonuçları karıştırma. Detay kaynakta yoksa bunu açık yaz, uydurma.';

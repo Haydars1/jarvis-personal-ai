@@ -262,3 +262,52 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 .rulepackSourceList{display:grid;gap:4px;margin-top:8px;font-size:11px}
 .rulepackSourceList a{color:#9fe3ff;text-decoration:none}
 .rulepackSourceList a:hover{text-decoration:underline}
+
+/* === DTC KARTLARI === */
+.dtcCard{background:#081226;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
+.dtcCard.dtcMiss{border-color:#ff5a7a55;background:#1a0a12}
+.dtcHeader{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.dtcCode{font-size:18px;color:#31dfff;font-family:ui-monospace,monospace;letter-spacing:.04em}
+.dtcMil{font-size:11px;color:#ff5578;padding:2px 8px;background:#ff557822;border-radius:999px;font-weight:700}
+.dtcTitle{font-size:14px;font-weight:700;margin-bottom:6px}
+.dtcDesc{font-size:12px;color:#b0c4d4;line-height:1.5;margin-bottom:10px}
+.dtcParts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.dtcPart{font-size:10px;padding:3px 8px;background:#0b1a31;border:1px solid #294466;border-radius:8px;color:#9fb6c9}
+.dtcCauses{margin-bottom:8px}
+.dtcCause{padding:6px 10px;background:#060a15;border:1px solid rgba(255,255,255,.04);border-radius:8px;margin-top:4px;font-size:12px;display:flex;gap:8px;align-items:baseline}
+.dtcLikelihood{font-size:9px;padding:2px 6px;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;flex:0 0 auto}
+.dtcLikelihood.high{background:#ff557822;color:#ff9ab0}
+.dtcLikelihood.medium{background:#ffbe5522;color:#ffd38a}
+.dtcLikelihood.low{background:#35df9a22;color:#9df0c5}
+.dtcRepair{font-size:11px;color:#b8d0e0;padding:8px 10px;background:#0b1a31;border-radius:8px;margin-top:6px}
+
+/* === ÖĞRENME === */
+.learnSuccess{padding:12px;background:#07140e;border:1px solid #35df9a66;border-radius:12px;color:#9df0c5}
+.learnSuccess b{display:block;margin-bottom:4px}
+.learnError{padding:12px;background:#1a0a12;border:1px solid #ff5a7a55;border-radius:12px;color:#ff9ab0}
+.learnItem{padding:10px;background:#060a15;border:1px solid var(--line);border-radius:10px;margin-top:6px}
+.learnItemHead{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.learnStatus{width:18px;height:18px;display:grid;place-items:center;border-radius:50%;font-size:10px;font-weight:700;flex:0 0 18px}
+.learnStatus.ok{background:#35df9a22;color:#35df9a}
+.learnStatus.wait{background:#ffbe5522;color:#ffbe55}
+.learnItem small{font-size:11px;color:var(--muted)}
+.learnItem small a{color:#9fe3ff;text-decoration:none}
+
+.learnResult{padding:10px;background:#081226;border:1px solid var(--line);border-radius:10px;margin-top:6px}
+.learnResultHead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.learnResultHead b{font-size:13px}
+.learnResultText{font-size:12px;color:#b0c4d4;line-height:1.5}
+
+/* === VİDEO GRID === */
+.videoSuccess{padding:12px;background:#07140e;border:1px solid #35df9a66;border-radius:12px;color:#9df0c5;margin-bottom:10px}
+.videoSuccess b{display:block;margin-bottom:4px}
+.videoGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px}
+.videoFrame{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#060a15}
+.videoFrame img{width:100%;display:block;aspect-ratio:9/16;object-fit:cover}
+.videoFrame small{position:absolute;top:4px;right:6px;background:#000a;padding:1px 5px;border-radius:4px;font-size:10px;color:#fff}
+
+/* === SOSYAL JOB === */
+.socialJob{padding:10px;background:#081226;border:1px solid var(--line);border-radius:10px;margin-top:6px}
+.socialJobHead{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.socialPlatform{font-size:10px;padding:2px 7px;background:#a071ff22;color:#c9a6ff;border-radius:999px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.socialJob small{font-size:11px;color:var(--muted)}

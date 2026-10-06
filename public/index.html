@@ -157,9 +157,84 @@
 
     <!-- ========== SAYFA 3: AYARLAR (hepsi burada) ========== -->
     <section id="settings" class="page">
-      <h1>Ayarlar</h1>
+      <h1>JARVIS Araçları & Ayarlar</h1>
 
+      <!-- DTC ARAMA -->
       <details class="settingsBlock" open>
+        <summary>🔧 DTC Hata Kodu Arama (9204 kod)</summary>
+        <div class="settingsBody">
+          <div class="row"><input id="dtcInput" placeholder="P0299, U0100, B0001..." style="text-transform:uppercase"><button id="dtcSearch">ARA</button></div>
+          <div id="dtcResult"></div>
+          <div id="dtcStats" class="muted" style="margin-top:10px;font-size:11px"></div>
+        </div>
+      </details>
+
+      <!-- YOUTUBE ÖĞRENME -->
+      <details class="settingsBlock">
+        <summary>📺 YouTube'dan Öğren</summary>
+        <div class="settingsBody">
+          <p class="muted">YouTube linki at → JARVIS transcript'i çeker, hafızaya kaydeder. Sonraki sorularında bu bilgiyi kullanır.</p>
+          <div class="row"><input id="learnUrl" placeholder="https://youtube.com/watch?v=..."><button id="learnBtn">ÖĞREN</button></div>
+          <div id="learnStatus"></div>
+          <hr>
+          <h3>Öğrenilmiş Kaynaklar</h3>
+          <div id="learnList" class="muted">Yükleniyor...</div>
+          <hr>
+          <h3>Hafızada Ara</h3>
+          <div class="row"><input id="learnQuery" placeholder="stage 1 boost map"><button id="learnSearchBtn" class="ghost">ARA</button></div>
+          <div id="learnSearchResult"></div>
+        </div>
+      </details>
+
+      <!-- VİDEO OLUŞTUR -->
+      <details class="settingsBlock">
+        <summary>🎬 Video Oluştur (Reels / Shorts)</summary>
+        <div class="settingsBody">
+          <p class="muted">Konu yaz → JARVIS AI ile görseller üretir → video birleştirir. Ücretsiz (Cloudflare AI + GitHub Actions).</p>
+          <input id="videoTopic" placeholder="Konu: ECU tuning yaparken 5 kritik hata">
+          <div class="row">
+            <select id="videoPlatform">
+              <option value="instagram_reels">Instagram Reels (9:16)</option>
+              <option value="youtube_shorts">YouTube Shorts (9:16)</option>
+              <option value="instagram_post">Instagram Post (1:1)</option>
+              <option value="youtube_video">YouTube Video (16:9)</option>
+            </select>
+            <input id="videoSlides" type="number" value="5" min="2" max="10" style="width:80px" placeholder="Slayt">
+          </div>
+          <div class="row">
+            <button id="videoCreate">OLUŞTUR</button>
+          </div>
+          <div id="videoStatus"></div>
+          <div id="videoPreview" class="hidden"></div>
+        </div>
+      </details>
+
+      <!-- SOSYAL MEDYA OTOMASYON -->
+      <details class="settingsBlock">
+        <summary>📱 Sosyal Medya Otomasyonu</summary>
+        <div class="settingsBody">
+          <p class="muted">Zamanlanmış paylaşım kur → JARVIS otomatik içerik + görsel üretir → onay kuyruğuna koyar. Sen onaylarsan paylaşılır.</p>
+          <input id="socialTopic" placeholder="Konu: araç bakım ipuçları, ECU tuning haberleri...">
+          <div class="row">
+            <select id="socialPlatform">
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+            </select>
+            <select id="socialCadence">
+              <option value="daily">Her gün</option>
+              <option value="weekly" selected>Haftada bir</option>
+              <option value="biweekly">2 haftada bir</option>
+              <option value="monthly">Ayda bir</option>
+            </select>
+            <button id="socialSchedule">PLANLA</button>
+          </div>
+          <hr>
+          <h3>Aktif Planlar</h3>
+          <div id="socialJobs" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <details class="settingsBlock">
         <summary>⚙ Hesap · Face ID · Çıkış</summary>
         <div class="settingsBody">
           <p class="muted">iPhone'da Face ID, PC'de Windows Hello kullanır.</p>
@@ -340,5 +415,6 @@
 <script src="/credential-autotest.js" defer></script>
 <script src="/integrations-ui.js" defer></script>
 <script src="/ecu-tuning-ui.js" defer></script>
+<script src="/jarvis-tools-ui.js" defer></script>
 </body>
 </html>
