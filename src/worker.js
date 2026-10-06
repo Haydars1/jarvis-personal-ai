@@ -621,7 +621,11 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
   const prompt='Bugünün tarihi: '+todayTR()+'\nKullanıcı sorusu: '+text+'\n\nCanlı/web sonuçları: '+JSON.stringify(researchResults.slice(0,12));
   try{const a=await withTimeout(aiFallback(env,[{role:'system',content:system},{role:'user',content:prompt}],{userText:text,mode:'fast'}),3800,'LIVE_AI_TIMEOUT');if(a?.text&&!isBadAssistantAnswer(a.text)){await log(env,'jarvis',a.text,{provider:a.provider,direct:true});return{reply:a.text,action:'live_ai_research',provider:a.provider,results:researchResults.slice(0,6)}}}catch(e){await recordRuntimeError(env,e,'command.live_ai')}
  }
- const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30'),skills=await behaviorSkillText(env),policy=responsePolicy(text);const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. ${policy} Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
+ const s=await state(env),history=await chatHistory(env,30),mem=await qall(env,'SELECT text,tags FROM memories ORDER BY created_at DESC LIMIT 30'),skills=await behaviorSkillText(env),policy=responsePolicy(text);
+ // YouTube öğrenme hafızasını ara — ücretsiz, AI çağrısı değil
+ let learningContext='';
+ try{const{searchLearningMemory,learningContextText}=await import('./lib/youtube-learning-memory.js');const lRows=await searchLearningMemory(env,text,{limit:4});if(lRows.length)learningContext='\n\nÖĞRENİLMİŞ VİDEO NOTLARI (YouTube\'dan öğrenilen içerik — bu bilgileri cevabında kullan):\n'+learningContextText(lRows)}catch{}
+ const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. ${policy} Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}${learningContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
  let reply=a.text;
  if(isBadAssistantAnswer(reply)){
   await aiRouterMark(env,a.provider,false,'BAD_ASSISTANT_ANSWER');
@@ -762,6 +766,97 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+name+'"'}});
  }catch(e){return j({error:e.message||'DOWNLOAD_FAILED'},500)}}
 
+ // === GÖRSEL ÜRETME (Cloudflare AI — ücretsiz) ===
+ if(p==='/api/ai/image'&&m==='POST'){try{
+   if(!env.AI)return j({error:'CLOUDFLARE_AI_NOT_BOUND'},400);
+   const b=await body(req);
+   const prompt=String(b.prompt||'').trim();
+   if(!prompt)return j({error:'EMPTY_PROMPT'},400);
+   const model=b.model||'@cf/black-forest-labs/FLUX.1-schnell';
+   const result=await env.AI.run(model,{prompt,num_steps:b.steps||4});
+   if(!result?.image)return j({error:'AI_NO_IMAGE'},500);
+   // R2'ye kaydet
+   const imgId=id();
+   const key='images/'+imgId+'.png';
+   const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
+   if(env.FILES)await env.FILES.put(key,imgBytes,{httpMetadata:{contentType:'image/png'}});
+   return j({ok:true,id:imgId,size:imgBytes.length,model,key,base64:result.image.slice(0,100)+'...(truncated)'});
+ }catch(e){return j({error:e.message||'IMAGE_FAILED'},500)}}
+
+ if(p==='/api/ai/image/serve'){try{
+   const imgId=new URL(req.url).searchParams.get('id');
+   if(!imgId||!env.FILES)return j({error:'MISSING'},400);
+   const obj=await env.FILES.get('images/'+imgId+'.png');
+   if(!obj)return j({error:'NOT_FOUND'},404);
+   return new Response(obj.body,{headers:{'content-type':'image/png','cache-control':'public, max-age=86400'}});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === YOUTUBE ÖĞRENME — link at, transcript çek, hafızaya kaydet ===
+ if(p==='/api/learn/youtube'&&m==='POST'){try{
+   const b=await body(req);
+   const url=String(b.url||'').trim();
+   if(!url)return j({error:'EMPTY_URL'},400);
+   const{parseYouTubeResourceUrl,fetchYouTubeTranscript}=await import('./lib/youtube-teaching-runtime.js');
+   const parsed=parseYouTubeResourceUrl(url);
+   if(!parsed?.videoId)return j({error:'INVALID_YOUTUBE_URL',detail:'Video ID bulunamadı'},400);
+   // Transcript çek (ücretsiz — HTML scrape)
+   let transcript='',title='',language='';
+   try{
+     const result=await fetchYouTubeTranscript(parsed.videoId);
+     transcript=result?.transcript||'';
+     title=result?.title||'';
+     language=result?.language||'';
+   }catch(e){
+     // Whisper fallback olabilir ama şimdilik transcript çekilemezse hata ver
+     return j({error:'TRANSCRIPT_FAILED',detail:e.message},400);
+   }
+   if(!transcript)return j({error:'NO_TRANSCRIPT',detail:'Bu videoda altyazı/transcript bulunamadı.'},400);
+   // Hafızaya kaydet
+   const{persistYouTubeLearning}=await import('./lib/youtube-learning-memory.js');
+   const lr=await persistYouTubeLearning(env,{kind:'video',source_url:url,video_id:parsed.videoId,title,language,transcript},{});
+   return j({ok:true,...lr,title,language,transcriptLength:transcript.length,preview:transcript.slice(0,500)});
+ }catch(e){return j({error:e.message||'LEARN_FAILED'},500)}}
+
+ // === ÖĞRENİLMİŞ İÇERİK LİSTESİ ===
+ if(p==='/api/learn/list'&&m==='GET'){try{
+   const{listYouTubeLearningSources}=await import('./lib/youtube-learning-memory.js');
+   const sources=await listYouTubeLearningSources(env,100);
+   return j({ok:true,count:sources.length,sources});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === ÖĞRENİLMİŞ İÇERİK ARA ===
+ if(p==='/api/learn/search'&&m==='POST'){try{
+   const b=await body(req);
+   const q=String(b.query||b.q||'').trim();
+   if(!q)return j({error:'EMPTY_QUERY'},400);
+   const{searchLearningMemory,learningContextText}=await import('./lib/youtube-learning-memory.js');
+   const rows=await searchLearningMemory(env,q,{limit:8});
+   return j({ok:true,count:rows.length,context:learningContextText(rows),results:rows});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === SOSYAL MEDYA OTOMASYON — zamanlanmış görev oluştur ===
+ if(p==='/api/social/schedule'&&m==='POST'){try{
+   const b=await body(req);
+   const platform=String(b.platform||'instagram').toLowerCase();
+   const cadence=String(b.cadence||'weekly').toLowerCase();
+   const topic=String(b.topic||b.prompt||'').trim();
+   if(!topic)return j({error:'EMPTY_TOPIC'},400);
+   // D1'e scheduled_jobs tablosu
+   await run(env,`CREATE TABLE IF NOT EXISTS scheduled_jobs(id TEXT PRIMARY KEY,type TEXT,platform TEXT,cadence TEXT,topic TEXT,status TEXT DEFAULT 'active',last_run INTEGER,next_run INTEGER,created_at INTEGER)`);
+   const jobId=id();
+   const intervals={daily:86400000,weekly:604800000,biweekly:1209600000,monthly:2592000000};
+   const interval=intervals[cadence]||604800000;
+   const nextRun=now()+interval;
+   await run(env,'INSERT INTO scheduled_jobs(id,type,platform,cadence,topic,status,next_run,created_at) VALUES(?,?,?,?,?,?,?,?)',jobId,'social_post',platform,cadence,topic,'active',nextRun,now());
+   return j({ok:true,jobId,platform,cadence,topic,nextRun:new Date(nextRun).toISOString()});
+ }catch(e){return j({error:e.message||'SCHEDULE_FAILED'},500)}}
+
+ if(p==='/api/social/jobs'&&m==='GET'){try{
+   await run(env,`CREATE TABLE IF NOT EXISTS scheduled_jobs(id TEXT PRIMARY KEY,type TEXT,platform TEXT,cadence TEXT,topic TEXT,status TEXT DEFAULT 'active',last_run INTEGER,next_run INTEGER,created_at INTEGER)`);
+   const jobs=await qall(env,'SELECT * FROM scheduled_jobs WHERE status=? ORDER BY next_run ASC','active');
+   return j({ok:true,count:jobs.length,jobs});
+ }catch(e){return j({error:e.message},500)}}
+
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/ai/diagnose')return j(await aiDiagnostics(env));
  if(p==='/api/status')return j(await liveStatus(env));
@@ -779,4 +874,49 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  mm=p.match(/^\/api\/files\/(.+)$/);if(mm&&m==='GET'){if(!env.FILES)return txt('R2 yok',404);const key=decodeURIComponent(mm[1]),o=await env.FILES.get(key);if(!o)return txt('Not found',404);return new Response(o.body,{headers:{'content-type':o.httpMetadata?.contentType||'application/octet-stream','content-disposition':`attachment; filename="${key.split('-').slice(3).join('-')}"`}})}
  if(p==='/api/command'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);const r=await command(env,text);await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}
  return j({error:'NOT_FOUND'},404)}
-export default {async fetch(req,env,ctx){try{const u=new URL(req.url);if(u.pathname==='/api/version')return j({ok:true,version:'fast-chat-2026-09-13-2',ts:now()});if(u.pathname.startsWith('/api/')){if(!env.DB)return j({error:'D1_NOT_BOUND',detail:'Cloudflare D1 binding DB is missing.'},500);return await router(req,env,ctx)}return env.ASSETS.fetch(req)}catch(e){console.error(e);if(env.DB)await recordRuntimeError(env,e,new URL(req.url).pathname);return j({error:'SERVER_ERROR',detail:e.message},500)}},async scheduled(event,env,ctx){ctx.waitUntil(selfHeal(env))}};
+async function runScheduledJobs(env){
+  try{
+    const jobs=await qall(env,'SELECT * FROM scheduled_jobs WHERE status=? AND next_run<=? LIMIT 5','active',now());
+    for(const job of jobs){
+      try{
+        if(job.type==='social_post'){
+          // 1) AI ile içerik üret (ücretsiz — bağlı provider)
+          const contentPrompt=`Sen sosyal medya uzmanısın. Şu konu hakkında kısa, dikkat çekici bir ${job.platform} paylaşımı yaz (Türkçe, max 280 karakter, emoji kullan): ${job.topic}`;
+          const a=await aiFallback(env,[{role:'user',content:contentPrompt}],{mode:'fast'});
+          const text=a?.text||job.topic;
+          // 2) Görsel üret (Cloudflare AI — ücretsiz)
+          let imageKey=null;
+          if(env.AI&&job.platform==='instagram'){
+            try{
+              const imgPrompt=`Professional social media post image about: ${job.topic}. Modern, clean, automotive style.`;
+              const result=await env.AI.run('@cf/black-forest-labs/FLUX.1-schnell',{prompt:imgPrompt,num_steps:4});
+              if(result?.image){
+                const imgId=id();
+                imageKey='images/'+imgId+'.png';
+                const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
+                if(env.FILES)await env.FILES.put(imageKey,imgBytes,{httpMetadata:{contentType:'image/png'}});
+              }
+            }catch{}
+          }
+          // 3) Onay kuyruğuna koy (otomatik paylaşma — Haydar onaylasın)
+          await pendingAction(env,job.platform==='instagram'?'instagram_post':'facebook_post',{
+            message:text,
+            caption:text,
+            imageUrl:imageKey?`/api/ai/image/serve?id=${imageKey.replace('images/','').replace('.png','')}`:'',
+            scheduledJobId:job.id,
+            topic:job.topic
+          },`Zamanlanmış ${job.platform} paylaşımı: ${text.slice(0,80)}...`,'low');
+          await log(env,'social-auto','Zamanlanmış paylaşım onay kuyruğuna eklendi: '+text.slice(0,100),{platform:job.platform,jobId:job.id});
+        }
+        // Sonraki çalışmayı ayarla
+        const intervals={daily:86400000,weekly:604800000,biweekly:1209600000,monthly:2592000000};
+        const interval=intervals[job.cadence]||604800000;
+        await run(env,'UPDATE scheduled_jobs SET last_run=?,next_run=? WHERE id=?',now(),now()+interval,job.id);
+      }catch(e){
+        await recordRuntimeError(env,e,'scheduled.social.'+job.id);
+      }
+    }
+  }catch{}
+}
+
+export default {async fetch(req,env,ctx){try{const u=new URL(req.url);if(u.pathname==='/api/version')return j({ok:true,version:'fast-chat-2026-09-13-2',ts:now()});if(u.pathname.startsWith('/api/')){if(!env.DB)return j({error:'D1_NOT_BOUND',detail:'Cloudflare D1 binding DB is missing.'},500);return await router(req,env,ctx)}return env.ASSETS.fetch(req)}catch(e){console.error(e);if(env.DB)await recordRuntimeError(env,e,new URL(req.url).pathname);return j({error:'SERVER_ERROR',detail:e.message},500)}},async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([selfHeal(env),runScheduledJobs(env)]))}};
