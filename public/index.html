@@ -188,9 +188,10 @@
 
       <!-- VİDEO OLUŞTUR -->
       <details class="settingsBlock">
-        <summary>🎬 Video Oluştur (Reels / Shorts)</summary>
+        <summary>🎬 Video & Görsel Stüdyosu</summary>
         <div class="settingsBody">
-          <p class="muted">Konu yaz → JARVIS AI ile görseller üretir → video birleştirir. Ücretsiz (Cloudflare AI + GitHub Actions).</p>
+          <h3>Video Oluştur</h3>
+          <p class="muted">Konu yaz → AI slayt planı + görseller + seslendirme + altyazı. Ken Burns efekti, metin overlay, hashtag otomatik.</p>
           <input id="videoTopic" placeholder="Konu: ECU tuning yaparken 5 kritik hata">
           <div class="row">
             <select id="videoPlatform">
@@ -202,10 +203,72 @@
             <input id="videoSlides" type="number" value="5" min="2" max="10" style="width:80px" placeholder="Slayt">
           </div>
           <div class="row">
-            <button id="videoCreate">OLUŞTUR</button>
+            <select id="videoModel">
+              <option value="flux-schnell">Flux Schnell (hızlı, yüksek)</option>
+              <option value="sdxl-lightning">SDXL Lightning (çok hızlı)</option>
+              <option value="sdxl-base">SDXL Base (yavaş, en iyi)</option>
+              <option value="dreamshaper">DreamShaper 8 (yaratıcı)</option>
+            </select>
+            <select id="videoStyle">
+              <option value="automotive">Otomotiv</option>
+              <option value="tuning">ECU/Tuning</option>
+              <option value="carglanz">Carglanz Detailing</option>
+              <option value="social">Sosyal Medya</option>
+              <option value="thumbnail">YouTube Thumbnail</option>
+              <option value="technical">Teknik Diyagram</option>
+              <option value="cinematic">Sinematik</option>
+              <option value="minimal">Minimalist</option>
+            </select>
           </div>
+          <div class="row">
+            <select id="videoVoice">
+              <option value="tr-TR-AhmetNeural">🇹🇷 Ahmet (erkek)</option>
+              <option value="tr-TR-EmelNeural">🇹🇷 Emel (kadın)</option>
+              <option value="de-DE-ConradNeural">🇩🇪 Conrad (erkek)</option>
+              <option value="de-DE-KatjaNeural">🇩🇪 Katja (kadın)</option>
+              <option value="en-US-GuyNeural">🇬🇧 Guy (erkek)</option>
+              <option value="en-US-JennyNeural">🇬🇧 Jenny (kadın)</option>
+            </select>
+            <label class="muted" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><input type="checkbox" id="videoSubtitles" checked> Altyazı yak</label>
+          </div>
+          <div class="row"><button id="videoCreate">OLUŞTUR</button></div>
           <div id="videoStatus"></div>
           <div id="videoPreview" class="hidden"></div>
+
+          <hr>
+          <h3>Tek Görsel Üret</h3>
+          <div class="row">
+            <input id="singleImagePrompt" placeholder="Görsel açıklaması (İngilizce veya Türkçe)">
+            <button id="singleImageBtn" class="ghost">ÜRET</button>
+          </div>
+          <div id="singleImageResult"></div>
+
+          <hr>
+          <h3>Görsel Analiz (fotoğraf at, ne olduğunu söyle)</h3>
+          <div class="row">
+            <input id="visionFile" type="file" accept="image/*">
+            <input id="visionQuestion" placeholder="Bu ne? Detaylı açıkla." value="Bu görselde ne var? Detaylı açıkla.">
+          </div>
+          <div class="row"><button id="visionBtn" class="ghost">ANALİZ ET</button></div>
+          <div id="visionResult"></div>
+
+          <hr>
+          <h3>Stok Video / Görsel Ara (Pexels — ücretsiz)</h3>
+          <div class="row">
+            <input id="stockQuery" placeholder="automotive, car engine, detailing...">
+            <select id="stockType"><option value="videos">Video</option><option value="photos">Fotoğraf</option></select>
+            <button id="stockBtn" class="ghost">ARA</button>
+          </div>
+          <div id="stockResults"></div>
+
+          <hr>
+          <h3>İçerik Takvimi Üret</h3>
+          <div class="row">
+            <input id="calTopic" placeholder="Ana konu: otomotiv bakım ve tuning">
+            <input id="calWeeks" type="number" value="4" min="1" max="12" style="width:60px" placeholder="Hafta">
+            <button id="calBtn" class="ghost">OLUŞTUR</button>
+          </div>
+          <div id="calResult"></div>
         </div>
       </details>
 

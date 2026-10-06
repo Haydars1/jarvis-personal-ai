@@ -922,42 +922,72 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,total:total?.n||0,byCategory:byCat});
  }catch(e){return j({error:e.message},500)}}
 
- // === VİDEO PİPELINE ===
+ // === VİDEO PİPELINE v2 — çoklu model, seslendirme, altyazı, metin overlay, stok video ===
  if(p==='/api/video/create'&&m==='POST'){try{
    const b=await body(req);
-   const{generateVideoJobSpec}=await import('./lib/video-pipeline.js');
-   const spec=generateVideoJobSpec({platform:b.platform,imageCount:b.imageCount,perImageSec:b.perImageSec,topic:b.topic,style:b.style});
-   // Görselleri üret (Cloudflare AI — ücretsiz)
+   const{generateVideoJobSpec,IMAGE_STYLES,enrichPrompt}=await import('./lib/video-pipeline.js');
+   const{IMAGE_MODELS,generateHashtags,generateContentCalendar,TTS_VOICES}=await import('./lib/creative-tools.js');
+   const spec=generateVideoJobSpec({platform:b.platform||'instagram_reels',imageCount:b.imageCount||5,perImageSec:b.perImageSec||3,topic:b.topic||'',style:b.style||'automotive'});
+   
+   // 1) AI ile slayt planı yaz (başlık + açıklama + metin overlay + seslendirme)
+   let slidePlan=[];
+   let narration='';
+   try{
+     const planPrompt=`${spec.imageCount} slaytlık bir ${spec.platform} videosu planla. Konu: "${spec.topic}".\nHer slayt için:\n1. Görsel açıklaması (İngilizce, AI image prompt)\n2. Üzerine yazılacak kısa metin (Türkçe, max 6 kelime)\n3. Seslendirme metni (Türkçe, o slayt süresince okunacak, max 20 kelime)\n\nJSON array döndür: [{"imagePrompt":"...","overlayText":"...","narrationText":"..."}]. Sadece JSON, başka metin yok.`;
+     const a=await withTimeout(aiFallback(env,[{role:'user',content:planPrompt}],{mode:'fast'}),12000,'PLAN_TIMEOUT');
+     const jsonMatch=(a?.text||'').match(/\[[\s\S]*\]/);
+     if(jsonMatch)slidePlan=JSON.parse(jsonMatch[0]);
+   }catch{}
+   // Seslendirme metnini birleştir
+   if(slidePlan.length)narration=slidePlan.map(s=>s.narrationText||'').filter(Boolean).join('. ');
+   if(b.narration)narration=b.narration; // kullanıcı override
+
+   // 2) Görselleri üret
+   const modelKey=b.model||'flux-schnell';
+   const model=IMAGE_MODELS[modelKey]||IMAGE_MODELS['flux-schnell'];
    const imageUrls=[];
+   const textOverlays=[];
    if(env.AI&&env.FILES){
      for(let i=0;i<spec.imageCount;i++){
        try{
-         const imgPrompt=`${spec.style}. Slide ${i+1}/${spec.imageCount}: ${spec.topic}. ${spec.spec.width}x${spec.spec.height} vertical format.`;
-         const result=await env.AI.run('@cf/black-forest-labs/FLUX.1-schnell',{prompt:imgPrompt,num_steps:4});
+         const slideInfo=slidePlan[i]||{};
+         const rawPrompt=slideInfo.imagePrompt||`${spec.style}. Slide ${i+1}/${spec.imageCount}: ${spec.topic}`;
+         const enriched=enrichPrompt?enrichPrompt(rawPrompt,b.style||'automotive',spec.platform):rawPrompt;
+         const result=await env.AI.run(model.id,{prompt:enriched,num_steps:model.steps||4});
          if(result?.image){
            const imgId=id();
            const key='video-frames/'+imgId+'.png';
            const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
            await env.FILES.put(key,imgBytes,{httpMetadata:{contentType:'image/png'}});
            imageUrls.push('/api/ai/image/serve?id='+imgId);
+           textOverlays.push(slideInfo.overlayText?{text:slideInfo.overlayText,position:i===0?'center':'bottom'}:null);
          }
        }catch{}
      }
    }
-   // Job kaydet
-   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER)');
+
+   // 3) Hashtag üret
+   const hashtags=generateHashtags?generateHashtags(spec.topic,spec.platform.split('_')[0],15):'';
+
+   // 4) Job kaydet
+   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER,narration TEXT,voice TEXT,subtitles INTEGER,text_overlays TEXT,hashtags TEXT,music TEXT)');
    const jobId=id();
-   await run(env,'INSERT INTO video_jobs VALUES(?,?,?,?,?,?,?,?)',jobId,spec.platform,spec.topic,JSON.stringify(spec),JSON.stringify(imageUrls),null,'images_ready',now());
-   return j({ok:true,jobId,platform:spec.platform,imageCount:imageUrls.length,imageUrls,spec,note:'Görseller üretildi. Video birleştirme için GitHub Actions workflow çalıştır veya görselleri doğrudan paylaş.'});
+   const voice=b.voice||'tr-TR-AhmetNeural';
+   const subtitles=b.subtitles!==false;
+   await run(env,'INSERT INTO video_jobs(id,platform,topic,spec,image_urls,status,created_at,narration,voice,subtitles,text_overlays,hashtags,music) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+     jobId,spec.platform,spec.topic,JSON.stringify(spec),JSON.stringify(imageUrls),'images_ready',now(),
+     narration,voice,subtitles?1:0,JSON.stringify(textOverlays),hashtags,b.music||'none');
+   
+   return j({ok:true,jobId,platform:spec.platform,imageCount:imageUrls.length,imageUrls,textOverlays,narration:narration.slice(0,500),voice,subtitles,hashtags,model:model.name,slidePlan:slidePlan.slice(0,spec.imageCount),note:'Görseller üretildi. Video render için GitHub Actions → video-render workflow çalıştır.'});
  }catch(e){return j({error:e.message||'VIDEO_CREATE_FAILED'},500)}}
 
  if(p==='/api/video/job'){try{
    const jobId=new URL(req.url).searchParams.get('id');
    if(!jobId)return j({error:'MISSING_ID'},400);
-   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER)');
+   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER,narration TEXT,voice TEXT,subtitles INTEGER,text_overlays TEXT,hashtags TEXT,music TEXT)');
    const job=await q1(env,'SELECT * FROM video_jobs WHERE id=?',jobId);
    if(!job)return j({error:'JOB_NOT_FOUND'},404);
-   return j({ok:true,...job,spec:safeJsonParse(job.spec,{}),imageUrls:safeJsonParse(job.image_urls,[])});
+   return j({ok:true,...job,spec:safeJsonParse(job.spec,{}),imageUrls:safeJsonParse(job.image_urls,[]),textOverlays:safeJsonParse(job.text_overlays,[]),perImageSec:safeJsonParse(job.spec,{}).perImageSec||3});
  }catch(e){return j({error:e.message},500)}}
 
  if(p==='/api/video/complete'&&m==='POST'){try{
@@ -968,6 +998,72 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(env.FILES)await env.FILES.put(key,videoBytes,{httpMetadata:{contentType:'video/mp4'}});
    await run(env,'UPDATE video_jobs SET video_key=?,status=? WHERE id=?',key,'ready',b.jobId);
    return j({ok:true,jobId:b.jobId,videoKey:key,size:videoBytes.length});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === STOK VİDEO / GÖRSEL ARAMA (Pexels — ücretsiz) ===
+ if(p==='/api/stock/search'&&m==='POST'){try{
+   const b=await body(req);
+   const query=String(b.query||'').trim();
+   if(!query)return j({error:'EMPTY_QUERY'},400);
+   const type=b.type||'videos'; // videos or photos
+   // Pexels API key — credential store'dan al
+   let pexelsKey='';
+   try{const creds=await qall(env,'SELECT * FROM credentials WHERE provider IN (?,?) AND status=?','pexels','stock','active');if(creds.length)pexelsKey=creds[0].secret}catch{}
+   if(!pexelsKey)return j({error:'PEXELS_KEY_NEEDED',detail:'Ayarlar → AI Sağlayıcı → Pexels (ücretsiz: https://www.pexels.com/api/new/ ) ekle'},400);
+   const endpoint=type==='photos'?'https://api.pexels.com/v1/search':'https://api.pexels.com/videos/search';
+   const res2=await fetchT(`${endpoint}?query=${encodeURIComponent(query)}&per_page=${b.count||6}&orientation=${b.orientation||'portrait'}`,{headers:{authorization:pexelsKey}});
+   if(!res2.ok)throw Error('PEXELS_'+res2.status);
+   const data=await res2.json();
+   const results=type==='photos'
+     ?(data.photos||[]).map(p=>({id:p.id,url:p.src?.large||p.src?.medium,thumb:p.src?.tiny,alt:p.alt,photographer:p.photographer}))
+     :(data.videos||[]).map(v=>({id:v.id,url:(v.video_files||[]).find(f=>f.quality==='hd')?.link||(v.video_files||[])[0]?.link,thumb:v.image,duration:v.duration,user:v.user?.name}));
+   return j({ok:true,type,count:results.length,results});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === GÖRSEL ANLAMA (Cloudflare AI Vision — ücretsiz) ===
+ if(p==='/api/ai/vision'&&m==='POST'){try{
+   if(!env.AI)return j({error:'AI_NOT_BOUND'},400);
+   const b=await body(req);
+   const imageB64=b.image||b.imageBase64||'';
+   const question=b.question||b.prompt||'Bu görselde ne var? Detaylı açıkla.';
+   if(!imageB64)return j({error:'NO_IMAGE'},400);
+   const result=await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct',{messages:[{role:'user',content:[{type:'text',text:question},{type:'image',image:imageB64}]}]});
+   return j({ok:true,answer:result?.response||result?.text||'',model:'llama-3.2-11b-vision'});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === ÇOKLU MODEL GÖRSEL ÜRETME ===
+ if(p==='/api/ai/image/models'&&m==='GET'){try{
+   const{IMAGE_MODELS}=await import('./lib/creative-tools.js');
+   return j({ok:true,models:Object.entries(IMAGE_MODELS).map(([k,v])=>({id:k,...v}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === İÇERİK TAKVİMİ ÜRETİCİ ===
+ if(p==='/api/content/calendar'&&m==='POST'){try{
+   const b=await body(req);
+   const{generateContentCalendar,generateHashtags}=await import('./lib/creative-tools.js');
+   const topic=String(b.topic||'').trim();
+   if(!topic)return j({error:'EMPTY_TOPIC'},400);
+   const weeks=b.weeks||4;
+   const postsPerWeek=b.postsPerWeek||3;
+   const calendar=generateContentCalendar(topic,weeks,postsPerWeek);
+   // AI ile her post için kısa açıklama
+   let enriched=calendar;
+   try{
+     const prompt=`İçerik takvimi için ${calendar.length} post. Her biri için 1 cümle açıklama ve 1 emoji yaz. Konu: "${topic}". JSON array: [{"caption":"...","emoji":"..."}]. Sadece JSON.`;
+     const a=await withTimeout(aiFallback(env,[{role:'user',content:prompt}],{mode:'fast'}),8000,'CAL_TIMEOUT');
+     const match=(a?.text||'').match(/\[[\s\S]*\]/);
+     if(match){
+       const captions=JSON.parse(match[0]);
+       enriched=calendar.map((post,i)=>({...post,caption:captions[i]?.caption||'',emoji:captions[i]?.emoji||''}));
+     }
+   }catch{}
+   return j({ok:true,topic,weeks,postsPerWeek,totalPosts:enriched.length,calendar:enriched,hashtags:generateHashtags(topic)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === SES MODELLARI LİSTESİ ===
+ if(p==='/api/tts/voices'&&m==='GET'){try{
+   const{TTS_VOICES}=await import('./lib/creative-tools.js');
+   return j({ok:true,voices:Object.entries(TTS_VOICES).map(([id,v])=>({id,...v}))});
  }catch(e){return j({error:e.message},500)}}
 
  // === YOUTUBE UPLOAD ===

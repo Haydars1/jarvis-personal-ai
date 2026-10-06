@@ -15,6 +15,14 @@
     $('#learnSearchBtn').addEventListener('click', learnSearch);
     // Video
     $('#videoCreate').addEventListener('click', createVideo);
+    // Tek görsel
+    if ($('#singleImageBtn')) $('#singleImageBtn').addEventListener('click', singleImage);
+    // Vision
+    if ($('#visionBtn')) $('#visionBtn').addEventListener('click', analyzeVision);
+    // Stok
+    if ($('#stockBtn')) $('#stockBtn').addEventListener('click', searchStock);
+    // Takvim
+    if ($('#calBtn')) $('#calBtn').addEventListener('click', generateCalendar);
     // Sosyal
     $('#socialSchedule').addEventListener('click', scheduleSocial);
   }
@@ -191,7 +199,11 @@
         body: JSON.stringify({
           topic,
           platform: $('#videoPlatform').value,
-          imageCount: parseInt($('#videoSlides').value) || 5
+          imageCount: parseInt($('#videoSlides').value) || 5,
+          model: $('#videoModel')?.value || 'flux-schnell',
+          style: $('#videoStyle')?.value || 'automotive',
+          voice: $('#videoVoice')?.value || 'tr-TR-AhmetNeural',
+          subtitles: $('#videoSubtitles')?.checked !== false
         })
       });
       const data = await res.json();
@@ -203,7 +215,7 @@
           <small>Job: ${esc(data.jobId)} · Platform: ${esc(data.platform)}</small>
         </div>
       `;
-      // Görselleri göster
+      // Görselleri ve detayları göster
       const preview = $('#videoPreview');
       preview.classList.remove('hidden');
       preview.innerHTML = `
@@ -215,7 +227,9 @@
             </div>
           `).join('')}
         </div>
-        <div class="muted" style="margin-top:8px;font-size:11px">${esc(data.note || '')}</div>
+        ${data.narration ? `<div style="margin-top:10px;padding:10px;background:#0b1a31;border-radius:10px;font-size:12px"><b>🎙 Seslendirme:</b> ${esc(data.narration)}</div>` : ''}
+        ${data.hashtags ? `<div style="margin-top:6px;font-size:11px;color:#9fe3ff">${esc(data.hashtags)}</div>` : ''}
+        <div class="muted" style="margin-top:6px;font-size:11px">Model: ${esc(data.model||'')} · Ses: ${esc(data.voice||'')} · ${esc(data.note || '')}</div>
       `;
       toast('✓ Görseller hazır');
     } catch (err) {
@@ -224,6 +238,115 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'OLUŞTUR';
+    }
+  }
+
+  // ========== TEK GÖRSEL ÜRET ==========
+  async function singleImage() {
+    const prompt = $('#singleImagePrompt').value.trim();
+    if (!prompt) return;
+    const el = $('#singleImageResult');
+    el.innerHTML = '<div class="muted">Üretiliyor...</div>';
+    try {
+      const res = await fetch('/api/ai/image', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'FAILED');
+      el.innerHTML = `<div style="margin-top:8px"><img src="/api/ai/image/serve?id=${esc(data.id)}" style="max-width:100%;border-radius:12px;border:1px solid #294466" loading="lazy"><small class="muted" style="display:block;margin-top:4px">${esc(data.model||'')} · ${(data.size/1024).toFixed(0)} KB</small></div>`;
+    } catch (err) {
+      el.innerHTML = `<div class="learnError">✗ ${esc(err.message)}</div>`;
+    }
+  }
+
+  // ========== GÖRSEL ANALİZ ==========
+  async function analyzeVision() {
+    const fileInput = $('#visionFile');
+    const question = $('#visionQuestion').value.trim() || 'Bu görselde ne var?';
+    if (!fileInput.files[0]) { toast('Görsel seç'); return; }
+    const el = $('#visionResult');
+    el.innerHTML = '<div class="muted">Analiz ediliyor...</div>';
+    try {
+      const file = fileInput.files[0];
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      const CHUNK = 0x8000;
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += CHUNK) bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
+      const b64 = btoa(bin);
+      const res = await fetch('/api/ai/vision', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ image: b64, question })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'FAILED');
+      el.innerHTML = `<div style="padding:12px;background:#081226;border:1px solid #294466;border-radius:12px;margin-top:8px;font-size:13px;line-height:1.6">${esc(data.answer)}</div>`;
+    } catch (err) {
+      el.innerHTML = `<div class="learnError">✗ ${esc(err.message)}</div>`;
+    }
+  }
+
+  // ========== STOK VİDEO/GÖRSEL ARA ==========
+  async function searchStock() {
+    const query = $('#stockQuery').value.trim();
+    if (!query) return;
+    const type = $('#stockType').value;
+    const el = $('#stockResults');
+    el.innerHTML = '<div class="muted">Aranıyor...</div>';
+    try {
+      const res = await fetch('/api/stock/search', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query, type })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.detail || 'FAILED');
+      if (!data.results?.length) { el.innerHTML = '<div class="muted">Sonuç bulunamadı.</div>'; return; }
+      el.innerHTML = `<div class="videoGrid" style="grid-template-columns:repeat(auto-fill,minmax(${type==='videos'?'140':'100'}px,1fr))">${data.results.map(r => `
+        <a href="${esc(r.url)}" target="_blank" rel="noopener" class="videoFrame" style="text-decoration:none">
+          <img src="${esc(r.thumb||r.url)}" loading="lazy" style="aspect-ratio:${type==='videos'?'9/16':'1/1'}">
+          <small>${type==='videos' ? (r.duration||'?')+'s' : (r.photographer||r.alt||'').slice(0,15)}</small>
+        </a>
+      `).join('')}</div>`;
+    } catch (err) {
+      el.innerHTML = `<div class="learnError">✗ ${esc(err.message)}</div>`;
+    }
+  }
+
+  // ========== İÇERİK TAKVİMİ ==========
+  async function generateCalendar() {
+    const topic = $('#calTopic').value.trim();
+    if (!topic) return;
+    const weeks = parseInt($('#calWeeks').value) || 4;
+    const el = $('#calResult');
+    el.innerHTML = '<div class="muted">Takvim oluşturuluyor...</div>';
+    try {
+      const res = await fetch('/api/content/calendar', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ topic, weeks, postsPerWeek: 3 })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'FAILED');
+      el.innerHTML = `
+        <div style="margin-top:10px">
+          <div class="muted" style="margin-bottom:8px">${data.totalPosts} post · ${data.weeks} hafta · ${esc(data.hashtags||'')}</div>
+          ${(data.calendar||[]).map((p,i) => `
+            <div class="socialJob" style="margin-top:6px">
+              <div class="socialJobHead">
+                <span class="socialPlatform">H${p.week}</span>
+                <b>${esc(p.day)} · ${esc(p.type)}</b>
+              </div>
+              <small>${esc(p.emoji||'')} ${esc(p.caption||p.topic||'')}</small>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    } catch (err) {
+      el.innerHTML = `<div class="learnError">✗ ${esc(err.message)}</div>`;
     }
   }
 
