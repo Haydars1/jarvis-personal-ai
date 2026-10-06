@@ -625,7 +625,10 @@ async function command(env,text){await log(env,'user',text);const l=text.toLocal
  // YouTube öğrenme hafızasını ara — ücretsiz, AI çağrısı değil
  let learningContext='';
  try{const{searchLearningMemory,learningContextText}=await import('./lib/youtube-learning-memory.js');const lRows=await searchLearningMemory(env,text,{limit:4});if(lRows.length)learningContext='\n\nÖĞRENİLMİŞ VİDEO NOTLARI (YouTube\'dan öğrenilen içerik — bu bilgileri cevabında kullan):\n'+learningContextText(lRows)}catch{}
- const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. ${policy} Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}${learningContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
+ // DTC kodu tespit — P0xxx, B0xxx, C0xxx, U0xxx formatında
+ let dtcContext='';
+ try{const dtcMatches=text.match(/\b[PBCU][0-3]\d{3}\b/gi);if(dtcMatches){const unique=[...new Set(dtcMatches.map(c=>c.toUpperCase()))].slice(0,5);const results=[];for(const code of unique){const row=await q1(env,'SELECT * FROM dtc_codes WHERE code=?',code);if(row)results.push({code,title_en:row.title_en,title_de:row.title_de,desc_en:row.desc_en,parts:safeJsonParse(row.parts,[]),causes:safeJsonParse(row.causes,[]),repair:safeJsonParse(row.repair,{})})}if(results.length)dtcContext='\n\nDTC VERİTABANI SONUÇLARI (9204 kodluk OBDex veritabanından — bu bilgileri cevabında kullan, tek DTC\'ye körü körüne bağlanma, bütün hata ağını değerlendir):\n'+JSON.stringify(results)}}catch{}
+ const system=`Sen JARVIS adlı Türkçe kişisel asistansın. ChatGPT gibi doğal sohbet et ama aynı zamanda aksiyon alan kişisel asistansın. ${policy} Güncel bilgi, fiyat, ürün, yer, uçuş, kargo, rezervasyon, yasa, seçim, hava durumu veya değişebilir bilgi sorulursa kullanıcıya \\\"siteye gir bak\\\" deme; önce sen web/canlı araştırma sonuçlarını kullanarak netleştir. Erişim yoksa bunu açık söyle, ama kullanıcıyı baştan savma. Kullanıcının önceki sohbetlerini ve hafızasını bağlam olarak kullan. Kısa gerektiğinde kısa, detay gerektiğinde detaylı ol. Bağlı olmayan entegrasyonları uydurma. Kullanıcı işi bitirmeni ister; gerektiğinde araştır, planla ve bağlı araçlar arasında geçiş yap. Geri döndürülemez işlemlerde onay iste. JARVIS DAVRANIŞ BECERİLERİ:\n${skills}\nKalıcı hafıza: ${JSON.stringify(mem)} Sistem bağlamı: ${JSON.stringify({brief:s.brief,tasks:s.tasks.slice(0,20),projects:s.projects.slice(0,20),integrations:s.integrations})}${researchContext}${learningContext}${dtcContext}`;let a;try{a=await aiFallback(env,[{role:'system',content:system},...history.slice(-20,-1).map(x=>({role:x.role==='assistant'?'assistant':'user',content:x.content})),{role:'user',content:text}],{userText:text})}catch(e){const msg=String(e?.message||e||'UNKNOWN').slice(0,500),fallback=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,researchResults),reply=fallback||'Şu an bağlı AI servisleri zamanında cevap vermedi. Teknik hatayı kaydettim; ayarlardaki AI sağlayıcısı/model anahtarlarını yenilemek gerekiyor.';await recordRuntimeError(env,e,'chat.ai');await log(env,'jarvis',reply,{provider:'system',error:msg});return{reply,action:fallback?'local_fallback':'ai_error',provider:fallback?'JARVIS Local':'system'}}if(!String(a.text||'').trim()){const reply='AI sağlayıcısı boş cevap döndürdü. Bunu hata olarak kaydettim; başka sağlayıcı veya ayar kontrolü gerekiyor.';await recordRuntimeError(env,Error('EMPTY_AI_REPLY:'+a.provider),'chat.ai');await log(env,'jarvis',reply,{provider:a.provider});return{reply,action:'ai_error',provider:a.provider}}
  let reply=a.text;
  if(isBadAssistantAnswer(reply)){
   await aiRouterMark(env,a.provider,false,'BAD_ASSISTANT_ANSWER');
@@ -856,6 +859,140 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const jobs=await qall(env,'SELECT * FROM scheduled_jobs WHERE status=? ORDER BY next_run ASC','active');
    return j({ok:true,count:jobs.length,jobs});
  }catch(e){return j({error:e.message},500)}}
+
+ // === DTC LOOKUP — 9204 kod, ücretsiz, AI çağrısı yok ===
+ if(p==='/api/dtc/lookup'){try{
+   const u2=new URL(req.url);
+   const code=String(u2.searchParams.get('code')||'').toUpperCase().trim();
+   if(!code)return j({error:'EMPTY_CODE'},400);
+   const row=await q1(env,'SELECT * FROM dtc_codes WHERE code=?',code);
+   if(!row)return j({error:'CODE_NOT_FOUND',code,detail:`${code} veritabanında bulunamadı.`},404);
+   return j({ok:true,code:row.code,category:row.category,title:{en:row.title_en,de:row.title_de},description:{en:row.desc_en,de:row.desc_de},parts:safeJsonParse(row.parts,[]),causes:safeJsonParse(row.causes,[]),repair:safeJsonParse(row.repair,{}),mil:!!row.mil});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/dtc/search'&&m==='POST'){try{
+   const b=await body(req);
+   const q=String(b.query||b.q||'').trim();
+   if(!q)return j({error:'EMPTY_QUERY'},400);
+   const term='%'+q.toLowerCase()+'%';
+   const rows=await qall(env,'SELECT code,category,title_en,title_de,desc_en FROM dtc_codes WHERE lower(code) LIKE ? OR lower(title_en) LIKE ? OR lower(title_de) LIKE ? OR lower(desc_en) LIKE ? LIMIT 20',term,term,term,term);
+   return j({ok:true,count:rows.length,results:rows.map(r=>({code:r.code,category:r.category,title_en:r.title_en,title_de:r.title_de,desc_en:(r.desc_en||'').slice(0,150)}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/dtc/stats'){try{
+   const total=await q1(env,'SELECT COUNT(*) n FROM dtc_codes');
+   const byCat=await qall(env,'SELECT category,COUNT(*) n FROM dtc_codes GROUP BY category ORDER BY n DESC');
+   return j({ok:true,total:total?.n||0,byCategory:byCat});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === VİDEO PİPELINE ===
+ if(p==='/api/video/create'&&m==='POST'){try{
+   const b=await body(req);
+   const{generateVideoJobSpec}=await import('./lib/video-pipeline.js');
+   const spec=generateVideoJobSpec({platform:b.platform,imageCount:b.imageCount,perImageSec:b.perImageSec,topic:b.topic,style:b.style});
+   // Görselleri üret (Cloudflare AI — ücretsiz)
+   const imageUrls=[];
+   if(env.AI&&env.FILES){
+     for(let i=0;i<spec.imageCount;i++){
+       try{
+         const imgPrompt=`${spec.style}. Slide ${i+1}/${spec.imageCount}: ${spec.topic}. ${spec.spec.width}x${spec.spec.height} vertical format.`;
+         const result=await env.AI.run('@cf/black-forest-labs/FLUX.1-schnell',{prompt:imgPrompt,num_steps:4});
+         if(result?.image){
+           const imgId=id();
+           const key='video-frames/'+imgId+'.png';
+           const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
+           await env.FILES.put(key,imgBytes,{httpMetadata:{contentType:'image/png'}});
+           imageUrls.push('/api/ai/image/serve?id='+imgId);
+         }
+       }catch{}
+     }
+   }
+   // Job kaydet
+   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER)');
+   const jobId=id();
+   await run(env,'INSERT INTO video_jobs VALUES(?,?,?,?,?,?,?,?)',jobId,spec.platform,spec.topic,JSON.stringify(spec),JSON.stringify(imageUrls),null,'images_ready',now());
+   return j({ok:true,jobId,platform:spec.platform,imageCount:imageUrls.length,imageUrls,spec,note:'Görseller üretildi. Video birleştirme için GitHub Actions workflow çalıştır veya görselleri doğrudan paylaş.'});
+ }catch(e){return j({error:e.message||'VIDEO_CREATE_FAILED'},500)}}
+
+ if(p==='/api/video/job'){try{
+   const jobId=new URL(req.url).searchParams.get('id');
+   if(!jobId)return j({error:'MISSING_ID'},400);
+   await run(env,'CREATE TABLE IF NOT EXISTS video_jobs(id TEXT PRIMARY KEY,platform TEXT,topic TEXT,spec TEXT,image_urls TEXT,video_key TEXT,status TEXT DEFAULT "pending",created_at INTEGER)');
+   const job=await q1(env,'SELECT * FROM video_jobs WHERE id=?',jobId);
+   if(!job)return j({error:'JOB_NOT_FOUND'},404);
+   return j({ok:true,...job,spec:safeJsonParse(job.spec,{}),imageUrls:safeJsonParse(job.image_urls,[])});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/video/complete'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.jobId||!b.videoBase64)return j({error:'MISSING_FIELDS'},400);
+   const videoBytes=Uint8Array.from(atob(b.videoBase64),c=>c.charCodeAt(0));
+   const key='videos/'+b.jobId+'.mp4';
+   if(env.FILES)await env.FILES.put(key,videoBytes,{httpMetadata:{contentType:'video/mp4'}});
+   await run(env,'UPDATE video_jobs SET video_key=?,status=? WHERE id=?',key,'ready',b.jobId);
+   return j({ok:true,jobId:b.jobId,videoKey:key,size:videoBytes.length});
+ }catch(e){return j({error:e.message},500)}}
+
+ // === YOUTUBE UPLOAD ===
+ if(p==='/api/youtube/upload'&&m==='POST'){try{
+   const b=await body(req);
+   const videoJobId=b.videoJobId||b.jobId;
+   if(!videoJobId)return j({error:'MISSING_JOB_ID'},400);
+   const job=await q1(env,'SELECT * FROM video_jobs WHERE id=?',videoJobId);
+   if(!job||job.status!=='ready')return j({error:'VIDEO_NOT_READY'},400);
+   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
+   const videoObj=await env.FILES.get(job.video_key);
+   if(!videoObj)return j({error:'VIDEO_FILE_MISSING'},404);
+   // Google OAuth token al
+   const token=await googleAccessToken(env);
+   // YouTube Data API — resumable upload
+   const title=b.title||job.topic||'JARVIS Video';
+   const description=b.description||`${job.topic} — JARVIS tarafından otomatik üretildi.`;
+   const tags=b.tags||['jarvis','automotive','tuning'];
+   const categoryId=b.categoryId||'22'; // People & Blogs
+   // 1) Resumable upload başlat
+   const initRes=await fetchT('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status',{
+     method:'POST',
+     headers:{authorization:'Bearer '+token,'content-type':'application/json'},
+     body:JSON.stringify({snippet:{title,description,tags,categoryId},status:{privacyStatus:b.privacy||'unlisted',selfDeclaredMadeForKids:false}})
+   });
+   if(!initRes.ok)throw Error('YOUTUBE_INIT_'+initRes.status+':'+(await initRes.text()).slice(0,200));
+   const uploadUrl=initRes.headers.get('location');
+   if(!uploadUrl)throw Error('YOUTUBE_NO_UPLOAD_URL');
+   // 2) Video yükle
+   const videoBytes=new Uint8Array(await videoObj.arrayBuffer());
+   const uploadRes=await fetchT(uploadUrl,{method:'PUT',headers:{'content-type':'video/mp4','content-length':String(videoBytes.length)},body:videoBytes});
+   if(!uploadRes.ok)throw Error('YOUTUBE_UPLOAD_'+uploadRes.status+':'+(await uploadRes.text()).slice(0,200));
+   const ytResult=await uploadRes.json();
+   await run(env,'UPDATE video_jobs SET status=? WHERE id=?','published:youtube:'+ytResult.id,videoJobId);
+   await log(env,'youtube','Video yüklendi: '+title,{videoId:ytResult.id,platform:'youtube'});
+   return j({ok:true,videoId:ytResult.id,url:'https://youtube.com/watch?v='+ytResult.id,title});
+ }catch(e){return j({error:e.message||'YOUTUBE_UPLOAD_FAILED'},500)}}
+
+ // === INSTAGRAM REELS UPLOAD ===
+ if(p==='/api/instagram/reels'&&m==='POST'){try{
+   const b=await body(req);
+   const c=await metaCredential(env);
+   if(!c)return j({error:'META_NOT_CONNECTED'},400);
+   const ig=String(c.model||'').trim();
+   if(!ig)return j({error:'INSTAGRAM_BUSINESS_ID_REQUIRED'},400);
+   // Instagram Reels: video URL lazım (R2'den public serve)
+   const videoUrl=b.videoUrl||'';
+   if(!videoUrl)return j({error:'VIDEO_URL_REQUIRED'},400);
+   const caption=b.caption||'';
+   // 1) Container oluştur
+   const form1=new URLSearchParams({media_type:'REELS',video_url:videoUrl,caption,access_token:c.secret});
+   const r1=await fetchT(`https://graph.facebook.com/v24.0/${ig}/media`,{method:'POST',body:form1});
+   if(!r1.ok)throw Error('IG_CONTAINER_'+r1.status+':'+(await r1.text()).slice(0,200));
+   const containerId=(await r1.json()).id;
+   // 2) Yayınla
+   const form2=new URLSearchParams({creation_id:containerId,access_token:c.secret});
+   const r2=await fetchT(`https://graph.facebook.com/v24.0/${ig}/media_publish`,{method:'POST',body:form2});
+   if(!r2.ok)throw Error('IG_PUBLISH_'+r2.status+':'+(await r2.text()).slice(0,200));
+   const result=await r2.json();
+   await log(env,'instagram','Reels yüklendi: '+caption.slice(0,80),{mediaId:result.id});
+   return j({ok:true,mediaId:result.id,platform:'instagram_reels'});
+ }catch(e){return j({error:e.message||'INSTAGRAM_REELS_FAILED'},500)}}
 
  if(p==='/api/ai/router/status')return j({router:await aiRouterStatus(env)});
  if(p==='/api/ai/diagnose')return j(await aiDiagnostics(env));
