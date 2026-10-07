@@ -44,6 +44,10 @@
     if ($('#aptAdd')) $('#aptAdd').addEventListener('click', addAppointment);
     // Araç geçmişi
     if ($('#vhSearchBtn')) { $('#vhSearchBtn').addEventListener('click', searchVehicleHistory); $('#vhPlate').addEventListener('keydown', e => { if (e.key === 'Enter') searchVehicleHistory(); }); }
+    // Mesaj şablonları
+    if ($('#msgGenerate')) $('#msgGenerate').addEventListener('click', generateMessage);
+    // Maliyet hesaplayıcı
+    if ($('#calcBtn')) $('#calcBtn').addEventListener('click', calculateProfit);
   }
 
   // ========== DTC ==========
@@ -822,6 +826,62 @@
       } else { html += '<div class="muted">Bu araç için henüz iş kaydı yok</div>'; }
       el.innerHTML = html;
     } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== MESAJ ŞABLONLARI ==========
+  function generateMessage() {
+    const tpl = $('#msgTemplate')?.value;
+    const name = $('#msgCustomerName')?.value?.trim() || 'Müşterimiz';
+    const car = $('#msgCarInfo')?.value?.trim() || '';
+    const extra = $('#msgExtra')?.value?.trim() || '';
+    const el = $('#msgResult');
+    if (!tpl) return toast('Şablon seç');
+
+    const templates = {
+      randevu: `Merhaba ${name},\n\n${car ? car + ' aracınız için ' : ''}randevunuz ${extra || 'yakında'}. Zamanında gelmenizi rica ederiz.\n\nBilgi için: 📞 (telefon)\n\nSaygılarımla`,
+      tamamlandi: `Merhaba ${name},\n\n${car ? car + ' aracınızdaki ' : ''}işlem tamamlanmıştır. ${extra ? extra + '. ' : ''}Aracınızı teslim almaya gelebilirsiniz.\n\nTeşekkür ederiz 🙏`,
+      fiyat: `Merhaba ${name},\n\n${car ? car + ' için ' : ''}fiyat teklifimiz:\n${extra || '(fiyat bilgisi)'}\n\nDetaylı bilgi ve randevu için bize ulaşabilirsiniz.\n\nSaygılarımla`,
+      tesekkkur: `Merhaba ${name},\n\n${car ? car + ' aracınızla ' : ''}bizi tercih ettiğiniz için teşekkür ederiz. Memnuniyetiniz bizim için önemlidir.\n\nTekrar görüşmek üzere! 🙏`,
+      dtcsonuc: `Merhaba ${name},\n\n${car ? car + ' aracınızın ' : ''}arıza taraması tamamlandı.\n${extra || 'Tespit edilen kodlar raporda belirtilmiştir.'}\n\nDetaylı bilgi için arayabilirsiniz.`,
+      indirim: `🔥 Kampanya!\n\nMerhaba ${name},\n\n${car ? car + ' ' : ''}${extra || 'ECU Tuning ve kodlama işlemlerinde özel indirim!'}\n\nRandevu için hemen arayın! 📞`
+    };
+
+    const msg = templates[tpl] || '';
+    el.innerHTML = `<div class="card" style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(msg)}</div>
+      <button class="ghost" style="margin-top:6px" onclick="navigator.clipboard.writeText(${JSON.stringify(msg).replace(/'/g,'\\\'')});document.querySelector('#toast').textContent='Kopyalandı';document.querySelector('#toast').classList.remove('hidden');setTimeout(()=>document.querySelector('#toast').classList.add('hidden'),2000)">📋 KOPYALA</button>`;
+  }
+
+  // ========== MALİYET HESAPLAYICI ==========
+  function calculateProfit() {
+    const price = parseFloat($('#calcPrice')?.value) || 0;
+    const tool = parseFloat($('#calcTool')?.value) || 0;
+    const time = parseFloat($('#calcTime')?.value) || 0;
+    const hourly = parseFloat($('#calcHourly')?.value) || 0;
+    const other = parseFloat($('#calcOther')?.value) || 0;
+    const el = $('#calcResult');
+    if (!price) return toast('Fiyat gir');
+
+    const laborCost = time * hourly;
+    const totalCost = tool + laborCost + other;
+    const profit = price - totalCost;
+    const margin = price > 0 ? (profit / price * 100) : 0;
+    const profitColor = profit >= 0 ? '#0f0' : '#f55';
+
+    el.innerHTML = `<div class="card">
+      <div style="display:flex;justify-content:space-around;text-align:center;margin-bottom:12px">
+        <div><small class="muted">Gelir</small><br><b style="font-size:18px;color:cyan">€${price.toFixed(2)}</b></div>
+        <div><small class="muted">Maliyet</small><br><b style="font-size:18px;color:orange">€${totalCost.toFixed(2)}</b></div>
+        <div><small class="muted">Kâr</small><br><b style="font-size:18px;color:${profitColor}">€${profit.toFixed(2)}</b></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;color:#888">
+        <span>İşçilik: €${laborCost.toFixed(2)} (${time}h × €${hourly})</span>
+        <span>Ekipman: €${tool.toFixed(2)}</span>
+        ${other > 0 ? `<span>Diğer: €${other.toFixed(2)}</span>` : ''}
+      </div>
+      <div style="margin-top:8px;text-align:center">
+        <span style="font-size:14px">Kâr Marjı: <b style="color:${profitColor}">${margin.toFixed(1)}%</b></span>
+      </div>
+    </div>`;
   }
 
   // ========== RANDEVU MÜŞTERİ DROPDOWN ==========

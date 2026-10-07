@@ -16,7 +16,7 @@
 <div id="auth" class="auth">
   <div class="authbox">
     <div class="brand">JARVIS</div>
-    <p>ECU Tuning · Carglanz</p>
+    <p>ECU Tuning · Kodlama · Arıza</p>
     <button id="passkeyLogin" class="face hidden">◉ FACE ID İLE GİR</button>
     <div class="sep">veya</div>
     <input id="pw" type="password" autocomplete="current-password" placeholder="Parola">
@@ -38,7 +38,7 @@
       <button data-page="settings">⚙ <span>Ayarlar</span></button>
     </nav>
     <div class="asideFoot">
-      <small class="muted">Carglanz · KT200</small>
+      <small class="muted">ECU Tuning · KT200</small>
     </div>
   </aside>
 
@@ -630,6 +630,49 @@
           <hr>
           <h3>Yaklaşan Randevular</h3>
           <div id="aptList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- HIZLI MESAJ ŞABLONLARI -->
+      <details class="settingsBlock">
+        <summary>💬 Hızlı Mesaj Şablonları</summary>
+        <div class="settingsBody">
+          <p class="muted">WhatsApp / SMS için hazır mesaj şablonları. Kopyala → yapıştır.</p>
+          <div class="row">
+            <select id="msgTemplate" style="flex:3">
+              <option value="">Şablon seç...</option>
+              <option value="randevu">Randevu Hatırlatma</option>
+              <option value="tamamlandi">İş Tamamlandı</option>
+              <option value="fiyat">Fiyat Teklifi</option>
+              <option value="tesekkkur">Teşekkür</option>
+              <option value="dtcsonuc">DTC Arıza Sonucu</option>
+              <option value="indirim">Kampanya / İndirim</option>
+            </select>
+            <button id="msgGenerate">OLUŞTUR</button>
+          </div>
+          <div class="credgrid" style="margin-top:8px">
+            <input id="msgCustomerName" placeholder="Müşteri adı">
+            <input id="msgCarInfo" placeholder="Araç bilgisi (ör: BMW F30)">
+            <input id="msgExtra" placeholder="Ek bilgi (fiyat, tarih vb.)">
+          </div>
+          <div id="msgResult"></div>
+        </div>
+      </details>
+
+      <!-- MALİYET HESAPLAYICI -->
+      <details class="settingsBlock">
+        <summary>💰 Maliyet / Kâr Hesaplayıcı</summary>
+        <div class="settingsBody">
+          <p class="muted">İş başına maliyet ve kâr hesapla.</p>
+          <div class="credgrid">
+            <input id="calcPrice" type="number" step="0.01" placeholder="Müşteriden alınan ücret (€)">
+            <input id="calcTool" type="number" step="0.01" placeholder="Ekipman / Yazılım maliyeti (€)" value="0">
+            <input id="calcTime" type="number" step="0.5" placeholder="Harcanan süre (saat)" value="1">
+            <input id="calcHourly" type="number" step="0.01" placeholder="Saatlik işçilik (€)" value="30">
+            <input id="calcOther" type="number" step="0.01" placeholder="Diğer giderler (€)" value="0">
+          </div>
+          <div class="row"><button id="calcBtn">HESAPLA</button></div>
+          <div id="calcResult"></div>
         </div>
       </details>
 
