@@ -53,6 +53,10 @@
     if ($('#noteSearchBtn')) { $('#noteSearchBtn').addEventListener('click', () => loadNotes($('#noteSearch')?.value)); $('#noteSearch')?.addEventListener('keydown', e => { if (e.key === 'Enter') loadNotes($('#noteSearch')?.value); }); }
     // Yapılacaklar
     if ($('#todoAddBtn')) { $('#todoAddBtn').addEventListener('click', addTodo); $('#todoText')?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); }); }
+    // İletişim kaydı
+    if ($('#contactAddBtn')) $('#contactAddBtn').addEventListener('click', addContact);
+    // Yedekleme
+    if ($('#backupBtn')) $('#backupBtn').addEventListener('click', downloadBackup);
     // Fiyat listesi
     if ($('#priceAddBtn')) $('#priceAddBtn').addEventListener('click', addPrice);
     // Gelir/gider
@@ -1015,6 +1019,79 @@
     try { await fetch('/api/todos/' + id, { method: 'DELETE' }); toast('Silindi'); loadTodos(); } catch {}
   };
 
+  // ========== MÜŞTERİ İLETİŞİM KAYDI ==========
+  async function loadContactCustomers() {
+    const sel = $('#contactCustomer');
+    if (!sel) return;
+    try {
+      const res = await fetch('/api/crm/customers');
+      const d = await res.json();
+      if (d.ok && d.customers?.length) {
+        sel.innerHTML = '<option value="">Müşteri seç...</option>' + d.customers.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.plate ? ' (' + esc(c.plate) + ')' : ''}</option>`).join('');
+      }
+    } catch {}
+  }
+  async function addContact() {
+    const customer_id = $('#contactCustomer')?.value;
+    const summary = $('#contactSummary')?.value?.trim();
+    if (!customer_id) { toast('Müşteri seçin'); return; }
+    if (!summary) { toast('Görüşme özeti gerekli'); return; }
+    try {
+      const res = await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        customer_id, summary,
+        channel: $('#contactChannel')?.value || 'whatsapp',
+        direction: $('#contactDir')?.value || 'outgoing'
+      }) });
+      const d = await res.json();
+      if (d.ok) { toast('Kayıt eklendi'); $('#contactSummary').value = ''; loadContacts(); }
+      else toast(d.error || 'Hata');
+    } catch (e) { toast('Hata: ' + e.message); }
+  }
+  async function loadContacts() {
+    const el = $('#contactList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/contacts');
+      const d = await res.json();
+      if (!d.ok || !d.contacts?.length) { el.innerHTML = '<p class="muted">Kayıt yok.</p>'; return; }
+      const chIcons = { whatsapp: '💬', telefon: '📞', sms: '📱', 'yüzyüze': '🤝', email: '✉️' };
+      el.innerHTML = d.contacts.map(c => {
+        const dt = c.created_at ? new Date(c.created_at).toLocaleString('tr-TR') : '';
+        return `<div style="background:var(--card);padding:8px 10px;border-radius:6px;margin-bottom:4px;border-left:3px solid ${c.direction === 'incoming' ? '#4af' : '#4f4'}">
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span>${chIcons[c.channel] || '📋'} <b>${esc(c.customer_name || '?')}</b> ${c.customer_plate ? '(' + esc(c.customer_plate) + ')' : ''}</span>
+            <span style="opacity:0.5">${dt}</span>
+          </div>
+          <p style="margin:4px 0;font-size:13px">${c.direction === 'incoming' ? '📥' : '📤'} ${esc(c.summary)}</p>
+          <button onclick="deleteContact('${esc(c.id)}')" style="font-size:10px;padding:1px 6px;background:#611">Sil</button>
+        </div>`;
+      }).join('');
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi</p>'; }
+  }
+  window.deleteContact = async (id) => {
+    try { await fetch('/api/contacts/' + id, { method: 'DELETE' }); toast('Silindi'); loadContacts(); } catch {}
+  };
+
+  // ========== VERİ YEDEKLEME ==========
+  async function downloadBackup() {
+    const el = $('#backupStatus');
+    if (el) el.innerHTML = 'İndiriliyor...';
+    try {
+      const res = await fetch('/api/export');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'jarvis-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      if (el) el.innerHTML = '<span style="color:#4f4">✓ Yedek indirildi</span>';
+      toast('Yedek indirildi');
+    } catch (e) { if (el) el.innerHTML = 'Hata: ' + esc(e.message); }
+  }
+
   // ========== FİYAT LİSTESİ ==========
   async function loadPrices() {
     const el = $('#priceList');
@@ -1182,6 +1259,8 @@
         loadTodos();
         loadPrices();
         loadTransactions();
+        loadContactCustomers();
+        loadContacts();
       }, 300);
     });
   }

@@ -1365,6 +1365,33 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  }catch(e){return j({error:e.message},500)}}
  if(mm&&m==='DELETE'){await run(env,'DELETE FROM todos WHERE id=?',mm[1]);return j({ok:true})}
 
+ // ===== MÜŞTERİ İLETİŞİM KAYDI =====
+ if(p==='/api/contacts'&&m==='GET'){try{
+   const cid=u.searchParams.get('customer_id')||'';
+   let sql='SELECT cl.*,c.name as customer_name,c.plate as customer_plate FROM contact_log cl LEFT JOIN customers c ON cl.customer_id=c.id';const params=[];
+   if(cid){sql+=' WHERE cl.customer_id=?';params.push(cid)}
+   sql+=' ORDER BY cl.created_at DESC LIMIT 100';
+   const rows=await qall(env,sql,...params);
+   return j({ok:true,contacts:rows});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/contacts'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.customer_id||!b.summary)return j({error:'CUSTOMER_AND_SUMMARY_REQUIRED'},400);
+   const cId=id();const t=now();
+   await run(env,'INSERT INTO contact_log(id,customer_id,channel,direction,summary,created_at) VALUES(?,?,?,?,?,?)',cId,b.customer_id,b.channel||'whatsapp',b.direction||'outgoing',b.summary,t);
+   return j({ok:true,id:cId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/contacts\/([^/]+)$/);
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM contact_log WHERE id=?',mm[1]);return j({ok:true})}
+
+ // ===== VERİ YEDEKLEME / DIŞA AKTARMA =====
+ if(p==='/api/export'&&m==='GET'){try{
+   const tables=['customers','jobs','invoices','appointments','notes','todos','price_list','transactions','contact_log'];
+   const data={exported_at:new Date().toISOString(),tables:{}};
+   for(const t of tables){try{data.tables[t]=await qall(env,'SELECT * FROM '+t)}catch{data.tables[t]=[]}}
+   return new Response(JSON.stringify(data,null,2),{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="jarvis-backup-'+new Date().toISOString().slice(0,10)+'.json"','Access-Control-Allow-Origin':'*'}});
+ }catch(e){return j({error:e.message},500)}}
+
  // ===== FİYAT LİSTESİ =====
  if(p==='/api/prices'&&m==='GET'){try{
    const cat=u.searchParams.get('category')||'';

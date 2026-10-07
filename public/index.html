@@ -740,6 +740,44 @@
         </div>
       </details>
 
+      <!-- MÜŞTERİ İLETİŞİM KAYDI -->
+      <details class="settingsBlock">
+        <summary>📞 İletişim Kaydı</summary>
+        <div class="settingsBody">
+          <p class="muted">Müşterilerle yapılan görüşmeleri kaydet.</p>
+          <div class="credgrid">
+            <select id="contactCustomer"><option value="">Müşteri seç...</option></select>
+            <div class="row">
+              <select id="contactChannel" style="flex:1">
+                <option value="whatsapp">WhatsApp</option>
+                <option value="telefon">Telefon</option>
+                <option value="sms">SMS</option>
+                <option value="yüzyüze">Yüz yüze</option>
+                <option value="email">E-posta</option>
+              </select>
+              <select id="contactDir" style="flex:1">
+                <option value="outgoing">Giden</option>
+                <option value="incoming">Gelen</option>
+              </select>
+            </div>
+            <textarea id="contactSummary" rows="2" placeholder="Görüşme özeti..."></textarea>
+          </div>
+          <div class="row"><button id="contactAddBtn">KAYDET</button></div>
+          <hr>
+          <div id="contactList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- VERİ YEDEKLEME -->
+      <details class="settingsBlock">
+        <summary>💾 Veri Yedekleme</summary>
+        <div class="settingsBody">
+          <p class="muted">Tüm verileri JSON olarak indir — müşteriler, işler, faturalar, notlar, randevular, gelir/gider.</p>
+          <div class="row"><button id="backupBtn">📥 YEDEK İNDİR</button></div>
+          <div id="backupStatus" class="muted"></div>
+        </div>
+      </details>
+
       <!-- FİYAT LİSTESİ -->
       <details class="settingsBlock">
         <summary>💶 Fiyat Listesi</summary>
