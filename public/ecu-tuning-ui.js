@@ -289,15 +289,19 @@
       renderStep2();
       requestAISuggestions();
     } catch (err) {
+      const msg = err.message === 'Load failed' || err.message === 'Failed to fetch'
+        ? 'Sunucuya bağlanılamadı — internet bağlantınızı kontrol edin veya tekrar deneyin'
+        : err.message;
       drop.classList.remove('has');
       drop.innerHTML = `
         <div class="ecuDropIcon" style="color:#ff5578">✗</div>
         <b>Yüklenemedi</b>
-        <p>${esc(err.message)}</p>
+        <p>${esc(msg)}</p>
+        <button class="softBtn" style="margin-top:10px" onclick="document.querySelector('#ecuFile')?.click()">🔄 Tekrar Dene</button>
         <input type="file" id="ecuFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">
       `;
       rebindDrop();
-      toast(err.message);
+      toast(msg);
     }
   }
 
