@@ -32,24 +32,25 @@
 
   // ===== CLIENT-SIDE ECU ANALİZ MOTORU (offline fallback) =====
   const LOCAL_SYSTEMS = [
-    { re: /\bEGR\b|AGR|Abgasrück/i, system: 'EGR', icon: '🔄', explain: 'Egzoz gazı resirkülasyonu. Karbon birikimini artırır.', offExplain: 'EGR kapatılınca: intake manifold temiz kalır, motor rahat nefes alır.', stage1: true, hpGain: '5-15' },
-    { re: /\bDPF\b|\bFAP\b|PartikelFilter|Rußfilter/i, system: 'DPF', icon: '🔥', explain: 'Dizel partikül filtre. Rejenerasyon döngüsüne girer.', offExplain: 'DPF kapatılınca: Yakıt tasarrufu, contra basınç düşer.', stage1: true, hpGain: '10-20' },
-    { re: /AdBlue|SCR|DEF\b|Urea|Harnstoff|NOx/i, system: 'AdBlue/SCR', icon: '💧', explain: 'AdBlue / NOx redüksiyon sistemi.', offExplain: 'Kapatılınca limp mode riski ortadan kalkar.', stage1: false, hpGain: '0-5' },
-    { re: /Lambda|\bO2S?\b|LSU/i, system: 'Lambda', icon: '📊', explain: 'Oksijen sensörü. Yakıt/hava oranını ayarlar.', offExplain: 'Kapatılınca P0420/P0430 hata kodları önlenir.', stage1: false, hpGain: '0' },
-    { re: /Boost|LDR|Ladedruck|P2Soll/i, system: 'Boost', icon: '⚡', explain: 'Turbo basınç kontrolü.', offExplain: 'Yükseltilince daha fazla güç.', stage1: true, hpGain: '20-40' },
-    { re: /Torque|Torq|M_Soll|Drehmoment/i, system: 'Torque', icon: '💪', explain: 'Tork sınırlama haritaları.', offExplain: 'Yükseltilince motor daha fazla tork üretir.', stage1: true, hpGain: '15-30' },
-    { re: /Injection|Inj_Q|QNFLM|Einspritz/i, system: 'Injection', icon: '💉', explain: 'Yakıt enjeksiyonu kontrolü.', offExplain: 'Artırılınca daha fazla güç.', stage1: true, hpGain: '10-25' },
-    { re: /\bMAF\b|HFM|\bMAP\b|LMM/i, system: 'MAF/MAP', icon: '🌬️', explain: 'Hava akış sensörü.', offExplain: 'Limitleri yükseltilince büyük turbo desteklenir.', stage1: false, hpGain: '0-5' },
-    { re: /Vmax|Vfzg|SpeedLim|Geschwind/i, system: 'Hız sınırı', icon: '🏎️', explain: 'Araç hız sınırlayıcı.', offExplain: 'Kaldırılınca mekanik limite kadar hızlanır.', stage1: false, hpGain: '0' },
-    { re: /Nmax|Nmot|RpmLim|Drehzahl/i, system: 'RPM sınırı', icon: '🔴', explain: 'Devir sınırlayıcı.', offExplain: 'Yükseltilince motor daha yüksek devire çıkar.', stage1: false, hpGain: '0-5' },
-    { re: /Pedal|PWG|TPS\b|FGR/i, system: 'Pedal', icon: '🦶', explain: 'Gaz pedalı karakteristiği.', offExplain: 'Agresifleştirilince tepki artar.', stage1: false, hpGain: '0' },
+    { re: /EGR|AGR|Abgasrück|AGR_?[Vv]|EGR_?[Vv]|ExhGas|EGR_?Rate/i, system: 'EGR', icon: '🔄', explain: 'Egzoz gazı resirkülasyonu. Karbon birikimini artırır.', offExplain: 'EGR kapatılınca: intake manifold temiz kalır, motor rahat nefes alır.', stage1: true, hpGain: '5-15' },
+    { re: /DPF|FAP|PartikelFilter|Rußfilter|Soot|Regen[_\s]|DPF_?[TtRr]|RussMen|DiffPres|PartFilter/i, system: 'DPF', icon: '🔥', explain: 'Dizel partikül filtre. Rejenerasyon döngüsüne girer.', offExplain: 'DPF kapatılınca: Yakıt tasarrufu, contra basınç düşer.', stage1: true, hpGain: '10-20' },
+    { re: /AdBlue|SCR|DEF\b|Urea|Harnstoff|NOx|SCR_?[Cc]|DeNOx|BlueTec/i, system: 'AdBlue/SCR', icon: '💧', explain: 'AdBlue / NOx redüksiyon sistemi.', offExplain: 'Kapatılınca limp mode riski ortadan kalkar.', stage1: false, hpGain: '0-5' },
+    { re: /Lambda|O2S|LSU|Sonde|KatDiag|O2_?[Ss]|HEGO|Breitband|Vorkat|Nachkat/i, system: 'Lambda', icon: '📊', explain: 'Oksijen sensörü. Yakıt/hava oranını ayarlar.', offExplain: 'Kapatılınca P0420/P0430 hata kodları önlenir.', stage1: false, hpGain: '0' },
+    { re: /Boost|LDR|Ladedruck|P2Soll|Turbo[_\s]|VTG|Wastegate|LDR_?[SsIi]|LadeDr|Ladetab/i, system: 'Boost', icon: '⚡', explain: 'Turbo basınç kontrolü.', offExplain: 'Yükseltilince daha fazla güç.', stage1: true, hpGain: '20-40' },
+    { re: /Torque|Torq|M_Soll|Drehmoment|Moment[_\s]|MomentLim|Mmnt|MomFahr|MomBeg/i, system: 'Torque', icon: '💪', explain: 'Tork sınırlama haritaları.', offExplain: 'Yükseltilince motor daha fazla tork üretir.', stage1: true, hpGain: '15-30' },
+    { re: /Injection|Inj_Q|QNFLM|Einspritz|RailDr|InjVol|InjCrv|MengSoll|Einsp_Men|QSoll/i, system: 'Injection', icon: '💉', explain: 'Yakıt enjeksiyonu kontrolü.', offExplain: 'Artırılınca daha fazla güç.', stage1: true, hpGain: '10-25' },
+    { re: /MAF|HFM|MAP|LMM|Luftmasse|AirMass|Saugrohr|LuftMeng|AirFlow/i, system: 'MAF/MAP', icon: '🌬️', explain: 'Hava akış sensörü.', offExplain: 'Limitleri yükseltilince büyük turbo desteklenir.', stage1: false, hpGain: '0-5' },
+    { re: /Vmax|Vfzg|SpeedLim|Geschwind|VehSpdLim|FzgMax/i, system: 'Hız sınırı', icon: '🏎️', explain: 'Araç hız sınırlayıcı.', offExplain: 'Kaldırılınca mekanik limite kadar hızlanır.', stage1: false, hpGain: '0' },
+    { re: /Nmax|Nmot|RpmLim|Drehzahl|EngSpdLim|NmotMax/i, system: 'RPM sınırı', icon: '🔴', explain: 'Devir sınırlayıcı.', offExplain: 'Yükseltilince motor daha yüksek devire çıkar.', stage1: false, hpGain: '0-5' },
+    { re: /Pedal|PWG|TPS|FGR|GasPedal|AccPedal|FahrPed/i, system: 'Pedal', icon: '🦶', explain: 'Gaz pedalı karakteristiği.', offExplain: 'Agresifleştirilince tepki artar.', stage1: false, hpGain: '0' },
     { re: /ColdStart|Kaltst|KSTT|HRMK/i, system: 'Soğuk marş', icon: '❄️', explain: 'Soğuk marş zenginleştirme.', offExplain: 'Azaltılınca motor hızlı normal devire iner.', stage1: false, hpGain: '0' },
-    { re: /Knock|Klopf|\bKR\b|KFKHFM/i, system: 'Vuruntu', icon: '🔨', explain: 'Vuruntu sensörü.', offExplain: 'Devre dışı bırakılınca ateşleme ilerler — DİKKAT.', stage1: false, hpGain: '3-8' },
+    { re: /Knock|Klopf|\bKR\b|KFKHFM|KnkDet|AntiKnock|KFZW/i, system: 'Vuruntu', icon: '🔨', explain: 'Vuruntu sensörü.', offExplain: 'Devre dışı bırakılınca ateşleme ilerler — DİKKAT.', stage1: false, hpGain: '3-8' },
     { re: /Immo|Wegfahr|IMMOBILIZER/i, system: 'Immobilizer', icon: '🔑', explain: 'Anahtar eşleşme sistemi.', offExplain: 'Kapatılınca motor herhangi bir anahtarla çalışır.', stage1: false, hpGain: '0' },
-    { re: /Checksum|Prüfsumme|Chksum|CRC/i, system: 'Checksum', icon: '✅', explain: 'Dosya bütünlük kontrolü.', offExplain: 'Değişiklik sonrası tekrar hesaplanmalı.', stage1: false, hpGain: '0' }
+    { re: /Checksum|Prüfsumme|Chksum|CRC|CSM_|ChkS/i, system: 'Checksum', icon: '✅', explain: 'Dosya bütünlük kontrolü.', offExplain: 'Değişiklik sonrası tekrar hesaplanmalı.', stage1: false, hpGain: '0' },
+    { re: /DTC|Fehler|Fehlerspeicher|DiagCode|FaultMem|DFES|P0[0-9A-F]{3}|P1[0-9A-F]{3}|P2[0-9A-F]{3}/i, system: 'DTC', icon: '🚨', explain: 'Hata kodu yönetimi.', offExplain: 'DTC silme: EGR/DPF off sonrası ilgili hata kodları kapatılmalı.', stage1: false, hpGain: '0' }
   ];
 
-  function localExtractStrings(bytes, minLen = 4, maxLen = 48) {
+  function localExtractStrings(bytes, minLen = 3, maxLen = 48) {
     const results = []; let cur = '', start = 0;
     for (let i = 0; i < bytes.length; i++) {
       const b = bytes[i];
@@ -80,10 +81,38 @@
       'Torque': () => { if (safe(lo)) { const c = bytes[lo], t = Math.min(0xFF, c + 0x20); list.push({ id: 'torque_up_' + offset.toString(16), label: 'Tork Limiti Yükselt +25%', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(c)} → 0x${hexByte(t)}`, explain: 'Tork sınırını yükseltir.', effect: 'Daha güçlü kalkış', hpGain: '+15-30 HP', offset: lo, currentByte: c, newByte: t, risk: 'high' }); } },
       'Injection': () => { if (safe(lo)) { const c = bytes[lo], t = Math.min(0xFF, c + 0x10); list.push({ id: 'injection_up_' + offset.toString(16), label: 'Enjeksiyon Miktarı Artır +10-20%', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(c)} → 0x${hexByte(t)}`, explain: 'Yakıt enjeksiyonunu artırır.', effect: 'Boost artışını destekler', hpGain: '+10-25 HP', offset: lo, currentByte: c, newByte: t, risk: 'medium' }); } },
       'Pedal': () => safe(fo) && list.push({ id: 'pedal_map_' + offset.toString(16), label: 'Pedal Haritası Agresifleştir', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x${hexByte(Math.min(0xFF, bytes[fo] + 0x30))}`, explain: 'Gaz pedalı yanıtını keskinleştirir.', effect: 'Daha canlı gaz tepkisi', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: Math.min(0xFF, bytes[fo] + 0x30), risk: 'low' }),
-      'Immobilizer': () => safe(fo) && list.push({ id: 'immo_off_' + offset.toString(16), label: 'Immobilizer Kapat', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'Anahtar eşleşme kontrolünü kapatır.', effect: 'Motor herhangi bir anahtarla çalışır', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'high' })
+      'Immobilizer': () => safe(fo) && list.push({ id: 'immo_off_' + offset.toString(16), label: 'Immobilizer Kapat', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'Anahtar eşleşme kontrolünü kapatır.', effect: 'Motor herhangi bir anahtarla çalışır', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'high' }),
+      'DTC': () => safe(fo) && list.push({ id: 'dtc_clear_' + offset.toString(16), label: 'DTC Hata Kodları Sil / Engelle', detail: `Adres ${hexAddr(fo)}: hata kodu bölgesi`, explain: 'EGR/DPF off sonrası ilgili hata kodları kapatılır.', effect: 'Motor uyarı lambası yanmaz', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'medium' })
     };
     if (actions[system]) actions[system]();
     return list;
+  }
+
+  // ECU profil tablosu (client-side)
+  const LOCAL_ECU_PROFILES = {
+    'EDC17': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'EDC16': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'EDC15': { fuel: 'diesel', systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum'] },
+    'MED17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+    'ME7': { fuel: 'gasoline', systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+    'SID': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'PCR': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'DCM': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'SIMOS': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+    'MG1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+    'MD1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  };
+
+  function localDetectEcuType(strings) {
+    const allText = strings.map(s => s.text).join(' ');
+    for (const [ecuType, profile] of Object.entries(LOCAL_ECU_PROFILES)) {
+      if (new RegExp(ecuType.replace(/\+/g, '\\+'), 'i').test(allText)) return { ecuType, ...profile };
+    }
+    const dieselHints = /EDC|DPF|FAP|AdBlue|SCR|Diesel|TDI|CDI|HDI|dCi|CDTI|Rußfilter|Harnstoff|BlueTec|Einspritz/i;
+    const gasolineHints = /MED|TFSI|TSI|FSI|GDI|Benzin|Ottomotor|Zündung|Klopf|Knock/i;
+    if (dieselHints.test(allText)) return { ecuType: 'generic-diesel', fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] };
+    if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
+    return { ecuType: 'unknown', fuel: 'unknown', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
   }
 
   function localScanRegions(bytes) {
@@ -104,11 +133,34 @@
         regions.push(region);
       }
     }
+
+    // ECU-tip profil çıkarımı — string'lerden bulunamayan sistemleri ekle
+    const ecuProfile = localDetectEcuType(strings);
+    const foundSystems = new Set(regions.map(r => r.system));
+    for (const expectedSys of ecuProfile.systems) {
+      if (!foundSystems.has(expectedSys)) {
+        const sysInfo = LOCAL_SYSTEMS.find(ls => ls.system === expectedSys);
+        if (!sysInfo) continue;
+        regions.push({
+          id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
+          system: expectedSys,
+          desc: `${ecuProfile.ecuType} profil tahmini`,
+          foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
+          offset: 0,
+          offsetHex: '0x000000',
+          windowHex: '',
+          windowStart: 0,
+          source: 'ecu-profile',
+          actions: []
+        });
+      }
+    }
+
     regions.sort((a, b) => a.offset - b.offset);
     const systems = [...new Set(regions.map(r => r.system))];
     const systemInfos = systems.map(s => { const info = LOCAL_SYSTEMS.find(ls => ls.system === s); return { system: s, icon: info?.icon || '⚙', explain: info?.explain || '', offExplain: info?.offExplain || '', stage1: info?.stage1 || false, hpGain: info?.hpGain || '' }; });
     const s1Features = systemInfos.filter(s => s.stage1);
-    return { regions, systems, systemInfos, stage1: s1Features.length ? { features: s1Features, totalHpGain: s1Features.map(f => f.hpGain).join(' + ') } : null, rulepackMatches: [] };
+    return { regions, systems, systemInfos, stage1: s1Features.length ? { features: s1Features, totalHpGain: s1Features.map(f => f.hpGain).join(' + ') } : null, rulepackMatches: [], ecuProfile };
   }
 
   // ===== HİZMET KATALOĞU (dosya yüklemeden önce görünür) =====
@@ -373,13 +425,19 @@
       state.stage1 = data.stage1 || null;
       state.stats = data.stats || null;
       state.rulepackMatches = data.rulepackMatches || [];
+      state.fileMemory = data.fileMemory || null;
+      state.ecuProfile = data.ecuProfile || null;
       state.selectedActions.clear();
 
       drop.querySelector('.ecuDropIcon').textContent = '✓';
       drop.querySelector('.ecuDropIcon').style.color = '#35df9a';
       const modeTag = isOffline ? ' · ⚡ offline' : '';
       const rpInfo = state.rulepackMatches.length ? ` · ✓ ${state.rulepackMatches[0].familyName}` : '';
-      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge · ${state.systems.length} sistem${rpInfo}${modeTag}`;
+      const ecuTag = data.ecuProfile?.ecuType && data.ecuProfile.ecuType!=='unknown' ? ` · ${data.ecuProfile.ecuType} (${data.ecuProfile.fuel})` : '';
+      const memTag = data.fileMemory?.known ? ` · 🧠 ${data.fileMemory.timesUploaded}x tanınan` : '';
+      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge · ${state.systems.length} sistem${ecuTag}${rpInfo}${memTag}${modeTag}`;
+      // Tanınan dosya banneri
+      if (data.fileMemory?.known) showFileMemoryBanner(data.fileMemory, drop);
       renderStep2();
       if (!isOffline) requestAISuggestions();
     } catch (err) {
@@ -802,12 +860,105 @@
     a.remove();
   }
 
+  // ===== DOSYA HAFIZA BANNERİ =====
+  function showFileMemoryBanner(mem, container) {
+    const existing = container.parentElement?.querySelector('.fileMemBanner');
+    if (existing) existing.remove();
+    const prevModsHtml = mem.previousMods?.length ? `<div style="margin-top:6px"><small style="color:#9fb6c9">Son modifikasyonlar:</small><ul style="margin:4px 0 0 16px;padding:0;list-style:disc">${mem.previousMods.slice(-5).map(m => `<li style="font-size:11px;color:#d0dfe8">${new Date(m.date).toLocaleDateString('tr-TR')} — ${(m.actions||[]).join(', ')}</li>`).join('')}</ul></div>` : '';
+    const tagsHtml = mem.tags?.length ? `<div style="margin-top:4px">${mem.tags.map(t => `<span style="background:#1a3a52;color:#9fe3ff;padding:2px 8px;border-radius:10px;font-size:10px;margin-right:4px">${esc(t)}</span>`).join('')}</div>` : '';
+    const banner = document.createElement('div');
+    banner.className = 'fileMemBanner';
+    banner.style.cssText = 'margin-top:10px;padding:12px;background:linear-gradient(135deg,#0a1628,#122240);border:1px solid #2a7b5b;border-radius:10px';
+    banner.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:20px">🧠</span>
+        <div>
+          <b style="color:#35df9a;font-size:13px">Bu dosya tanındı!</b>
+          <small style="display:block;color:#9fb6c9;font-size:11px">${mem.timesUploaded}. yükleme · İlk: ${new Date(mem.firstSeen).toLocaleDateString('tr-TR')}</small>
+        </div>
+      </div>
+      ${mem.notes ? `<div style="color:#d0dfe8;font-size:12px;margin-top:4px">📝 ${esc(mem.notes)}</div>` : ''}
+      ${tagsHtml}
+      ${prevModsHtml}
+    `;
+    container.parentElement?.insertBefore(banner, container.nextSibling);
+  }
+
+  // ===== DOSYA GEÇMİŞİ PANELİ =====
+  async function loadFileHistory() {
+    const el = $('#ecuFileHistory');
+    if (!el) return;
+    el.innerHTML = '<div class="muted" style="text-align:center;padding:20px">Dosya geçmişi yükleniyor...</div>';
+    try {
+      const res = await fetch('/api/ecu/file-memory/list?limit=50');
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      if (!data.files?.length) {
+        el.innerHTML = '<div class="muted" style="text-align:center;padding:20px">Henüz dosya hafızası yok. Dosya yükledikçe burada görünecek.</div>';
+        return;
+      }
+      el.innerHTML = `
+        <div style="margin-bottom:12px;display:flex;gap:8px">
+          <input type="text" id="fileMemSearch" placeholder="Ara: dosya adı, marka, model, ECU tipi..." style="flex:1;padding:8px 12px;background:#0a1628;border:1px solid #203653;border-radius:8px;color:#d0dfe8;font-size:13px">
+          <button class="softBtn" onclick="window.__searchFileMemory?.()">🔍</button>
+        </div>
+        <div style="color:#9fb6c9;font-size:11px;margin-bottom:8px">${data.total} dosya kayıtlı</div>
+        <div id="fileMemList">${renderFileMemList(data.files)}</div>
+      `;
+      window.__searchFileMemory = async () => {
+        const q = document.getElementById('fileMemSearch')?.value?.trim();
+        if (!q) { loadFileHistory(); return; }
+        try {
+          const res2 = await fetch('/api/ecu/file-memory/search', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: q }) });
+          const d2 = await res2.json();
+          const list = document.getElementById('fileMemList');
+          if (list) list.innerHTML = d2.files?.length ? renderFileMemList(d2.files) : '<div class="muted" style="padding:12px">Sonuç bulunamadı</div>';
+        } catch (e) { toast('Arama hatası: ' + e.message); }
+      };
+      document.getElementById('fileMemSearch')?.addEventListener('keydown', e => { if (e.key === 'Enter') window.__searchFileMemory?.(); });
+    } catch (err) {
+      el.innerHTML = '<div class="muted" style="text-align:center;padding:20px">Dosya geçmişi yüklenemedi: ' + esc(err.message) + '</div>';
+    }
+  }
+
+  function renderFileMemList(files) {
+    return files.map(f => {
+      const systems = f.detected_systems || [];
+      const sysTags = systems.slice(0, 6).map(s => `<span style="background:#1a2a40;color:#9fe3ff;padding:1px 6px;border-radius:6px;font-size:10px">${esc(s)}</span>`).join(' ');
+      const mods = f.last_modifications || [];
+      const lastMod = mods.length ? `<small style="color:#ffbe55">Son mod: ${new Date(mods[mods.length - 1].date).toLocaleDateString('tr-TR')}</small>` : '';
+      const vehicle = [f.vehicle_make, f.vehicle_model, f.vehicle_year].filter(Boolean).join(' ');
+      return `<div style="padding:10px;background:#060a15;border:1px solid #203653;border-radius:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:start">
+          <div>
+            <b style="color:#d0dfe8;font-size:13px">📄 ${esc(f.filename)}</b>
+            <div style="font-size:11px;color:#9fb6c9;margin-top:2px">
+              ${f.ecu_type && f.ecu_type !== 'unknown' ? `<span style="color:#9fe3ff">${esc(f.ecu_type)}</span> · ` : ''}
+              ${f.fuel_type && f.fuel_type !== 'unknown' ? `<span>${f.fuel_type === 'diesel' ? '🛢️ Dizel' : '⛽ Benzin'}</span> · ` : ''}
+              ${vehicle ? `🚗 ${esc(vehicle)} · ` : ''}
+              ${fmtSize(f.file_size)}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <span style="background:#1a3a52;color:#35df9a;padding:2px 8px;border-radius:10px;font-size:10px">${f.times_uploaded}x yüklendi</span>
+          </div>
+        </div>
+        <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:3px">${sysTags}</div>
+        <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+          ${lastMod}
+          <small style="color:#728899">${new Date(f.last_seen_at).toLocaleDateString('tr-TR')}</small>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   // ===== RESET =====
   function resetAll() {
     Object.assign(state, {
       uploadId: null, fileName: '', fileSize: 0, regions: [], systems: [],
       systemInfos: [], stage1: null, stats: null, tunedId: null,
-      aiSuggestions: [], aiProvider: '', rulepackMatches: []
+      aiSuggestions: [], aiProvider: '', rulepackMatches: [],
+      fileMemory: null, ecuProfile: null
     });
     state.selectedActions.clear();
 
@@ -917,6 +1068,10 @@
 
   const settingsBtn = document.querySelector('[data-page="settings"]');
   if (settingsBtn) settingsBtn.addEventListener('click', () => setTimeout(() => { loadRulepackList(); loadEcuRepoList(); }, 300));
+
+  // Dosya hafızası accordion açılınca yükle
+  const fmAccordion = document.getElementById('fileMemoryAccordion');
+  if (fmAccordion) fmAccordion.addEventListener('toggle', () => { if (fmAccordion.open) loadFileHistory(); });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

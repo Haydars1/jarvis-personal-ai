@@ -77,7 +77,7 @@ export function fileStats(bytes) {
 }
 
 // ---------- String çıkarma ----------
-function extractStrings(bytes, minLen = 4, maxLen = 80) {
+function extractStrings(bytes, minLen = 3, maxLen = 80) {
   const results = [];
   let current = '';
   let start = 0;
@@ -103,47 +103,47 @@ function extractStrings(bytes, minLen = 4, maxLen = 80) {
 // ---------- Sistem anahtar sözlüğü (strings → sistem) ----------
 // Her sistem: regex, isim, kısa açıklama, detaylı açıklama, kapatınca ne olur, stage1 bilgisi, tahmini HP
 const SYSTEMS = [
-  { re: /\bEGR\b|AGR|Abgasrück/i, system: 'EGR', icon: '🔄', desc: 'Egzoz gazı resirkülasyonu',
+  { re: /EGR|AGR|Abgasrück|AGR_?[Vv]|EGR_?[Vv]|ExhGas|EGR_?Rate/i, system: 'EGR', icon: '🔄', desc: 'Egzoz gazı resirkülasyonu',
     explain: 'Egzoz gazının bir kısmını tekrar emişe gönderir. NOx emisyonunu azaltır ama zamanla karbonlaşma yapar.',
     offExplain: 'EGR kapatılınca: Egzoz gazı emişe geri gitmez → intake manifold temiz kalır, motor daha rahat nefes alır. Performans: +5-15 HP. Karbon birikimi durur.',
     stage1: true, hpGain: '5-15' },
-  { re: /\bDPF\b|\bFAP\b|PartikelFilter|Rußfilter/i, system: 'DPF', icon: '🔥', desc: 'Dizel partikül filtre',
+  { re: /DPF|FAP|PartikelFilter|Rußfilter|Soot|Regen[_\s]|DPF_?[TtRr]|RussMen|DiffPres|PartFilter/i, system: 'DPF', icon: '🔥', desc: 'Dizel partikül filtre',
     explain: 'Egzozdaki kurum/partikül parçacıklarını tutar. Dolu olunca rejenerasyon (yakma) döngüsüne girer.',
     offExplain: 'DPF kapatılınca: Rejenerasyon döngüsü durur → yakıt tasarrufu (rejenerasyon sırasında fazladan yakıt harcanır). Contra basınç düşer → +10-20 HP. DPF fiziksel olarak da çıkarılmalı.',
     stage1: true, hpGain: '10-20' },
-  { re: /AdBlue|SCR|DEF\b|Urea|Harnstoff|NOx/i, system: 'AdBlue/SCR', icon: '💧', desc: 'AdBlue / NOx redüksiyon',
+  { re: /AdBlue|SCR|DEF\b|Urea|Harnstoff|NOx|SCR_?[Cc]|DeNOx|BlueTec/i, system: 'AdBlue/SCR', icon: '💧', desc: 'AdBlue / NOx redüksiyon',
     explain: 'Egzoz gazına üre (AdBlue) püskürterek NOx gazını azaltır. Tank ve enjektör sistemi var.',
     offExplain: 'AdBlue kapatılınca: AdBlue tankı ve enjektör sistemi devre dışı olur. "AdBlue seviyesi düşük" uyarıları kaybolur. Motor güç kısıtlaması (limp mode) riski ortadan kalkar.',
     stage1: false, hpGain: '0-5' },
-  { re: /Lambda|\bO2S?\b|LSU/i, system: 'Lambda', icon: '📊', desc: 'Oksijen sensörü',
+  { re: /Lambda|O2S|LSU|Sonde|KatDiag|O2_?[Ss]|HEGO|Breitband|Vorkat|Nachkat/i, system: 'Lambda', icon: '📊', desc: 'Oksijen sensörü',
     explain: 'Egzozdaki oksijen seviyesini ölçer. ECU buna göre yakıt/hava oranını ayarlar.',
     offExplain: 'Lambda kapatılınca: O2 sensör değerleri ECU tarafından ignore edilir. DPF/EGR off yapıldıktan sonra P0420/P0430 gibi hata kodlarını önler.',
     stage1: false, hpGain: '0' },
-  { re: /Boost|LDR|Ladedruck|P2Soll/i, system: 'Boost', icon: '⚡', desc: 'Boost basınç kontrolü',
+  { re: /Boost|LDR|Ladedruck|P2Soll|Turbo[_\s]|VTG|Wastegate|LDR_?[SsIi]|LadeDr|Ladetab/i, system: 'Boost', icon: '⚡', desc: 'Boost basınç kontrolü',
     explain: 'Turbo basınç limitleri. Stage 1 tuningde bu değer yükseltilir → daha fazla hava → daha fazla güç.',
     offExplain: 'Boost yükseltilince: Turbo basıncı artar → silindire daha fazla hava girer → daha fazla yakıt yanar → güç artar. Stage 1: +15-25% boost artışı tipik.',
     stage1: true, hpGain: '20-40' },
-  { re: /Torque|Torq|M_Soll|Drehmoment/i, system: 'Torque', icon: '💪', desc: 'Tork sınırlama',
+  { re: /Torque|Torq|M_Soll|Drehmoment|Moment[_\s]|MomentLim|Mmnt|MomFahr|MomBeg/i, system: 'Torque', icon: '💪', desc: 'Tork sınırlama',
     explain: 'ECU yazılımında tork limitleri var. Şanzıman ve drivetraini korumak için sınırlanır.',
     offExplain: 'Tork limiti yükseltilince: Motor daha fazla tork üretebilir. Stage 1 ile birlikte boost artışını destekler. Dikkat: Şanzıman kapasitesi kontrol edilmeli.',
     stage1: true, hpGain: '15-30' },
-  { re: /Injection|Inj_Q|QNFLM|Einspritz/i, system: 'Injection', icon: '💉', desc: 'Yakıt enjeksiyonu',
+  { re: /Injection|Inj_Q|QNFLM|Einspritz|RailDr|InjVol|InjCrv|MengSoll|Einsp_Men|QSoll/i, system: 'Injection', icon: '💉', desc: 'Yakıt enjeksiyonu',
     explain: 'Enjektörlerin ne kadar yakıt püskürtüğünü kontrol eder. Enjeksiyon miktarı ve zamanlaması.',
     offExplain: 'Enjeksiyon artırılınca: Daha fazla yakıt → daha fazla güç. Boost artışıyla birlikte uygulanmalı. Stage 1 için enjeksiyon miktarı %10-20 artırılır.',
     stage1: true, hpGain: '10-25' },
-  { re: /\bMAF\b|HFM|\bMAP\b|LMM/i, system: 'MAF/MAP', icon: '🌬️', desc: 'Hava akış sensörü',
+  { re: /MAF|HFM|MAP|LMM|Luftmasse|AirMass|Saugrohr|LuftMeng|AirFlow/i, system: 'MAF/MAP', icon: '🌬️', desc: 'Hava akış sensörü',
     explain: 'Emişe giren hava miktarını ölçer. ECU buna göre yakıt dozunu ayarlar.',
     offExplain: 'MAF/MAP limitleri yükseltilince: Hava akış sensörünün ölçüm aralığı genişler. Büyük turbo veya intake upgrade sonrası gerekli olabilir.',
     stage1: false, hpGain: '0-5' },
-  { re: /Vmax|Vfzg|SpeedLim|Geschwind/i, system: 'Hız sınırı', icon: '🏎️', desc: 'Araç hız sınırlayıcı',
+  { re: /Vmax|Vfzg|SpeedLim|Geschwind|VehSpdLim|FzgMax/i, system: 'Hız sınırı', icon: '🏎️', desc: 'Araç hız sınırlayıcı',
     explain: 'Aracın maksimum hızını sınırlar. Genelde 250 km/h limiter (Alman araçlar).',
     offExplain: 'Hız sınırı kaldırılınca: Araç mekanik/aerodinamik limitine kadar hızlanabilir. Lastik ve fren kapasitesi kontrol edilmeli.',
     stage1: false, hpGain: '0' },
-  { re: /Nmax|Nmot|RpmLim|Drehzahl/i, system: 'RPM sınırı', icon: '🔴', desc: 'Devir sınırlayıcı',
+  { re: /Nmax|Nmot|RpmLim|Drehzahl|EngSpdLim|NmotMax/i, system: 'RPM sınırı', icon: '🔴', desc: 'Devir sınırlayıcı',
     explain: 'Motorun maksimum devrini sınırlar. Silindir kafası ve valf sistemini korur.',
     offExplain: 'RPM limiti yükseltilince: Motor daha yüksek devire çıkabilir. Dikkat: Mekanik limitler var — düzensiz RPM artışı motor hasarına neden olabilir.',
     stage1: false, hpGain: '0-5' },
-  { re: /Pedal|PWG|TPS\b|FGR/i, system: 'Pedal', icon: '🦶', desc: 'Gaz pedalı karakteristiği',
+  { re: /Pedal|PWG|TPS|FGR|GasPedal|AccPedal|FahrPed/i, system: 'Pedal', icon: '🦶', desc: 'Gaz pedalı karakteristiği',
     explain: 'Gaz pedalına basma yüzdesi ile kelebek açıklığı arasındaki haritayı kontrol eder.',
     offExplain: 'Pedal haritası değiştirilince: Gaz pedalı yanıtı daha agresif olur → pedalın ilk %30\'unda daha hızlı tepki. Gerçek güç artışı yok, ama sübjektif hız hissi artar.',
     stage1: false, hpGain: '0' },
@@ -151,7 +151,7 @@ const SYSTEMS = [
     explain: 'Soğuk çalıştırmada fazladan yakıt verir. Isınana kadar devri biraz yüksek tutar.',
     offExplain: 'Soğuk marş zenginleştirme azaltılınca: Motor daha hızlı normal devire iner. Emisyon testi için dikkat — soğukta katalitik konvertör daha geç ısınır.',
     stage1: false, hpGain: '0' },
-  { re: /Knock|Klopf|\bKR\b|KFKHFM/i, system: 'Vuruntu', icon: '🔨', desc: 'Vuruntu sensörü',
+  { re: /Knock|Klopf|\bKR\b|KFKHFM|KnkDet|AntiKnock|KFZW/i, system: 'Vuruntu', icon: '🔨', desc: 'Vuruntu sensörü',
     explain: 'Motor vuruntusunu (knock) algılar ve ateşleme zamanlamasını geri çeker. Motoru korur.',
     offExplain: 'Vuruntu sensörü devre dışı bırakılınca: ECU vuruntu algılamaz → ateşleme ilerletilir. DİKKAT: Yanlış yapılırsa motor hasarı riski var. Sadece yüksek oktan yakıtla.',
     stage1: false, hpGain: '3-8' },
@@ -159,9 +159,13 @@ const SYSTEMS = [
     explain: 'Aracın çalınmasını önleyen elektronik kilit sistemi. Doğru anahtar olmadan çalışmaz.',
     offExplain: 'Immobilizer kapatılınca: Anahtar eşleşme kontrolü devre dışı olur. Motor herhangi bir anahtarla çalışır. Yedek ECU veya swap durumlarında kullanılır.',
     stage1: false, hpGain: '0' },
-  { re: /Checksum|Prüfsumme|Chksum|CRC/i, system: 'Checksum', icon: '✅', desc: 'Dosya bütünlük kontrolü',
+  { re: /Checksum|Prüfsumme|Chksum|CRC|CSM_|ChkS/i, system: 'Checksum', icon: '✅', desc: 'Dosya bütünlük kontrolü',
     explain: 'ECU dosyadaki değişiklikleri kontrol eder. Checksum hatalıysa dosyayı reddeder.',
     offExplain: 'Checksum düzeltilmeli: Herhangi bir değişiklik yaptıktan sonra checksum tekrar hesaplanmalı, yoksa ECU dosyayı reddeder veya hata verir.',
+    stage1: false, hpGain: '0' },
+  { re: /DTC|Fehler|Fehlerspeicher|DiagCode|FaultMem|DFES|P0[0-9A-F]{3}|P1[0-9A-F]{3}|P2[0-9A-F]{3}/i, system: 'DTC', icon: '🚨', desc: 'Hata kodu yönetimi',
+    explain: 'Araçtaki hata kodlarını (DTC) kaydeder. Motor lambası yanmasına neden olur.',
+    offExplain: 'DTC silme: Belirli hata kodlarını ECU hafızasından siler veya tetiklenmesini engeller. EGR/DPF off sonrası ilgili DTC\'ler kapatılmalı.',
     stage1: false, hpGain: '0' }
 ];
 
@@ -192,6 +196,41 @@ export const VEHICLE_DB = {
   ecuTypes: ['Bosch EDC17','Bosch MED17','Bosch ME7','Bosch EDC16','Bosch EDC15','Siemens SID','Siemens PCR','Continental SID','Delphi DCM','Denso','Marelli','Bilinmiyor'],
   years: Array.from({length:30}, (_,i) => String(2025-i))
 };
+
+// ---------- ECU-tip profilleri (benzinli vs dizel, beklenen sistemler) ----------
+const ECU_PROFILES = {
+  // Dizel ECU'lar
+  'EDC17': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'EDC16': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'EDC15': { fuel: 'diesel', systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum'] },
+  'SID': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'PCR': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'DCM': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  // Benzinli ECU'lar
+  'MED17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'MED9': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum'] },
+  'ME7': { fuel: 'gasoline', systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'MEVD17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'SIMOS': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'MG1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'MD1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
+  'MEVD': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+};
+
+function detectEcuType(strings) {
+  const allText = strings.map(s => s.text).join(' ');
+  for (const [ecuType, profile] of Object.entries(ECU_PROFILES)) {
+    const re = new RegExp(ecuType.replace(/\+/g, '\\+'), 'i');
+    if (re.test(allText)) return { ecuType, ...profile };
+  }
+  // Yakıt tipi tahmini — string'lerde dizel veya benzinli ipuçları
+  const dieselHints = /EDC|DPF|FAP|AdBlue|SCR|Diesel|TDI|CDI|HDI|dCi|CDTI|CRD|JTD|Rußfilter|Harnstoff|BlueTec|Einspritz/i;
+  const gasolineHints = /MED|TFSI|TSI|FSI|GDI|Benzin|Ottomotor|Zündung|Klopf|Knock|VANOS|Valvetronic|VarioCam/i;
+  if (dieselHints.test(allText)) return { ecuType: 'generic-diesel', fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] };
+  if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
+  // Bilinmeyen — en geniş küme
+  return { ecuType: 'unknown', fuel: 'unknown', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
+}
 
 // ---------- Stage 1 paket önerileri ----------
 export function buildStage1Package(systems) {
@@ -378,6 +417,18 @@ function buildActions(system, offset, bytes) {
         offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'high'
       });
       break;
+
+    case 'DTC':
+      if (safe(flagOffset)) list.push({
+        id: 'dtc_clear_' + offset.toString(16),
+        label: 'DTC Hata Kodları Sil / Engelle',
+        detail: `Adres ${hexAddr(flagOffset)}: hata kodu bölgesi`,
+        explain: 'Belirli hata kodlarını ECU hafızasından siler veya tetiklenmesini engeller. EGR/DPF off sonrası ilgili DTC\'ler kapatılmalı.',
+        effect: 'Motor uyarı lambası yanmaz, ilgili hata kodları tetiklenmez',
+        hpGain: '',
+        offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'medium'
+      });
+      break;
   }
 
   return list;
@@ -385,7 +436,7 @@ function buildActions(system, offset, bytes) {
 
 // ---------- Ana tarama ----------
 export async function scanRegions(bytes) {
-  const strings = extractStrings(bytes, 4, 48);
+  const strings = extractStrings(bytes, 3, 48);
   const regions = [];
   const perSystem = new Map();
 
@@ -474,10 +525,33 @@ export async function scanRegions(bytes) {
     }
   }
 
+  // 3) ECU-tip profil çıkarımı — string'lerden bulunamayan sistemleri ekle
+  const ecuProfile = detectEcuType(strings);
+  const foundSystems = new Set(regions.map(r => r.system));
+  for (const expectedSys of ecuProfile.systems) {
+    if (!foundSystems.has(expectedSys)) {
+      const sysInfo = SYSTEMS.find(s => s.system === expectedSys);
+      if (!sysInfo) continue;
+      regions.push({
+        id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
+        system: expectedSys,
+        desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil tahmini)`,
+        foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
+        offset: 0,
+        offsetHex: '0x000000',
+        windowHex: '',
+        windowStart: 0,
+        source: 'ecu-profile',
+        actions: []
+      });
+    }
+  }
+
   regions.sort((a, b) => a.offset - b.offset);
 
   // Metadata eklentisi
   regions._rulepackMatches = rulepackMatches;
+  regions._ecuProfile = ecuProfile;
   return regions;
 }
 
