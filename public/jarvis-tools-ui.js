@@ -53,6 +53,13 @@
     if ($('#noteSearchBtn')) { $('#noteSearchBtn').addEventListener('click', () => loadNotes($('#noteSearch')?.value)); $('#noteSearch')?.addEventListener('keydown', e => { if (e.key === 'Enter') loadNotes($('#noteSearch')?.value); }); }
     // Yapılacaklar
     if ($('#todoAddBtn')) { $('#todoAddBtn').addEventListener('click', addTodo); $('#todoText')?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); }); }
+    // Fiyat listesi
+    if ($('#priceAddBtn')) $('#priceAddBtn').addEventListener('click', addPrice);
+    // Gelir/gider
+    if ($('#txAddBtn')) $('#txAddBtn').addEventListener('click', addTransaction);
+    if ($('#txFilterBtn')) $('#txFilterBtn').addEventListener('click', () => loadTransactions($('#txMonth')?.value));
+    if ($('#txDate')) { const today = new Date().toISOString().slice(0, 10); $('#txDate').value = today; }
+    if ($('#txMonth')) { const m = new Date().toISOString().slice(0, 7); $('#txMonth').value = m; }
     // İş takvimi
     if ($('#calBtn')) { $('#calBtn').addEventListener('click', loadCalendarDay); }
     if ($('#calDate')) { const today = new Date().toISOString().slice(0, 10); $('#calDate').value = today; }
@@ -1008,6 +1015,112 @@
     try { await fetch('/api/todos/' + id, { method: 'DELETE' }); toast('Silindi'); loadTodos(); } catch {}
   };
 
+  // ========== FİYAT LİSTESİ ==========
+  async function loadPrices() {
+    const el = $('#priceList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/prices');
+      const d = await res.json();
+      if (!d.ok || !d.prices?.length) { el.innerHTML = '<p class="muted">Fiyat listesi boş.</p>'; return; }
+      const catLabels = { tuning: '🔧 Tuning', kodlama: '💻 Kodlama', diagnostik: '🔍 Diagnostik', diger: '📋 Diğer' };
+      const grouped = {};
+      d.prices.forEach(p => { const cat = p.category || 'diger'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(p); });
+      let html = '';
+      for (const [cat, items] of Object.entries(grouped)) {
+        html += `<h4 style="margin:10px 0 6px;color:var(--accent)">${catLabels[cat] || cat}</h4>`;
+        html += items.map(p => `<div style="background:var(--card);padding:8px 10px;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+          <div><b>${esc(p.service)}</b>${p.description ? '<br><span style="font-size:12px;opacity:0.6">' + esc(p.description) + '</span>' : ''}</div>
+          <div style="text-align:right"><b style="color:var(--accent);font-size:16px">${p.price}€</b>
+            <br><button onclick="deletePrice('${esc(p.id)}')" style="font-size:10px;padding:1px 6px;background:#611">Sil</button></div>
+        </div>`).join('');
+      }
+      el.innerHTML = html;
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi</p>'; }
+  }
+  async function addPrice() {
+    const service = $('#priceService')?.value?.trim();
+    const price = parseFloat($('#priceAmount')?.value);
+    if (!service || isNaN(price)) { toast('Hizmet adı ve fiyat gerekli'); return; }
+    try {
+      const res = await fetch('/api/prices', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service, description: $('#priceDesc')?.value || '', price, category: $('#priceCat')?.value || 'tuning' }) });
+      const d = await res.json();
+      if (d.ok) { toast('Fiyat eklendi'); $('#priceService').value = ''; $('#priceDesc').value = ''; $('#priceAmount').value = ''; loadPrices(); }
+      else toast(d.error || 'Hata');
+    } catch (e) { toast('Hata: ' + e.message); }
+  }
+  window.deletePrice = async (id) => {
+    if (!confirm('Bu fiyatı silmek istediğinize emin misiniz?')) return;
+    try { await fetch('/api/prices/' + id, { method: 'DELETE' }); toast('Silindi'); loadPrices(); } catch {}
+  };
+
+  // ========== GELİR/GİDER TAKİBİ ==========
+  async function loadTransactions(month) {
+    const el = $('#txList');
+    const sumEl = $('#txSummary');
+    if (!el) return;
+    try {
+      let url = '/api/transactions';
+      if (month) url += '?month=' + encodeURIComponent(month);
+      const res = await fetch(url);
+      const d = await res.json();
+      // Özet kartları
+      if (sumEl) {
+        const profit = d.profit || 0;
+        sumEl.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+            <div style="background:var(--card);padding:10px;border-radius:8px;text-align:center">
+              <div style="font-size:11px;opacity:0.6">GELİR</div>
+              <div style="font-size:18px;color:#4f4;font-weight:bold">${(d.income || 0).toFixed(2)}€</div>
+            </div>
+            <div style="background:var(--card);padding:10px;border-radius:8px;text-align:center">
+              <div style="font-size:11px;opacity:0.6">GİDER</div>
+              <div style="font-size:18px;color:#f44;font-weight:bold">${(d.expense || 0).toFixed(2)}€</div>
+            </div>
+            <div style="background:var(--card);padding:10px;border-radius:8px;text-align:center">
+              <div style="font-size:11px;opacity:0.6">KÂR</div>
+              <div style="font-size:18px;color:${profit >= 0 ? '#4f4' : '#f44'};font-weight:bold">${profit.toFixed(2)}€</div>
+            </div>
+          </div>`;
+      }
+      if (!d.ok || !d.transactions?.length) { el.innerHTML = '<p class="muted">Kayıt bulunamadı.</p>'; return; }
+      el.innerHTML = d.transactions.map(t => {
+        const isIncome = t.type === 'income';
+        return `<div style="background:var(--card);padding:8px 10px;border-radius:6px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;border-left:3px solid ${isIncome ? '#4f4' : '#f44'}">
+          <div>
+            <span style="font-size:12px;opacity:0.5">${esc(t.date)}</span>
+            <b style="margin-left:6px">${isIncome ? '💰' : '💸'} ${esc(t.description || t.category)}</b>
+            <span style="font-size:11px;opacity:0.5;margin-left:4px">[${esc(t.category)}]</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <b style="color:${isIncome ? '#4f4' : '#f44'}">${isIncome ? '+' : '-'}${t.amount}€</b>
+            <button onclick="deleteTx('${esc(t.id)}')" style="font-size:10px;padding:1px 6px;background:#611">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi</p>'; }
+  }
+  async function addTransaction() {
+    const amount = parseFloat($('#txAmount')?.value);
+    const date = $('#txDate')?.value;
+    if (isNaN(amount) || !date) { toast('Tutar ve tarih gerekli'); return; }
+    try {
+      const res = await fetch('/api/transactions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        type: $('#txType')?.value || 'income',
+        amount, date,
+        description: $('#txDesc')?.value || '',
+        category: $('#txCategory')?.value || 'genel'
+      }) });
+      const d = await res.json();
+      if (d.ok) { toast('Kayıt eklendi'); $('#txAmount').value = ''; $('#txDesc').value = ''; loadTransactions($('#txMonth')?.value); }
+      else toast(d.error || 'Hata');
+    } catch (e) { toast('Hata: ' + e.message); }
+  }
+  window.deleteTx = async (id) => {
+    if (!confirm('Bu kaydı silmek istediğinize emin misiniz?')) return;
+    try { await fetch('/api/transactions/' + id, { method: 'DELETE' }); toast('Silindi'); loadTransactions($('#txMonth')?.value); } catch {}
+  };
+
   // ========== İŞ TAKVİMİ ==========
   async function loadCalendarDay() {
     const el = $('#calResult');
@@ -1067,6 +1180,8 @@
         loadDashboard();
         loadNotes();
         loadTodos();
+        loadPrices();
+        loadTransactions();
       }, 300);
     });
   }

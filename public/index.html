@@ -740,6 +740,71 @@
         </div>
       </details>
 
+      <!-- FİYAT LİSTESİ -->
+      <details class="settingsBlock">
+        <summary>💶 Fiyat Listesi</summary>
+        <div class="settingsBody">
+          <p class="muted">Standart hizmet fiyatları — müşteriye hızlı teklif ver.</p>
+          <div id="priceList" class="muted">Yükleniyor...</div>
+          <hr>
+          <h4>Yeni Fiyat Ekle</h4>
+          <div class="credgrid">
+            <input id="priceService" placeholder="Hizmet adı (ör: Stage 2 Tuning)">
+            <input id="priceDesc" placeholder="Açıklama">
+            <div class="row">
+              <input id="priceAmount" type="number" step="0.01" placeholder="Fiyat (€)" style="flex:1">
+              <select id="priceCat" style="flex:1">
+                <option value="tuning">Tuning</option>
+                <option value="kodlama">Kodlama</option>
+                <option value="diagnostik">Diagnostik</option>
+                <option value="diger">Diğer</option>
+              </select>
+              <button id="priceAddBtn">EKLE</button>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- GELİR/GİDER TAKİBİ -->
+      <details class="settingsBlock">
+        <summary>💰 Gelir / Gider Takibi</summary>
+        <div class="settingsBody">
+          <p class="muted">Gelir ve giderleri takip et, kâr/zarar özetini gör.</p>
+          <div id="txSummary" class="metrics"></div>
+          <hr>
+          <h4>Yeni Kayıt</h4>
+          <div class="credgrid">
+            <div class="row">
+              <select id="txType" style="flex:1">
+                <option value="income">💰 Gelir</option>
+                <option value="expense">💸 Gider</option>
+              </select>
+              <input id="txAmount" type="number" step="0.01" placeholder="Tutar (€)" style="flex:1">
+              <input id="txDate" type="date" style="flex:1">
+            </div>
+            <input id="txDesc" placeholder="Açıklama (ör: Stage 1 — BMW F30)">
+            <div class="row">
+              <select id="txCategory" style="flex:1">
+                <option value="tuning">Tuning</option>
+                <option value="kodlama">Kodlama</option>
+                <option value="diagnostik">Diagnostik</option>
+                <option value="ekipman">Ekipman</option>
+                <option value="yakit">Yakıt</option>
+                <option value="kira">Kira</option>
+                <option value="diger">Diğer</option>
+              </select>
+              <button id="txAddBtn">KAYDET</button>
+            </div>
+          </div>
+          <hr>
+          <div class="row">
+            <input id="txMonth" type="month" style="flex:2">
+            <button id="txFilterBtn">FİLTRELE</button>
+          </div>
+          <div id="txList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
       <!-- İŞ TAKVİMİ -->
       <details class="settingsBlock">
         <summary>📆 İş Takvimi</summary>

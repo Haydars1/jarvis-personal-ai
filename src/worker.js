@@ -1365,6 +1365,59 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  }catch(e){return j({error:e.message},500)}}
  if(mm&&m==='DELETE'){await run(env,'DELETE FROM todos WHERE id=?',mm[1]);return j({ok:true})}
 
+ // ===== FİYAT LİSTESİ =====
+ if(p==='/api/prices'&&m==='GET'){try{
+   const cat=u.searchParams.get('category')||'';
+   let sql='SELECT * FROM price_list WHERE active=1';const params=[];
+   if(cat){sql+=' AND category=?';params.push(cat)}
+   sql+=' ORDER BY category, price ASC';
+   const rows=await qall(env,sql,...params);
+   return j({ok:true,prices:rows});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/prices'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.service||!b.price)return j({error:'SERVICE_AND_PRICE_REQUIRED'},400);
+   const pId=id();const t=now();
+   await run(env,'INSERT INTO price_list(id,service,description,price,currency,category,active,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',pId,b.service,b.description||'',Number(b.price),b.currency||'EUR',b.category||'tuning',1,t,t);
+   return j({ok:true,id:pId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/prices\/([^/]+)$/);
+ if(mm&&m==='PATCH'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   for(const k of ['service','description','price','currency','category','active']){if(k in b){sets.push(k+'=?');vals.push(k==='price'?Number(b[k]):k==='active'?(b[k]?1:0):b[k])}}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE price_list SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+ if(mm&&m==='DELETE'){await run(env,'UPDATE price_list SET active=0 WHERE id=?',mm[1]);return j({ok:true})}
+
+ // ===== GELİR/GİDER TAKİBİ =====
+ if(p==='/api/transactions'&&m==='GET'){try{
+   const type=u.searchParams.get('type')||'';
+   const month=u.searchParams.get('month')||'';
+   let sql='SELECT * FROM transactions';const params=[];const conds=[];
+   if(type){conds.push('type=?');params.push(type)}
+   if(month){conds.push("date LIKE ?");params.push(month+'%')}
+   if(conds.length)sql+=' WHERE '+conds.join(' AND ');
+   sql+=' ORDER BY date DESC, created_at DESC LIMIT 200';
+   const rows=await qall(env,sql,...params);
+   // Toplamlar
+   const incomeQ=await q1(env,"SELECT COALESCE(SUM(amount),0) total FROM transactions WHERE type='income'"+(month?" AND date LIKE '"+month+"%'":""));
+   const expenseQ=await q1(env,"SELECT COALESCE(SUM(amount),0) total FROM transactions WHERE type='expense'"+(month?" AND date LIKE '"+month+"%'":""));
+   return j({ok:true,transactions:rows,income:incomeQ?.total||0,expense:expenseQ?.total||0,profit:(incomeQ?.total||0)-(expenseQ?.total||0)});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/transactions'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.amount)return j({error:'AMOUNT_REQUIRED'},400);
+   if(!b.date)return j({error:'DATE_REQUIRED'},400);
+   const tId=id();const t=now();
+   await run(env,'INSERT INTO transactions(id,type,amount,currency,category,description,date,customer_id,job_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',tId,b.type||'income',Number(b.amount),b.currency||'EUR',b.category||'genel',b.description||'',b.date,b.customer_id||'',b.job_id||'',t,t);
+   return j({ok:true,id:tId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/transactions\/([^/]+)$/);
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM transactions WHERE id=?',mm[1]);return j({ok:true})}
+
  // ===== İŞ TAKVİMİ (tarih bazlı özet) =====
  if(p==='/api/calendar/day'){try{
    const date=u.searchParams.get('date')||new Date().toISOString().slice(0,10);
