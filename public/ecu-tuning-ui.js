@@ -28,6 +28,100 @@
   const riskColor = r => ({ low: '#35df9a', medium: '#ffbe55', high: '#ff5578', info: '#31dfff' }[r] || '#8ba4b7');
   const riskLabel = r => ({ low: 'Düşük Risk', medium: 'Orta Risk', high: 'Yüksek Risk', info: 'Bilgi' }[r] || r || '?');
 
+  // ===== HİZMET KATALOĞU (dosya yüklemeden önce görünür) =====
+  const TUNING_SERVICES = [
+    { id: 'stage1', name: 'Stage 1 Performans Paketi', icon: '🏁', tag: 'POPÜLER', tagColor: '#35df9a',
+      desc: 'Boost basıncı artırma, tork limiti yükseltme, enjeksiyon optimizasyonu — tek pakette.',
+      detail: 'Turbo basıncını %15-25 artırır, tork limitlerini yükseltir, enjeksiyon miktarını optimize eder. EGR ve DPF kapatmayla birlikte en etkili sonucu verir.',
+      hp: '+40-90 HP', risk: 'medium', systems: ['Boost','Torque','Injection','EGR','DPF'] },
+    { id: 'egr', name: 'EGR OFF', icon: '🔄', tag: 'EN YAYGIN', tagColor: '#31dfff',
+      desc: 'Egzoz gazı resirkülasyonunu devre dışı bırakır.',
+      detail: 'EGR valfini kapatır → egzoz gazı emişe geri gitmez → intake manifold temiz kalır, motor daha rahat nefes alır. Karbon birikimi durur.',
+      hp: '+5-15 HP', risk: 'low', systems: ['EGR'] },
+    { id: 'dpf', name: 'DPF OFF', icon: '🔥', tag: '', tagColor: '',
+      desc: 'Dizel partikül filtre rejenerasyonunu kapatır.',
+      detail: 'Rejenerasyon döngüsünü devre dışı bırakır → yakıt tasarrufu. Contra basınç düşer → güç artar. DPF fiziksel olarak da çıkarılmalı.',
+      hp: '+10-20 HP', risk: 'medium', systems: ['DPF'] },
+    { id: 'adblue', name: 'AdBlue / SCR OFF', icon: '💧', tag: '', tagColor: '',
+      desc: 'AdBlue (üre) enjeksiyon sistemini tamamen devre dışı bırakır.',
+      detail: 'AdBlue tankı boşaltılabilir. "Seviye düşük" uyarıları ve limp mode (güç kısıtlaması) riski ortadan kalkar.',
+      hp: '0-5 HP', risk: 'high', systems: ['AdBlue/SCR'] },
+    { id: 'lambda', name: 'Lambda OFF', icon: '📊', tag: '', tagColor: '',
+      desc: 'O2 sensör verilerini ECU hesaplamasından çıkarır.',
+      detail: 'EGR/DPF kapatıldıktan sonra P0420/P0430 gibi hata kodlarını önler. Genelde EGR+DPF off ile birlikte uygulanır.',
+      hp: '', risk: 'low', systems: ['Lambda'] },
+    { id: 'vmax', name: 'Hız Sınırı Kaldırma', icon: '🏎️', tag: '', tagColor: '',
+      desc: 'Elektronik hız sınırını (Vmax limiter) kaldırır.',
+      detail: 'Araç mekanik/aerodinamik limitine kadar hızlanabilir. Lastik ve fren kapasitesi kontrol edilmeli.',
+      hp: '', risk: 'medium', systems: ['Hız sınırı'] },
+    { id: 'immo', name: 'Immobilizer OFF', icon: '🔑', tag: '', tagColor: '',
+      desc: 'Anahtar eşleşme kontrolünü devre dışı bırakır.',
+      detail: 'ECU swap veya yedek ECU durumlarında kullanılır. Motor herhangi bir anahtarla çalışır.',
+      hp: '', risk: 'high', systems: ['Immobilizer'] },
+    { id: 'pedal', name: 'Pedal Haritası', icon: '🦶', tag: '', tagColor: '',
+      desc: 'Gaz pedalı yanıtını daha agresif yapar.',
+      detail: 'İlk %30 pedalda daha fazla kelebek açıklığı. Gerçek güç artışı yok ama sübjektif hız hissi artar.',
+      hp: '', risk: 'low', systems: ['Pedal'] }
+  ];
+
+  function renderServicesCatalog() {
+    const el = $('#ecuServicesCatalog');
+    if (!el) return;
+
+    el.innerHTML = `
+      <div class="ecuServicesWrap">
+        <div class="ecuServicesHead">
+          <span class="stepNum">⚙</span>
+          <div>
+            <h2 style="margin:0;font-size:16px">Tuning Hizmetleri</h2>
+            <small class="muted">Dosya yükledikten sonra tespit edilen sistemler aktif olur</small>
+          </div>
+        </div>
+        <div class="ecuServicesList">
+          ${TUNING_SERVICES.map(s => `
+            <div class="ecuServiceCard" data-svc="${esc(s.id)}">
+              <div class="ecuServiceTop">
+                <span class="ecuServiceIcon">${s.icon}</span>
+                <div class="ecuServiceInfo">
+                  <div class="ecuServiceName">
+                    <b>${esc(s.name)}</b>
+                    ${s.tag ? `<span class="ecuServiceTag" style="background:${s.tagColor}22;color:${s.tagColor}">${esc(s.tag)}</span>` : ''}
+                    ${s.hp ? `<span class="ecuHpPill">${esc(s.hp)}</span>` : ''}
+                  </div>
+                  <div class="ecuServiceDesc">${esc(s.desc)}</div>
+                </div>
+                <span class="ecuServiceArrow">›</span>
+              </div>
+              <div class="ecuServiceDetail hidden">
+                <p>${esc(s.detail)}</p>
+                <div class="ecuServiceMeta">
+                  <span class="ecuRiskPill" style="background:${riskColor(s.risk)}22;color:${riskColor(s.risk)}">${riskLabel(s.risk)}</span>
+                  <span class="muted" style="font-size:11px">Sistemler: ${s.systems.join(', ')}</span>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    // Toggle detail on card click
+    el.querySelectorAll('.ecuServiceCard').forEach(card => {
+      card.querySelector('.ecuServiceTop').addEventListener('click', () => {
+        const det = card.querySelector('.ecuServiceDetail');
+        const arrow = card.querySelector('.ecuServiceArrow');
+        const wasOpen = !det.classList.contains('hidden');
+        // Close all
+        el.querySelectorAll('.ecuServiceDetail').forEach(d => d.classList.add('hidden'));
+        el.querySelectorAll('.ecuServiceArrow').forEach(a => a.textContent = '›');
+        if (!wasOpen) {
+          det.classList.remove('hidden');
+          arrow.textContent = '⌄';
+        }
+      });
+    });
+  }
+
   // ===== INIT =====
   function init() {
     const drop = $('#ecuDrop');
@@ -42,6 +136,7 @@
     $('#ecuDeviceRefresh')?.addEventListener('click', loadBridges);
     $('#ecuDeviceNewToken')?.addEventListener('click', newBridgeToken);
     loadBridges(true);
+    renderServicesCatalog();
     loadVehicleDB().then(() => {
       const vSel = $('#ecuVehicleSelect');
       if (vSel && state.vehicleDB) {
@@ -209,6 +304,9 @@
   function renderStep2() {
     const step2 = $('#step2');
     step2.classList.remove('hidden');
+    // Hizmet kataloğunu gizle — artık gerçek sonuçlar var
+    const catalog = $('#ecuServicesCatalog');
+    if (catalog) catalog.classList.add('hidden');
 
     const vehicleLabel = [state.vehicle.make, state.vehicle.model, state.vehicle.year].filter(Boolean).join(' ');
     const ecuLabel = state.vehicle.ecuType || '';
@@ -582,6 +680,8 @@
     rebindDrop();
     $('#step2').classList.add('hidden');
     $('#step3').classList.add('hidden');
+    const catalog = $('#ecuServicesCatalog');
+    if (catalog) catalog.classList.remove('hidden');
     $('#step1').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 

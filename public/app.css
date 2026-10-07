@@ -199,6 +199,25 @@ h3{font-size:14px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercas
 .ecuAIProgress::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:#31dfff;border-radius:2px;animation:aiProg 1.5s ease-in-out infinite}
 @keyframes aiProg{0%{left:-40%}100%{left:100%}}
 
+/* === TUNING HİZMET KATALOĞU === */
+.ecuServicesWrap{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;padding:0 0 4px}
+.ecuServicesHead{display:flex;align-items:center;gap:12px;padding:14px 16px 10px}
+.ecuServicesHead .stepNum{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#294466;font-size:16px;flex-shrink:0}
+.ecuServicesList{display:flex;flex-direction:column;gap:2px;padding:0 8px 8px}
+.ecuServiceCard{background:#0a1628;border:1px solid #1a3050;border-radius:10px;overflow:hidden;transition:border-color .2s}
+.ecuServiceCard:hover{border-color:#294466}
+.ecuServiceTop{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+.ecuServiceIcon{font-size:20px;width:32px;text-align:center;flex-shrink:0}
+.ecuServiceInfo{flex:1;min-width:0}
+.ecuServiceName{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ecuServiceName b{font-size:13px;color:#e4f0fb}
+.ecuServiceTag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.04em}
+.ecuServiceDesc{font-size:12px;color:#8ba4b7;margin-top:3px;line-height:1.4}
+.ecuServiceArrow{font-size:18px;color:#5a7a94;flex-shrink:0;transition:transform .2s;font-weight:700}
+.ecuServiceDetail{padding:0 14px 14px 56px;border-top:1px solid #1a3050;margin-top:0}
+.ecuServiceDetail p{font-size:12px;color:#b8d0e0;line-height:1.5;margin:10px 0 8px}
+.ecuServiceMeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
 /* === ADVANCED ACCORDION === */
 .advanced{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .advanced summary{padding:14px 16px;cursor:pointer;list-style:none;font-size:13px;letter-spacing:.03em;color:#b8d0e0;font-weight:600}
