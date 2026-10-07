@@ -22,7 +22,7 @@
     // Stok
     if ($('#stockBtn')) $('#stockBtn').addEventListener('click', searchStock);
     // Takvim
-    if ($('#calBtn')) $('#calBtn').addEventListener('click', generateCalendar);
+    // eski sosyal takvim — artık calBtn iş takvimi için kullanılıyor
     // Sosyal
     if ($('#socialSchedule')) $('#socialSchedule').addEventListener('click', scheduleSocial);
     // Fatura
@@ -48,6 +48,14 @@
     if ($('#msgGenerate')) $('#msgGenerate').addEventListener('click', generateMessage);
     // Maliyet hesaplayıcı
     if ($('#calcBtn')) $('#calcBtn').addEventListener('click', calculateProfit);
+    // Not defteri
+    if ($('#noteAddBtn')) $('#noteAddBtn').addEventListener('click', addNote);
+    if ($('#noteSearchBtn')) { $('#noteSearchBtn').addEventListener('click', () => loadNotes($('#noteSearch')?.value)); $('#noteSearch')?.addEventListener('keydown', e => { if (e.key === 'Enter') loadNotes($('#noteSearch')?.value); }); }
+    // Yapılacaklar
+    if ($('#todoAddBtn')) { $('#todoAddBtn').addEventListener('click', addTodo); $('#todoText')?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); }); }
+    // İş takvimi
+    if ($('#calBtn')) { $('#calBtn').addEventListener('click', loadCalendarDay); }
+    if ($('#calDate')) { const today = new Date().toISOString().slice(0, 10); $('#calDate').value = today; }
   }
 
   // ========== DTC ==========
@@ -897,6 +905,153 @@
     } catch {}
   }
 
+  // ========== NOT DEFTERİ ==========
+  async function addNote() {
+    const content = $('#noteContent')?.value?.trim();
+    if (!content) { toast('Not içeriği gerekli'); return; }
+    const title = $('#noteTitle')?.value?.trim() || '';
+    const category = $('#noteCategory')?.value || 'genel';
+    const pinned = $('#notePinned')?.checked || false;
+    try {
+      const res = await fetch('/api/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, content, category, pinned }) });
+      const d = await res.json();
+      if (d.ok) {
+        toast('Not eklendi');
+        $('#noteContent').value = '';
+        $('#noteTitle').value = '';
+        if ($('#notePinned')) $('#notePinned').checked = false;
+        loadNotes();
+      } else toast(d.error || 'Hata');
+    } catch (e) { toast('Hata: ' + e.message); }
+  }
+
+  async function loadNotes(query) {
+    const el = $('#noteList');
+    if (!el) return;
+    try {
+      let url = '/api/notes';
+      if (query) url += '?q=' + encodeURIComponent(query);
+      const res = await fetch(url);
+      const d = await res.json();
+      if (!d.ok || !d.notes?.length) { el.innerHTML = '<p class="muted">Not bulunamadı.</p>'; return; }
+      const catIcons = { genel: '📋', musteri: '👤', teknik: '🔧', fikir: '💡', onemli: '⚠️' };
+      el.innerHTML = d.notes.map(n => {
+        const dt = n.updated_at ? new Date(n.updated_at).toLocaleDateString('tr-TR') : '';
+        return `<div style="background:var(--card);border-radius:8px;padding:10px;margin-bottom:8px;border-left:3px solid ${n.pinned?'var(--accent)':'#333'}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>${catIcons[n.category]||'📋'} ${esc(n.title||'(Başlıksız)')}</b>
+            <span style="font-size:11px;opacity:0.5">${dt}</span>
+          </div>
+          <p style="margin:4px 0;font-size:13px;white-space:pre-wrap">${esc(n.content)}</p>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <button onclick="toggleNotePin('${esc(n.id)}',${n.pinned?0:1})" style="font-size:11px;padding:2px 8px">${n.pinned?'📌 Çıkar':'📌 Sabitle'}</button>
+            <button onclick="deleteNote('${esc(n.id)}')" style="font-size:11px;padding:2px 8px;background:#611">🗑 Sil</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi: ' + esc(e.message) + '</p>'; }
+  }
+  window.toggleNotePin = async (id, pin) => {
+    try { await fetch('/api/notes/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pinned: pin }) }); loadNotes(); } catch {}
+  };
+  window.deleteNote = async (id) => {
+    if (!confirm('Bu notu silmek istediğinize emin misiniz?')) return;
+    try { await fetch('/api/notes/' + id, { method: 'DELETE' }); toast('Not silindi'); loadNotes(); } catch {}
+  };
+
+  // ========== YAPILACAKLAR ==========
+  async function addTodo() {
+    const text = $('#todoText')?.value?.trim();
+    if (!text) { toast('Görev metni gerekli'); return; }
+    const priority = $('#todoPriority')?.value || 'normal';
+    const due_date = $('#todoDue')?.value || '';
+    try {
+      const res = await fetch('/api/todos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, priority, due_date }) });
+      const d = await res.json();
+      if (d.ok) {
+        toast('Görev eklendi');
+        $('#todoText').value = '';
+        if ($('#todoDue')) $('#todoDue').value = '';
+        loadTodos();
+      } else toast(d.error || 'Hata');
+    } catch (e) { toast('Hata: ' + e.message); }
+  }
+
+  async function loadTodos() {
+    const el = $('#todoList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/todos');
+      const d = await res.json();
+      if (!d.ok || !d.todos?.length) { el.innerHTML = '<p class="muted">Görev yok — üstten ekleyin.</p>'; return; }
+      const priColors = { high: '#f44', normal: 'var(--accent)', low: '#888' };
+      const priLabels = { high: 'YÜKSEK', normal: 'NORMAL', low: 'DÜŞÜK' };
+      el.innerHTML = d.todos.map(t => {
+        const dueStr = t.due_date || '';
+        const isOverdue = dueStr && !t.done && dueStr < new Date().toISOString().slice(0, 10);
+        return `<div style="background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;align-items:center;gap:8px;opacity:${t.done?'0.5':'1'}${isOverdue?';border-left:3px solid #f44':''}">
+          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${esc(t.id)}',this.checked)" style="width:18px;height:18px">
+          <div style="flex:1">
+            <span style="${t.done?'text-decoration:line-through;':''}">${esc(t.text)}</span>
+            ${dueStr?`<span style="font-size:11px;opacity:0.5;margin-left:6px">${dueStr}</span>`:''}
+          </div>
+          <span style="font-size:10px;color:${priColors[t.priority]||'#888'};font-weight:bold">${priLabels[t.priority]||''}</span>
+          <button onclick="deleteTodo('${esc(t.id)}')" style="font-size:11px;padding:2px 6px;background:#611">✕</button>
+        </div>`;
+      }).join('');
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi</p>'; }
+  }
+  window.toggleTodo = async (id, done) => {
+    try { await fetch('/api/todos/' + id, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ done }) }); loadTodos(); } catch {}
+  };
+  window.deleteTodo = async (id) => {
+    try { await fetch('/api/todos/' + id, { method: 'DELETE' }); toast('Silindi'); loadTodos(); } catch {}
+  };
+
+  // ========== İŞ TAKVİMİ ==========
+  async function loadCalendarDay() {
+    const el = $('#calResult');
+    if (!el) return;
+    const date = $('#calDate')?.value || new Date().toISOString().slice(0, 10);
+    try {
+      const res = await fetch('/api/calendar/day?date=' + encodeURIComponent(date));
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<p class="muted">Hata: ' + esc(d.error) + '</p>'; return; }
+      const dayName = new Date(date + 'T12:00:00').toLocaleDateString('tr-TR', { weekday: 'long' });
+      let html = `<h3 style="margin:8px 0">${esc(date)} — ${esc(dayName)}</h3>`;
+
+      // Randevular
+      if (d.appointments?.length) {
+        html += '<h4 style="color:var(--accent)">📅 Randevular</h4>';
+        html += d.appointments.map(a => `<div style="background:var(--card);padding:8px;border-radius:6px;margin-bottom:4px">
+          <b>${esc(a.time||'')} — ${esc(a.title)}</b>
+          ${a.customer_name?` · <span style="opacity:0.7">${esc(a.customer_name)}</span>`:''}
+          ${a.customer_plate?` <span style="opacity:0.5">(${esc(a.customer_plate)})</span>`:''}
+          <span style="font-size:11px;color:${a.status==='completed'?'#4f4':a.status==='cancelled'?'#f44':'var(--accent)'}">[${esc(a.status)}]</span>
+        </div>`).join('');
+      } else html += '<p class="muted">Bu gün randevu yok.</p>';
+
+      // İşler
+      if (d.jobs?.length) {
+        html += '<h4 style="color:var(--accent)">🔧 İşler</h4>';
+        html += d.jobs.map(jj => `<div style="background:var(--card);padding:8px;border-radius:6px;margin-bottom:4px">
+          <b>${esc(jj.title||jj.type)}</b> · ${esc(jj.customer_name||'?')} · ${jj.price}${jj.currency||'€'}
+          <span style="font-size:11px;color:${jj.status==='completed'?'#4f4':'var(--accent)'}">[${esc(jj.status)}]</span>
+        </div>`).join('');
+      } else html += '<p class="muted">Bu gün iş kaydı yok.</p>';
+
+      // Yapılacaklar
+      if (d.todos?.length) {
+        html += '<h4 style="color:var(--accent)">✅ Yapılacaklar</h4>';
+        html += d.todos.map(t => `<div style="background:var(--card);padding:6px 8px;border-radius:6px;margin-bottom:4px;opacity:${t.done?'0.5':'1'}">
+          ${t.done?'☑':'☐'} ${esc(t.text)}
+        </div>`).join('');
+      }
+
+      el.innerHTML = html;
+    } catch (e) { el.innerHTML = '<p class="muted">Yüklenemedi: ' + esc(e.message) + '</p>'; }
+  }
+
   // Sayfa açıldığında listeleri yükle
   const settingsBtn = document.querySelector('[data-page="settings"]');
   if (settingsBtn) {
@@ -910,6 +1065,8 @@
         loadAppointmentList();
         loadAppointmentCustomers();
         loadDashboard();
+        loadNotes();
+        loadTodos();
       }, 300);
     });
   }

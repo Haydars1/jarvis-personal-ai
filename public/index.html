@@ -689,6 +689,70 @@
         </div>
       </details>
 
+      <!-- NOT DEFTERİ -->
+      <details class="settingsBlock">
+        <summary>📝 Not Defteri</summary>
+        <div class="settingsBody">
+          <p class="muted">Hızlı notlar — müşteri bilgisi, fikir, hatırlatma.</p>
+          <div class="credgrid">
+            <input id="noteTitle" placeholder="Başlık (opsiyonel)">
+            <textarea id="noteContent" rows="3" placeholder="Not yazın..."></textarea>
+            <select id="noteCategory">
+              <option value="genel">Genel</option>
+              <option value="musteri">Müşteri</option>
+              <option value="teknik">Teknik</option>
+              <option value="fikir">Fikir</option>
+              <option value="onemli">Önemli</option>
+            </select>
+          </div>
+          <div class="row">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" id="notePinned"> Sabitle</label>
+            <button id="noteAddBtn">NOT EKLE</button>
+          </div>
+          <hr>
+          <div class="row">
+            <input id="noteSearch" placeholder="Notlarda ara..." style="flex:3">
+            <button id="noteSearchBtn">ARA</button>
+          </div>
+          <div id="noteList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- YAPILACAKLAR -->
+      <details class="settingsBlock">
+        <summary>✅ Yapılacaklar</summary>
+        <div class="settingsBody">
+          <p class="muted">Günlük görevler ve yapılacaklar listesi.</p>
+          <div class="credgrid">
+            <input id="todoText" placeholder="Yapılacak iş...">
+            <div class="row">
+              <select id="todoPriority" style="flex:1">
+                <option value="normal">Normal</option>
+                <option value="high">Yüksek</option>
+                <option value="low">Düşük</option>
+              </select>
+              <input id="todoDue" type="date" style="flex:1">
+              <button id="todoAddBtn">EKLE</button>
+            </div>
+          </div>
+          <hr>
+          <div id="todoList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- İŞ TAKVİMİ -->
+      <details class="settingsBlock">
+        <summary>📆 İş Takvimi</summary>
+        <div class="settingsBody">
+          <p class="muted">Gün bazlı randevu, iş ve yapılacak özeti.</p>
+          <div class="row">
+            <input id="calDate" type="date" style="flex:2">
+            <button id="calBtn">GÖR</button>
+          </div>
+          <div id="calResult" class="muted"></div>
+        </div>
+      </details>
+
       <details class="settingsBlock">
         <summary>◉ Sistem Durumu</summary>
         <div class="settingsBody">

@@ -1305,6 +1305,75 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,plate,customers,jobs});
  }catch(e){return j({error:e.message},500)}}
 
+ // ===== NOT DEFTERİ =====
+ if(p==='/api/notes'&&m==='GET'){try{
+   const cat=u.searchParams.get('category')||'';
+   const q=u.searchParams.get('q')||'';
+   let sql='SELECT * FROM notes';const params=[];
+   if(cat){sql+=' WHERE category=?';params.push(cat)}
+   if(q){sql+=(cat?' AND':' WHERE')+" (UPPER(title) LIKE ? OR UPPER(content) LIKE ?)";const t='%'+q.toUpperCase()+'%';params.push(t,t)}
+   sql+=' ORDER BY pinned DESC, updated_at DESC LIMIT 100';
+   const rows=await qall(env,sql,...params);
+   return j({ok:true,notes:rows});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/notes'&&m==='POST'){try{
+   const b=await body(req);const content=String(b.content||'').trim();
+   if(!content)return j({error:'CONTENT_REQUIRED'},400);
+   const nId=id();const t=now();
+   await run(env,'INSERT INTO notes(id,title,content,category,pinned,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',nId,b.title||'',content,b.category||'genel',b.pinned?1:0,t,t);
+   return j({ok:true,id:nId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/notes\/([^/]+)$/);
+ if(mm&&m==='PATCH'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   for(const k of ['title','content','category']){if(k in b){sets.push(k+'=?');vals.push(b[k])}}
+   if('pinned' in b){sets.push('pinned=?');vals.push(b.pinned?1:0)}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE notes SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM notes WHERE id=?',mm[1]);return j({ok:true})}
+
+ // ===== YAPILACAKLAR (TODOS) =====
+ if(p==='/api/todos'&&m==='GET'){try{
+   const done=u.searchParams.get('done');
+   let sql='SELECT * FROM todos';const params=[];
+   if(done!==null&&done!==''){sql+=' WHERE done=?';params.push(Number(done))}
+   sql+=' ORDER BY done ASC, CASE priority WHEN \'high\' THEN 0 WHEN \'normal\' THEN 1 WHEN \'low\' THEN 2 END, due_date ASC, created_at DESC LIMIT 200';
+   const rows=await qall(env,sql,...params);
+   return j({ok:true,todos:rows});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/todos'&&m==='POST'){try{
+   const b=await body(req);const text=String(b.text||'').trim();
+   if(!text)return j({error:'TEXT_REQUIRED'},400);
+   const tId=id();const t=now();
+   await run(env,'INSERT INTO todos(id,text,done,priority,due_date,created_at,updated_at) VALUES(?,?,?,?,?,?,?)',tId,text,0,b.priority||'normal',b.due_date||'',t,t);
+   return j({ok:true,id:tId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/todos\/([^/]+)$/);
+ if(mm&&m==='POST'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   if('text' in b){sets.push('text=?');vals.push(b.text)}
+   if('done' in b){sets.push('done=?');vals.push(b.done?1:0)}
+   if('priority' in b){sets.push('priority=?');vals.push(b.priority)}
+   if('due_date' in b){sets.push('due_date=?');vals.push(b.due_date)}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE todos SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM todos WHERE id=?',mm[1]);return j({ok:true})}
+
+ // ===== İŞ TAKVİMİ (tarih bazlı özet) =====
+ if(p==='/api/calendar/day'){try{
+   const date=u.searchParams.get('date')||new Date().toISOString().slice(0,10);
+   const appointments=await qall(env,'SELECT a.*,c.name as customer_name,c.plate as customer_plate FROM appointments a LEFT JOIN customers c ON a.customer_id=c.id WHERE a.date=? ORDER BY a.time ASC',date).catch(()=>[]);
+   const jobs=await qall(env,'SELECT j.*,c.name as customer_name FROM jobs j LEFT JOIN customers c ON j.customer_id=c.id WHERE date(j.created_at/1000,\'unixepoch\')=? ORDER BY j.created_at DESC',date).catch(()=>[]);
+   const todos=await qall(env,'SELECT * FROM todos WHERE due_date=? ORDER BY done ASC, priority ASC',date).catch(()=>[]);
+   return j({ok:true,date,appointments,jobs,todos});
+ }catch(e){return j({error:e.message},500)}}
+
  return j({error:'NOT_FOUND'},404)}
 async function runScheduledJobs(env){
   try{
