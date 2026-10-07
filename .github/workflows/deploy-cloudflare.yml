@@ -19,11 +19,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Validate runtime syntax
         run: npm run check
-      - name: Ensure R2 bucket exists
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler r2 bucket create jarvis-files 2>/dev/null || true
       - name: Apply additive D1 schema
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -38,6 +33,7 @@ jobs:
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-notes-todos.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-prices-expenses.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-contact-log.sql
+          npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-files-storage.sql
       - name: Audit configured AI providers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

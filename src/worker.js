@@ -15,6 +15,24 @@ async function qall(env,sql,...bind){return (await env.DB.prepare(sql).bind(...b
 async function run(env,sql,...bind){return env.DB.prepare(sql).bind(...bind).run()}
 async function kvGet(env,key,fb=null){const r=await q1(env,'SELECT value FROM kv WHERE key=?',key);if(!r)return fb;try{return JSON.parse(r.value)}catch{return r.value}}
 async function kvSet(env,key,val){await run(env,'INSERT INTO kv(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at',key,JSON.stringify(val),now())}
+// --- D1-backed file storage (replaces R2) ---
+async function filePut(env,key,data,opts={}){
+  const ct=opts?.httpMetadata?.contentType||opts?.contentType||'application/octet-stream';
+  const buf=data instanceof ArrayBuffer?new Uint8Array(data):data instanceof Uint8Array?data:typeof data==='string'?te.encode(data):new Uint8Array(await new Response(data).arrayBuffer());
+  await run(env,'INSERT INTO files(key,data,content_type,size) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,created_at=CURRENT_TIMESTAMP',key,buf,ct,buf.byteLength);
+}
+async function fileGet(env,key){
+  const r=await q1(env,'SELECT data,content_type,size,created_at FROM files WHERE key=?',key);
+  if(!r)return null;
+  return {body:new ReadableStream({start(c){c.enqueue(new Uint8Array(r.data instanceof ArrayBuffer?r.data:typeof r.data==='string'?Uint8Array.from(atob(r.data),c=>c.charCodeAt(0)):[]));c.close()}}),httpMetadata:{contentType:r.content_type},size:r.size,arrayBuffer:async()=>r.data instanceof ArrayBuffer?r.data:typeof r.data==='string'?Uint8Array.from(atob(r.data),c=>c.charCodeAt(0)).buffer:new ArrayBuffer(0)};
+}
+async function fileList(env,opts={}){
+  const limit=Math.min(opts.limit||100,500);
+  const rows=await qall(env,'SELECT key,content_type,size,created_at FROM files ORDER BY created_at DESC LIMIT ?',limit);
+  return {objects:rows.map(r=>({key:r.key,size:r.size,uploaded:r.created_at}))};
+}
+async function fileDelete(env,key){await run(env,'DELETE FROM files WHERE key=?',key)}
+
 async function log(env,kind,text,meta={}){await run(env,'INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)',id(),now(),kind,text,JSON.stringify(meta));await run(env,'DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY ts DESC LIMIT -1 OFFSET 1000)')}
 async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
 function cookie(v,max=2592000){return `jarvis_session=${encodeURIComponent(v)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${max}`}
@@ -210,7 +228,7 @@ async function liveStatus(env){
   const google=!!(await googleStored(env));
   const meta=enabled.some(x=>String(x.provider).toLowerCase()==='meta');
   const github=enabled.some(x=>String(x.provider).toLowerCase()==='github');
-  return {ai:{connected:names.length>0,count:names.length,healthy:ok.length+envProviders.length,providers:names,router:await aiRouterStatus(env)},d1:{connected:!!env.DB},r2:{connected:!!env.FILES},google:{connected:google},social:{connected:meta},selfUpdate:{connected:github},passkeys:{count:await passkeyCount(env)}};
+  return {ai:{connected:names.length>0,count:names.length,healthy:ok.length+envProviders.length,providers:names,router:await aiRouterStatus(env)},d1:{connected:!!env.DB},r2:{connected:true},google:{connected:google},social:{connected:meta},selfUpdate:{connected:github},passkeys:{count:await passkeyCount(env)}};
 }
 
 async function brief(env){const open=await q1(env,"SELECT COUNT(*) n FROM tasks WHERE status!='done'"), urgent=await q1(env,"SELECT COUNT(*) n FROM tasks WHERE status!='done' AND priority='Yüksek'"), pending=await q1(env,"SELECT COUNT(*) n FROM actions WHERE status='pending'"), top=await q1(env,"SELECT title FROM tasks WHERE status!='done' ORDER BY CASE priority WHEN 'Yüksek' THEN 0 WHEN 'Orta' THEN 1 ELSE 2 END, created_at ASC LIMIT 1");return{open:open?.n||0,urgent:urgent?.n||0,pending:pending?.n||0,top:top?.title||null,text:`${open?.n||0} açık görev var${urgent?.n?`, ${urgent.n} tanesi yüksek öncelikli`:''}. ${pending?.n?`${pending.n} işlem onayını bekliyor.`:'Onay bekleyen işlem yok.'}`}}
@@ -722,11 +740,10 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
 
  // ECU Tuning v2 — R2 + scan-based regions + AI compare
  if(p==='/api/ecu/upload'&&m==='POST'){try{
-   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
    const b=await body(req);
    const fileData=typeof b.fileData==='string'?Uint8Array.from(atob(b.fileData),c=>c.charCodeAt(0)):new Uint8Array(b.fileData||[]);
    if(!fileData.length)return j({error:'EMPTY_FILE'},400);
-   if(fileData.length>25*1024*1024)return j({error:'FILE_TOO_LARGE'},413);
+   if(fileData.length>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);
    const mod=await import('./lib/tuning-engine.js');
    const fmt=mod.detectFileFormat(fileData);
    const stats=mod.fileStats(fileData);
@@ -734,7 +751,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const upload_id=id();
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
-   await env.FILES.put(key,fileData,{httpMetadata:{contentType:'application/octet-stream'}});
+   await filePut(env,key,fileData,{contentType:'application/octet-stream'});
    await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,created_at) VALUES(?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,now());
    return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))],rulepackMatches:regions._rulepackMatches||[]});
  }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
@@ -753,9 +770,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const b=await body(req);
    const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
    if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
-   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
-   const obj=await env.FILES.get(upload.binary_data);
-   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const bytes=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
    const regions=await mod.scanRegions(bytes);
@@ -778,9 +794,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const b=await body(req);
    const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
    if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
-   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
-   const obj=await env.FILES.get(upload.binary_data);
-   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const original=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
    const regions=await mod.scanRegions(original);
@@ -791,7 +806,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const result=await mod.applyActions(original,toApply);
    const tuned_id=id();
    const outKey='ecu/'+tuned_id+'/tuned-'+String(upload.filename||'file.bin').replace(/[\\/]/g,'_');
-   await env.FILES.put(outKey,result.tuned,{httpMetadata:{contentType:'application/octet-stream'}});
+   await filePut(env,outKey,result.tuned,{contentType:'application/octet-stream'});
    await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,upload.id,'scan-v2',JSON.stringify(result.applied),result.hash,result.size,outKey,now());
    return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied});
  }catch(e){return j({error:e.message||'GENERATE_FAILED'},500)}}
@@ -802,9 +817,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
    const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
    if(!tuned)return j({error:'TUNED_FILE_NOT_FOUND'},404);
-   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
-   const obj=await env.FILES.get(tuned.tuned_binary_data);
-   if(!obj)return j({error:'R2_OBJECT_MISSING'},404);
+   const obj=await fileGet(env,tuned.tuned_binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const upload=await q1(env,'SELECT filename FROM ecu_uploads WHERE id=?',tuned.upload_id);
    const name=(upload?.filename||'tuned.bin').replace(/(\.[^.]+)$/,'_tuned$1');
    return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+name+'"'}});
@@ -823,14 +837,14 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const imgId=id();
    const key='images/'+imgId+'.png';
    const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
-   if(env.FILES)await env.FILES.put(key,imgBytes,{httpMetadata:{contentType:'image/png'}});
+   await filePut(env,key,imgBytes,{contentType:'image/png'});
    return j({ok:true,id:imgId,size:imgBytes.length,model,key,base64:result.image.slice(0,100)+'...(truncated)'});
  }catch(e){return j({error:e.message||'IMAGE_FAILED'},500)}}
 
  if(p==='/api/ai/image/serve'){try{
    const imgId=new URL(req.url).searchParams.get('id');
-   if(!imgId||!env.FILES)return j({error:'MISSING'},400);
-   const obj=await env.FILES.get('images/'+imgId+'.png');
+   if(!imgId)return j({error:'MISSING'},400);
+   const obj=await fileGet(env,'images/'+imgId+'.png');
    if(!obj)return j({error:'NOT_FOUND'},404);
    return new Response(obj.body,{headers:{'content-type':'image/png','cache-control':'public, max-age=86400'}});
  }catch(e){return j({error:e.message},500)}}
@@ -951,7 +965,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const model=IMAGE_MODELS[modelKey]||IMAGE_MODELS['flux-schnell'];
    const imageUrls=[];
    const textOverlays=[];
-   if(env.AI&&env.FILES){
+   if(env.AI){
      for(let i=0;i<spec.imageCount;i++){
        try{
          const slideInfo=slidePlan[i]||{};
@@ -962,7 +976,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
            const imgId=id();
            const key='video-frames/'+imgId+'.png';
            const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
-           await env.FILES.put(key,imgBytes,{httpMetadata:{contentType:'image/png'}});
+           await filePut(env,key,imgBytes,{contentType:'image/png'});
            imageUrls.push('/api/ai/image/serve?id='+imgId);
            textOverlays.push(slideInfo.overlayText?{text:slideInfo.overlayText,position:i===0?'center':'bottom'}:null);
          }
@@ -999,7 +1013,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!b.jobId||!b.videoBase64)return j({error:'MISSING_FIELDS'},400);
    const videoBytes=Uint8Array.from(atob(b.videoBase64),c=>c.charCodeAt(0));
    const key='videos/'+b.jobId+'.mp4';
-   if(env.FILES)await env.FILES.put(key,videoBytes,{httpMetadata:{contentType:'video/mp4'}});
+   await filePut(env,key,videoBytes,{contentType:'video/mp4'});
    await run(env,'UPDATE video_jobs SET video_key=?,status=? WHERE id=?',key,'ready',b.jobId);
    return j({ok:true,jobId:b.jobId,videoKey:key,size:videoBytes.length});
  }catch(e){return j({error:e.message},500)}}
@@ -1077,8 +1091,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!videoJobId)return j({error:'MISSING_JOB_ID'},400);
    const job=await q1(env,'SELECT * FROM video_jobs WHERE id=?',videoJobId);
    if(!job||job.status!=='ready')return j({error:'VIDEO_NOT_READY'},400);
-   if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);
-   const videoObj=await env.FILES.get(job.video_key);
+   const videoObj=await fileGet(env,job.video_key);
    if(!videoObj)return j({error:'VIDEO_FILE_MISSING'},404);
    // Google OAuth token al
    const token=await googleAccessToken(env);
@@ -1142,10 +1155,10 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/research'){const q=u.searchParams.get('q')||'';if(!q)return j({error:'QUERY_REQUIRED'},400);const results=await ddg(q);await log(env,'research','Araştırıldı: '+q,{count:results.length});return j({q,results})}
  if(p==='/api/tools/discover'){const cap=u.searchParams.get('capability')||'ai-tool';return j({capability:cap,results:await discoverTools(env,cap)})}
 
- if(p==='/api/files/download-url'&&m==='POST'){if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);const b=await body(req),url=String(b.url||'').trim();let u2;try{u2=new URL(url)}catch{return j({error:'INVALID_URL'},400)}if(!/^https?:$/.test(u2.protocol)||privateHost(u2.hostname))return j({error:'URL_NOT_ALLOWED'},400);const r=await fetchT(u2.toString(),{redirect:'follow'});if(!r.ok)return j({error:'DOWNLOAD_HTTP_'+r.status},400);const len=Number(r.headers.get('content-length')||0);if(len>50*1024*1024)return j({error:'FILE_TOO_LARGE'},413);const buf=new Uint8Array(await r.arrayBuffer());if(buf.byteLength>50*1024*1024)return j({error:'FILE_TOO_LARGE'},413);let name=String(b.name||'').trim()||u2.pathname.split('/').filter(Boolean).pop()||'download.bin';name=name.replace(/[\\/]/g,'_');const key=`${now()}-${id()}-${name}`;await env.FILES.put(key,buf,{httpMetadata:{contentType:r.headers.get('content-type')||'application/octet-stream'}});await log(env,'file','URL dosyası indirildi: '+name,{url:u2.origin});return j({ok:true,key,name,size:buf.byteLength})}
- if(p==='/api/files'&&m==='POST'){if(!env.FILES)return j({error:'R2_NOT_CONFIGURED'},400);const b=await body(req),name=String(b.name||'file').replace(/[\\/]/g,'_'),raw=Uint8Array.from(atob(String(b.base64||'')),c=>c.charCodeAt(0));if(raw.byteLength>25*1024*1024)return j({error:'FILE_TOO_LARGE'},413);const key=`${now()}-${id()}-${name}`;await env.FILES.put(key,raw,{httpMetadata:{contentType:b.type||'application/octet-stream'}});await log(env,'file','Dosya yüklendi: '+name);return j({ok:true,key,name,size:raw.byteLength})}
- if(p==='/api/files'&&m==='GET'){if(!env.FILES)return j([]);const x=await env.FILES.list({limit:100});return j(x.objects.map(o=>({file:o.key,size:o.size,mtime:o.uploaded?.getTime?.()||0})))}
- mm=p.match(/^\/api\/files\/(.+)$/);if(mm&&m==='GET'){if(!env.FILES)return txt('R2 yok',404);const key=decodeURIComponent(mm[1]),o=await env.FILES.get(key);if(!o)return txt('Not found',404);return new Response(o.body,{headers:{'content-type':o.httpMetadata?.contentType||'application/octet-stream','content-disposition':`attachment; filename="${key.split('-').slice(3).join('-')}"`}})}
+ if(p==='/api/files/download-url'&&m==='POST'){const b=await body(req),url=String(b.url||'').trim();let u2;try{u2=new URL(url)}catch{return j({error:'INVALID_URL'},400)}if(!/^https?:$/.test(u2.protocol)||privateHost(u2.hostname))return j({error:'URL_NOT_ALLOWED'},400);const r=await fetchT(u2.toString(),{redirect:'follow'});if(!r.ok)return j({error:'DOWNLOAD_HTTP_'+r.status},400);const len=Number(r.headers.get('content-length')||0);if(len>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);const buf=new Uint8Array(await r.arrayBuffer());if(buf.byteLength>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);let name=String(b.name||'').trim()||u2.pathname.split('/').filter(Boolean).pop()||'download.bin';name=name.replace(/[\\/]/g,'_');const key=`${now()}-${id()}-${name}`;await filePut(env,key,buf,{contentType:r.headers.get('content-type')||'application/octet-stream'});await log(env,'file','URL dosyası indirildi: '+name,{url:u2.origin});return j({ok:true,key,name,size:buf.byteLength})}
+ if(p==='/api/files'&&m==='POST'){const b=await body(req),name=String(b.name||'file').replace(/[\\/]/g,'_'),raw=Uint8Array.from(atob(String(b.base64||'')),c=>c.charCodeAt(0));if(raw.byteLength>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);const key=`${now()}-${id()}-${name}`;await filePut(env,key,raw,{contentType:b.type||'application/octet-stream'});await log(env,'file','Dosya yüklendi: '+name);return j({ok:true,key,name,size:raw.byteLength})}
+ if(p==='/api/files'&&m==='GET'){const x=await fileList(env,{limit:100});return j(x.objects.map(o=>({file:o.key,size:o.size,mtime:o.uploaded||0})))}
+ mm=p.match(/^\/api\/files\/(.+)$/);if(mm&&m==='GET'){const key=decodeURIComponent(mm[1]),o=await fileGet(env,key);if(!o)return txt('Not found',404);return new Response(o.body,{headers:{'content-type':o.httpMetadata?.contentType||'application/octet-stream','content-disposition':`attachment; filename="${key.split('-').slice(3).join('-')}"`}})}
  if(p==='/api/command'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);const r=await command(env,text);await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}
 
  // ===== FATURA / INVOICE =====
@@ -1522,7 +1535,7 @@ async function runScheduledJobs(env){
                 const imgId=id();
                 imageKey='images/'+imgId+'.png';
                 const imgBytes=Uint8Array.from(atob(result.image),c=>c.charCodeAt(0));
-                if(env.FILES)await env.FILES.put(imageKey,imgBytes,{httpMetadata:{contentType:'image/png'}});
+                await filePut(env,imageKey,imgBytes,{contentType:'image/png'});
               }
             }catch{}
           }

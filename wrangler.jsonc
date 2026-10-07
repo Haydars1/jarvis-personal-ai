@@ -21,12 +21,6 @@
   "ai": {
     "binding": "AI"
   },
-  "r2_buckets": [
-    {
-      "binding": "FILES",
-      "bucket_name": "jarvis-files"
-    }
-  ],
   "triggers": {
     "crons": [
       "*/30 * * * *"
