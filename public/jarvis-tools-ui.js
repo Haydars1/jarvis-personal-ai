@@ -5,16 +5,16 @@
   const toast = t => { const e = $('#toast'); if (!e) return; e.textContent = t; e.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => e.classList.add('hidden'), 3200); };
 
   function init() {
-    if (!$('#dtcSearch')) { setTimeout(init, 300); return; }
-    // DTC
-    $('#dtcSearch').addEventListener('click', dtcLookup);
-    $('#dtcInput').addEventListener('keydown', e => { if (e.key === 'Enter') dtcLookup(); });
-    loadDtcStats();
+    if (!$('#dtcSearch') && !$('#dtcSearchBtn')) { setTimeout(init, 300); return; }
+    // DTC (eski panel)
+    if ($('#dtcSearch')) { $('#dtcSearch').addEventListener('click', dtcLookup); $('#dtcInput').addEventListener('keydown', e => { if (e.key === 'Enter') dtcLookup(); }); loadDtcStats(); }
+    // DTC yeni panel (ayarlar altında)
+    if ($('#dtcSearchBtn')) { $('#dtcSearchBtn').addEventListener('click', dtcSearchNew); $('#dtcCode').addEventListener('keydown', e => { if (e.key === 'Enter') dtcSearchNew(); }); }
     // Öğrenme
-    $('#learnBtn').addEventListener('click', learnYouTube);
-    $('#learnSearchBtn').addEventListener('click', learnSearch);
+    if ($('#learnBtn')) $('#learnBtn').addEventListener('click', learnYouTube);
+    if ($('#learnSearchBtn')) $('#learnSearchBtn').addEventListener('click', learnSearch);
     // Video
-    $('#videoCreate').addEventListener('click', createVideo);
+    if ($('#videoCreate')) $('#videoCreate').addEventListener('click', createVideo);
     // Tek görsel
     if ($('#singleImageBtn')) $('#singleImageBtn').addEventListener('click', singleImage);
     // Vision
@@ -24,7 +24,7 @@
     // Takvim
     if ($('#calBtn')) $('#calBtn').addEventListener('click', generateCalendar);
     // Sosyal
-    $('#socialSchedule').addEventListener('click', scheduleSocial);
+    if ($('#socialSchedule')) $('#socialSchedule').addEventListener('click', scheduleSocial);
     // Fatura
     if ($('#invCreate')) $('#invCreate').addEventListener('click', createInvoice);
     if ($('#invAddItem')) $('#invAddItem').addEventListener('click', addInvoiceItem);
@@ -38,6 +38,12 @@
     if ($('#ocrBtn')) $('#ocrBtn').addEventListener('click', doOcr);
     if ($('#qrBtn')) $('#qrBtn').addEventListener('click', generateQr);
     if ($('#shiftBtn')) $('#shiftBtn').addEventListener('click', generateShiftPlan);
+    // Dashboard
+    if ($('#dashRefresh')) $('#dashRefresh').addEventListener('click', loadDashboard);
+    // Randevu
+    if ($('#aptAdd')) $('#aptAdd').addEventListener('click', addAppointment);
+    // Araç geçmişi
+    if ($('#vhSearchBtn')) { $('#vhSearchBtn').addEventListener('click', searchVehicleHistory); $('#vhPlate').addEventListener('keydown', e => { if (e.key === 'Enter') searchVehicleHistory(); }); }
   }
 
   // ========== DTC ==========
@@ -608,16 +614,242 @@
     } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
   }
 
+  // ========== DTC ARAMA (Ayarlar paneli) ==========
+  async function dtcSearchNew() {
+    const input = $('#dtcCode')?.value?.trim();
+    if (!input) return toast('Kod veya kelime gir');
+    const el = $('#dtcResult');
+    el.innerHTML = '<div class="muted">Aranıyor...</div>';
+    const upper = input.toUpperCase();
+
+    // Tek DTC kodu mu kontrol et
+    if (/^[PBCU][0-3]\d{3}$/i.test(upper)) {
+      try {
+        const res = await fetch('/api/dtc/lookup?code=' + encodeURIComponent(upper));
+        const d = await res.json();
+        if (d.ok) {
+          el.innerHTML = `<div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <b style="font-size:18px;color:cyan">${esc(d.code)}</b>
+              <span class="muted">${esc(d.category || '')}</span>
+            </div>
+            <div style="margin:8px 0"><b>EN:</b> ${esc(d.title?.en || '')}</div>
+            <div><b>DE:</b> ${esc(d.title?.de || '')}</div>
+            ${d.description?.en ? `<div style="margin-top:8px;font-size:13px;color:#aaa">${esc(d.description.en).slice(0,300)}</div>` : ''}
+            ${d.mil ? '<div style="margin-top:6px;color:orange">⚠ MIL (Motor Arıza Lambası) aktif</div>' : ''}
+            ${(d.causes||[]).length ? `<div style="margin-top:8px"><small style="color:#888">Olası Nedenler:</small><br>${d.causes.map(c=>'• '+esc(c)).join('<br>')}</div>` : ''}
+            ${(d.parts||[]).length ? `<div style="margin-top:6px"><small style="color:#888">İlgili Parçalar:</small> ${d.parts.map(p=>esc(p)).join(', ')}</div>` : ''}
+          </div>`;
+        } else {
+          // Tek kod bulunamadı, arama yap
+          await dtcTextSearch(input, el);
+        }
+      } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+    } else {
+      await dtcTextSearch(input, el);
+    }
+
+    // İstatistikleri de yükle
+    try {
+      const sr = await fetch('/api/dtc/stats');
+      const sd = await sr.json();
+      if (sd.ok) {
+        const statsEl = $('#dtcStats');
+        if (statsEl) statsEl.innerHTML = `Toplam <b>${sd.total}</b> arıza kodu · ` + (sd.byCategory||[]).slice(0,5).map(c => `${esc(c.category)}: ${c.n}`).join(' · ');
+      }
+    } catch {}
+  }
+
+  async function dtcTextSearch(query, el) {
+    try {
+      const res = await fetch('/api/dtc/search', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({query}) });
+      const d = await res.json();
+      if (d.ok && d.results?.length) {
+        el.innerHTML = `<div class="muted">${d.count} sonuç</div>` + d.results.map(r => `
+          <div class="card" style="cursor:pointer;margin-bottom:4px" onclick="document.querySelector('#dtcCode').value='${esc(r.code)}';document.querySelector('#dtcSearchBtn').click()">
+            <div style="display:flex;justify-content:space-between"><b style="color:cyan">${esc(r.code)}</b><small class="muted">${esc(r.category||'')}</small></div>
+            <div style="font-size:13px">${esc(r.title_en || '')}</div>
+            ${r.title_de ? `<div style="font-size:12px;color:#888">${esc(r.title_de)}</div>` : ''}
+          </div>
+        `).join('');
+      } else {
+        el.innerHTML = '<div class="muted">Sonuç bulunamadı: "' + esc(query) + '"</div>';
+      }
+    } catch (err) { el.innerHTML = '<div class="muted">Arama hatası: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== DASHBOARD ==========
+  async function loadDashboard() {
+    const metrics = $('#dashMetrics');
+    const recent = $('#dashRecentJobs');
+    const revenue = $('#dashRevenue');
+    if (!metrics) return;
+    metrics.innerHTML = '<div class="muted">Yükleniyor...</div>';
+    try {
+      const res = await fetch('/api/dashboard/stats');
+      const d = await res.json();
+      if (!d.ok) { metrics.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>'; return; }
+      metrics.innerHTML = `
+        <div class="card cyan"><small>MÜŞTERİ</small><b>${d.customers}</b></div>
+        <div class="card green"><small>TOPLAM İŞ</small><b>${d.jobs}</b></div>
+        <div class="card amber"><small>AÇIK İŞ</small><b>${d.openJobs}</b></div>
+        <div class="card purple"><small>TAMAMLANAN</small><b>${d.completedJobs}</b></div>
+        <div class="card cyan"><small>FATURA</small><b>${d.invoices}</b></div>
+        <div class="card green"><small>RANDEVU</small><b>${d.upcomingAppointments}</b></div>
+      `;
+      // Gelir
+      if (revenue) {
+        revenue.innerHTML = `<div class="card" style="display:flex;justify-content:space-around;text-align:center">
+          <div><small class="muted">Toplam Gelir</small><br><b style="font-size:20px;color:#0f0">€${(d.revenue||0).toFixed(2)}</b></div>
+          <div><small class="muted">Son 30 Gün</small><br><b style="font-size:20px;color:cyan">€${(d.monthRevenue||0).toFixed(2)}</b></div>
+        </div>`;
+        if ((d.topCustomers||[]).length) {
+          revenue.innerHTML += '<h4 style="margin-top:12px">En İyi Müşteriler</h4>' + d.topCustomers.map(c => `<div class="card" style="display:flex;justify-content:space-between"><span>${esc(c.name)}</span><span>${c.job_count} iş · <b>€${(c.total_spent||0).toFixed(2)}</b></span></div>`).join('');
+        }
+      }
+      // Son işler
+      if (recent && (d.recentJobs||[]).length) {
+        recent.innerHTML = d.recentJobs.map(j => {
+          const colors = {open:'cyan',completed:'#0f0',cancelled:'#f55'};
+          return `<div class="card" style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center">
+            <div><b>${esc(j.title||'İsimsiz')}</b><br><small class="muted">${esc(j.customer_name||'—')} · ${esc(j.type||'')}</small></div>
+            <div style="text-align:right"><span style="color:${colors[j.status]||'#888'}">${esc(j.status)}</span><br><small>€${(j.price||0).toFixed(2)}</small></div>
+          </div>`;
+        }).join('');
+      } else if (recent) { recent.innerHTML = '<div class="muted">Henüz iş yok</div>'; }
+    } catch (err) { metrics.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== RANDEVU ==========
+  async function addAppointment() {
+    const title = $('#aptTitle')?.value?.trim();
+    const date = $('#aptDate')?.value;
+    const time = $('#aptTime')?.value || '10:00';
+    const notes = $('#aptNotes')?.value?.trim() || '';
+    const customerId = $('#aptCustomer')?.value || '';
+    if (!title) return toast('Randevu başlığı gir');
+    if (!date) return toast('Tarih seç');
+    try {
+      const res = await fetch('/api/appointments', { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({title,date,time,notes,customer_id:customerId||null}) });
+      const d = await res.json();
+      if (d.ok) { toast('Randevu eklendi'); $('#aptTitle').value=''; $('#aptNotes').value=''; loadAppointmentList(); }
+      else toast('Hata: '+(d.error||''));
+    } catch (err) { toast('Hata: '+err.message); }
+  }
+
+  async function loadAppointmentList() {
+    const el = $('#aptList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/appointments?status=scheduled');
+      const d = await res.json();
+      if (!d.ok || !d.appointments?.length) { el.innerHTML = '<div class="muted">Yaklaşan randevu yok</div>'; return; }
+      el.innerHTML = d.appointments.map(a => {
+        const today = new Date().toISOString().slice(0,10);
+        const isToday = a.date === today;
+        const isPast = a.date < today;
+        const bg = isToday ? 'rgba(0,255,200,0.12)' : isPast ? 'rgba(255,80,80,0.1)' : '';
+        return `<div class="card" style="margin-bottom:4px;${bg?'background:'+bg:''}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <b>${esc(a.title)}</b>
+              ${a.customer_name ? `<br><small class="muted">${esc(a.customer_name)}${a.customer_plate?' · '+esc(a.customer_plate):''}</small>` : ''}
+            </div>
+            <div style="text-align:right">
+              <b style="color:${isToday?'#0f0':isPast?'#f55':'cyan'}">${esc(a.date)}</b><br>
+              <small>${esc(a.time)}</small>
+            </div>
+          </div>
+          ${a.notes ? `<div style="font-size:12px;color:#888;margin-top:4px">${esc(a.notes)}</div>` : ''}
+          <div style="margin-top:6px;display:flex;gap:6px">
+            <button class="ghost" style="font-size:11px" onclick="completeAppointment('${a.id}')">✓ TAMAMLA</button>
+            <button class="ghost" style="font-size:11px;color:#f55" onclick="cancelAppointment('${a.id}')">✕ İPTAL</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: '+esc(err.message)+'</div>'; }
+  }
+
+  // Global randevu fonksiyonları
+  window.completeAppointment = async function(id) {
+    try {
+      await fetch('/api/appointments/'+id, {method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:'completed'})});
+      toast('Randevu tamamlandı');
+      loadAppointmentList();
+    } catch {}
+  };
+  window.cancelAppointment = async function(id) {
+    try {
+      await fetch('/api/appointments/'+id, {method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({status:'cancelled'})});
+      toast('Randevu iptal edildi');
+      loadAppointmentList();
+    } catch {}
+  };
+
+  // ========== ARAÇ GEÇMİŞİ ==========
+  async function searchVehicleHistory() {
+    const plate = $('#vhPlate')?.value?.trim();
+    if (!plate) return toast('Plaka gir');
+    const el = $('#vhResult');
+    el.innerHTML = '<div class="muted">Aranıyor...</div>';
+    try {
+      const res = await fetch('/api/vehicle/history?plate=' + encodeURIComponent(plate));
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>'; return; }
+      if (!d.customers?.length) { el.innerHTML = '<div class="muted">Bu plaka ile kayıtlı müşteri bulunamadı: "' + esc(plate) + '"</div>'; return; }
+      let html = '';
+      // Müşteri bilgileri
+      for (const c of d.customers) {
+        html += `<div class="card" style="margin-bottom:8px;border-left:3px solid cyan">
+          <div style="display:flex;justify-content:space-between"><b>${esc(c.name)}</b><span style="color:cyan">${esc(c.plate)}</span></div>
+          <div class="muted">${esc(c.vehicle||'')} ${c.phone?'· '+esc(c.phone):''}</div>
+        </div>`;
+      }
+      // İş geçmişi
+      if (d.jobs?.length) {
+        html += '<h4 style="margin:12px 0 6px">Yapılan İşler</h4>';
+        for (const j of d.jobs) {
+          const colors = {open:'cyan',completed:'#0f0',cancelled:'#f55'};
+          const dt = j.created_at ? new Date(j.created_at).toLocaleDateString('tr-TR') : '';
+          html += `<div class="card" style="margin-bottom:4px">
+            <div style="display:flex;justify-content:space-between">
+              <div><b>${esc(j.title||'İsimsiz')}</b><br><small class="muted">${esc(j.type||'')} · ${esc(j.customer_name||'')}</small></div>
+              <div style="text-align:right"><span style="color:${colors[j.status]||'#888'}">${esc(j.status)}</span><br><small>€${(j.price||0).toFixed(2)}</small><br><small class="muted">${dt}</small></div>
+            </div>
+            ${j.notes?`<div style="font-size:12px;color:#888;margin-top:4px">${esc(j.notes)}</div>`:''}
+          </div>`;
+        }
+      } else { html += '<div class="muted">Bu araç için henüz iş kaydı yok</div>'; }
+      el.innerHTML = html;
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== RANDEVU MÜŞTERİ DROPDOWN ==========
+  async function loadAppointmentCustomers() {
+    const sel = $('#aptCustomer');
+    if (!sel) return;
+    try {
+      const res = await fetch('/api/crm/customers');
+      const d = await res.json();
+      if (d.ok && d.customers?.length) {
+        sel.innerHTML = '<option value="">Müşteri seç (opsiyonel)...</option>' + d.customers.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.plate?' ('+esc(c.plate)+')':''}</option>`).join('');
+      }
+    } catch {}
+  }
+
   // Sayfa açıldığında listeleri yükle
   const settingsBtn = document.querySelector('[data-page="settings"]');
   if (settingsBtn) {
     settingsBtn.addEventListener('click', () => {
       setTimeout(() => {
-        loadLearnList();
-        loadSocialJobs();
+        if (typeof loadLearnList === 'function') loadLearnList();
+        if (typeof loadSocialJobs === 'function') loadSocialJobs();
         loadInvoiceList();
         loadCustomerList();
         loadJobList();
+        loadAppointmentList();
+        loadAppointmentCustomers();
+        loadDashboard();
       }, 300);
     });
   }

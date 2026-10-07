@@ -1252,6 +1252,59 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,schedule:result});
  }
 
+ // ===== DASHBOARD / İSTATİSTİKLER =====
+ if(p==='/api/dashboard/stats'){try{
+   const totalCustomers=await q1(env,'SELECT COUNT(*) n FROM customers');
+   const totalJobs=await q1(env,'SELECT COUNT(*) n FROM jobs');
+   const openJobs=await q1(env,'SELECT COUNT(*) n FROM jobs WHERE status=?','open');
+   const completedJobs=await q1(env,'SELECT COUNT(*) n FROM jobs WHERE status=?','completed');
+   const revenue=await q1(env,'SELECT COALESCE(SUM(price),0) total FROM jobs WHERE status=?','completed');
+   const monthRevenue=await q1(env,'SELECT COALESCE(SUM(price),0) total FROM jobs WHERE status=? AND created_at>?','completed',now()-30*86400000);
+   const totalInvoices=await q1(env,'SELECT COUNT(*) n FROM invoices');
+   const recentJobs=await qall(env,'SELECT j.id,j.title,j.type,j.status,j.price,j.currency,j.created_at,c.name as customer_name FROM jobs j LEFT JOIN customers c ON j.customer_id=c.id ORDER BY j.created_at DESC LIMIT 10');
+   const topCustomers=await qall(env,'SELECT c.name,COUNT(j.id) job_count,COALESCE(SUM(j.price),0) total_spent FROM customers c LEFT JOIN jobs j ON c.id=j.customer_id GROUP BY c.id ORDER BY total_spent DESC LIMIT 5');
+   const totalAppointments=await q1(env,"SELECT COUNT(*) n FROM appointments WHERE status='scheduled'").catch(()=>({n:0}));
+   return j({ok:true,customers:totalCustomers?.n||0,jobs:totalJobs?.n||0,openJobs:openJobs?.n||0,completedJobs:completedJobs?.n||0,revenue:revenue?.total||0,monthRevenue:monthRevenue?.total||0,invoices:totalInvoices?.n||0,upcomingAppointments:totalAppointments?.n||0,recentJobs,topCustomers});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== RANDEVULAR =====
+ if(p==='/api/appointments'&&m==='GET'){try{
+   const status=u.searchParams.get('status')||'scheduled';
+   const rows=await qall(env,'SELECT a.*,c.name as customer_name,c.plate as customer_plate FROM appointments a LEFT JOIN customers c ON a.customer_id=c.id WHERE a.status=? ORDER BY a.date ASC, a.time ASC LIMIT 50',status);
+   return j({ok:true,appointments:rows});
+ }catch(e){return j({error:e.message},500)}}
+ if(p==='/api/appointments'&&m==='POST'){try{
+   const b=await body(req);const title=String(b.title||'').trim();
+   if(!title)return j({error:'TITLE_REQUIRED'},400);
+   if(!b.date)return j({error:'DATE_REQUIRED'},400);
+   const aId=id();const t=now();
+   await run(env,'INSERT INTO appointments(id,customer_id,title,date,time,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',aId,b.customer_id||null,title,b.date,b.time||'10:00','scheduled',b.notes||'',t,t);
+   await log(env,'appointment','Randevu eklendi: '+title+' ('+b.date+')',{id:aId});
+   return j({ok:true,id:aId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/appointments\/([^/]+)$/);
+ if(mm&&m==='PATCH'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   for(const k of ['title','date','time','status','notes','customer_id']){if(k in b){sets.push(k+'=?');vals.push(b[k])}}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE appointments SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM appointments WHERE id=?',mm[1]);return j({ok:true})}
+
+ // ===== ARAÇ GEÇMİŞİ (Plaka bazlı arama) =====
+ if(p==='/api/vehicle/history'){try{
+   const plate=String(u.searchParams.get('plate')||'').trim().toUpperCase();
+   if(!plate)return j({error:'PLATE_REQUIRED'},400);
+   const term='%'+plate+'%';
+   const customers=await qall(env,'SELECT * FROM customers WHERE UPPER(plate) LIKE ? ORDER BY updated_at DESC',term);
+   const custIds=customers.map(c=>c.id);
+   let jobs=[];
+   if(custIds.length){const ph=custIds.map(()=>'?').join(',');jobs=await qall(env,`SELECT j.*,c.name as customer_name,c.plate as customer_plate FROM jobs j LEFT JOIN customers c ON j.customer_id=c.id WHERE j.customer_id IN (${ph}) ORDER BY j.created_at DESC`,... custIds)}
+   return j({ok:true,plate,customers,jobs});
+ }catch(e){return j({error:e.message},500)}}
+
  return j({error:'NOT_FOUND'},404)}
 async function runScheduledJobs(env){
   try{

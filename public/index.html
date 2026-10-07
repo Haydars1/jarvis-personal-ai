@@ -584,6 +584,68 @@
         </div>
       </details>
 
+      <!-- DTC ARIZA KODU ARAMA -->
+      <details class="settingsBlock">
+        <summary>🔍 DTC Arıza Kodu Arama</summary>
+        <div class="settingsBody">
+          <p class="muted">9200+ arıza kodu veritabanı — kod veya anahtar kelime ile ara.</p>
+          <div class="row">
+            <input id="dtcCode" placeholder="Kod gir (ör: P0300) veya anahtar kelime" style="flex:3">
+            <button id="dtcSearchBtn">ARA</button>
+          </div>
+          <div id="dtcResult"></div>
+          <hr>
+          <div id="dtcStats" class="muted"></div>
+        </div>
+      </details>
+
+      <!-- İŞ DASHBOARD -->
+      <details class="settingsBlock">
+        <summary>📊 Dashboard / İstatistikler</summary>
+        <div class="settingsBody">
+          <div class="row"><button id="dashRefresh">YENİLE</button></div>
+          <div id="dashMetrics" class="metrics"></div>
+          <hr>
+          <h3>Son İşler</h3>
+          <div id="dashRecentJobs" class="muted"></div>
+          <hr>
+          <h3>Gelir Özeti</h3>
+          <div id="dashRevenue" class="muted"></div>
+        </div>
+      </details>
+
+      <!-- RANDEVU / TERMİN -->
+      <details class="settingsBlock">
+        <summary>📅 Randevu / Termin</summary>
+        <div class="settingsBody">
+          <p class="muted">Müşteri randevularını planla ve takip et.</p>
+          <div class="credgrid">
+            <select id="aptCustomer"><option value="">Müşteri seç (opsiyonel)...</option></select>
+            <input id="aptTitle" placeholder="Randevu başlığı (ör: Stage 1 Tuning)">
+            <input id="aptDate" type="date">
+            <input id="aptTime" type="time" value="10:00">
+            <input id="aptNotes" placeholder="Not">
+          </div>
+          <div class="row"><button id="aptAdd">RANDEVU EKLE</button></div>
+          <hr>
+          <h3>Yaklaşan Randevular</h3>
+          <div id="aptList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- ARAÇ GEÇMİŞİ -->
+      <details class="settingsBlock">
+        <summary>🚗 Araç Geçmişi / Servis Defteri</summary>
+        <div class="settingsBody">
+          <p class="muted">Plaka veya araç bilgisi ile yapılan tüm işlerin geçmişini ara.</p>
+          <div class="row">
+            <input id="vhPlate" placeholder="Plaka (ör: D-AB 1234)" style="flex:3">
+            <button id="vhSearchBtn">ARA</button>
+          </div>
+          <div id="vhResult"></div>
+        </div>
+      </details>
+
       <details class="settingsBlock">
         <summary>◉ Sistem Durumu</summary>
         <div class="settingsBody">
