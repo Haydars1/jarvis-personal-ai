@@ -183,6 +183,17 @@ h3{font-size:14px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercas
 .ecuActionDetail code{font-size:11px;color:#9fb6c9;background:#060a15;padding:3px 8px;border-radius:4px;display:inline-block}
 .ecuActionSource{display:inline-block;margin-top:4px;font-size:11px;color:#31dfff}
 
+/* === ECU GROUPED ACTIONS === */
+.ecuActionGrouped .ecuActionOffsets{margin-top:10px;display:grid;gap:4px}
+.ecuOffsetRow{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#060a15;border-radius:6px;cursor:pointer;font-size:12px;transition:background .12s}
+.ecuOffsetRow:hover{background:#0a1222}
+.ecuOffsetRow code{color:#9fb6c9;font-size:11px}
+.ecuOffsetCount{font-size:10px;padding:2px 7px;background:#31dfff18;color:#31dfff;border-radius:5px;font-weight:600;margin-left:6px}
+.ecuSysNoAction{opacity:.55}
+.ecuSysNoAction .ecuSysHead{cursor:default}
+.ecuNoActionNote{padding:6px 10px;font-size:11px;color:#6b8a9e;font-style:italic}
+.ecuRetryAI{background:#31dfff18!important;color:#31dfff!important;border:1px solid #31dfff44!important}
+
 /* === ECU AI TAB === */
 .ecuAIProviderTag{padding:6px 12px;background:#0d1b33;border-radius:8px;font-size:11px;color:#31dfff;margin-bottom:12px;display:inline-block}
 .ecuAISuggList{display:grid;gap:10px}

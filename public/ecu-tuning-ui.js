@@ -136,6 +136,7 @@
     $('#ecuDeviceRefresh')?.addEventListener('click', loadBridges);
     $('#ecuDeviceNewToken')?.addEventListener('click', newBridgeToken);
     loadBridges(true);
+    window.__ecuRetryAI = () => requestAISuggestions();
     renderServicesCatalog();
     loadVehicleDB().then(() => {
       const vSel = $('#ecuVehicleSelect');
@@ -424,34 +425,46 @@
       const info = state.systemInfos.find(s => s.system === sys) || {};
       const isStage1 = info.stage1;
 
+      // Aksiyonları label'a göre grupla, aksiyonsuz bölgeleri ayır
+      const actionsByLabel = {};
+      let noActionCount = 0;
+      regs.forEach(r => {
+        if (!r.actions.length) { noActionCount++; return; }
+        r.actions.forEach(a => {
+          if (!actionsByLabel[a.label]) actionsByLabel[a.label] = [];
+          actionsByLabel[a.label].push({ action: a, region: r });
+        });
+      });
+      const actionGroups = Object.entries(actionsByLabel);
+      const hasActions = actionGroups.length > 0;
+
       return `
-        <div class="ecuSysGroup">
+        <div class="ecuSysGroup${hasActions ? '' : ' ecuSysNoAction'}">
           <div class="ecuSysHead">
             <div class="ecuSysTitle">
               <span class="ecuSysIcon">${esc(info.icon || '⚙')}</span>
               <b>${esc(sys)}</b>
               ${isStage1 ? '<span class="ecuStage1Tag">Stage 1</span>' : ''}
-              ${info.hpGain ? `<span class="ecuHpSmall">+${esc(info.hpGain)} HP</span>` : ''}
+              ${info.hpGain && hasActions ? `<span class="ecuHpSmall">+${esc(info.hpGain)} HP</span>` : ''}
             </div>
-            <small>${regs.length} konum bulundu</small>
+            <small>${regs.length} konum${hasActions ? '' : ' · aksiyon yok'}</small>
           </div>
 
-          ${info.explain ? `<div class="ecuSysExplain">
+          ${hasActions && info.explain ? `<div class="ecuSysExplain">
             <div class="ecuExplainWhat"><b>Ne yapar:</b> ${esc(info.explain)}</div>
             ${info.offExplain ? `<div class="ecuExplainOff"><b>Kapatınca:</b> ${esc(info.offExplain)}</div>` : ''}
           </div>` : ''}
 
-          ${regs.map(r => `
-            <div class="ecuRegion">
-              <div class="ecuRegionMeta">
-                <code class="ecuAddr">${esc(r.offsetHex)}</code>
-                <span class="ecuRegionStr">"${esc(r.foundString.slice(0, 32))}"</span>
-              </div>
-              ${r.actions.length ? r.actions.map(a => {
-                const isRulepack = a.source && a.source.startsWith('rulepack:');
-                const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
-                const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
-                return `
+          ${actionGroups.map(([label, items]) => {
+            const first = items[0].action;
+            const isRulepack = first.source && first.source.startsWith('rulepack:');
+            const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
+            const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
+
+            if (items.length === 1) {
+              // Tek offset — klasik kart
+              const a = first;
+              return `
                 <div class="ecuActionCard" data-id="${esc(a.id)}">
                   <div class="ecuActionTop">
                     <label class="ecuActionLabel">
@@ -466,15 +479,41 @@
                   </div>
                   ${a.explain ? `<div class="ecuActionExplain">${esc(a.explain)}</div>` : ''}
                   ${a.effect ? `<div class="ecuActionEffect">→ ${esc(a.effect)}</div>` : ''}
-                  <div class="ecuActionDetail">
-                    <code>${esc(a.detail)}</code>
-                  </div>
+                  <div class="ecuActionDetail"><code>${esc(a.detail)}</code></div>
                   ${a.sourceUrl ? `<a href="${esc(a.sourceUrl)}" target="_blank" rel="noopener" class="ecuActionSource">→ kaynak</a>` : ''}
                 </div>
               `;
-              }).join('') : '<div class="muted" style="padding:8px;font-size:11px">Bu bölge için otomatik aksiyon yok</div>'}
-            </div>
-          `).join('')}
+            }
+
+            // Çoklu offset — gruplanmış kart
+            return `
+              <div class="ecuActionCard ecuActionGrouped">
+                <div class="ecuActionTop">
+                  <div class="ecuActionLabel">
+                    <b>${esc(label)}</b>
+                    <span class="ecuOffsetCount">${items.length} konum</span>
+                  </div>
+                  <div class="ecuActionBadges">
+                    <span class="ecuRiskPill" style="background:${srcColor}22;color:${srcColor}">${srcLabel}</span>
+                    <span class="ecuRiskPill" style="background:${riskColor(first.risk)}22;color:${riskColor(first.risk)}">${riskLabel(first.risk)}</span>
+                    ${first.hpGain ? `<span class="ecuHpPill">${esc(first.hpGain)}</span>` : ''}
+                  </div>
+                </div>
+                ${first.explain ? `<div class="ecuActionExplain">${esc(first.explain)}</div>` : ''}
+                ${first.effect ? `<div class="ecuActionEffect">→ ${esc(first.effect)}</div>` : ''}
+                <div class="ecuActionOffsets">
+                  ${items.map(item => `
+                    <label class="ecuOffsetRow">
+                      <input type="checkbox" class="ecuActionCheck" data-id="${esc(item.action.id)}">
+                      <code>${esc(item.action.detail)}</code>
+                    </label>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+
+          ${noActionCount && hasActions ? `<div class="ecuNoActionNote">${noActionCount} ek konum — otomatik aksiyon önerisi yok</div>` : ''}
         </div>
       `;
     }).join('');
@@ -492,7 +531,9 @@
           card?.classList.add('selected');
         } else {
           state.selectedActions.delete(aid);
-          card?.classList.remove('selected');
+          // Gruplanmış kartta başka seçili checkbox varsa selected kalsın
+          const anyChecked = card && card.querySelector('.ecuActionCheck:checked');
+          if (!anyChecked) card?.classList.remove('selected');
         }
         updateGoCount();
       });
@@ -575,8 +616,12 @@
     if (!state.aiSuggestions.length) {
       el.innerHTML = `
         <div style="padding:20px;text-align:center">
-          <div class="muted">AI şu anda öneri döndüremedi. Cloudflare AI ücretsiz tier kullanılıyor — tekrar deneyin.</div>
-          <button class="softBtn" style="margin-top:12px" onclick="document.querySelector('.ecuTab[data-tab=manual]')?.click()">Manuel Seçeneklere Dön</button>
+          <div style="font-size:24px;margin-bottom:8px">🤖</div>
+          <div class="muted">AI şu anda öneri döndüremedi.</div>
+          <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
+            <button class="softBtn ecuRetryAI" onclick="window.__ecuRetryAI && window.__ecuRetryAI()">🔄 Tekrar Dene</button>
+            <button class="softBtn" onclick="document.querySelector('.ecuTab[data-tab=manual]')?.click()">Manuel Seçeneklere Dön</button>
+          </div>
         </div>
       `;
       return;
