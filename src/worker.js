@@ -751,7 +751,12 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/chat/send'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);const ts=now();try{if(/ai.*(durum|test|kontrol|diag)|sağlayıcı.*(durum|test|kontrol)|saglayici.*(durum|test|kontrol)/i.test(text)){const d=await aiDiagnostics(env);const reply=d.ok?('AI sistemi çalışıyor. Çalışan sağlayıcı sayısı: '+d.working+'/'+d.total+'. '+d.recommendation):('AI sistemi çalışmıyor. '+d.recommendation);return j({reply,action:'ai_diagnostics',provider:'JARVIS Diagnostics',diagnostics:d,history:[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Diagnostics',created_at:now()}]})}const r=await withTimeout(quickCommand(env,text),9500,'QUICK_COMMAND_TIMEOUT');const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:r.reply,provider:r.provider||null,created_at:now()}];const persist=async()=>{try{await addChat(env,'user',text,null);await addChat(env,'assistant',r.reply,r.provider||null);await log(env,'jarvis-fast',r.reply,{provider:r.provider,action:r.action})}catch(e){await recordRuntimeError(env,e,'chat.persist')}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({...r,history})}catch(e){const msg=String(e?.message||e||'UNKNOWN'),reply=localFallbackAnswer(text,msg)||researchFallbackAnswer(text,[])||'Cevap motoru zamanında dönemedi. İsteğini kaydettim; teknik hata detayını sana dökmüyorum.';const history=[{role:'user',content:text,provider:null,created_at:ts},{role:'assistant',content:reply,provider:'JARVIS Local',created_at:now()}];const persist=async()=>{try{await recordRuntimeError(env,e,'chat.send');await addChat(env,'user',text,null);await addChat(env,'assistant',reply,'JARVIS Local')}catch{}};if(ctx?.waitUntil)ctx.waitUntil(persist());else persist();return j({reply,action:'local_fallback',provider:'JARVIS Local',history})}}
  if(p==='/api/chat/clear'&&m==='POST'){await run(env,'DELETE FROM chat_messages');return j({ok:true})}
 
- // ECU Tuning v2 — R2 + scan-based regions + AI compare
+ // ECU Tuning v2 — vehicle-db + upload + scan + AI
+ if(p==='/api/ecu/vehicle-db'&&m==='GET'){try{
+   const mod=await import('./lib/tuning-engine.js');
+   return j({ok:true,...mod.VEHICLE_DB});
+ }catch(e){return j({error:e.message},500)}}
+
  if(p==='/api/ecu/upload'&&m==='POST'){try{
    const b=await body(req);
    const fileData=typeof b.fileData==='string'?Uint8Array.from(atob(b.fileData),c=>c.charCodeAt(0)):new Uint8Array(b.fileData||[]);
@@ -765,8 +770,13 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
    await filePut(env,key,fileData,{contentType:'application/octet-stream'});
-   const ts=Date.now();await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,ts,ts);
-   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))],rulepackMatches:regions._rulepackMatches||[]});
+   const vehicleInfo={make:b.make||'',model:b.model||'',year:b.year||'',ecuType:b.ecuType||'',systems:[...new Set(regions.map(r=>r.system))]};
+   const ts=Date.now();await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify(vehicleInfo),file_hash,fileData.length,key,ts,ts);
+   // Enriched response with system info and stage1 package
+   const systemNames=[...new Set(regions.map(r=>r.system))];
+   const systemInfos=systemNames.map(s=>mod.getSystemInfo(s)).filter(Boolean);
+   const stage1=mod.buildStage1Package(systemNames);
+   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:systemNames,systemInfos,stage1,vehicle:vehicleInfo,rulepackMatches:regions._rulepackMatches||[]});
  }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
 
  if(p==='/api/ecu/rulepacks'&&m==='GET'){try{
@@ -789,17 +799,30 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const mod=await import('./lib/tuning-engine.js');
    const regions=await mod.scanRegions(bytes);
    const summary=mod.summarizeForAI(bytes,regions);
-   const sys='Sen bir ECU tuning uzmanısın. Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. SADECE JSON array döndür, başka metin yok. Format: [{"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı","risk":"low"}]. En fazla 8 öneri.';
+   const vehicleCtx=upload.vehicle_type?JSON.parse(upload.vehicle_type):{};
+   const vehicleStr=vehicleCtx.make?`Araç: ${vehicleCtx.make} ${vehicleCtx.model||''} ${vehicleCtx.year||''} ECU: ${vehicleCtx.ecuType||'bilinmiyor'}. `:'';
+   const sys=`Sen bir ECU tuning uzmanısın. ${vehicleStr}Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. Her öneri için açıklama da ekle. SADECE JSON array döndür, başka metin yok. Format: [{"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı, karbon birikimi durur","explain":"EGR valfı kapatılınca egzoz gazı emişe geri dönmez","risk":"low","hpGain":"+5-15 HP"}]. En fazla 8 öneri.`;
    const userMsg='DOSYA ÖZETİ:\n'+JSON.stringify(summary,null,2);
    let aiSuggestions=[],provider='unknown',rawText='';
+   // Try aiFallback first, then direct Cloudflare AI as fallback
    try{
      const a=await withTimeout(aiFallback(env,[{role:'system',content:sys},{role:'user',content:userMsg}],{userText:userMsg,mode:'fast'}),15000,'AI_SUGGEST_TIMEOUT');
-     rawText=a?.text||'';
-     provider=a?.provider||'unknown';
-     const jsonMatch=rawText.match(/\[[\s\S]*\]/);
-     if(jsonMatch){try{aiSuggestions=JSON.parse(jsonMatch[0])}catch(err){aiSuggestions=[{system:'AI',action:'JSON parse hatası',result:rawText.slice(0,400),risk:'unknown'}]}}
-     else if(rawText){aiSuggestions=[{system:'AI',action:'JSON formatı yok',result:rawText.slice(0,400),risk:'unknown'}]}
-   }catch(err){return j({ok:false,error:'AI_UNAVAILABLE',detail:err.message,suggestions:[]},200)}
+     rawText=a?.text||'';provider=a?.provider||'unknown';
+   }catch(e1){
+     // aiFallback failed — try env.AI directly (Cloudflare AI free tier)
+     if(env.AI){try{
+       const cfModels=['@cf/meta/llama-3.1-8b-instruct','@cf/google/gemma-3-12b-it','@cf/qwen/qwen1.5-14b-chat-awq'];
+       for(const cfm of cfModels){try{
+         const r=await withTimeout(env.AI.run(cfm,{messages:[{role:'system',content:sys},{role:'user',content:userMsg}],max_tokens:1500}),12000,'CF_AI_TIMEOUT');
+         rawText=typeof r==='string'?r:(r?.response||r?.result||'');
+         if(rawText){provider='Cloudflare AI ('+cfm.split('/').pop()+')';break}
+       }catch{continue}}
+     }catch{}}
+     if(!rawText)return j({ok:false,error:'AI_UNAVAILABLE',detail:e1.message,suggestions:[]},200);
+   }
+   const jsonMatch=rawText.match(/\[[\s\S]*\]/);
+   if(jsonMatch){try{aiSuggestions=JSON.parse(jsonMatch[0])}catch(err){aiSuggestions=[{system:'AI',action:'JSON parse hatası',result:rawText.slice(0,400),risk:'unknown'}]}}
+   else if(rawText){aiSuggestions=[{system:'AI',action:'Genel öneri',result:rawText.slice(0,600),risk:'info'}]}
    return j({ok:true,suggestions:aiSuggestions,provider,raw:rawText.slice(0,2000)});
  }catch(e){return j({error:e.message||'AI_SUGGEST_FAILED'},500)}}
 

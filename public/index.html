@@ -67,27 +67,11 @@
         </div>
       </div>
 
-      <!-- ADIM 2: ARAÇ + TUNE SEÇİMİ -->
-      <div class="step hidden" id="step2">
-        <div class="stepHead"><span class="stepNum">2</span><h2>Ne yapıyoruz?</h2></div>
+      <!-- ADIM 1.5: ARAÇ SEÇİMİ (dosya yüklenmeden önce) -->
+      <div id="ecuVehicleSelect" class="ecuGroup" style="margin-top:14px"></div>
 
-        <div class="ecuGroup">
-          <label class="muted">Araç / ECU</label>
-          <div id="ecuVehicles" class="ecuVehicles"></div>
-        </div>
-
-        <div class="ecuGroup">
-          <label class="muted">Tuning seçenekleri</label>
-          <div id="ecuTunes" class="ecuTunes"></div>
-        </div>
-
-        <div class="ecuWarn">⚠ Uygulamadan önce dosyanı mutlaka yedekle. Gerçek Bosch ME7 / Siemens MSE7 adres haritaları henüz entegre değil — bu sürüm deneyseldir.</div>
-
-        <div class="stepActions">
-          <button id="ecuReset" class="softBtn">BAŞA DÖN</button>
-          <button id="ecuGo" class="primaryBig">TUNED DOSYAYI OLUŞTUR</button>
-        </div>
-      </div>
+      <!-- ADIM 2: TUNİNG SEÇENEKLERİ (JS tarafından doldurulur) -->
+      <div class="step hidden" id="step2"></div>
 
       <!-- ADIM 3: İNDİR -->
       <div class="step hidden" id="step3">

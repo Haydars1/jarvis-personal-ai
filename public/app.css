@@ -107,6 +107,98 @@ h3{font-size:14px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercas
 .ecuDone b{display:block;font-size:15px}
 .ecuDone small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
 
+/* === ECU VEHICLE SELECT === */
+.ecuVehicleGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.ecuVehicleGrid{grid-template-columns:1fr}}
+.ecuField label{display:block;font-size:11px;color:#9fb6c9;margin-bottom:4px;letter-spacing:.05em}
+.ecuSelect{width:100%;padding:10px 12px;background:#060a15;border:1px solid #294466;border-radius:10px;color:#e8f0f8;font-size:13px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239fb6c9' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.ecuSelect:focus{border-color:#31dfff;outline:none}
+.ecuSelect:disabled{opacity:.4;cursor:not-allowed}
+
+/* === ECU VEHICLE BANNER === */
+.ecuVehicleBanner{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#0d1b33;border:1px solid #31dfff33;border-radius:12px;margin-bottom:14px}
+.ecuVehicleIcon{font-size:24px}
+.ecuVehicleBanner b{display:block;font-size:14px}
+.ecuVehicleBanner small{display:block;color:#9fb6c9;font-size:11px;margin-top:2px}
+
+/* === ECU STAT ROW === */
+.ecuStatRow{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;background:#060a15;border:1px solid #294466;border-radius:10px;margin-bottom:14px;font-size:12px;color:#9fb6c9}
+
+/* === ECU STAGE 1 BANNER === */
+.ecuStage1{padding:14px;background:linear-gradient(135deg,#0d1b08,#142a08);border:1px solid #35df9a44;border-radius:14px;margin-bottom:14px}
+.ecuStage1Head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.ecuStage1Head b{font-size:15px}
+.ecuStage1Apply{padding:8px 18px;background:#35df9a;color:#02140a;border:none;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer}
+.ecuStage1Apply:hover{background:#9df0c5}
+.ecuStage1Features{display:grid;gap:6px}
+.ecuStage1Feature{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0}
+.ecuStage1Sys{background:#35df9a22;color:#35df9a;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+.ecuStage1Tag{background:#35df9a22;color:#35df9a;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600}
+.ecuHpBadge{background:#35df9a;color:#02140a;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-left:8px}
+.ecuHpSmall{color:#35df9a;font-size:11px;font-weight:600}
+.ecuHpPill{background:#35df9a22;color:#35df9a;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600}
+
+/* === ECU RULEPACK HIT === */
+.ecuRulepackHit{padding:10px 14px;background:#0d1b33;border:1px solid #31dfff33;border-radius:10px;margin-bottom:14px}
+.ecuRulepackHit b{font-size:13px;color:#31dfff}
+.ecuRulepackHit small{display:block;color:#9fb6c9;font-size:11px;margin-top:3px}
+.ecuFirmwareHit{margin-top:6px;font-size:11px;color:#9df0c5}
+
+/* === ECU TABS === */
+.ecuTabs{display:flex;gap:4px;margin-bottom:14px;background:#060a15;border-radius:10px;padding:4px;border:1px solid #294466}
+.ecuTab{flex:1;padding:10px;background:none;border:none;border-radius:8px;color:#9fb6c9;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,color .15s}
+.ecuTab.active{background:#0d1b33;color:#e8f0f8}
+.ecuTab:hover:not(.active){background:#0b1a3166}
+.ecuTabPanel.hidden{display:none}
+
+/* === ECU SYSTEM GROUP === */
+.ecuSysGroup{margin-bottom:18px;border:1px solid #294466;border-radius:14px;overflow:hidden;background:#071020}
+.ecuSysHead{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#081327;border-bottom:1px solid #294466}
+.ecuSysTitle{display:flex;align-items:center;gap:8px}
+.ecuSysIcon{font-size:18px}
+.ecuSysExplain{padding:10px 14px;background:#060a15;border-bottom:1px solid #29446644;font-size:12px;line-height:1.6;color:#b8d0e0}
+.ecuExplainWhat{margin-bottom:4px}
+.ecuExplainOff{color:#ffbe55}
+
+/* === ECU REGION === */
+.ecuRegion{padding:8px 14px;border-bottom:1px solid #29446633}
+.ecuRegion:last-child{border-bottom:none}
+.ecuRegionMeta{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.ecuAddr{background:#060a15;padding:2px 8px;border-radius:4px;font-size:11px;color:#31dfff;border:1px solid #29446644}
+.ecuRegionStr{color:#9fb6c9;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* === ECU ACTION CARD === */
+.ecuActionCard{margin:6px 0;padding:12px;background:#081226;border:1px solid #294466;border-radius:12px;transition:border-color .15s,background .15s}
+.ecuActionCard:hover{border-color:#31dfff44}
+.ecuActionCard.selected{border-color:#35df9a;background:#07140e}
+.ecuActionTop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.ecuActionLabel{display:flex;align-items:center;gap:8px;cursor:pointer}
+.ecuActionLabel b{font-size:13px}
+.ecuActionCheck{width:18px;height:18px;accent-color:#35df9a;cursor:pointer;flex:0 0 18px}
+.ecuActionBadges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ecuRiskPill{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap}
+.ecuActionExplain{margin-top:8px;font-size:12px;line-height:1.5;color:#b8d0e0}
+.ecuActionEffect{margin-top:4px;font-size:12px;color:#35df9a}
+.ecuActionDetail{margin-top:6px}
+.ecuActionDetail code{font-size:11px;color:#9fb6c9;background:#060a15;padding:3px 8px;border-radius:4px;display:inline-block}
+.ecuActionSource{display:inline-block;margin-top:4px;font-size:11px;color:#31dfff}
+
+/* === ECU AI TAB === */
+.ecuAIProviderTag{padding:6px 12px;background:#0d1b33;border-radius:8px;font-size:11px;color:#31dfff;margin-bottom:12px;display:inline-block}
+.ecuAISuggList{display:grid;gap:10px}
+.ecuAICard{border:1px solid #294466;border-radius:12px;overflow:hidden;background:#081226}
+.ecuAICardHead{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#081327;border-bottom:1px solid #29446644}
+.ecuAICardHead b{font-size:13px}
+.ecuAICardBody{padding:10px 14px}
+.ecuAIAction{font-size:12px;margin-bottom:4px}
+.ecuAIResult{font-size:12px;color:#35df9a;margin-bottom:4px}
+.ecuAIExplain{font-size:12px;color:#b8d0e0;margin-bottom:6px}
+.ecuAIAddr{display:flex;gap:10px;flex-wrap:wrap}
+.ecuAIAddr code{font-size:11px;color:#9fb6c9;background:#060a15;padding:2px 8px;border-radius:4px}
+.ecuAIProgress{width:100%;height:3px;background:#294466;border-radius:2px;margin-top:12px;overflow:hidden;position:relative}
+.ecuAIProgress::after{content:'';position:absolute;left:0;top:0;height:100%;width:40%;background:#31dfff;border-radius:2px;animation:aiProg 1.5s ease-in-out infinite}
+@keyframes aiProg{0%{left:-40%}100%{left:100%}}
+
 /* === ADVANCED ACCORDION === */
 .advanced{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .advanced summary{padding:14px 16px;cursor:pointer;list-style:none;font-size:13px;letter-spacing:.03em;color:#b8d0e0;font-weight:600}

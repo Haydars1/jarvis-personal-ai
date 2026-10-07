@@ -1,4 +1,4 @@
-// JARVIS ECU — v2: dosya → bölge taraması → tıklanabilir aksiyonlar + AI karşılaştırma
+// JARVIS ECU Tuning UI — v3: araç seçimi + zengin aksiyon kartları + Stage 1 + AI önerisi
 (() => {
   const state = {
     uploadId: null,
@@ -6,37 +6,128 @@
     fileSize: 0,
     regions: [],
     systems: [],
+    systemInfos: [],
+    stage1: null,
     stats: null,
-    selectedActions: new Map(), // id → action
+    vehicle: { make: '', model: '', year: '', ecuType: '' },
+    vehicleDB: null,
+    selectedActions: new Map(),
     tunedId: null,
     aiLoading: false,
     aiSuggestions: [],
-    aiProvider: ''
+    aiProvider: '',
+    rulepackMatches: []
   };
 
   const $ = s => document.querySelector(s);
-  const esc = s => String(s == null ? '' : s).replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
-  const fmtSize = n => n >= 1048576 ? (n/1048576).toFixed(2)+' MB' : (n/1024).toFixed(1)+' KB';
+  const $$ = s => document.querySelectorAll(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>'"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[m]));
+  const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(2) + ' MB' : (n / 1024).toFixed(1) + ' KB';
   const hex2 = n => Number(n).toString(16).padStart(2, '0').toUpperCase();
   const toast = t => { const e = $('#toast'); if (!e) return; e.textContent = t; e.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => e.classList.add('hidden'), 3200); };
+  const riskColor = r => ({ low: '#35df9a', medium: '#ffbe55', high: '#ff5578', info: '#31dfff' }[r] || '#8ba4b7');
+  const riskLabel = r => ({ low: 'Düşük Risk', medium: 'Orta Risk', high: 'Yüksek Risk', info: 'Bilgi' }[r] || r || '?');
 
-  const riskColor = r => ({ low: '#35df9a', medium: '#ffbe55', high: '#ff5578' }[r] || '#8ba4b7');
-
+  // ===== INIT =====
   function init() {
     const drop = $('#ecuDrop');
     if (!drop) { setTimeout(init, 200); return; }
     rebindDrop();
-    $('#ecuReset').addEventListener('click', resetAll);
-    $('#ecuAgain').addEventListener('click', resetAll);
-    $('#ecuGo').addEventListener('click', applySelected);
-    $('#ecuDownload').addEventListener('click', downloadTuned);
-    $('#ecuDeviceBtn').addEventListener('click', openDeviceSheet);
-    $('#ecuDeviceClose').addEventListener('click', closeDeviceSheet);
-    $('#ecuDeviceRefresh').addEventListener('click', loadBridges);
-    $('#ecuDeviceNewToken').addEventListener('click', newBridgeToken);
+    $('#ecuReset')?.addEventListener('click', resetAll);
+    $('#ecuAgain')?.addEventListener('click', resetAll);
+    $('#ecuGo')?.addEventListener('click', applySelected);
+    $('#ecuDownload')?.addEventListener('click', downloadTuned);
+    $('#ecuDeviceBtn')?.addEventListener('click', openDeviceSheet);
+    $('#ecuDeviceClose')?.addEventListener('click', closeDeviceSheet);
+    $('#ecuDeviceRefresh')?.addEventListener('click', loadBridges);
+    $('#ecuDeviceNewToken')?.addEventListener('click', newBridgeToken);
     loadBridges(true);
+    loadVehicleDB().then(() => {
+      const vSel = $('#ecuVehicleSelect');
+      if (vSel && state.vehicleDB) {
+        vSel.innerHTML = '<label class="muted">Araç Bilgisi (opsiyonel)</label>' + renderVehicleSelect();
+        bindVehicleSelects();
+      }
+    });
   }
 
+  // ===== VEHICLE DB =====
+  async function loadVehicleDB() {
+    try {
+      const res = await fetch('/api/ecu/vehicle-db');
+      const data = await res.json();
+      if (data.ok !== false) {
+        state.vehicleDB = data;
+      }
+    } catch { /* silent */ }
+  }
+
+  function renderVehicleSelect() {
+    const db = state.vehicleDB;
+    if (!db) return '<div class="muted" style="padding:8px;font-size:12px">Araç veritabanı yüklenemedi</div>';
+
+    const makes = db.makes || [];
+    const ecuTypes = db.ecuTypes || [];
+    const years = db.years || [];
+
+    return `
+      <div class="ecuVehicleGrid">
+        <div class="ecuField">
+          <label>Marka</label>
+          <select id="vMake" class="ecuSelect">
+            <option value="">Seç...</option>
+            ${makes.map(m => `<option value="${esc(m.id)}">${esc(m.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ecuField">
+          <label>Model</label>
+          <select id="vModel" class="ecuSelect" disabled>
+            <option value="">Önce marka seç</option>
+          </select>
+        </div>
+        <div class="ecuField">
+          <label>Yıl</label>
+          <select id="vYear" class="ecuSelect">
+            <option value="">Seç...</option>
+            ${years.map(y => `<option value="${esc(y)}">${esc(y)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="ecuField">
+          <label>ECU Tipi</label>
+          <select id="vEcu" class="ecuSelect">
+            <option value="">Bilinmiyor</option>
+            ${ecuTypes.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindVehicleSelects() {
+    const mkSel = $('#vMake');
+    const mdSel = $('#vModel');
+    if (!mkSel || !mdSel) return;
+
+    mkSel.addEventListener('change', () => {
+      const makeId = mkSel.value;
+      state.vehicle.make = mkSel.options[mkSel.selectedIndex]?.text || '';
+      const db = state.vehicleDB;
+      const found = db?.makes?.find(m => m.id === makeId);
+      if (found) {
+        mdSel.disabled = false;
+        mdSel.innerHTML = '<option value="">Seç...</option>' + found.models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+      } else {
+        mdSel.disabled = true;
+        mdSel.innerHTML = '<option value="">Önce marka seç</option>';
+      }
+      state.vehicle.model = '';
+    });
+    mdSel.addEventListener('change', () => { state.vehicle.model = mdSel.value; });
+    $('#vYear')?.addEventListener('change', e => { state.vehicle.year = e.target.value; });
+    $('#vEcu')?.addEventListener('change', e => { state.vehicle.ecuType = e.target.value; });
+  }
+
+  // ===== FILE DROP =====
   function rebindDrop() {
     const drop = $('#ecuDrop');
     const file = $('#ecuFile');
@@ -51,15 +142,15 @@
   }
 
   async function handleFile(f) {
-    if (f.size > 20 * 1024 * 1024) { toast('Dosya 20 MB sınırını aşıyor'); return; }
+    if (f.size > 12 * 1024 * 1024) { toast('Dosya 12 MB sınırını aşıyor'); return; }
     const drop = $('#ecuDrop');
     state.fileName = f.name;
     state.fileSize = f.size;
     drop.classList.add('has');
     drop.innerHTML = `
-      <div class="ecuDropIcon" style="color:#35df9a">✓</div>
+      <div class="ecuDropIcon" style="color:#35df9a">⏳</div>
       <b>${esc(f.name)}</b>
-      <p>${fmtSize(f.size)} · bölge taranıyor...</p>
+      <p>${fmtSize(f.size)} · yükleniyor ve taranıyor...</p>
       <input type="file" id="ecuFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">
     `;
     rebindDrop();
@@ -77,7 +168,11 @@
       const res = await fetch('/api/ecu/upload', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ filename: f.name, fileData: b64 })
+        body: JSON.stringify({
+          filename: f.name, fileData: b64,
+          make: state.vehicle.make, model: state.vehicle.model,
+          year: state.vehicle.year, ecuType: state.vehicle.ecuType
+        })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
@@ -85,21 +180,24 @@
       state.uploadId = data.uploadId || data.upload_id;
       state.regions = data.regions || [];
       state.systems = data.systems || [];
+      state.systemInfos = data.systemInfos || [];
+      state.stage1 = data.stage1 || null;
       state.stats = data.stats || null;
       state.rulepackMatches = data.rulepackMatches || [];
       state.selectedActions.clear();
 
+      drop.querySelector('.ecuDropIcon').textContent = '✓';
+      drop.querySelector('.ecuDropIcon').style.color = '#35df9a';
       const rpInfo = state.rulepackMatches.length ? ` · ✓ ${state.rulepackMatches[0].familyName}` : '';
-      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge${rpInfo}`;
+      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge · ${state.systems.length} sistem${rpInfo}`;
       renderStep2();
-      // AI arka planda başlasın
       requestAISuggestions();
     } catch (err) {
       drop.classList.remove('has');
       drop.innerHTML = `
-        <div class="ecuDropIcon" style="color:#ff5578">!</div>
+        <div class="ecuDropIcon" style="color:#ff5578">✗</div>
         <b>Yüklenemedi</b>
-        <p>${esc(err.message)} · tekrar dene</p>
+        <p>${esc(err.message)}</p>
         <input type="file" id="ecuFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">
       `;
       rebindDrop();
@@ -107,51 +205,62 @@
     }
   }
 
+  // ===== STEP 2: REGIONS + ACTIONS =====
   function renderStep2() {
     const step2 = $('#step2');
     step2.classList.remove('hidden');
 
-    // Önce step2'nin içeriğini sıfırdan yaz
-    const rpBanner = state.rulepackMatches && state.rulepackMatches.length ? `
-      <div class="ecuRulepackHit">
-        <div class="ecuRulepackHead">
-          <b>✓ ${esc(state.rulepackMatches[0].familyName)}</b>
-          <small>${esc(state.rulepackMatches[0].description || '')}</small>
+    const vehicleLabel = [state.vehicle.make, state.vehicle.model, state.vehicle.year].filter(Boolean).join(' ');
+    const ecuLabel = state.vehicle.ecuType || '';
+    const vehicleBanner = vehicleLabel ? `
+      <div class="ecuVehicleBanner">
+        <span class="ecuVehicleIcon">🚗</span>
+        <div>
+          <b>${esc(vehicleLabel)}</b>
+          ${ecuLabel ? `<small>${esc(ecuLabel)}</small>` : ''}
         </div>
-        ${state.rulepackMatches[0].firmware ? `<div class="ecuFirmwareHit">◉ Firmware eşleşmesi: <b>${esc(state.rulepackMatches[0].firmware.name)}</b></div>` : ''}
-        <div class="ecuRulepackSources">
-          Kaynaklar: ${(state.rulepackMatches[0].sources || []).slice(0,3).map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>`).join(' · ')}
-        </div>
-        ${state.rulepackMatches[0].notes ? `<div class="ecuRulepackNotes">${esc(state.rulepackMatches[0].notes)}</div>` : ''}
       </div>
     ` : '';
 
-    step2.innerHTML = `
-      <div class="stepHead"><span class="stepNum">2</span><h2>Bölgeler ve öneriler</h2></div>
+    const rpBanner = state.rulepackMatches?.length ? `
+      <div class="ecuRulepackHit">
+        <b>✓ ${esc(state.rulepackMatches[0].familyName)}</b>
+        <small>${esc(state.rulepackMatches[0].description || '')}</small>
+        ${state.rulepackMatches[0].firmware ? `<div class="ecuFirmwareHit">◉ Firmware: <b>${esc(state.rulepackMatches[0].firmware.name)}</b></div>` : ''}
+      </div>
+    ` : '';
 
+    const stage1Html = renderStage1Banner();
+
+    step2.innerHTML = `
+      <div class="stepHead"><span class="stepNum">2</span><h2>Tuning Seçenekleri</h2></div>
+
+      ${vehicleBanner}
       ${rpBanner}
 
       ${state.stats ? `<div class="ecuStatRow">
-        <span>Boyut: <b>${fmtSize(state.stats.size)}</b></span>
-        <span>Entropi: <b>${state.stats.entropy.toFixed(2)}</b></span>
-        <span>0 oranı: <b>${state.stats.zeroPct.toFixed(1)}%</b></span>
-        <span>FF oranı: <b>${state.stats.ffPct.toFixed(1)}%</b></span>
+        <span>📦 ${fmtSize(state.stats.size)}</span>
+        <span>🔢 Entropi: ${state.stats.entropy.toFixed(2)}</span>
+        <span>Ø ${state.stats.zeroPct.toFixed(1)}%</span>
+        <span>FF ${state.stats.ffPct.toFixed(1)}%</span>
       </div>` : ''}
 
+      ${stage1Html}
+
       <div class="ecuTabs">
-        <button class="ecuTab active" data-tab="manual">✎ Manuel (bulunan bölgeler)</button>
-        <button class="ecuTab" data-tab="ai">⚡ AI önerisi</button>
+        <button class="ecuTab active" data-tab="manual">🔧 Bulunan Sistemler</button>
+        <button class="ecuTab" data-tab="ai">🤖 AI Önerisi</button>
       </div>
 
       <div id="ecuTabManual" class="ecuTabPanel">
-        ${state.regions.length ? renderRegionsHTML() : '<div class="muted" style="padding:14px">Bu dosyada bilinen sistem stringi bulunamadı. Gelişmiş panelden HEX inceleyebilirsin.</div>'}
+        ${state.regions.length ? renderRegionsHTML() : '<div class="muted" style="padding:14px">Bu dosyada bilinen sistem stringi bulunamadı.</div>'}
       </div>
 
       <div id="ecuTabAI" class="ecuTabPanel hidden">
-        <div id="ecuAIBody"><div class="muted">AI önerileri hazırlanıyor...</div></div>
+        <div id="ecuAIBody"><div class="muted" style="padding:14px">🤖 AI önerileri hazırlanıyor...</div></div>
       </div>
 
-      <div class="ecuWarn">⚠ Her değişikliği uygulamadan önce dosyanı yedekle. Önerilen offset'ler string'in yakınındaki heuristik konumlardır — doğru map adresi değil. İlk denemeyi test bench'te yap.</div>
+      <div class="ecuWarn">⚠ Her değişikliği uygulamadan önce dosyanı yedekle. Offset'ler heuristik konumlardır — ilk denemeyi test bench'te yap.</div>
 
       <div class="stepActions">
         <button id="ecuReset" class="softBtn">BAŞA DÖN</button>
@@ -159,87 +268,180 @@
       </div>
     `;
 
-    // Tab geçişi
+    // Tab switching
     step2.querySelectorAll('.ecuTab').forEach(t => t.addEventListener('click', () => {
       step2.querySelectorAll('.ecuTab').forEach(x => x.classList.toggle('active', x === t));
       $('#ecuTabManual').classList.toggle('hidden', t.dataset.tab !== 'manual');
       $('#ecuTabAI').classList.toggle('hidden', t.dataset.tab !== 'ai');
     }));
 
-    // Buton bağla
     $('#ecuReset').addEventListener('click', resetAll);
     $('#ecuGo').addEventListener('click', applySelected);
 
-    // Checkbox'ları bağla
-    step2.querySelectorAll('.ecuActionCheck').forEach(cb => {
-      cb.addEventListener('change', e => {
-        const id = e.target.dataset.id;
-        const action = findActionById(id);
-        if (!action) return;
-        if (e.target.checked) state.selectedActions.set(id, action);
-        else state.selectedActions.delete(id);
-        $('#ecuGoCount').textContent = state.selectedActions.size;
-      });
-    });
+    // Bind action cards
+    bindActionCards();
+
+    // Stage 1 quick-select
+    const s1Btn = $('#ecuStage1Btn');
+    if (s1Btn) s1Btn.addEventListener('click', selectStage1Actions);
 
     step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
     renderAITab();
   }
 
+  function renderStage1Banner() {
+    const s1 = state.stage1;
+    if (!s1 || !s1.features || !s1.features.length) return '';
+
+    return `
+      <div class="ecuStage1">
+        <div class="ecuStage1Head">
+          <div>
+            <b>🏁 ${esc(s1.name)}</b>
+            ${s1.totalHpGain ? `<span class="ecuHpBadge">+${esc(s1.totalHpGain)}</span>` : ''}
+          </div>
+          <button id="ecuStage1Btn" class="ecuStage1Apply">STAGE 1 UYGULA</button>
+        </div>
+        <div class="ecuStage1Features">
+          ${s1.features.map(f => `
+            <div class="ecuStage1Feature">
+              <span class="ecuStage1Sys">${esc(f.system)}</span>
+              <span>${esc(f.text)}</span>
+              ${f.hp ? `<span class="ecuHpSmall">${esc(f.hp)}</span>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderRegionsHTML() {
-    // Sisteme göre grupla
     const bySystem = {};
     state.regions.forEach(r => {
       if (!bySystem[r.system]) bySystem[r.system] = [];
       bySystem[r.system].push(r);
     });
 
-    return Object.entries(bySystem).map(([sys, regs]) => `
-      <div class="ecuSysGroup">
-        <div class="ecuSysHead">
-          <b>${esc(sys)}</b>
-          <small>${esc(regs[0].desc || '')} · ${regs.length} konum</small>
-        </div>
-        ${regs.map(r => `
-          <div class="ecuRegion">
-            <div class="ecuRegionMeta">
-              <span class="ecuRegionAddr">${esc(r.offsetHex)}</span>
-              <span class="ecuRegionStr">"${esc(r.foundString.slice(0,32))}"</span>
+    return Object.entries(bySystem).map(([sys, regs]) => {
+      const info = state.systemInfos.find(s => s.system === sys) || {};
+      const isStage1 = info.stage1;
+
+      return `
+        <div class="ecuSysGroup">
+          <div class="ecuSysHead">
+            <div class="ecuSysTitle">
+              <span class="ecuSysIcon">${esc(info.icon || '⚙')}</span>
+              <b>${esc(sys)}</b>
+              ${isStage1 ? '<span class="ecuStage1Tag">Stage 1</span>' : ''}
+              ${info.hpGain ? `<span class="ecuHpSmall">+${esc(info.hpGain)} HP</span>` : ''}
             </div>
-            <div class="ecuRegionBytes">${esc(r.windowHex)}</div>
-            ${r.actions.length ? r.actions.map(a => {
-              const isRulepack = a.source && a.source.startsWith('rulepack:');
-              const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
-              const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
-              return `
-              <label class="ecuActionRow">
-                <input type="checkbox" class="ecuActionCheck" data-id="${esc(a.id)}">
-                <div class="ecuActionBody">
-                  <div class="ecuActionHead">
-                    <b>${esc(a.label)}</b>
-                    <span class="ecuRiskPill" style="background:${srcColor}22;color:${srcColor}">${srcLabel}</span>
-                    <span class="ecuRiskPill" style="background:${riskColor(a.risk)}22;color:${riskColor(a.risk)}">${esc(a.risk||'?')}</span>
-                  </div>
-                  <small>${esc(a.detail)}</small>
-                  ${a.sourceUrl ? `<small style="margin-top:4px"><a href="${esc(a.sourceUrl)}" target="_blank" rel="noopener" style="color:#9fb6c9">→ kaynak</a></small>` : ''}
-                </div>
-              </label>
-            `;}).join('') : '<div class="muted" style="padding:8px;font-size:11px">Bu bölge için otomatik aksiyon yok</div>'}
+            <small>${regs.length} konum bulundu</small>
           </div>
-        `).join('')}
-      </div>
-    `).join('');
+
+          ${info.explain ? `<div class="ecuSysExplain">
+            <div class="ecuExplainWhat"><b>Ne yapar:</b> ${esc(info.explain)}</div>
+            ${info.offExplain ? `<div class="ecuExplainOff"><b>Kapatınca:</b> ${esc(info.offExplain)}</div>` : ''}
+          </div>` : ''}
+
+          ${regs.map(r => `
+            <div class="ecuRegion">
+              <div class="ecuRegionMeta">
+                <code class="ecuAddr">${esc(r.offsetHex)}</code>
+                <span class="ecuRegionStr">"${esc(r.foundString.slice(0, 32))}"</span>
+              </div>
+              ${r.actions.length ? r.actions.map(a => {
+                const isRulepack = a.source && a.source.startsWith('rulepack:');
+                const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
+                const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
+                return `
+                <div class="ecuActionCard" data-id="${esc(a.id)}">
+                  <div class="ecuActionTop">
+                    <label class="ecuActionLabel">
+                      <input type="checkbox" class="ecuActionCheck" data-id="${esc(a.id)}">
+                      <b>${esc(a.label)}</b>
+                    </label>
+                    <div class="ecuActionBadges">
+                      <span class="ecuRiskPill" style="background:${srcColor}22;color:${srcColor}">${srcLabel}</span>
+                      <span class="ecuRiskPill" style="background:${riskColor(a.risk)}22;color:${riskColor(a.risk)}">${riskLabel(a.risk)}</span>
+                      ${a.hpGain ? `<span class="ecuHpPill">${esc(a.hpGain)}</span>` : ''}
+                    </div>
+                  </div>
+                  ${a.explain ? `<div class="ecuActionExplain">${esc(a.explain)}</div>` : ''}
+                  ${a.effect ? `<div class="ecuActionEffect">→ ${esc(a.effect)}</div>` : ''}
+                  <div class="ecuActionDetail">
+                    <code>${esc(a.detail)}</code>
+                  </div>
+                  ${a.sourceUrl ? `<a href="${esc(a.sourceUrl)}" target="_blank" rel="noopener" class="ecuActionSource">→ kaynak</a>` : ''}
+                </div>
+              `;
+              }).join('') : '<div class="muted" style="padding:8px;font-size:11px">Bu bölge için otomatik aksiyon yok</div>'}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }).join('');
   }
 
-  function findActionById(id) {
+  function bindActionCards() {
+    $$('.ecuActionCheck').forEach(cb => {
+      cb.addEventListener('change', e => {
+        const aid = e.target.dataset.id;
+        const action = findActionById(aid);
+        if (!action) return;
+        const card = e.target.closest('.ecuActionCard');
+        if (e.target.checked) {
+          state.selectedActions.set(aid, action);
+          card?.classList.add('selected');
+        } else {
+          state.selectedActions.delete(aid);
+          card?.classList.remove('selected');
+        }
+        updateGoCount();
+      });
+    });
+  }
+
+  function updateGoCount() {
+    const el = $('#ecuGoCount');
+    if (el) el.textContent = state.selectedActions.size;
+  }
+
+  function selectStage1Actions() {
+    // Select all actions belonging to stage1 systems
+    const s1Systems = new Set((state.stage1?.features || []).map(f => f.system));
+    let count = 0;
+    $$('.ecuActionCheck').forEach(cb => {
+      const aid = cb.dataset.id;
+      const action = findActionById(aid);
+      if (action && s1Systems.has(action.system || findSystemForAction(aid))) {
+        cb.checked = true;
+        state.selectedActions.set(aid, action);
+        cb.closest('.ecuActionCard')?.classList.add('selected');
+        count++;
+      }
+    });
+    updateGoCount();
+    toast(`Stage 1: ${count} aksiyon seçildi`);
+  }
+
+  function findSystemForAction(actionId) {
     for (const r of state.regions) {
-      for (const a of r.actions) if (a.id === id) return a;
+      for (const a of r.actions) if (a.id === actionId) return r.system;
+    }
+    return '';
+  }
+
+  function findActionById(aid) {
+    for (const r of state.regions) {
+      for (const a of r.actions) if (a.id === aid) return { ...a, system: r.system };
     }
     return null;
   }
 
+  // ===== AI SUGGESTIONS =====
   async function requestAISuggestions() {
     state.aiLoading = true;
+    renderAITab();
     try {
       const res = await fetch('/api/ecu/ai-suggest', {
         method: 'POST',
@@ -260,34 +462,57 @@
   function renderAITab() {
     const el = $('#ecuAIBody');
     if (!el) return;
+
     if (state.aiLoading) {
-      el.innerHTML = '<div class="muted" style="padding:14px">AI önerileri hazırlanıyor... (bağlı sağlayıcıya göre 5-15 saniye)</div>';
+      el.innerHTML = `
+        <div style="padding:20px;text-align:center">
+          <div style="font-size:24px;margin-bottom:8px">🤖</div>
+          <div class="muted">AI analiz ediyor... (5-15 sn)</div>
+          <div class="ecuAIProgress"></div>
+        </div>
+      `;
       return;
     }
+
     if (!state.aiSuggestions.length) {
-      el.innerHTML = '<div class="muted" style="padding:14px">AI henüz öneri döndürmedi. Ayarlar → AI Sağlayıcı Anahtarları\'ndan en az bir sağlayıcı ekle.</div>';
+      el.innerHTML = `
+        <div style="padding:20px;text-align:center">
+          <div class="muted">AI şu anda öneri döndüremedi. Cloudflare AI ücretsiz tier kullanılıyor — tekrar deneyin.</div>
+          <button class="softBtn" style="margin-top:12px" onclick="document.querySelector('.ecuTab[data-tab=manual]')?.click()">Manuel Seçeneklere Dön</button>
+        </div>
+      `;
       return;
     }
 
     el.innerHTML = `
-      <div class="muted" style="font-size:11px;margin-bottom:10px">Sağlayıcı: <b>${esc(state.aiProvider)}</b></div>
-      ${state.aiSuggestions.map(s => `
-        <div class="ecuAISugg">
-          <div class="ecuAISuggHead">
-            <b>${esc(s.system||'?')}</b>
-            <span class="ecuRiskPill" style="background:${riskColor(s.risk)}22;color:${riskColor(s.risk)}">${esc(s.risk||'?')}</span>
+      <div class="ecuAIProviderTag">🤖 ${esc(state.aiProvider)}</div>
+      <div class="ecuAISuggList">
+        ${state.aiSuggestions.map(s => `
+          <div class="ecuAICard">
+            <div class="ecuAICardHead">
+              <b>${esc(s.system || '?')}</b>
+              <div>
+                <span class="ecuRiskPill" style="background:${riskColor(s.risk)}22;color:${riskColor(s.risk)}">${riskLabel(s.risk)}</span>
+                ${s.hpGain ? `<span class="ecuHpPill">${esc(s.hpGain)}</span>` : ''}
+              </div>
+            </div>
+            <div class="ecuAICardBody">
+              <div class="ecuAIAction"><b>Yapılacak:</b> ${esc(s.action || '-')}</div>
+              <div class="ecuAIResult"><b>Sonuç:</b> ${esc(s.result || '-')}</div>
+              ${s.explain ? `<div class="ecuAIExplain">${esc(s.explain)}</div>` : ''}
+              <div class="ecuAIAddr">
+                <code>Offset: ${esc(s.offset || '-')}</code>
+                <code>${esc(s.currentByte || '-')} → ${esc(s.newByte || '-')}</code>
+              </div>
+            </div>
           </div>
-          <div class="ecuAISuggBody">
-            <div><small>Offset:</small> <code>${esc(s.offset||'-')}</code></div>
-            <div><small>Değer:</small> <code>${esc(s.currentByte||'-')}</code> → <code>${esc(s.newByte||'-')}</code></div>
-            <div><small>Yapılacak:</small> ${esc(s.action||'-')}</div>
-            <div><small>Sonuç:</small> ${esc(s.result||'-')}</div>
-          </div>
-        </div>
-      `).join('')}
+        `).join('')}
+      </div>
+      <div class="muted" style="font-size:11px;padding:8px;text-align:center">AI önerileri referans amaçlıdır. Manuel sekmeden doğrulanmış aksiyonları uygulayın.</div>
     `;
   }
 
+  // ===== APPLY + DOWNLOAD =====
   async function applySelected() {
     if (!state.uploadId) { toast('Önce dosya yükle'); return; }
     if (!state.selectedActions.size) { toast('En az bir aksiyon seç'); return; }
@@ -295,7 +520,7 @@
     const btn = $('#ecuGo');
     btn.disabled = true;
     const origTxt = btn.innerHTML;
-    btn.innerHTML = 'UYGULANIYOR...';
+    btn.innerHTML = '⏳ UYGULANIYOR...';
 
     try {
       const res = await fetch('/api/ecu/generate', {
@@ -310,7 +535,6 @@
       if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
 
       state.tunedId = data.tunedId || data.tuned_id;
-
       const outName = state.fileName.replace(/(\.[^.]+)$/, '_tuned$1');
       $('#ecuDoneName').textContent = outName;
       $('#ecuDoneInfo').textContent = `${fmtSize(data.size || state.fileSize)} · ${data.applied?.length || state.selectedActions.size} yama uygulandı`;
@@ -318,7 +542,7 @@
       $('#step2').classList.add('hidden');
       $('#step3').classList.remove('hidden');
       $('#step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      toast('✓ Hazır');
+      toast('✓ Tuned dosya hazır');
     } catch (err) {
       toast('Hata: ' + err.message);
     } finally {
@@ -331,29 +555,27 @@
     if (!state.tunedId) return;
     const a = document.createElement('a');
     a.href = `/api/ecu/download?tunedId=${encodeURIComponent(state.tunedId)}`;
-    a.download = $('#ecuDoneName').textContent || 'tuned.bin';
+    a.download = $('#ecuDoneName')?.textContent || 'tuned.bin';
     document.body.appendChild(a);
     a.click();
     a.remove();
   }
 
+  // ===== RESET =====
   function resetAll() {
-    state.uploadId = null;
-    state.fileName = '';
-    state.fileSize = 0;
-    state.regions = [];
-    state.systems = [];
-    state.stats = null;
+    Object.assign(state, {
+      uploadId: null, fileName: '', fileSize: 0, regions: [], systems: [],
+      systemInfos: [], stage1: null, stats: null, tunedId: null,
+      aiSuggestions: [], aiProvider: '', rulepackMatches: []
+    });
     state.selectedActions.clear();
-    state.tunedId = null;
-    state.aiSuggestions = [];
 
     const drop = $('#ecuDrop');
     drop.classList.remove('has');
     drop.innerHTML = `
       <div class="ecuDropIcon">⬆</div>
       <b>ECU dosyasını buraya bırak</b>
-      <p>veya tıkla · .bin / .hex / .ori / .rom · maks 20 MB</p>
+      <p>veya tıkla · .bin / .hex / .ori / .rom · maks 12 MB</p>
       <input type="file" id="ecuFile" accept=".bin,.hex,.ori,.mod,.rom,.ecu,application/octet-stream" style="display:none">
     `;
     drop._bound = false;
@@ -363,7 +585,7 @@
     $('#step1').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ===== KT200 bridge =====
+  // ===== KT200 BRIDGE =====
   function openDeviceSheet() { $('#ecuDevicePanel').classList.remove('hidden'); loadBridges(); }
   function closeDeviceSheet() { $('#ecuDevicePanel').classList.add('hidden'); }
 
@@ -377,7 +599,7 @@
       const s = $('#ecuDeviceStatus');
       if (online.length) { s.textContent = `KT200 · ${online.length} bridge bağlı`; s.style.color = '#35df9a'; }
       else if (bridges.length) { s.textContent = `KT200 · ${bridges.length} kayıtlı · çevrimdışı`; s.style.color = '#ffbe55'; }
-      else { s.textContent = 'KT200 bridge yok · Cihaz butonundan ekle'; s.style.color = '#8ba4b7'; }
+      else { s.textContent = 'KT200 bridge yok'; s.style.color = '#8ba4b7'; }
 
       const el = $('#ecuDeviceBridges');
       if (!bridges.length) { el.innerHTML = '<div class="muted">Henüz bridge yok.</div>'; return; }
@@ -387,8 +609,8 @@
       }).join('');
     } catch (err) {
       if (!silent) toast('Bridge: ' + err.message);
-      $('#ecuDeviceStatus').textContent = 'KT200 · bağlantı yok';
-      $('#ecuDeviceStatus').style.color = '#8ba4b7';
+      const s = $('#ecuDeviceStatus');
+      if (s) { s.textContent = 'KT200 · bağlantı yok'; s.style.color = '#8ba4b7'; }
     }
   }
 
@@ -400,11 +622,12 @@
       const token = data.token || data.bridgeToken || data.secret || '(token yok)';
       const box = $('#ecuDeviceTokenBox');
       box.classList.remove('hidden');
-      box.innerHTML = `<b style="color:#9df0c5;display:block;margin-bottom:6px">Yeni token (sadece bir kez gösterilir):</b><div style="user-select:all">${esc(token)}</div>`;
+      box.innerHTML = `<b style="color:#9df0c5;display:block;margin-bottom:6px">Token (sadece bir kez):</b><div style="user-select:all">${esc(token)}</div>`;
       loadBridges();
     } catch (err) { toast('Token: ' + err.message); }
   }
 
+  // ===== RULEPACK + REPO LISTS (settings page) =====
   async function loadRulepackList() {
     const el = $('#rulepackList');
     if (!el) return;
@@ -416,17 +639,9 @@
         <div class="rulepackItem">
           <b>${esc(p.familyName)}</b>
           <small>${esc(p.description)}</small>
-          <div class="meta">${p.sourceCount} kaynak · ${p.firmwareCount} firmware tanımı · ${p.mapCount} harita</div>
-          ${p.notes ? `<small style="margin-top:6px">${esc(p.notes)}</small>` : ''}
+          <div class="meta">${p.sourceCount} kaynak · ${p.firmwareCount} firmware · ${p.mapCount} harita</div>
         </div>
-      `).join('') + `
-        <div class="rulepackItem" style="border-color:#31dfff44">
-          <b>Tüm kaynaklar</b>
-          <div class="rulepackSourceList">
-            ${data.sources.map(s => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)} <small style="color:#8ba4b7">· ${esc(s.family)}${s.license ? ' · ' + esc(s.license) : ''}</small></a>`).join('')}
-          </div>
-        </div>
-      `;
+      `).join('');
     } catch (err) {
       el.innerHTML = '<div class="muted">Rulepack listesi yüklenemedi: ' + esc(err.message) + '</div>';
     }
@@ -439,39 +654,24 @@
       const res = await fetch('/api/ecu/related-repos');
       const data = await res.json();
       const accepted = data.accepted || [];
-      const quarantine = data.quarantine || [];
       el.innerHTML = `
         <div class="rulepackItem" style="border-color:#35df9a44">
-          <b>✓ Accepted — adapter yazılmaya hazır (${accepted.length})</b>
+          <b>✓ Accepted (${accepted.length})</b>
           <div style="margin-top:8px;display:grid;gap:6px">
-            ${accepted.map(r => `
+            ${accepted.slice(0, 30).map(r => `
               <div style="padding:8px;background:#060a15;border:1px solid #203653;border-radius:8px">
-                <a href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener" style="color:#9fe3ff;font-weight:700;font-size:12px;text-decoration:none">${esc(r.repo)}</a>
-                <small style="display:block;color:#9fb6c9;margin-top:3px;font-size:11px;line-height:1.4">${esc(r.purpose || '')}</small>
-                <small style="color:#8ba4b7;font-size:10px">Konular: ${(r.hits||[]).join(', ')}</small>
+                <a href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener" style="color:#9fe3ff;font-weight:700;font-size:12px">${esc(r.repo)}</a>
+                <small style="display:block;color:#9fb6c9;margin-top:3px;font-size:11px">${esc(r.purpose || '')}</small>
               </div>
             `).join('')}
           </div>
         </div>
-        ${quarantine.length ? `
-        <div class="rulepackItem" style="border-color:#ffbe5544;margin-top:10px">
-          <b>⚠ Quarantine — gözden geçirilmeli (${quarantine.length})</b>
-          <div style="margin-top:8px;display:grid;gap:6px">
-            ${quarantine.slice(0,20).map(r => `
-              <div style="padding:8px;background:#060a15;border:1px solid #2a2010;border-radius:8px">
-                <a href="https://github.com/${esc(r.repo)}" target="_blank" rel="noopener" style="color:#ffd38a;font-weight:700;font-size:12px;text-decoration:none">${esc(r.repo)}</a>
-                <small style="display:block;color:#9fb6c9;margin-top:3px;font-size:11px;line-height:1.4">${esc(r.purpose || '')}</small>
-              </div>
-            `).join('')}
-          </div>
-        </div>` : ''}
       `;
     } catch (err) {
       el.innerHTML = '<div class="muted">Repo listesi yüklenemedi: ' + esc(err.message) + '</div>';
     }
   }
 
-  // Ayarlar açıldığında listeleri yükle
   const settingsBtn = document.querySelector('[data-page="settings"]');
   if (settingsBtn) settingsBtn.addEventListener('click', () => setTimeout(() => { loadRulepackList(); loadEcuRepoList(); }, 300));
 
