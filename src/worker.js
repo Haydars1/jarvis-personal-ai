@@ -765,7 +765,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
    await filePut(env,key,fileData,{contentType:'application/octet-stream'});
-   await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,created_at) VALUES(?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,now());
+   const ts=Date.now();await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify({systems:[...new Set(regions.map(r=>r.system))]}),file_hash,fileData.length,key,ts,ts);
    return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:[...new Set(regions.map(r=>r.system))],rulepackMatches:regions._rulepackMatches||[]});
  }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
 
