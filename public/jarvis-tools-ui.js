@@ -25,6 +25,19 @@
     if ($('#calBtn')) $('#calBtn').addEventListener('click', generateCalendar);
     // Sosyal
     $('#socialSchedule').addEventListener('click', scheduleSocial);
+    // Fatura
+    if ($('#invCreate')) $('#invCreate').addEventListener('click', createInvoice);
+    if ($('#invAddItem')) $('#invAddItem').addEventListener('click', addInvoiceItem);
+    // CRM
+    if ($('#crmAdd')) $('#crmAdd').addEventListener('click', addCustomer);
+    if ($('#jobAdd')) $('#jobAdd').addEventListener('click', addJob);
+    // Hızlı Araçlar
+    if ($('#weatherBtn')) $('#weatherBtn').addEventListener('click', fetchWeather);
+    if ($('#fuelBtn')) $('#fuelBtn').addEventListener('click', fetchFuel);
+    if ($('#translateBtn')) $('#translateBtn').addEventListener('click', doTranslate);
+    if ($('#ocrBtn')) $('#ocrBtn').addEventListener('click', doOcr);
+    if ($('#qrBtn')) $('#qrBtn').addEventListener('click', generateQr);
+    if ($('#shiftBtn')) $('#shiftBtn').addEventListener('click', generateShiftPlan);
   }
 
   // ========== DTC ==========
@@ -401,6 +414,200 @@
     }
   }
 
+  // ========== FATURA ==========
+  function addInvoiceItem() {
+    const container = $('#invItems');
+    if (!container) return;
+    const row = document.createElement('div');
+    row.className = 'invItem row';
+    row.innerHTML = '<input class="invDesc" placeholder="Açıklama" style="flex:3"><input class="invQty" type="number" value="1" min="1" style="flex:1" placeholder="Adet"><input class="invPrice" type="number" step="0.01" placeholder="Fiyat €" style="flex:1"><button class="ghost" onclick="this.parentElement.remove()" style="flex:0;padding:4px 8px">✕</button>';
+    container.appendChild(row);
+  }
+
+  async function createInvoice() {
+    const items = [];
+    document.querySelectorAll('.invItem').forEach(row => {
+      const desc = row.querySelector('.invDesc')?.value?.trim() || '';
+      const qty = parseFloat(row.querySelector('.invQty')?.value) || 1;
+      const price = parseFloat(row.querySelector('.invPrice')?.value) || 0;
+      if (desc) items.push({ desc, qty, price });
+    });
+    if (!items.length) return toast('En az 1 kalem ekle');
+    const data = {
+      from: { name: $('#invFromName')?.value, address: $('#invFromAddr')?.value, tax_id: $('#invFromTax')?.value, phone: $('#invFromPhone')?.value },
+      to: { name: $('#invToName')?.value, address: $('#invToAddr')?.value, tax_id: $('#invToTax')?.value, phone: $('#invToPhone')?.value },
+      items,
+      lang: $('#invLang')?.value || 'de'
+    };
+    const el = $('#invResult');
+    el.innerHTML = '<div class="muted">Oluşturuluyor...</div>';
+    try {
+      const res = await fetch('/api/invoice/create', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+      const d = await res.json();
+      if (d.ok) {
+        el.innerHTML = `<div class="card"><b>${esc(d.number)}</b> — Toplam: €${d.total?.toFixed(2) || '0'}<br><a href="/api/invoice/${esc(d.id)}" target="_blank" style="color:cyan">📄 FATURA AÇ</a></div>`;
+        toast('Fatura oluşturuldu: ' + d.number);
+        loadInvoiceList();
+      } else el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>';
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  async function loadInvoiceList() {
+    const el = $('#invList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/invoice/list');
+      const d = await res.json();
+      if (!d.ok || !d.invoices?.length) { el.innerHTML = '<div class="muted">Fatura yok.</div>'; return; }
+      el.innerHTML = d.invoices.map(inv => `<div class="card" style="margin-bottom:6px"><a href="/api/invoice/${esc(inv.id)}" target="_blank" style="color:cyan"><b>${esc(inv.number)}</b></a> — ${inv.currency}${inv.total?.toFixed(2) || '0'} · ${inv.status} · ${new Date(inv.created_at).toLocaleDateString('tr')}</div>`).join('');
+    } catch (err) { el.innerHTML = '<div class="muted">Yüklenemedi</div>'; }
+  }
+
+  // ========== CRM ==========
+  async function addCustomer() {
+    const name = $('#crmName')?.value?.trim();
+    if (!name) return toast('İsim gerekli');
+    try {
+      const res = await fetch('/api/crm/customers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, phone: $('#crmPhone')?.value, vehicle: $('#crmVehicle')?.value, plate: $('#crmPlate')?.value, notes: $('#crmNotes')?.value }) });
+      const d = await res.json();
+      if (d.ok) { toast('Müşteri eklendi'); loadCustomerList(); $('#crmName').value = ''; $('#crmPhone').value = ''; $('#crmVehicle').value = ''; $('#crmPlate').value = ''; $('#crmNotes').value = ''; }
+      else toast('Hata: ' + (d.error || '?'));
+    } catch (err) { toast('Hata: ' + err.message); }
+  }
+
+  async function loadCustomerList() {
+    const el = $('#crmList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/crm/customers');
+      const d = await res.json();
+      if (!d.ok || !d.customers?.length) { el.innerHTML = '<div class="muted">Müşteri yok.</div>'; return; }
+      el.innerHTML = d.customers.map(c => `<div class="card" style="margin-bottom:6px"><b>${esc(c.name)}</b>${c.vehicle ? ' · ' + esc(c.vehicle) : ''}${c.plate ? ' · ' + esc(c.plate) : ''}${c.phone ? ' · ' + esc(c.phone) : ''}</div>`).join('');
+      // Populate job customer dropdown
+      const sel = $('#jobCustomer');
+      if (sel) { sel.innerHTML = '<option value="">Müşteri seç...</option>' + d.customers.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.plate ? ' (' + esc(c.plate) + ')' : ''}</option>`).join(''); }
+    } catch (err) { el.innerHTML = '<div class="muted">Yüklenemedi</div>'; }
+  }
+
+  async function addJob() {
+    const cid = $('#jobCustomer')?.value;
+    const title = $('#jobTitle')?.value?.trim();
+    if (!cid) return toast('Müşteri seç');
+    if (!title) return toast('İş başlığı gerekli');
+    try {
+      const res = await fetch('/api/crm/jobs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ customer_id: cid, title, type: $('#jobType')?.value || 'tuning', price: parseFloat($('#jobPrice')?.value) || 0, notes: $('#jobNotes')?.value || '' }) });
+      const d = await res.json();
+      if (d.ok) { toast('İş eklendi'); loadJobList(); $('#jobTitle').value = ''; $('#jobPrice').value = ''; $('#jobNotes').value = ''; }
+      else toast('Hata: ' + (d.error || '?'));
+    } catch (err) { toast('Hata: ' + err.message); }
+  }
+
+  async function loadJobList() {
+    const el = $('#jobList');
+    if (!el) return;
+    try {
+      const res = await fetch('/api/crm/jobs');
+      const d = await res.json();
+      if (!d.ok || !d.jobs?.length) { el.innerHTML = '<div class="muted">İş kaydı yok.</div>'; return; }
+      el.innerHTML = d.jobs.map(j => {
+        const statusColor = j.status === 'done' ? 'green' : j.status === 'open' ? 'cyan' : 'amber';
+        return `<div class="card" style="margin-bottom:6px"><b>${esc(j.title)}</b> — ${esc(j.customer_name || '')}<br><span class="${statusColor}">${esc(j.status)}</span> · ${esc(j.type)} · €${(j.price || 0).toFixed(2)} · ${new Date(j.created_at).toLocaleDateString('tr')}</div>`;
+      }).join('');
+    } catch (err) { el.innerHTML = '<div class="muted">Yüklenemedi</div>'; }
+  }
+
+  // ========== HAVA DURUMU ==========
+  async function fetchWeather() {
+    const lat = $('#weatherLat')?.value || '51.23';
+    const lon = $('#weatherLon')?.value || '6.78';
+    const el = $('#weatherResult');
+    el.innerHTML = '<div class="muted">Sorgulanıyor...</div>';
+    try {
+      const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>'; return; }
+      let html = `<div class="card"><b>${d.current.desc}</b> · ${d.current.temp}°C · Rüzgar ${d.current.wind} km/h · Nem %${d.current.humidity}</div>`;
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">';
+      (d.daily || []).forEach(day => {
+        html += `<div class="card" style="flex:1;min-width:100px;text-align:center"><small>${day.date}</small><br>${day.desc}<br><b>${day.max}°</b> / ${day.min}°<br>🌧 ${day.rain}mm</div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== YAKIT ==========
+  async function fetchFuel() {
+    const lat = $('#fuelLat')?.value;
+    const lon = $('#fuelLon')?.value;
+    if (!lat || !lon) return toast('Enlem / boylam gerekli');
+    const el = $('#fuelResult');
+    el.innerHTML = '<div class="muted">Aranıyor...</div>';
+    try {
+      const res = await fetch(`/api/fuel?lat=${lat}&lon=${lon}`);
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>'; return; }
+      if (!d.stations?.length) { el.innerHTML = '<div class="muted">İstasyon bulunamadı</div>'; return; }
+      el.innerHTML = d.stations.map(s => `<div class="card" style="margin-bottom:6px"><b>${esc(s.brand || s.name)}</b> · ${s.dist} km${s.open ? '' : ' · <span class="amber">KAPALI</span>'}<br>Diesel: <b>${s.diesel || '—'}€</b> · E5: ${s.e5 || '—'}€ · E10: ${s.e10 || '—'}€<br><small>${esc(s.address)}</small></div>`).join('');
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== ÇEVİRİ ==========
+  async function doTranslate() {
+    const text = $('#translateText')?.value?.trim();
+    if (!text) return toast('Metin gir');
+    const el = $('#translateResult');
+    el.innerHTML = '<div class="muted">Çevriliyor...</div>';
+    try {
+      const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, source: $('#translateFrom')?.value || 'tr', target: $('#translateTo')?.value || 'de' }) });
+      const d = await res.json();
+      if (d.ok) el.innerHTML = `<div class="card" style="white-space:pre-wrap"><b>${esc($('#translateFrom')?.value)} → ${esc($('#translateTo')?.value)}</b><br>${esc(d.translated)}</div>`;
+      else el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>';
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== OCR ==========
+  async function doOcr() {
+    const file = $('#ocrFile')?.files?.[0];
+    if (!file) return toast('Görsel seç');
+    const el = $('#ocrResult');
+    el.innerHTML = '<div class="muted">Okunuyor...</div>';
+    try {
+      const buf = await file.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const res = await fetch('/api/ocr', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image: b64 }) });
+      const d = await res.json();
+      if (d.ok) el.innerHTML = `<div class="card" style="white-space:pre-wrap">${esc(d.text)}</div>`;
+      else el.innerHTML = '<div class="muted">Hata: ' + esc(d.error) + '</div>';
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
+  // ========== QR ==========
+  function generateQr() {
+    const text = $('#qrText')?.value?.trim();
+    if (!text) return toast('Metin gir');
+    const el = $('#qrResult');
+    const url = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}&format=svg`;
+    el.innerHTML = `<div class="card" style="text-align:center"><img src="${url}" width="200" height="200" style="border-radius:8px;background:#fff;padding:8px"><br><a href="${url}" target="_blank" style="color:cyan;font-size:12px">SVG indir</a></div>`;
+  }
+
+  // ========== VARDİYA ==========
+  async function generateShiftPlan() {
+    const start = $('#shiftStart')?.value || new Date().toISOString().slice(0, 10);
+    const days = $('#shiftDays')?.value || '7';
+    const el = $('#shiftResult');
+    el.innerHTML = '<div class="muted">Oluşturuluyor...</div>';
+    try {
+      const res = await fetch(`/api/shifts?start=${start}&days=${days}`);
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<div class="muted">Hata</div>'; return; }
+      el.innerHTML = '<div style="display:flex;gap:6px;flex-wrap:wrap">' + d.schedule.map(s => {
+        const bg = s.weekend ? 'rgba(255,100,100,0.15)' : 'rgba(0,255,200,0.08)';
+        return `<div class="card" style="flex:1;min-width:90px;text-align:center;background:${bg}"><small>${s.date}</small><br><b>${s.day}</b><br>${s.shifts.join('<br>')}</div>`;
+      }).join('') + '</div>';
+    } catch (err) { el.innerHTML = '<div class="muted">Hata: ' + esc(err.message) + '</div>'; }
+  }
+
   // Sayfa açıldığında listeleri yükle
   const settingsBtn = document.querySelector('[data-page="settings"]');
   if (settingsBtn) {
@@ -408,6 +615,9 @@
       setTimeout(() => {
         loadLearnList();
         loadSocialJobs();
+        loadInvoiceList();
+        loadCustomerList();
+        loadJobList();
       }, 300);
     });
   }

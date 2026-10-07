@@ -446,6 +446,144 @@
         </div>
       </details>
 
+      <!-- FATURA / TEKLİF -->
+      <details class="settingsBlock">
+        <summary>📄 Fatura / Teklif Oluştur</summary>
+        <div class="settingsBody">
+          <p class="muted">Fatura veya teklif oluştur → HTML olarak kaydet → müşteriye at veya yazdır.</p>
+          <div class="credgrid">
+            <input id="invFromName" placeholder="Gönderen: Ad / Firma">
+            <input id="invFromAddr" placeholder="Gönderen: Adres">
+            <input id="invFromTax" placeholder="Gönderen: Vergi No">
+            <input id="invFromPhone" placeholder="Gönderen: Telefon">
+            <input id="invToName" placeholder="Alıcı: Ad / Firma">
+            <input id="invToAddr" placeholder="Alıcı: Adres">
+            <input id="invToTax" placeholder="Alıcı: Vergi No">
+            <input id="invToPhone" placeholder="Alıcı: Telefon">
+          </div>
+          <div id="invItems">
+            <div class="invItem row">
+              <input class="invDesc" placeholder="Açıklama" style="flex:3">
+              <input class="invQty" type="number" value="1" min="1" style="flex:1" placeholder="Adet">
+              <input class="invPrice" type="number" step="0.01" placeholder="Fiyat €" style="flex:1">
+            </div>
+          </div>
+          <div class="row">
+            <button id="invAddItem" class="ghost">+ KALEM EKLE</button>
+            <select id="invLang"><option value="de">Almanca</option><option value="tr">Türkçe</option></select>
+            <button id="invCreate">FATURA OLUŞTUR</button>
+          </div>
+          <div id="invResult"></div>
+          <hr>
+          <h3>Son Faturalar</h3>
+          <div id="invList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- CRM / MÜŞTERİ DEFTERİ -->
+      <details class="settingsBlock">
+        <summary>👤 Müşteri Defteri (CRM)</summary>
+        <div class="settingsBody">
+          <p class="muted">Müşterilerini, araçlarını ve işlerini kayıt altına al.</p>
+          <div class="credgrid">
+            <input id="crmName" placeholder="Müşteri adı">
+            <input id="crmPhone" placeholder="Telefon">
+            <input id="crmVehicle" placeholder="Araç (ör: BMW F30 320d)">
+            <input id="crmPlate" placeholder="Plaka">
+            <input id="crmNotes" placeholder="Not">
+          </div>
+          <div class="row"><button id="crmAdd">MÜŞTERİ EKLE</button></div>
+          <hr>
+          <h3>Müşteriler</h3>
+          <div id="crmList" class="muted">Yükleniyor...</div>
+          <hr>
+          <h3>İş Ekle</h3>
+          <div class="credgrid">
+            <select id="jobCustomer"><option value="">Müşteri seç...</option></select>
+            <input id="jobTitle" placeholder="İş başlığı (ör: Stage 1 + EGR Off)">
+            <select id="jobType">
+              <option value="tuning">ECU Tuning</option>
+              <option value="coding">Araç Kodlama</option>
+              <option value="diagnostic">Arıza Tespiti</option>
+              <option value="dpf">DPF Temizlik</option>
+              <option value="other">Diğer</option>
+            </select>
+            <input id="jobPrice" type="number" step="0.01" placeholder="Fiyat €">
+            <input id="jobNotes" placeholder="Not">
+          </div>
+          <div class="row"><button id="jobAdd">İŞ EKLE</button></div>
+          <h3>Son İşler</h3>
+          <div id="jobList" class="muted">Yükleniyor...</div>
+        </div>
+      </details>
+
+      <!-- HIZLI ARAÇLAR -->
+      <details class="settingsBlock">
+        <summary>🔧 Hızlı Araçlar</summary>
+        <div class="settingsBody">
+
+          <h3>🌤 Hava Durumu</h3>
+          <div class="row">
+            <input id="weatherLat" placeholder="Enlem (ör: 51.23)" value="51.23" style="flex:1">
+            <input id="weatherLon" placeholder="Boylam (ör: 6.78)" value="6.78" style="flex:1">
+            <button id="weatherBtn">SORGULA</button>
+          </div>
+          <div id="weatherResult"></div>
+
+          <hr>
+          <h3>⛽ Yakıt Fiyatları</h3>
+          <div class="row">
+            <input id="fuelLat" placeholder="Enlem" style="flex:1">
+            <input id="fuelLon" placeholder="Boylam" style="flex:1">
+            <button id="fuelBtn">ARA</button>
+          </div>
+          <div id="fuelResult"></div>
+
+          <hr>
+          <h3>🌐 Çeviri</h3>
+          <textarea id="translateText" rows="2" placeholder="Çevrilecek metin..."></textarea>
+          <div class="row">
+            <select id="translateFrom">
+              <option value="tr">Türkçe</option>
+              <option value="de">Almanca</option>
+              <option value="en">İngilizce</option>
+              <option value="ar">Arapça</option>
+            </select>
+            <span>→</span>
+            <select id="translateTo">
+              <option value="de">Almanca</option>
+              <option value="tr">Türkçe</option>
+              <option value="en">İngilizce</option>
+            </select>
+            <button id="translateBtn">ÇEVİR</button>
+          </div>
+          <div id="translateResult"></div>
+
+          <hr>
+          <h3>📷 OCR — Görseldan Metin Çıkar</h3>
+          <div class="row"><input id="ocrFile" type="file" accept="image/*"><button id="ocrBtn">OKU</button></div>
+          <div id="ocrResult"></div>
+
+          <hr>
+          <h3>📱 QR Kod Üret</h3>
+          <div class="row">
+            <input id="qrText" placeholder="URL veya metin" style="flex:3">
+            <button id="qrBtn">OLUŞTUR</button>
+          </div>
+          <div id="qrResult"></div>
+
+          <hr>
+          <h3>📅 Vardiya Planı</h3>
+          <div class="row">
+            <input id="shiftStart" type="date" style="flex:1">
+            <input id="shiftDays" type="number" value="7" min="1" max="30" style="flex:1" placeholder="Gün sayısı">
+            <button id="shiftBtn">OLUŞTUR</button>
+          </div>
+          <div id="shiftResult"></div>
+
+        </div>
+      </details>
+
       <details class="settingsBlock">
         <summary>◉ Sistem Durumu</summary>
         <div class="settingsBody">

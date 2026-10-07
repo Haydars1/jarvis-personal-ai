@@ -1143,6 +1143,115 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/files'&&m==='GET'){if(!env.FILES)return j([]);const x=await env.FILES.list({limit:100});return j(x.objects.map(o=>({file:o.key,size:o.size,mtime:o.uploaded?.getTime?.()||0})))}
  mm=p.match(/^\/api\/files\/(.+)$/);if(mm&&m==='GET'){if(!env.FILES)return txt('R2 yok',404);const key=decodeURIComponent(mm[1]),o=await env.FILES.get(key);if(!o)return txt('Not found',404);return new Response(o.body,{headers:{'content-type':o.httpMetadata?.contentType||'application/octet-stream','content-disposition':`attachment; filename="${key.split('-').slice(3).join('-')}"`}})}
  if(p==='/api/command'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);const r=await command(env,text);await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}
+
+ // ===== FATURA / INVOICE =====
+ if(p==='/api/invoice/create'&&m==='POST'){try{
+   const b=await body(req);
+   const items=b.items||[];
+   const cur=b.currency||'€';const taxR=b.taxRate||19;const lang=b.lang||'de';
+   const sub=items.reduce((s,i)=>s+(i.qty||1)*(i.price||0),0);const tax=sub*taxR/100;const total=sub+tax;
+   const fmt=n=>n.toFixed(2).replace('.',',');
+   const invId=id();const invNum=b.number||('INV-'+Date.now().toString(36).toUpperCase());const invDate=b.date||new Date().toISOString().slice(0,10);
+   const from=b.from||{};const to=b.to||{};
+   const e=s=>String(s==null?'':s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+   const L=lang==='tr'?{inv:'FATURA',date:'Tarih',from:'Gönderen',to:'Alıcı',desc:'Açıklama',qty:'Adet',price:'Fiyat',sum:'Toplam',sub:'Ara Toplam',tax:`KDV (${taxR}%)`,total:'TOPLAM',notes:'Notlar'}:{inv:'RECHNUNG',date:'Datum',from:'Absender',to:'Empfänger',desc:'Beschreibung',qty:'Menge',price:'Preis',sum:'Summe',sub:'Zwischensumme',tax:`MwSt. (${taxR}%)`,total:'GESAMT',notes:'Hinweise'};
+   const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${L.inv} ${e(invNum)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto;color:#1a1a2e;font-size:14px;line-height:1.5}.head{display:flex;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #0a0a1a}.head h1{font-size:24px;letter-spacing:2px}.parties{display:flex;gap:32px;margin-bottom:24px}.parties div{flex:1}.parties h3{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#888;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#0a0a1a;color:#fff;padding:8px 10px;text-align:left;font-size:12px}td{padding:8px 10px;border-bottom:1px solid #e0e0e0}.right{text-align:right}.totals{margin-left:auto;width:260px;margin-bottom:20px}.totals div{display:flex;justify-content:space-between;padding:5px 0}.totals .grand{font-size:18px;font-weight:700;border-top:2px solid #0a0a1a;padding-top:8px;margin-top:4px}.notes{background:#f5f5f8;padding:12px;border-radius:8px;font-size:12px;color:#555}@media print{body{padding:12px}}</style></head><body><div class="head"><div><h1>${L.inv}</h1><div style="margin-top:4px;font-size:13px;color:#555">${e(invNum)}</div></div><div style="text-align:right;font-size:13px;color:#555">${L.date}: <b>${e(invDate)}</b></div></div><div class="parties"><div><h3>${L.from}</h3><b>${e(from.name||'')}</b><br>${e(from.address||'')}<br>${e(from.tax_id||'')}<br>${e(from.phone||'')}<br>${e(from.email||'')}</div><div><h3>${L.to}</h3><b>${e(to.name||'')}</b><br>${e(to.address||'')}<br>${e(to.tax_id||'')}<br>${e(to.phone||'')}</div></div><table><tr><th>#</th><th>${L.desc}</th><th class="right">${L.qty}</th><th class="right">${L.price}</th><th class="right">${L.sum}</th></tr>${items.map((it,i)=>`<tr><td>${i+1}</td><td>${e(it.desc||'')}</td><td class="right">${it.qty||1}</td><td class="right">${cur}${fmt(it.price||0)}</td><td class="right">${cur}${fmt((it.qty||1)*(it.price||0))}</td></tr>`).join('')}</table><div class="totals"><div><span>${L.sub}</span><span>${cur}${fmt(sub)}</span></div><div><span>${L.tax}</span><span>${cur}${fmt(tax)}</span></div><div class="grand"><span>${L.total}</span><span>${cur}${fmt(total)}</span></div></div>${b.notes?`<div class="notes"><b>${L.notes}:</b> ${e(b.notes)}</div>`:''}<div style="margin-top:32px;text-align:center;font-size:11px;color:#aaa">JARVIS · ${new Date().toISOString().slice(0,16)}</div></body></html>`;
+   await run(env,'INSERT INTO invoices(id,customer_id,job_id,number,html,total,currency,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',invId,b.customer_id||null,b.job_id||null,invNum,html,total,cur,'draft',now(),now());
+   await log(env,'invoice','Fatura oluşturuldu: '+invNum,{total,currency:cur});
+   return j({ok:true,id:invId,number:invNum,total,html});
+ }catch(e){return j({error:e.message||'INVOICE_FAILED'},500)}}
+
+ if(p==='/api/invoice/list')return j({ok:true,invoices:await qall(env,'SELECT id,customer_id,job_id,number,total,currency,status,created_at FROM invoices ORDER BY created_at DESC LIMIT 50')});
+ mm=p.match(/^\/api\/invoice\/([^/]+)$/);if(mm&&m==='GET'){const inv=await q1(env,'SELECT * FROM invoices WHERE id=?',mm[1]);if(!inv)return j({error:'NOT_FOUND'},404);return new Response(inv.html||'<p>Boş fatura</p>',{headers:{'content-type':'text/html; charset=utf-8'}})}
+
+ // ===== CRM — MÜŞTERİ DEFTERİ =====
+ if(p==='/api/crm/customers'&&m==='GET'){return j({ok:true,customers:await qall(env,'SELECT * FROM customers ORDER BY updated_at DESC LIMIT 100')})}
+ if(p==='/api/crm/customers'&&m==='POST'){try{
+   const b=await body(req);const cId=id();const t=now();
+   await run(env,'INSERT INTO customers(id,name,phone,email,vehicle,plate,notes,tags,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',cId,String(b.name||'').trim(),b.phone||'',b.email||'',b.vehicle||'',b.plate||'',b.notes||'',JSON.stringify(b.tags||[]),t,t);
+   await log(env,'crm','Müşteri eklendi: '+(b.name||''),{id:cId});
+   return j({ok:true,id:cId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/crm\/customers\/([^/]+)$/);
+ if(mm&&m==='PATCH'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   for(const k of ['name','phone','email','vehicle','plate','notes']){if(k in b){sets.push(k+'=?');vals.push(b[k])}}
+   if(b.tags){sets.push('tags=?');vals.push(JSON.stringify(b.tags))}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE customers SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+ if(mm&&m==='DELETE'){await run(env,'DELETE FROM customers WHERE id=?',mm[1]);return j({ok:true})}
+
+ if(p==='/api/crm/jobs'&&m==='GET'){const cid=u.searchParams.get('customer_id');const q=cid?await qall(env,'SELECT * FROM jobs WHERE customer_id=? ORDER BY created_at DESC LIMIT 50',cid):await qall(env,'SELECT j.*,c.name as customer_name FROM jobs j LEFT JOIN customers c ON j.customer_id=c.id ORDER BY j.created_at DESC LIMIT 100');return j({ok:true,jobs:q})}
+ if(p==='/api/crm/jobs'&&m==='POST'){try{
+   const b=await body(req);const jId=id();const t=now();
+   await run(env,'INSERT INTO jobs(id,customer_id,type,title,description,status,price,currency,files,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',jId,b.customer_id||'',b.type||'tuning',String(b.title||'').trim(),b.description||'','open',b.price||0,b.currency||'EUR','[]',b.notes||'',t,t);
+   await log(env,'crm','İş eklendi: '+(b.title||''),{id:jId,customer_id:b.customer_id});
+   return j({ok:true,id:jId});
+ }catch(e){return j({error:e.message},500)}}
+ mm=p.match(/^\/api\/crm\/jobs\/([^/]+)$/);
+ if(mm&&m==='PATCH'){try{
+   const b=await body(req);const sets=[];const vals=[];
+   for(const k of ['type','title','description','status','price','currency','notes']){if(k in b){sets.push(k+'=?');vals.push(b[k])}}
+   if(!sets.length)return j({error:'NO_FIELDS'},400);
+   sets.push('updated_at=?');vals.push(now());vals.push(mm[1]);
+   await run(env,`UPDATE jobs SET ${sets.join(',')} WHERE id=?`,...vals);
+   return j({ok:true});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== HAVA DURUMU (Open-Meteo — ücretsiz, API key yok) =====
+ if(p==='/api/weather'){try{
+   const lat=u.searchParams.get('lat')||'51.23',lon=u.searchParams.get('lon')||'6.78',days=u.searchParams.get('days')||'3';
+   const wr=await fetchT(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&current=temperature_2m,weathercode,wind_speed_10m,relative_humidity_2m&timezone=Europe%2FBerlin&forecast_days=${days}`);
+   if(!wr.ok)return j({error:'WEATHER_HTTP_'+wr.status},500);
+   const wd=await wr.json();
+   const wc={0:'☀️ Açık',1:'🌤 Az bulutlu',2:'⛅ Parçalı',3:'☁️ Bulutlu',45:'🌫 Sis',48:'🌫 Kırağı',51:'🌦 Çise',53:'🌧 Çise',55:'🌧 Yoğun çise',61:'🌧 Hafif yağmur',63:'🌧 Yağmur',65:'🌧 Şiddetli',71:'🌨 Hafif kar',73:'🌨 Kar',75:'🌨 Yoğun kar',80:'🌦 Sağanak',81:'🌧 Yoğun sağanak',82:'⛈ Şiddetli',95:'⛈ Fırtına',96:'⛈ Dolu',99:'⛈ Yoğun dolu'};
+   return j({ok:true,current:{temp:wd.current?.temperature_2m,wind:wd.current?.wind_speed_10m,humidity:wd.current?.relative_humidity_2m,desc:wc[wd.current?.weathercode]||'?'},daily:(wd.daily?.time||[]).map((d,i)=>({date:d,max:wd.daily.temperature_2m_max[i],min:wd.daily.temperature_2m_min[i],rain:wd.daily.precipitation_sum[i],desc:wc[wd.daily.weathercode[i]]||'?'}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== YAKIT FİYATLARI (Tankerkönig — ücretsiz) =====
+ if(p==='/api/fuel'){try{
+   const lat=u.searchParams.get('lat'),lon=u.searchParams.get('lon'),rad=u.searchParams.get('radius')||'5';
+   if(!lat||!lon)return j({error:'LAT_LON_REQUIRED'},400);
+   const fuelKey=await kvGet(env,'tankerkoenig_key','');
+   if(!fuelKey)return j({error:'TANKERKOENIG_KEY_NOT_SET. Ayarlar > AI Sağlayıcı Anahtarları bölümünden ekle.'},400);
+   const fr=await fetchT(`https://creativecommons.tankerkoenig.de/json/list.php?lat=${lat}&lng=${lon}&rad=${rad}&sort=price&type=all&apikey=${encodeURIComponent(fuelKey)}`);
+   if(!fr.ok)return j({error:'FUEL_HTTP_'+fr.status},500);
+   const fd=await fr.json();if(!fd.ok)return j({error:fd.message||'FUEL_API_ERROR'},500);
+   return j({ok:true,stations:(fd.stations||[]).slice(0,10).map(s=>({name:s.name,brand:s.brand,dist:s.dist,diesel:s.diesel,e5:s.e5,e10:s.e10,open:s.isOpen,address:`${s.street} ${s.houseNumber}, ${s.postCode} ${s.place}`}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== ÇEVİRİ (Cloudflare AI m2m100 — ücretsiz) =====
+ if(p==='/api/translate'&&m==='POST'){try{
+   const b=await body(req);const text=String(b.text||'').trim();if(!text)return j({error:'TEXT_REQUIRED'},400);
+   if(!env.AI)return j({error:'AI_BINDING_MISSING'},500);
+   const result=await env.AI.run('@cf/meta/m2m100-1.2b',{text,source_lang:b.source||'tr',target_lang:b.target||'de'});
+   return j({ok:true,translated:result?.translated_text||'',source:b.source||'tr',target:b.target||'de'});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== QR KOD =====
+ if(p==='/api/qr'){const text=u.searchParams.get('text')||'';const size=u.searchParams.get('size')||'200';if(!text)return j({error:'TEXT_REQUIRED'},400);return j({ok:true,url:`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&format=svg`})}
+
+ // ===== OCR (Cloudflare AI Vision — ücretsiz) =====
+ if(p==='/api/ocr'&&m==='POST'){try{
+   if(!env.AI)return j({error:'AI_BINDING_MISSING'},500);
+   const b=await body(req);const b64=String(b.image||'');if(!b64)return j({error:'IMAGE_REQUIRED'},400);
+   const result=await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct',{messages:[{role:'user',content:[{type:'text',text:'Bu görseldeki tüm metni oku ve yaz. Sadece metni yaz, başka bir şey ekleme.'},{type:'image',image:b64}]}],max_tokens:2000});
+   return j({ok:true,text:result?.response||''});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== VARDİYA PLANI =====
+ if(p==='/api/shifts'){
+   const start=u.searchParams.get('start')||new Date().toISOString().slice(0,10);const days=parseInt(u.searchParams.get('days')||'7');
+   const shifts=(u.searchParams.get('shifts')||'08:00-16:00,16:00-00:00').split(',');
+   const dayNames=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+   const result=[];const sd=new Date(start);
+   for(let d=0;d<days;d++){const dt=new Date(sd);dt.setDate(sd.getDate()+d);const iso=dt.toISOString().slice(0,10);const wd=dt.getDay();result.push({date:iso,day:dayNames[wd],weekend:wd===0||wd===6,shifts:wd===0||wd===6?['İZİN']:shifts})}
+   return j({ok:true,schedule:result});
+ }
+
  return j({error:'NOT_FOUND'},404)}
 async function runScheduledJobs(env){
   try{
