@@ -1365,6 +1365,49 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  }catch(e){return j({error:e.message},500)}}
  if(mm&&m==='DELETE'){await run(env,'DELETE FROM todos WHERE id=?',mm[1]);return j({ok:true})}
 
+ // ===== MÜŞTERİ RAPORU =====
+ if(p==='/api/customer/report'){try{
+   const cid=u.searchParams.get('id')||'';
+   if(!cid)return j({error:'ID_REQUIRED'},400);
+   const customer=await q1(env,'SELECT * FROM customers WHERE id=?',cid);
+   if(!customer)return j({error:'NOT_FOUND'},404);
+   const jobs=await qall(env,'SELECT * FROM jobs WHERE customer_id=? ORDER BY created_at DESC',cid);
+   const invoices=await qall(env,'SELECT * FROM invoices WHERE customer_id=? ORDER BY created_at DESC',cid);
+   const appointments=await qall(env,'SELECT * FROM appointments WHERE customer_id=? ORDER BY date DESC',cid).catch(()=>[]);
+   const contacts=await qall(env,'SELECT * FROM contact_log WHERE customer_id=? ORDER BY created_at DESC',cid).catch(()=>[]);
+   const totalSpent=jobs.reduce((s,j)=>s+(j.price||0),0);
+   const completedJobs=jobs.filter(j=>j.status==='completed').length;
+   const openJobs=jobs.filter(j=>j.status==='open').length;
+   return j({ok:true,customer,jobs,invoices,appointments,contacts,summary:{totalJobs:jobs.length,completedJobs,openJobs,totalSpent,invoiceCount:invoices.length,contactCount:contacts.length}});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ===== HIZLI İŞ OLUŞTUR (tek adımda müşteri + iş + randevu) =====
+ if(p==='/api/quick-job'&&m==='POST'){try{
+   const b=await body(req);
+   const t=now();let customerId=b.customer_id||'';
+   // Müşteri yoksa oluştur
+   if(!customerId&&b.customer_name){
+     customerId=id();
+     await run(env,'INSERT INTO customers(id,name,phone,email,vehicle,plate,notes,tags,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)',customerId,b.customer_name,b.phone||'',b.email||'',b.vehicle||'',b.plate||'','','[]',t,t);
+   }
+   if(!customerId)return j({error:'CUSTOMER_REQUIRED'},400);
+   // İş oluştur
+   const jobId=id();
+   await run(env,'INSERT INTO jobs(id,customer_id,type,title,description,status,price,currency,files,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',jobId,customerId,b.type||'tuning',b.title||'ECU Tuning',b.description||'','open',Number(b.price||0),b.currency||'EUR','[]',b.notes||'',t,t);
+   // Randevu oluştur (opsiyonel)
+   let aptId=null;
+   if(b.date){
+     aptId=id();
+     await run(env,'INSERT INTO appointments(id,customer_id,title,date,time,status,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',aptId,customerId,b.title||'ECU Tuning',b.date,b.time||'10:00','scheduled','',t,t);
+   }
+   // Gelir kaydı (fiyat varsa)
+   if(Number(b.price)>0){
+     await run(env,'INSERT INTO transactions(id,type,amount,currency,category,description,date,customer_id,job_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',id(),'income',Number(b.price),b.currency||'EUR',b.type||'tuning',(b.customer_name||'')+ ' — '+(b.title||'ECU Tuning'),b.date||new Date().toISOString().slice(0,10),customerId,jobId,t,t).catch(()=>{});
+   }
+   await log(env,'quick-job','Hızlı iş: '+(b.customer_name||customerId)+' — '+(b.title||'ECU Tuning'),{jobId,customerId,aptId});
+   return j({ok:true,customerId,jobId,aptId});
+ }catch(e){return j({error:e.message},500)}}
+
  // ===== MÜŞTERİ İLETİŞİM KAYDI =====
  if(p==='/api/contacts'&&m==='GET'){try{
    const cid=u.searchParams.get('customer_id')||'';

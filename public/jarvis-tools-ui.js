@@ -53,6 +53,11 @@
     if ($('#noteSearchBtn')) { $('#noteSearchBtn').addEventListener('click', () => loadNotes($('#noteSearch')?.value)); $('#noteSearch')?.addEventListener('keydown', e => { if (e.key === 'Enter') loadNotes($('#noteSearch')?.value); }); }
     // Yapılacaklar
     if ($('#todoAddBtn')) { $('#todoAddBtn').addEventListener('click', addTodo); $('#todoText')?.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); }); }
+    // Hızlı iş
+    if ($('#qjCreateBtn')) $('#qjCreateBtn').addEventListener('click', createQuickJob);
+    if ($('#qjDate')) { $('#qjDate').value = new Date().toISOString().slice(0, 10); }
+    // Müşteri raporu
+    if ($('#reportBtn')) $('#reportBtn').addEventListener('click', loadCustomerReport);
     // İletişim kaydı
     if ($('#contactAddBtn')) $('#contactAddBtn').addEventListener('click', addContact);
     // Yedekleme
@@ -1019,6 +1024,114 @@
     try { await fetch('/api/todos/' + id, { method: 'DELETE' }); toast('Silindi'); loadTodos(); } catch {}
   };
 
+  // ========== HIZLI İŞ OLUŞTUR ==========
+  async function loadQuickJobCustomers() {
+    const sel = $('#qjCustomer');
+    if (!sel) return;
+    try {
+      const res = await fetch('/api/crm/customers');
+      const d = await res.json();
+      if (d.ok && d.customers?.length) {
+        sel.innerHTML = '<option value="">Yeni müşteri (aşağıya yaz)...</option>' + d.customers.map(c => `<option value="${esc(c.id)}" data-name="${esc(c.name)}" data-phone="${esc(c.phone)}" data-vehicle="${esc(c.vehicle)}" data-plate="${esc(c.plate)}">${esc(c.name)}${c.plate ? ' (' + esc(c.plate) + ')' : ''}</option>`).join('');
+        sel.addEventListener('change', () => {
+          const opt = sel.selectedOptions[0];
+          if (opt?.value) {
+            if ($('#qjName')) $('#qjName').value = opt.dataset.name || '';
+            if ($('#qjPhone')) $('#qjPhone').value = opt.dataset.phone || '';
+            if ($('#qjVehicle')) $('#qjVehicle').value = opt.dataset.vehicle || '';
+            if ($('#qjPlate')) $('#qjPlate').value = opt.dataset.plate || '';
+          }
+        });
+      }
+    } catch {}
+  }
+  async function createQuickJob() {
+    const customer_id = $('#qjCustomer')?.value || '';
+    const customer_name = $('#qjName')?.value?.trim();
+    if (!customer_id && !customer_name) { toast('Müşteri seçin veya yeni müşteri adı girin'); return; }
+    const title = $('#qjTitle')?.value?.trim() || 'ECU Tuning';
+    const el = $('#qjResult');
+    try {
+      const res = await fetch('/api/quick-job', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        customer_id, customer_name,
+        phone: $('#qjPhone')?.value || '',
+        vehicle: $('#qjVehicle')?.value || '',
+        plate: $('#qjPlate')?.value || '',
+        type: $('#qjType')?.value || 'tuning',
+        title,
+        price: $('#qjPrice')?.value || 0,
+        date: $('#qjDate')?.value || '',
+        time: $('#qjTime')?.value || '10:00',
+        notes: $('#qjNotes')?.value || '',
+        description: ''
+      }) });
+      const d = await res.json();
+      if (d.ok) {
+        toast('İş oluşturuldu!');
+        if (el) el.innerHTML = `<div style="background:#143;padding:10px;border-radius:8px;margin-top:8px">
+          <b style="color:#4f4">✓ Başarıyla oluşturuldu</b><br>
+          <span style="font-size:12px">Müşteri: ${esc(customer_name || customer_id)}<br>İş: ${esc(title)}<br>${$('#qjDate')?.value ? 'Randevu: ' + $('#qjDate').value : ''}</span>
+        </div>`;
+        // Formu temizle
+        $('#qjName').value = ''; $('#qjPhone').value = ''; $('#qjVehicle').value = ''; $('#qjPlate').value = '';
+        $('#qjTitle').value = ''; $('#qjPrice').value = ''; $('#qjNotes').value = '';
+        if ($('#qjCustomer')) $('#qjCustomer').value = '';
+        // Listeleri güncelle
+        loadQuickJobCustomers();
+        loadDashboard();
+      } else { if (el) el.innerHTML = '<p style="color:#f44">Hata: ' + esc(d.error) + '</p>'; }
+    } catch (e) { if (el) el.innerHTML = '<p style="color:#f44">Hata: ' + esc(e.message) + '</p>'; }
+  }
+
+  // ========== MÜŞTERİ RAPORU ==========
+  async function loadReportCustomers() {
+    const sel = $('#reportCustomer');
+    if (!sel) return;
+    try {
+      const res = await fetch('/api/crm/customers');
+      const d = await res.json();
+      if (d.ok && d.customers?.length) {
+        sel.innerHTML = '<option value="">Müşteri seç...</option>' + d.customers.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.plate ? ' (' + esc(c.plate) + ')' : ''}</option>`).join('');
+      }
+    } catch {}
+  }
+  async function loadCustomerReport() {
+    const cid = $('#reportCustomer')?.value;
+    const el = $('#reportResult');
+    if (!cid || !el) { toast('Müşteri seçin'); return; }
+    try {
+      const res = await fetch('/api/customer/report?id=' + encodeURIComponent(cid));
+      const d = await res.json();
+      if (!d.ok) { el.innerHTML = '<p style="color:#f44">' + esc(d.error) + '</p>'; return; }
+      const c = d.customer;
+      const s = d.summary;
+      let html = `<div style="background:var(--card);padding:12px;border-radius:8px;margin-top:8px">
+        <h3 style="margin:0 0 8px">${esc(c.name)}</h3>
+        <div style="font-size:13px;opacity:0.7">${c.phone ? '📞 ' + esc(c.phone) + ' · ' : ''}${c.vehicle ? '🚗 ' + esc(c.vehicle) + ' · ' : ''}${c.plate ? '🔖 ' + esc(c.plate) : ''}</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0">
+          <div style="text-align:center;background:#111;padding:6px;border-radius:6px"><div style="font-size:10px;opacity:0.5">TOPLAM İŞ</div><b style="font-size:18px">${s.totalJobs}</b></div>
+          <div style="text-align:center;background:#111;padding:6px;border-radius:6px"><div style="font-size:10px;opacity:0.5">TAMAMLANAN</div><b style="font-size:18px;color:#4f4">${s.completedJobs}</b></div>
+          <div style="text-align:center;background:#111;padding:6px;border-radius:6px"><div style="font-size:10px;opacity:0.5">TOPLAM HARCAMA</div><b style="font-size:18px;color:var(--accent)">${s.totalSpent.toFixed(2)}€</b></div>
+        </div>`;
+      // İşler
+      if (d.jobs?.length) {
+        html += '<h4>🔧 İşler</h4>';
+        html += d.jobs.map(j => `<div style="background:#111;padding:6px 8px;border-radius:4px;margin-bottom:3px;font-size:13px">
+          ${esc(j.title || j.type)} · ${j.price}${j.currency || '€'} · <span style="color:${j.status === 'completed' ? '#4f4' : 'var(--accent)'}">${esc(j.status)}</span>
+        </div>`).join('');
+      }
+      // İletişim
+      if (d.contacts?.length) {
+        html += '<h4>📞 Son İletişimler</h4>';
+        html += d.contacts.slice(0, 5).map(ct => `<div style="font-size:12px;padding:3px 0;opacity:0.7">
+          ${ct.direction === 'incoming' ? '📥' : '📤'} ${new Date(ct.created_at).toLocaleDateString('tr-TR')} — ${esc(ct.summary).slice(0, 80)}
+        </div>`).join('');
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    } catch (e) { el.innerHTML = '<p style="color:#f44">Hata: ' + esc(e.message) + '</p>'; }
+  }
+
   // ========== MÜŞTERİ İLETİŞİM KAYDI ==========
   async function loadContactCustomers() {
     const sel = $('#contactCustomer');
@@ -1261,6 +1374,8 @@
         loadTransactions();
         loadContactCustomers();
         loadContacts();
+        loadQuickJobCustomers();
+        loadReportCustomers();
       }, 300);
     });
   }

@@ -740,6 +740,50 @@
         </div>
       </details>
 
+      <!-- HIZLI İŞ OLUŞTUR -->
+      <details class="settingsBlock">
+        <summary>⚡ Hızlı İş Oluştur</summary>
+        <div class="settingsBody">
+          <p class="muted">Tek adımda müşteri + iş + randevu + gelir kaydı oluştur.</p>
+          <div class="credgrid">
+            <select id="qjCustomer"><option value="">Yeni müşteri (aşağıya yaz)...</option></select>
+            <input id="qjName" placeholder="Müşteri adı (yeni ise)">
+            <input id="qjPhone" placeholder="Telefon">
+            <input id="qjVehicle" placeholder="Araç (ör: BMW F30 320d)">
+            <input id="qjPlate" placeholder="Plaka (ör: D-AB 1234)">
+            <hr>
+            <select id="qjType">
+              <option value="tuning">🔧 Tuning</option>
+              <option value="kodlama">💻 Kodlama</option>
+              <option value="diagnostik">🔍 Diagnostik</option>
+              <option value="diger">📋 Diğer</option>
+            </select>
+            <input id="qjTitle" placeholder="İş başlığı (ör: Stage 1 + EGR Off)">
+            <input id="qjPrice" type="number" step="0.01" placeholder="Fiyat (€)">
+            <div class="row">
+              <input id="qjDate" type="date" style="flex:1">
+              <input id="qjTime" type="time" value="10:00" style="flex:1">
+            </div>
+            <textarea id="qjNotes" rows="2" placeholder="Notlar..."></textarea>
+          </div>
+          <div class="row"><button id="qjCreateBtn" style="background:var(--accent);color:#000;font-weight:bold">⚡ OLUŞTUR</button></div>
+          <div id="qjResult"></div>
+        </div>
+      </details>
+
+      <!-- MÜŞTERİ RAPORU -->
+      <details class="settingsBlock">
+        <summary>📋 Müşteri Raporu</summary>
+        <div class="settingsBody">
+          <p class="muted">Bir müşterinin tüm geçmişini gör: işler, faturalar, iletişim, toplam harcama.</p>
+          <div class="row">
+            <select id="reportCustomer" style="flex:3"><option value="">Müşteri seç...</option></select>
+            <button id="reportBtn">RAPOR</button>
+          </div>
+          <div id="reportResult" class="muted"></div>
+        </div>
+      </details>
+
       <!-- MÜŞTERİ İLETİŞİM KAYDI -->
       <details class="settingsBlock">
         <summary>📞 İletişim Kaydı</summary>
