@@ -34,6 +34,7 @@ jobs:
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-prices-expenses.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-contact-log.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-files-storage.sql
+          npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-file-chunks.sql
       - name: Audit configured AI providers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

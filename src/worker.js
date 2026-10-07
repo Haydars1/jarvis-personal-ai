@@ -15,23 +15,36 @@ async function qall(env,sql,...bind){return (await env.DB.prepare(sql).bind(...b
 async function run(env,sql,...bind){return env.DB.prepare(sql).bind(...bind).run()}
 async function kvGet(env,key,fb=null){const r=await q1(env,'SELECT value FROM kv WHERE key=?',key);if(!r)return fb;try{return JSON.parse(r.value)}catch{return r.value}}
 async function kvSet(env,key,val){await run(env,'INSERT INTO kv(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at',key,JSON.stringify(val),now())}
-// --- D1-backed file storage (replaces R2) ---
+// --- D1-backed file storage (replaces R2) — auto-chunks files >1.5MB ---
+const FILE_CHUNK=1536*1024; // 1.5MB per chunk (D1 row limit ~2MB)
 async function filePut(env,key,data,opts={}){
   const ct=opts?.httpMetadata?.contentType||opts?.contentType||'application/octet-stream';
   const buf=data instanceof ArrayBuffer?new Uint8Array(data):data instanceof Uint8Array?data:typeof data==='string'?te.encode(data):new Uint8Array(await new Response(data).arrayBuffer());
-  await run(env,'INSERT INTO files(key,data,content_type,size) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,created_at=CURRENT_TIMESTAMP',key,buf,ct,buf.byteLength);
+  if(buf.byteLength<=FILE_CHUNK){
+    await run(env,'DELETE FROM file_chunks WHERE key=?',key);
+    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,?,?,?,0) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,total_chunks=0,created_at=CURRENT_TIMESTAMP',key,buf,ct,buf.byteLength);
+  } else {
+    const chunks=Math.ceil(buf.byteLength/FILE_CHUNK);
+    await run(env,'DELETE FROM file_chunks WHERE key=?',key);
+    for(let i=0;i<chunks;i++){const slice=buf.slice(i*FILE_CHUNK,Math.min((i+1)*FILE_CHUNK,buf.byteLength));await run(env,'INSERT INTO file_chunks(key,chunk_index,data) VALUES(?,?,?) ON CONFLICT(key,chunk_index) DO UPDATE SET data=excluded.data',key,i,slice);}
+    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,NULL,?,?,?) ON CONFLICT(key) DO UPDATE SET data=NULL,content_type=excluded.content_type,size=excluded.size,total_chunks=excluded.total_chunks,created_at=CURRENT_TIMESTAMP',key,ct,buf.byteLength,chunks);
+  }
 }
+function d1Bytes(v){return v instanceof ArrayBuffer?new Uint8Array(v):v instanceof Uint8Array?v:typeof v==='string'?Uint8Array.from(atob(v),c=>c.charCodeAt(0)):new Uint8Array(0)}
 async function fileGet(env,key){
-  const r=await q1(env,'SELECT data,content_type,size,created_at FROM files WHERE key=?',key);
+  const r=await q1(env,'SELECT data,content_type,size,total_chunks,created_at FROM files WHERE key=?',key);
   if(!r)return null;
-  return {body:new ReadableStream({start(c){c.enqueue(new Uint8Array(r.data instanceof ArrayBuffer?r.data:typeof r.data==='string'?Uint8Array.from(atob(r.data),c=>c.charCodeAt(0)):[]));c.close()}}),httpMetadata:{contentType:r.content_type},size:r.size,arrayBuffer:async()=>r.data instanceof ArrayBuffer?r.data:typeof r.data==='string'?Uint8Array.from(atob(r.data),c=>c.charCodeAt(0)).buffer:new ArrayBuffer(0)};
+  let bytes;
+  if(!r.total_chunks||r.total_chunks===0){bytes=d1Bytes(r.data);}
+  else{const rows=await qall(env,'SELECT data FROM file_chunks WHERE key=? ORDER BY chunk_index',key);const parts=rows.map(r=>d1Bytes(r.data));const total=parts.reduce((s,p)=>s+p.byteLength,0);bytes=new Uint8Array(total);let off=0;for(const p of parts){bytes.set(p,off);off+=p.byteLength;}}
+  return {body:new ReadableStream({start(c){c.enqueue(bytes);c.close()}}),httpMetadata:{contentType:r.content_type},size:r.size,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};
 }
 async function fileList(env,opts={}){
   const limit=Math.min(opts.limit||100,500);
   const rows=await qall(env,'SELECT key,content_type,size,created_at FROM files ORDER BY created_at DESC LIMIT ?',limit);
   return {objects:rows.map(r=>({key:r.key,size:r.size,uploaded:r.created_at}))};
 }
-async function fileDelete(env,key){await run(env,'DELETE FROM files WHERE key=?',key)}
+async function fileDelete(env,key){await run(env,'DELETE FROM file_chunks WHERE key=?',key);await run(env,'DELETE FROM files WHERE key=?',key)}
 
 async function log(env,kind,text,meta={}){await run(env,'INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)',id(),now(),kind,text,JSON.stringify(meta));await run(env,'DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY ts DESC LIMIT -1 OFFSET 1000)')}
 async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
@@ -743,7 +756,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const b=await body(req);
    const fileData=typeof b.fileData==='string'?Uint8Array.from(atob(b.fileData),c=>c.charCodeAt(0)):new Uint8Array(b.fileData||[]);
    if(!fileData.length)return j({error:'EMPTY_FILE'},400);
-   if(fileData.length>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);
+   if(fileData.length>10*1024*1024)return j({error:'FILE_TOO_LARGE',max:'10MB'},413);
    const mod=await import('./lib/tuning-engine.js');
    const fmt=mod.detectFileFormat(fileData);
    const stats=mod.fileStats(fileData);
@@ -1155,8 +1168,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/research'){const q=u.searchParams.get('q')||'';if(!q)return j({error:'QUERY_REQUIRED'},400);const results=await ddg(q);await log(env,'research','Araştırıldı: '+q,{count:results.length});return j({q,results})}
  if(p==='/api/tools/discover'){const cap=u.searchParams.get('capability')||'ai-tool';return j({capability:cap,results:await discoverTools(env,cap)})}
 
- if(p==='/api/files/download-url'&&m==='POST'){const b=await body(req),url=String(b.url||'').trim();let u2;try{u2=new URL(url)}catch{return j({error:'INVALID_URL'},400)}if(!/^https?:$/.test(u2.protocol)||privateHost(u2.hostname))return j({error:'URL_NOT_ALLOWED'},400);const r=await fetchT(u2.toString(),{redirect:'follow'});if(!r.ok)return j({error:'DOWNLOAD_HTTP_'+r.status},400);const len=Number(r.headers.get('content-length')||0);if(len>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);const buf=new Uint8Array(await r.arrayBuffer());if(buf.byteLength>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);let name=String(b.name||'').trim()||u2.pathname.split('/').filter(Boolean).pop()||'download.bin';name=name.replace(/[\\/]/g,'_');const key=`${now()}-${id()}-${name}`;await filePut(env,key,buf,{contentType:r.headers.get('content-type')||'application/octet-stream'});await log(env,'file','URL dosyası indirildi: '+name,{url:u2.origin});return j({ok:true,key,name,size:buf.byteLength})}
- if(p==='/api/files'&&m==='POST'){const b=await body(req),name=String(b.name||'file').replace(/[\\/]/g,'_'),raw=Uint8Array.from(atob(String(b.base64||'')),c=>c.charCodeAt(0));if(raw.byteLength>2*1024*1024)return j({error:'FILE_TOO_LARGE_D1_LIMIT',max:'2MB'},413);const key=`${now()}-${id()}-${name}`;await filePut(env,key,raw,{contentType:b.type||'application/octet-stream'});await log(env,'file','Dosya yüklendi: '+name);return j({ok:true,key,name,size:raw.byteLength})}
+ if(p==='/api/files/download-url'&&m==='POST'){const b=await body(req),url=String(b.url||'').trim();let u2;try{u2=new URL(url)}catch{return j({error:'INVALID_URL'},400)}if(!/^https?:$/.test(u2.protocol)||privateHost(u2.hostname))return j({error:'URL_NOT_ALLOWED'},400);const r=await fetchT(u2.toString(),{redirect:'follow'});if(!r.ok)return j({error:'DOWNLOAD_HTTP_'+r.status},400);const len=Number(r.headers.get('content-length')||0);if(len>10*1024*1024)return j({error:'FILE_TOO_LARGE',max:'10MB'},413);const buf=new Uint8Array(await r.arrayBuffer());if(buf.byteLength>10*1024*1024)return j({error:'FILE_TOO_LARGE',max:'10MB'},413);let name=String(b.name||'').trim()||u2.pathname.split('/').filter(Boolean).pop()||'download.bin';name=name.replace(/[\\/]/g,'_');const key=`${now()}-${id()}-${name}`;await filePut(env,key,buf,{contentType:r.headers.get('content-type')||'application/octet-stream'});await log(env,'file','URL dosyası indirildi: '+name,{url:u2.origin});return j({ok:true,key,name,size:buf.byteLength})}
+ if(p==='/api/files'&&m==='POST'){const b=await body(req),name=String(b.name||'file').replace(/[\\/]/g,'_'),raw=Uint8Array.from(atob(String(b.base64||'')),c=>c.charCodeAt(0));if(raw.byteLength>10*1024*1024)return j({error:'FILE_TOO_LARGE',max:'10MB'},413);const key=`${now()}-${id()}-${name}`;await filePut(env,key,raw,{contentType:b.type||'application/octet-stream'});await log(env,'file','Dosya yüklendi: '+name);return j({ok:true,key,name,size:raw.byteLength})}
  if(p==='/api/files'&&m==='GET'){const x=await fileList(env,{limit:100});return j(x.objects.map(o=>({file:o.key,size:o.size,mtime:o.uploaded||0})))}
  mm=p.match(/^\/api\/files\/(.+)$/);if(mm&&m==='GET'){const key=decodeURIComponent(mm[1]),o=await fileGet(env,key);if(!o)return txt('Not found',404);return new Response(o.body,{headers:{'content-type':o.httpMetadata?.contentType||'application/octet-stream','content-disposition':`attachment; filename="${key.split('-').slice(3).join('-')}"`}})}
  if(p==='/api/command'&&m==='POST'){const b=await body(req),text=String(b.text||'').trim();if(!text)return j({error:'EMPTY'},400);await addChat(env,'user',text,null);const r=await command(env,text);await addChat(env,'assistant',r.reply,r.provider||null);return j({...r,state:await state(env),history:await chatHistory(env,120)})}
