@@ -27,7 +27,7 @@ async function filePut(env,key,data,opts={}){
     const chunks=Math.ceil(buf.byteLength/FILE_CHUNK);
     await run(env,'DELETE FROM file_chunks WHERE key=?',key);
     for(let i=0;i<chunks;i++){const slice=buf.slice(i*FILE_CHUNK,Math.min((i+1)*FILE_CHUNK,buf.byteLength));await run(env,'INSERT INTO file_chunks(key,chunk_index,data) VALUES(?,?,?) ON CONFLICT(key,chunk_index) DO UPDATE SET data=excluded.data',key,i,slice);}
-    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,NULL,?,?,?) ON CONFLICT(key) DO UPDATE SET data=NULL,content_type=excluded.content_type,size=excluded.size,total_chunks=excluded.total_chunks,created_at=CURRENT_TIMESTAMP',key,ct,buf.byteLength,chunks);
+    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,total_chunks=excluded.total_chunks,created_at=CURRENT_TIMESTAMP',key,new Uint8Array(0),ct,buf.byteLength,chunks);
   }
 }
 function d1Bytes(v){return v instanceof ArrayBuffer?new Uint8Array(v):v instanceof Uint8Array?v:typeof v==='string'?Uint8Array.from(atob(v),c=>c.charCodeAt(0)):new Uint8Array(0)}
