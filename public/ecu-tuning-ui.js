@@ -27,6 +27,89 @@
   const toast = t => { const e = $('#toast'); if (!e) return; e.textContent = t; e.classList.remove('hidden'); clearTimeout(toast._t); toast._t = setTimeout(() => e.classList.add('hidden'), 3200); };
   const riskColor = r => ({ low: '#35df9a', medium: '#ffbe55', high: '#ff5578', info: '#31dfff' }[r] || '#8ba4b7');
   const riskLabel = r => ({ low: 'Düşük Risk', medium: 'Orta Risk', high: 'Yüksek Risk', info: 'Bilgi' }[r] || r || '?');
+  const hexAddr = n => '0x' + n.toString(16).toUpperCase().padStart(6, '0');
+  const hexByte = b => b.toString(16).padStart(2, '0').toUpperCase();
+
+  // ===== CLIENT-SIDE ECU ANALİZ MOTORU (offline fallback) =====
+  const LOCAL_SYSTEMS = [
+    { re: /\bEGR\b|AGR|Abgasrück/i, system: 'EGR', icon: '🔄', explain: 'Egzoz gazı resirkülasyonu. Karbon birikimini artırır.', offExplain: 'EGR kapatılınca: intake manifold temiz kalır, motor rahat nefes alır.', stage1: true, hpGain: '5-15' },
+    { re: /\bDPF\b|\bFAP\b|PartikelFilter|Rußfilter/i, system: 'DPF', icon: '🔥', explain: 'Dizel partikül filtre. Rejenerasyon döngüsüne girer.', offExplain: 'DPF kapatılınca: Yakıt tasarrufu, contra basınç düşer.', stage1: true, hpGain: '10-20' },
+    { re: /AdBlue|SCR|DEF\b|Urea|Harnstoff|NOx/i, system: 'AdBlue/SCR', icon: '💧', explain: 'AdBlue / NOx redüksiyon sistemi.', offExplain: 'Kapatılınca limp mode riski ortadan kalkar.', stage1: false, hpGain: '0-5' },
+    { re: /Lambda|\bO2S?\b|LSU/i, system: 'Lambda', icon: '📊', explain: 'Oksijen sensörü. Yakıt/hava oranını ayarlar.', offExplain: 'Kapatılınca P0420/P0430 hata kodları önlenir.', stage1: false, hpGain: '0' },
+    { re: /Boost|LDR|Ladedruck|P2Soll/i, system: 'Boost', icon: '⚡', explain: 'Turbo basınç kontrolü.', offExplain: 'Yükseltilince daha fazla güç.', stage1: true, hpGain: '20-40' },
+    { re: /Torque|Torq|M_Soll|Drehmoment/i, system: 'Torque', icon: '💪', explain: 'Tork sınırlama haritaları.', offExplain: 'Yükseltilince motor daha fazla tork üretir.', stage1: true, hpGain: '15-30' },
+    { re: /Injection|Inj_Q|QNFLM|Einspritz/i, system: 'Injection', icon: '💉', explain: 'Yakıt enjeksiyonu kontrolü.', offExplain: 'Artırılınca daha fazla güç.', stage1: true, hpGain: '10-25' },
+    { re: /\bMAF\b|HFM|\bMAP\b|LMM/i, system: 'MAF/MAP', icon: '🌬️', explain: 'Hava akış sensörü.', offExplain: 'Limitleri yükseltilince büyük turbo desteklenir.', stage1: false, hpGain: '0-5' },
+    { re: /Vmax|Vfzg|SpeedLim|Geschwind/i, system: 'Hız sınırı', icon: '🏎️', explain: 'Araç hız sınırlayıcı.', offExplain: 'Kaldırılınca mekanik limite kadar hızlanır.', stage1: false, hpGain: '0' },
+    { re: /Nmax|Nmot|RpmLim|Drehzahl/i, system: 'RPM sınırı', icon: '🔴', explain: 'Devir sınırlayıcı.', offExplain: 'Yükseltilince motor daha yüksek devire çıkar.', stage1: false, hpGain: '0-5' },
+    { re: /Pedal|PWG|TPS\b|FGR/i, system: 'Pedal', icon: '🦶', explain: 'Gaz pedalı karakteristiği.', offExplain: 'Agresifleştirilince tepki artar.', stage1: false, hpGain: '0' },
+    { re: /ColdStart|Kaltst|KSTT|HRMK/i, system: 'Soğuk marş', icon: '❄️', explain: 'Soğuk marş zenginleştirme.', offExplain: 'Azaltılınca motor hızlı normal devire iner.', stage1: false, hpGain: '0' },
+    { re: /Knock|Klopf|\bKR\b|KFKHFM/i, system: 'Vuruntu', icon: '🔨', explain: 'Vuruntu sensörü.', offExplain: 'Devre dışı bırakılınca ateşleme ilerler — DİKKAT.', stage1: false, hpGain: '3-8' },
+    { re: /Immo|Wegfahr|IMMOBILIZER/i, system: 'Immobilizer', icon: '🔑', explain: 'Anahtar eşleşme sistemi.', offExplain: 'Kapatılınca motor herhangi bir anahtarla çalışır.', stage1: false, hpGain: '0' },
+    { re: /Checksum|Prüfsumme|Chksum|CRC/i, system: 'Checksum', icon: '✅', explain: 'Dosya bütünlük kontrolü.', offExplain: 'Değişiklik sonrası tekrar hesaplanmalı.', stage1: false, hpGain: '0' }
+  ];
+
+  function localExtractStrings(bytes, minLen = 4, maxLen = 48) {
+    const results = []; let cur = '', start = 0;
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      if (b >= 0x20 && b <= 0x7E) {
+        if (!cur) start = i;
+        cur += String.fromCharCode(b);
+        if (cur.length >= maxLen) { results.push({ offset: start, text: cur }); cur = ''; }
+      } else {
+        if (cur.length >= minLen) results.push({ offset: start, text: cur });
+        cur = '';
+      }
+    }
+    if (cur.length >= minLen) results.push({ offset: start, text: cur });
+    return results;
+  }
+
+  function localBuildActions(system, offset, bytes) {
+    const safe = ofs => ofs >= 0 && ofs + 1 < bytes.length;
+    const fo = offset + 16, lo = offset + 8, list = [];
+    const actions = {
+      'EGR': () => safe(fo) && list.push({ id: 'egr_off_' + offset.toString(16), label: 'EGR Devre Dışı (OFF)', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'EGR valfini kapatır.', effect: 'Karbon birikimi durur', hpGain: '+5-15 HP', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'low' }),
+      'DPF': () => { if (safe(fo)) list.push({ id: 'dpf_regen_off_' + offset.toString(16), label: 'DPF Rejenerasyon Kapat (OFF)', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'DPF rejenerasyonu devre dışı.', effect: 'Yakıt tasarrufu, contra basınç düşer', hpGain: '+10-20 HP', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'medium' }); },
+      'AdBlue/SCR': () => safe(fo) && list.push({ id: 'adblue_off_' + offset.toString(16), label: 'AdBlue Sistemi Kapat (OFF)', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'AdBlue enjeksiyonunu kapatır.', effect: 'Limp mode riski yok', hpGain: '0-5 HP', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'high' }),
+      'Lambda': () => safe(fo) && list.push({ id: 'lambda_off_' + offset.toString(16), label: 'Lambda Sensör Devre Dışı', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'O2 sensör verileri devre dışı.', effect: 'Emisyon hata kodları önlenir', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'low' }),
+      'Hız sınırı': () => safe(lo) && list.push({ id: 'vmax_up_' + offset.toString(16), label: 'Hız Sınırını Kaldır (Vmax OFF)', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(bytes[lo])} → 0xFF`, explain: 'Elektronik hız sınırını kaldırır.', effect: 'Mekanik limite kadar hızlanır', hpGain: '', offset: lo, currentByte: bytes[lo], newByte: 0xFF, risk: 'medium' }),
+      'RPM sınırı': () => safe(lo) && list.push({ id: 'rpmlim_up_' + offset.toString(16), label: 'RPM Limiti Yükselt', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(bytes[lo])} → 0xFF`, explain: 'Devir sınırlayıcıyı yükseltir.', effect: 'Motor daha yüksek devire çıkar', hpGain: '0-5 HP', offset: lo, currentByte: bytes[lo], newByte: 0xFF, risk: 'high' }),
+      'Boost': () => { if (safe(lo)) { const c = bytes[lo], t = Math.min(0xFF, c + 0x18); list.push({ id: 'stage1_boost_' + offset.toString(16), label: 'Stage 1 — Boost Basınç +15-25%', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(c)} → 0x${hexByte(t)}`, explain: 'Turbo basıncını yükseltir.', effect: 'Motor gücü artar', hpGain: '+20-40 HP', offset: lo, currentByte: c, newByte: t, risk: 'medium' }); } },
+      'Torque': () => { if (safe(lo)) { const c = bytes[lo], t = Math.min(0xFF, c + 0x20); list.push({ id: 'torque_up_' + offset.toString(16), label: 'Tork Limiti Yükselt +25%', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(c)} → 0x${hexByte(t)}`, explain: 'Tork sınırını yükseltir.', effect: 'Daha güçlü kalkış', hpGain: '+15-30 HP', offset: lo, currentByte: c, newByte: t, risk: 'high' }); } },
+      'Injection': () => { if (safe(lo)) { const c = bytes[lo], t = Math.min(0xFF, c + 0x10); list.push({ id: 'injection_up_' + offset.toString(16), label: 'Enjeksiyon Miktarı Artır +10-20%', detail: `Adres ${hexAddr(lo)}: 0x${hexByte(c)} → 0x${hexByte(t)}`, explain: 'Yakıt enjeksiyonunu artırır.', effect: 'Boost artışını destekler', hpGain: '+10-25 HP', offset: lo, currentByte: c, newByte: t, risk: 'medium' }); } },
+      'Pedal': () => safe(fo) && list.push({ id: 'pedal_map_' + offset.toString(16), label: 'Pedal Haritası Agresifleştir', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x${hexByte(Math.min(0xFF, bytes[fo] + 0x30))}`, explain: 'Gaz pedalı yanıtını keskinleştirir.', effect: 'Daha canlı gaz tepkisi', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: Math.min(0xFF, bytes[fo] + 0x30), risk: 'low' }),
+      'Immobilizer': () => safe(fo) && list.push({ id: 'immo_off_' + offset.toString(16), label: 'Immobilizer Kapat', detail: `Adres ${hexAddr(fo)}: 0x${hexByte(bytes[fo])} → 0x00`, explain: 'Anahtar eşleşme kontrolünü kapatır.', effect: 'Motor herhangi bir anahtarla çalışır', hpGain: '', offset: fo, currentByte: bytes[fo], newByte: 0, risk: 'high' })
+    };
+    if (actions[system]) actions[system]();
+    return list;
+  }
+
+  function localScanRegions(bytes) {
+    const strings = localExtractStrings(bytes);
+    const regions = [], perSystem = new Map();
+    for (const s of strings) {
+      for (const sys of LOCAL_SYSTEMS) {
+        if (!sys.re.test(s.text)) continue;
+        const key = sys.system + ':' + s.offset;
+        if (perSystem.has(key)) continue;
+        const sysHits = [...perSystem.values()].filter(r => r.system === sys.system).length;
+        if (sysHits >= 4) continue;
+        const ws = Math.max(0, s.offset - 8);
+        const we = Math.min(bytes.length, s.offset + s.text.length + 24);
+        const acts = localBuildActions(sys.system, s.offset, bytes).map(a => ({ ...a, confidence: 'low', source: 'scanner-heuristic', sourceUrl: null }));
+        const region = { id: sys.system.toLowerCase().replace(/[^a-z]/g, '_') + '_' + s.offset.toString(16), system: sys.system, desc: sys.desc || '', foundString: s.text, offset: s.offset, offsetHex: hexAddr(s.offset), windowHex: '', windowStart: ws, source: 'scanner-heuristic', actions: acts };
+        perSystem.set(key, region);
+        regions.push(region);
+      }
+    }
+    regions.sort((a, b) => a.offset - b.offset);
+    const systems = [...new Set(regions.map(r => r.system))];
+    const systemInfos = systems.map(s => { const info = LOCAL_SYSTEMS.find(ls => ls.system === s); return { system: s, icon: info?.icon || '⚙', explain: info?.explain || '', offExplain: info?.offExplain || '', stage1: info?.stage1 || false, hpGain: info?.hpGain || '' }; });
+    const s1Features = systemInfos.filter(s => s.stage1);
+    return { regions, systems, systemInfos, stage1: s1Features.length ? { features: s1Features, totalHpGain: s1Features.map(f => f.hpGain).join(' + ') } : null, rulepackMatches: [] };
+  }
 
   // ===== HİZMET KATALOĞU (dosya yüklemeden önce görünür) =====
   const TUNING_SERVICES = [
@@ -254,26 +337,36 @@
     try {
       const buf = await f.arrayBuffer();
       const bytes = new Uint8Array(buf);
-      const CHUNK = 0x8000;
-      let bin = '';
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
+      let data = null;
+      let isOffline = false;
+
+      // Önce sunucuya dene
+      try {
+        const CHUNK = 0x8000;
+        let bin = '';
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          bin += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + CHUNK, bytes.length)));
+        }
+        const b64 = btoa(bin);
+        const res = await fetch('/api/ecu/upload', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            filename: f.name, fileData: b64,
+            make: state.vehicle.make, model: state.vehicle.model,
+            year: state.vehicle.year, ecuType: state.vehicle.ecuType
+          })
+        });
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
+      } catch (netErr) {
+        // Sunucu erişilemezse client-side analiz yap
+        isOffline = true;
+        data = localScanRegions(bytes);
+        toast('⚡ Offline analiz — sunucu bağlantısı yok');
       }
-      const b64 = btoa(bin);
 
-      const res = await fetch('/api/ecu/upload', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          filename: f.name, fileData: b64,
-          make: state.vehicle.make, model: state.vehicle.model,
-          year: state.vehicle.year, ecuType: state.vehicle.ecuType
-        })
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
-
-      state.uploadId = data.uploadId || data.upload_id;
+      state.uploadId = data.uploadId || data.upload_id || null;
       state.regions = data.regions || [];
       state.systems = data.systems || [];
       state.systemInfos = data.systemInfos || [];
@@ -284,10 +377,11 @@
 
       drop.querySelector('.ecuDropIcon').textContent = '✓';
       drop.querySelector('.ecuDropIcon').style.color = '#35df9a';
+      const modeTag = isOffline ? ' · ⚡ offline' : '';
       const rpInfo = state.rulepackMatches.length ? ` · ✓ ${state.rulepackMatches[0].familyName}` : '';
-      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge · ${state.systems.length} sistem${rpInfo}`;
+      drop.querySelector('p').textContent = `${fmtSize(f.size)} · ${state.regions.length} bölge · ${state.systems.length} sistem${rpInfo}${modeTag}`;
       renderStep2();
-      requestAISuggestions();
+      if (!isOffline) requestAISuggestions();
     } catch (err) {
       const msg = err.message === 'Load failed' || err.message === 'Failed to fetch'
         ? 'Sunucuya bağlanılamadı — internet bağlantınızı kontrol edin veya tekrar deneyin'
