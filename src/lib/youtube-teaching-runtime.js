@@ -122,17 +122,51 @@ function pageTitle(html=''){
   return decodeXml(raw).replace(/\s*-\s*YouTube\s*$/i,'').trim();
 }
 
+async function fetchViaInnertube(videoId,fetchImpl){
+  const payload={
+    context:{client:{clientName:'WEB',clientVersion:'2.20241120.01.00',hl:'tr',gl:'TR'}},
+    videoId
+  };
+  const r=await fetchImpl('https://www.youtube.com/youtubei/v1/player?prettyPrint=false',{
+    method:'POST',
+    headers:{'content-type':'application/json','user-agent':USER_AGENT},
+    body:JSON.stringify(payload)
+  });
+  if(!r?.ok)throw new Error('INNERTUBE_HTTP_'+r?.status);
+  const data=await r.json();
+  const title=data?.videoDetails?.title||'';
+  const tracks=data?.captions?.playerCaptionsTracklistRenderer?.captionTracks||[];
+  return {title,tracks};
+}
+
 export async function fetchYouTubeTranscript(resourceUrl,{fetchImpl=fetch,maxChars=120000}={}){
   const parsed=parseYouTubeResourceUrl(resourceUrl);
   if(!parsed||parsed.type!=='video')throw new Error('YOUTUBE_VIDEO_URL_REQUIRED');
-  const watchUrl=`https://www.youtube.com/watch?v=${encodeURIComponent(parsed.videoId)}&hl=tr`;
-  const html=await textFetch(watchUrl,fetchImpl);
-  const tracks=extractJsonArrayAfter(html,'"captionTracks":')||[];
+
+  let title='',tracks=[];
+
+  // Primary: innertube API (works from server IPs, no consent wall)
+  try{
+    const inner=await fetchViaInnertube(parsed.videoId,fetchImpl);
+    title=inner.title;
+    tracks=inner.tracks;
+  }catch{}
+
+  // Fallback: HTML scraping
+  if(!tracks.length){
+    try{
+      const watchUrl=`https://www.youtube.com/watch?v=${encodeURIComponent(parsed.videoId)}&hl=tr`;
+      const html=await textFetch(watchUrl,fetchImpl);
+      if(!title)title=pageTitle(html);
+      tracks=extractJsonArrayAfter(html,'"captionTracks":')||[];
+    }catch{}
+  }
+
   const preferred=tracks.find(track=>/^tr(?:-|$)/i.test(String(track?.languageCode||'')))
     ||tracks.find(track=>/^en(?:-|$)/i.test(String(track?.languageCode||'')))
     ||tracks[0];
   if(!preferred?.baseUrl){
-    return {kind:'video',source_url:parsed.url,video_id:parsed.videoId,title:pageTitle(html),captions_available:false,transcript:'',language:null};
+    return {kind:'video',source_url:parsed.url,video_id:parsed.videoId,title,captions_available:false,transcript:'',language:null};
   }
   const captionsUrl=new URL(String(preferred.baseUrl));
   captionsUrl.searchParams.set('fmt','json3');
@@ -141,7 +175,7 @@ export async function fetchYouTubeTranscript(resourceUrl,{fetchImpl=fetch,maxCha
   const payload=await response.json();
   const transcript=captionTextFromJson3(payload).slice(0,Math.max(1000,Math.min(250000,Number(maxChars)||120000)));
   return {
-    kind:'video',source_url:parsed.url,video_id:parsed.videoId,title:pageTitle(html),
+    kind:'video',source_url:parsed.url,video_id:parsed.videoId,title,
     captions_available:Boolean(transcript),transcript,language:String(preferred.languageCode||preferred.name?.simpleText||'')||null
   };
 }
