@@ -854,10 +854,19 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const original=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
-   const regions=await mod.scanRegions(original);
-   const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
-   const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
-   const toApply=allActions.filter(a=>selectedIds.includes(a.id));
+   // Primary path: use full action objects sent from frontend (no re-scan needed)
+   let toApply=[];
+   const sentActions=Array.isArray(b.actions)?b.actions:[];
+   if(sentActions.length){
+     toApply=sentActions.filter(a=>a.offset!=null&&a.offset>=0&&a.offset<original.length&&a.newByte!=null).map(a=>({id:a.id||'action',label:a.label||'',offset:Number(a.offset),currentByte:Number(a.currentByte||0),newByte:Number(a.newByte),risk:a.risk||'medium',system:a.system||''}));
+   }
+   // Fallback: re-scan and match by ID (legacy compatibility)
+   if(!toApply.length){
+     const regions=await mod.scanRegions(original);
+     const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
+     const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
+     toApply=allActions.filter(a=>selectedIds.includes(a.id));
+   }
    if(!toApply.length)return j({error:'NO_ACTIONS_SELECTED'},400);
    const result=await mod.applyActions(original,toApply);
    const tuned_id=id();
@@ -870,7 +879,10 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
      const mem=await q1(env,'SELECT id,last_modifications FROM ecu_file_memory WHERE file_hash=?',upload.file_hash);
      if(mem){const mods=JSON.parse(mem.last_modifications||'[]');mods.push(modEntry);if(mods.length>20)mods.splice(0,mods.length-20);await run(env,'UPDATE ecu_file_memory SET last_modifications=?,last_seen_at=? WHERE id=?',JSON.stringify(mods),Date.now(),mem.id)}
    }catch(memErr){}
-   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied});
+   // Build comparison data for auto-diff
+   const comparison={totalBytes:original.length,changedBytes:result.applied.length,changes:result.applied.map(a=>({offset:a.offset,offsetHex:a.offsetHex,before:a.before,after:a.after,label:a.label||'',id:a.id||''})),bySystem:{}};
+   for(const a of toApply){const sys=a.system||'Diğer';if(!comparison.bySystem[sys])comparison.bySystem[sys]={count:0,changes:[]};comparison.bySystem[sys].count++;comparison.bySystem[sys].changes.push({offset:a.offset,label:a.label||''})}
+   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied,comparison});
  }catch(e){return j({error:e.message||'GENERATE_FAILED'},500)}}
 
  if(p.startsWith('/api/ecu/download')){try{

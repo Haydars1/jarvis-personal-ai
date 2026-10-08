@@ -16,7 +16,8 @@
     aiLoading: false,
     aiSuggestions: [],
     aiProvider: '',
-    rulepackMatches: []
+    rulepackMatches: [],
+    lastComparison: null
   };
 
   const $ = s => document.querySelector(s);
@@ -738,11 +739,14 @@
   async function requestAISuggestions() {
     state.aiLoading = true;
     renderAITab();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
     try {
       const res = await fetch('/api/ecu/ai-suggest', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ uploadId: state.uploadId })
+        body: JSON.stringify({ uploadId: state.uploadId }),
+        signal: controller.signal
       });
       const data = await res.json().catch(() => ({}));
       state.aiSuggestions = data.suggestions || [];
@@ -750,8 +754,11 @@
       state.aiError = data.error || data.detail || '';
     } catch (err) {
       state.aiSuggestions = [];
-      state.aiError = 'Ağ hatası: ' + (err.message || 'bilinmiyor');
+      state.aiError = err.name === 'AbortError'
+        ? 'AI zaman aşımına uğradı (45sn). Tekrar deneyin.'
+        : 'Ağ hatası: ' + (err.message || 'bilinmiyor');
     } finally {
+      clearTimeout(timeout);
       state.aiLoading = false;
       renderAITab();
     }
@@ -827,24 +834,32 @@
     btn.innerHTML = '⏳ UYGULANIYOR...';
 
     try {
+      const actionsArr = [...state.selectedActions.values()].map(a => ({
+        id: a.id, offset: a.offset, newByte: a.newByte,
+        currentByte: a.currentByte, label: a.label, system: a.system,
+        risk: a.risk
+      }));
       const res = await fetch('/api/ecu/generate', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           uploadId: state.uploadId,
-          actionIds: [...state.selectedActions.keys()]
+          actionIds: [...state.selectedActions.keys()],
+          actions: actionsArr
         })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || data.detail || ('HTTP ' + res.status));
 
       state.tunedId = data.tunedId || data.tuned_id;
+      state.lastComparison = data.comparison || null;
       const outName = state.fileName.replace(/(\.[^.]+)$/, '_tuned$1');
       $('#ecuDoneName').textContent = outName;
       $('#ecuDoneInfo').textContent = `${fmtSize(data.size || state.fileSize)} · ${data.applied?.length || state.selectedActions.size} yama uygulandı`;
 
       $('#step2').classList.add('hidden');
       $('#step3').classList.remove('hidden');
+      renderComparisonPanel(data.comparison, data.applied);
       $('#step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
       toast('✓ Tuned dosya hazır');
     } catch (err) {
@@ -863,6 +878,86 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
+  }
+
+  // ===== OTOMATİK KARŞILAŞTIRMA PANELİ =====
+  function renderComparisonPanel(comparison, applied) {
+    let panel = $('#ecuComparePanel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'ecuComparePanel';
+      const step3 = $('#step3');
+      const actions = step3?.querySelector('.stepActions');
+      if (actions) step3.insertBefore(panel, actions);
+      else step3?.appendChild(panel);
+    }
+    if (!comparison || !applied?.length) {
+      panel.innerHTML = '';
+      return;
+    }
+    const systems = comparison.bySystem || {};
+    const sysKeys = Object.keys(systems);
+    const sysHtml = sysKeys.map(sys => {
+      const s = systems[sys];
+      const changesHtml = (s.changes || []).map(c =>
+        `<div style="font-size:11px;color:#9fb6c9;padding:2px 0">• ${esc(c.label || ('Offset ' + (c.offset != null ? '0x' + c.offset.toString(16).toUpperCase() : '?')))}</div>`
+      ).join('');
+      return `<div style="background:#0a1628;border:1px solid #203653;border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <b style="color:#9fe3ff;font-size:13px">${esc(sys)}</b>
+          <span style="background:#1a3a52;color:#35df9a;padding:2px 8px;border-radius:10px;font-size:10px">${s.count} değişiklik</span>
+        </div>
+        ${changesHtml}
+      </div>`;
+    }).join('');
+
+    const changesHtml = (comparison.changes || applied || []).map(c => {
+      const bef = c.before != null ? '0x' + c.before.toString(16).toUpperCase().padStart(2, '0') : '?';
+      const aft = c.after != null ? '0x' + c.after.toString(16).toUpperCase().padStart(2, '0') : '?';
+      const addr = c.offsetHex || (c.offset != null ? '0x' + c.offset.toString(16).toUpperCase() : '?');
+      return `<tr>
+        <td style="padding:4px 8px;font-family:monospace;color:#728899;font-size:11px">${addr}</td>
+        <td style="padding:4px 8px;font-family:monospace;color:#f88;font-size:11px">${bef}</td>
+        <td style="padding:4px 2px;color:#555;font-size:10px">→</td>
+        <td style="padding:4px 8px;font-family:monospace;color:#35df9a;font-size:11px">${aft}</td>
+        <td style="padding:4px 8px;color:#9fb6c9;font-size:11px">${esc(c.label || c.id || '')}</td>
+      </tr>`;
+    }).join('');
+
+    panel.innerHTML = `
+      <div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,#060a15,#0d1a2e);border:1px solid #203653;border-radius:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:20px">🔍</span>
+          <div>
+            <b style="color:#d0dfe8;font-size:14px">Orijinal vs Modifiye Karşılaştırma</b>
+            <small style="display:block;color:#728899;font-size:11px">${fmtSize(comparison.totalBytes || state.fileSize)} dosya · ${comparison.changedBytes || applied.length} byte değişti · ${sysKeys.length} sistem etkilendi</small>
+          </div>
+        </div>
+
+        ${sysKeys.length ? `<div style="margin-bottom:12px"><div style="color:#9fb6c9;font-size:12px;font-weight:600;margin-bottom:6px">Sistem Bazlı Özet</div>${sysHtml}</div>` : ''}
+
+        <details style="cursor:pointer">
+          <summary style="color:#9fe3ff;font-size:12px;font-weight:600;padding:6px 0;user-select:none">📊 Byte Değişim Tablosu (${comparison.changes?.length || applied.length} satır)</summary>
+          <div style="overflow-x:auto;margin-top:8px">
+            <table style="width:100%;border-collapse:collapse">
+              <thead><tr style="border-bottom:1px solid #203653">
+                <th style="padding:6px 8px;text-align:left;color:#728899;font-size:10px;font-weight:500">ADRES</th>
+                <th style="padding:6px 8px;text-align:left;color:#728899;font-size:10px;font-weight:500">ESKİ</th>
+                <th style="padding:6px 2px"></th>
+                <th style="padding:6px 8px;text-align:left;color:#728899;font-size:10px;font-weight:500">YENİ</th>
+                <th style="padding:6px 8px;text-align:left;color:#728899;font-size:10px;font-weight:500">AÇIKLAMA</th>
+              </tr></thead>
+              <tbody>${changesHtml}</tbody>
+            </table>
+          </div>
+        </details>
+
+        <div style="margin-top:10px;padding:8px;background:#0f1d2f;border-radius:8px;display:flex;align-items:center;gap:6px">
+          <span style="color:#35df9a;font-size:14px">✓</span>
+          <small style="color:#9fb6c9;font-size:11px">Dosya boyutu korundu · Sadece hedef byte'lar değiştirildi · Orijinal dosya dokunulmadı</small>
+        </div>
+      </div>
+    `;
   }
 
   // ===== DOSYA HAFIZA BANNERİ =====
