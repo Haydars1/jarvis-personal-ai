@@ -1,62 +1,32 @@
-# JARVIS Personal AI
+# 6006coding — isolated production source
 
-Kisisel JARVIS asistani icin ana kaynak deposu.
+This branch is **only** for the 6006 Performance site. JARVIS main is untouched.
 
-## Teknoloji
-
-- Cloudflare Workers
-- D1 (`DB` binding)
-- Workers AI (`AI` binding)
-- Static PWA (`public/`)
-- Opsiyonel R2 (`FILES` binding)
-- GitHub Actions ile test/deploy/self-update
-
-## Yerel kontrol
+## Build and validate
 
 ```bash
 npm install
-npm run check
-npx wrangler deploy --dry-run
+npm run build
 ```
 
-## Windows kurulum/deploy
+The build downloads a pinned, SHA256-verified static release archive (586d1cd9eee85c7cb861c8dd03470ba97a1b7143d75b0b351beb0813cc236df0), extracts its `public/` contents, and validates:
+- 5 pages;
+- at least 18,000 DTC definitions;
+- 17 component illustrations.
 
-`SETUP-AND-DEPLOY.cmd` Cloudflare oturumunu kontrol eder, D1 binding'ini yazar, semayi uygular, secret'lari olusturur, dry-run yapar ve deploy eder.
+The archive is permanently stored in the site's Floot asset storage:
+https://6006-performance.floot.app/_cdn/static/2e6d5cc2-19fa-4ff2-b7e3-e989b3788eed-6006coding-source-release.zip
 
-## GitHub Actions secret'lari
+## Automatic deployment with Render
 
-Deploy workflow icin repository secrets:
+Create a Render Static Site connected to this **GitHub repository**, selecting branch `6006coding-production`, build command `npm install && npm run build`, and Publish Directory `public`, with Auto Deploy ON.
 
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
-- `JARVIS_HEALTH_URL`
+Test the Render host first. Only then change `6006coding.de` DNS to the exact values Render shows, retaining MX, TXT and email-related records.
 
-Uygulama API anahtarlari ve OAuth secret'lari repoya yazilmaz; JARVIS Credential Manager / Cloudflare secrets kullanilir.
+New releases: create a new full source archive, verify its SHA256, and update both `archiveUrl` and `expectedSha256` in `scripts/build.mjs`. Every push then triggers validation and Render deployment.
 
-## Self Update
+## Note
 
-JARVIS degisiklikleri `jarvis/*` branch'lerinde hazirlayip PR acacak sekilde tasarlanmistir. `.github/workflows/jarvis-self-update.yml` syntax/dry-run testlerinden sonra bu PR'lari birlestirebilir.
+The static release is self-contained after a successful build, but **the pre-build source archive currently lives in Floot storage**. Move this archive into the repository or stable release storage when possible so the build has no external source dependency. Images are illustrative, not vehicle-specific OEM drawings. DTC source: Wal33D/dtc-database (MIT).
 
-Ana repo: `Haydars1/jarvis-personal-ai`
-
-## Code graph
-
-Repository dependency/impact analysis is local-first and JARVIS-owned. The default graph build uses the native deterministic parser and requires no Graphify installation, Python runtime, hosted account or paid API.
-
-```bash
-npm run graph:build
-npm run graph:check
-npm run graph:query -- find orchestrator
-npm run graph:query -- impact src/worker.js
-```
-
-The native engine scans supported repository files with bounded discovery and extracts JS/TS, Swift, SQL/D1 and repository config/workflow relationships into the normalized version-1 graph contract.
-
-Graphify remains optional reference tooling only. If a raw Graphify JSON export is available, it can be normalized separately and compared without overwriting the native artifact:
-
-```bash
-npm run graph:build:graphify -- path/to/graphify.json
-npm run graph:compare
-```
-
-Normal `npm run check`, Cloudflare Worker runtime and the required Code Graph CI path do not depend on Python or Graphify.
+Never edit JARVIS main or change DNS as part of the build job.

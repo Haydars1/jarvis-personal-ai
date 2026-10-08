@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: 6006coding
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./public
+    autoDeployTrigger: commit
