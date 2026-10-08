@@ -373,7 +373,7 @@ function envProviderTasks(env,messages,mode,preferred=[]){
  if(env.TOGETHER_API_KEY)add('env:together','Together',ms=>callOpenAICompat('https://api.together.xyz/v1',env.TOGETHER_API_KEY,env.TOGETHER_MODEL||'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',messages,ms,'together'));
  if(env.PERPLEXITY_API_KEY)add('env:perplexity','Perplexity',ms=>callOpenAICompat('https://api.perplexity.ai',env.PERPLEXITY_API_KEY,env.PERPLEXITY_MODEL||'sonar-pro',messages,ms,'perplexity'));
  if(env.XAI_API_KEY)add('env:xai','xAI',ms=>callOpenAICompat('https://api.x.ai/v1',env.XAI_API_KEY,env.XAI_MODEL||'grok-3-mini',messages,ms,'xai'));
- if(env.AI){const cf=mode==='fast'?['@cf/google/gemma-3-12b-it','@cf/meta/llama-3.1-8b-instruct-fp8']:['@cf/google/gemma-3-12b-it','@cf/qwen/qwen1.5-14b-chat-awq','@cf/meta/llama-3.1-8b-instruct-fp8'];for(const model of cf)add('cf:'+model,'Cloudflare AI ('+model+')',ms=>callCloudflareModel(env,model,messages,ms))}
+ if(env.AI){const cf=mode==='fast'?['@cf/meta/llama-3.3-70b-instruct-fp8-fast','@cf/google/gemma-3-12b-it']:['@cf/meta/llama-3.3-70b-instruct-fp8-fast','@cf/google/gemma-3-12b-it','@cf/meta/llama-3.1-8b-instruct-fp8'];for(const model of cf)add('cf:'+model,'Cloudflare AI ('+model+')',ms=>callCloudflareModel(env,model,messages,ms))}
  const fast=['OpenRouter','Groq','Cerebras','OpenAI','Anthropic','Gemini','Mistral','DeepSeek','Together','Perplexity','xAI','Cloudflare'],strong=['OpenRouter','OpenAI','Anthropic','Gemini','Groq','DeepSeek','Mistral','Together','Perplexity','xAI','Cerebras','Cloudflare'];
  const rank=(x,arr)=>{const label=String(x.label||'').toLowerCase(),id=String(x.id||'').toLowerCase();const pref=preferred.findIndex(p=>label.includes(p)||id.includes(p));if(pref>=0)return pref;const i=arr.findIndex(p=>x.label.includes(p));return i<0?99:i+preferred.length};
  return tasks.sort((a,b)=>rank(a,mode==='fast'?fast:strong)-rank(b,mode==='fast'?fast:strong));
@@ -826,14 +826,14 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    let aiSuggestions=[],provider='unknown',rawText='';
    // Try aiFallback first, then direct Cloudflare AI as fallback
    try{
-     const a=await withTimeout(aiFallback(env,[{role:'system',content:sys},{role:'user',content:userMsg}],{userText:userMsg,mode:'fast'}),15000,'AI_SUGGEST_TIMEOUT');
+     const a=await withTimeout(aiFallback(env,[{role:'system',content:sys},{role:'user',content:userMsg}],{userText:userMsg,mode:'strong'}),25000,'AI_SUGGEST_TIMEOUT');
      rawText=a?.text||'';provider=a?.provider||'unknown';
    }catch(e1){
      // aiFallback failed — try env.AI directly (Cloudflare AI free tier)
      if(env.AI){try{
-       const cfModels=['@cf/meta/llama-3.1-8b-instruct','@cf/google/gemma-3-12b-it','@cf/qwen/qwen1.5-14b-chat-awq'];
+       const cfModels=['@cf/meta/llama-3.3-70b-instruct-fp8-fast','@cf/google/gemma-3-12b-it','@cf/meta/llama-3.1-8b-instruct-fp8'];
        for(const cfm of cfModels){try{
-         const r=await withTimeout(env.AI.run(cfm,{messages:[{role:'system',content:sys},{role:'user',content:userMsg}],max_tokens:1500}),12000,'CF_AI_TIMEOUT');
+         const r=await withTimeout(env.AI.run(cfm,{messages:[{role:'system',content:sys},{role:'user',content:userMsg}],temperature:0.3,max_tokens:1500}),18000,'CF_AI_TIMEOUT');
          rawText=typeof r==='string'?r:(r?.response||r?.result||'');
          if(rawText){provider='Cloudflare AI ('+cfm.split('/').pop()+')';break}
        }catch{continue}}

@@ -526,24 +526,88 @@ export async function scanRegions(bytes) {
   }
 
   // 3) ECU-tip profil çıkarımı — string'lerden bulunamayan sistemleri ekle
+  //    Raw byte-scan ile keyword arayarak gerçek offset bulmaya çalış
   const ecuProfile = detectEcuType(strings);
   const foundSystems = new Set(regions.map(r => r.system));
+
+  // Her sistem için raw byte-scan keyword'leri
+  const SYSTEM_KEYWORDS = {
+    'EGR': ['EGR','AGR','ExhGas','EGR_V','AGR_V','EGR_Rate'],
+    'DPF': ['DPF','FAP','Regen','Soot','PartFilter','RussMen','DiffPres'],
+    'AdBlue/SCR': ['AdBlue','SCR','Urea','Harnstoff','DeNOx','BlueTec'],
+    'Lambda': ['Lambda','O2S','LSU','Sonde','HEGO','KatDiag','Vorkat'],
+    'Boost': ['Boost','LDR','Ladedruck','P2Soll','Turbo','VTG','Wastegate','LadeDr'],
+    'Torque': ['Torque','Drehmoment','M_Soll','MomentLim','MomFahr'],
+    'Injection': ['Inj_Q','QNFLM','Einspritz','RailDr','InjVol','MengSoll'],
+    'Hız sınırı': ['Vmax','V_Max','SpeedLim','GeschBeg'],
+    'RPM sınırı': ['RPM','Drehzahl','nLim','N_Lim','nMax'],
+    'Pedal': ['Pedal','FahrPed','APP_','Gaspedal','AccPedal'],
+    'Immobilizer': ['Immo','IMMO','WFS','Wegfahr'],
+    'DTC': ['DTC','FehlerSp','DiagErr','CEL_','MIL_']
+  };
+
   for (const expectedSys of ecuProfile.systems) {
     if (!foundSystems.has(expectedSys)) {
       const sysInfo = SYSTEMS.find(s => s.system === expectedSys);
       if (!sysInfo) continue;
-      regions.push({
-        id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
-        system: expectedSys,
-        desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil tahmini)`,
-        foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
-        offset: 0,
-        offsetHex: '0x000000',
-        windowHex: '',
-        windowStart: 0,
-        source: 'ecu-profile',
-        actions: []
-      });
+
+      // Raw byte-scan: keyword'leri doğrudan binary'de ara
+      let bestOffset = -1;
+      let foundKeyword = '';
+      const keywords = SYSTEM_KEYWORDS[expectedSys] || [expectedSys];
+      for (const kw of keywords) {
+        if (bestOffset >= 0) break;
+        const kwBytes = te.encode(kw);
+        for (let i = 0; i <= bytes.length - kwBytes.length; i++) {
+          let match = true;
+          for (let j = 0; j < kwBytes.length; j++) {
+            if (bytes[i + j] !== kwBytes[j]) { match = false; break; }
+          }
+          if (match) { bestOffset = i; foundKeyword = kw; break; }
+        }
+      }
+
+      if (bestOffset >= 0) {
+        // Keyword bulundu — gerçek offset ile aksiyon oluştur
+        const windowStart = Math.max(0, bestOffset - 8);
+        const windowEnd = Math.min(bytes.length, bestOffset + foundKeyword.length + 24);
+        const windowBytes = bytes.subarray(windowStart, windowEnd);
+
+        const profileActions = buildActions(expectedSys, bestOffset, bytes).map(a => ({
+          ...a,
+          id: 'profile_' + a.id,
+          confidence: 'medium',
+          source: 'ecu-profile-bytescan',
+          detail: a.detail + ' (profil byte-tarama)'
+        }));
+
+        regions.push({
+          id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_') + '_' + bestOffset.toString(16),
+          system: expectedSys,
+          desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil — "${foundKeyword}" bulundu)`,
+          foundString: foundKeyword,
+          offset: bestOffset,
+          offsetHex: hexAddr(bestOffset),
+          windowHex: hexDump(windowBytes),
+          windowStart,
+          source: 'ecu-profile-bytescan',
+          actions: profileActions
+        });
+      } else {
+        // Hiç bulunamadı — yine de region olarak göster, ama aksiyonsuz
+        regions.push({
+          id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
+          system: expectedSys,
+          desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil tahmini — konum bulunamadı)`,
+          foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
+          offset: 0,
+          offsetHex: '0x000000',
+          windowHex: '',
+          windowStart: 0,
+          source: 'ecu-profile',
+          actions: []
+        });
+      }
     }
   }
 

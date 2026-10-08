@@ -614,8 +614,9 @@
           ${actionGroups.map(([label, items]) => {
             const first = items[0].action;
             const isRulepack = first.source && first.source.startsWith('rulepack:');
-            const srcLabel = isRulepack ? '✓ Doğrulanmış' : '⚠ Heuristik';
-            const srcColor = isRulepack ? '#35df9a' : '#ffbe55';
+            const isProfile = first.source === 'ecu-profile-bytescan';
+            const srcLabel = isRulepack ? '✓ Doğrulanmış' : isProfile ? '🔍 Profil Tarama' : '⚠ Heuristik';
+            const srcColor = isRulepack ? '#35df9a' : isProfile ? '#5e9eff' : '#ffbe55';
 
             if (items.length === 1) {
               // Tek offset — klasik kart
@@ -746,8 +747,10 @@
       const data = await res.json().catch(() => ({}));
       state.aiSuggestions = data.suggestions || [];
       state.aiProvider = data.provider || '';
+      state.aiError = data.error || data.detail || '';
     } catch (err) {
-      state.aiSuggestions = [{ system: 'Hata', action: err.message, result: '', risk: 'unknown' }];
+      state.aiSuggestions = [];
+      state.aiError = 'Ağ hatası: ' + (err.message || 'bilinmiyor');
     } finally {
       state.aiLoading = false;
       renderAITab();
@@ -770,10 +773,12 @@
     }
 
     if (!state.aiSuggestions.length) {
+      const detail = state.aiError || '';
       el.innerHTML = `
         <div style="padding:20px;text-align:center">
           <div style="font-size:24px;margin-bottom:8px">🤖</div>
           <div class="muted">AI şu anda öneri döndüremedi.</div>
+          ${detail ? `<div class="muted" style="font-size:11px;margin-top:6px;color:#f88">${esc(detail)}</div>` : ''}
           <div style="display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap">
             <button class="softBtn ecuRetryAI" onclick="window.__ecuRetryAI && window.__ecuRetryAI()">🔄 Tekrar Dene</button>
             <button class="softBtn" onclick="document.querySelector('.ecuTab[data-tab=manual]')?.click()">Manuel Seçeneklere Dön</button>
