@@ -620,15 +620,15 @@
             const srcColor = isRulepack ? '#35df9a' : isProfile ? '#5e9eff' : '#ffbe55';
 
             if (items.length === 1) {
-              // Tek offset — klasik kart
+              // Tek offset — klasik kart (div, label değil — iOS uyumluluğu)
               const a = first;
               return `
-                <div class="ecuActionCard" data-id="${esc(a.id)}">
+                <div class="ecuActionCard ecuActionSingle" data-id="${esc(a.id)}">
                   <div class="ecuActionTop">
-                    <label class="ecuActionLabel">
+                    <div class="ecuActionLabel">
                       <input type="checkbox" class="ecuActionCheck" data-id="${esc(a.id)}">
                       <b>${esc(a.label)}</b>
-                    </label>
+                    </div>
                     <div class="ecuActionBadges">
                       <span class="ecuRiskPill" style="background:${srcColor}22;color:${srcColor}">${srcLabel}</span>
                       <span class="ecuRiskPill" style="background:${riskColor(a.risk)}22;color:${riskColor(a.risk)}">${riskLabel(a.risk)}</span>
@@ -661,10 +661,10 @@
                 ${first.effect ? `<div class="ecuActionEffect">→ ${esc(first.effect)}</div>` : ''}
                 <div class="ecuActionOffsets">
                   ${items.map(item => `
-                    <label class="ecuOffsetRow">
+                    <div class="ecuOffsetRow" data-aid="${esc(item.action.id)}">
                       <input type="checkbox" class="ecuActionCheck" data-id="${esc(item.action.id)}">
                       <code>${esc(item.action.detail)}</code>
-                    </label>
+                    </div>
                   `).join('')}
                 </div>
               </div>
@@ -677,23 +677,61 @@
     }).join('');
   }
 
+  function toggleAction(cb) {
+    const aid = cb.dataset.id;
+    const action = findActionById(aid);
+    if (!action) {
+      // Debug: ID eşleşmedi — kullanıcıya göster
+      console.warn('[ECU] findActionById NULL for:', aid, 'regions:', state.regions.map(r => r.actions.map(a => a.id)));
+      toast('⚠ Aksiyon bulunamadı (ID: ' + aid + ')');
+      cb.checked = !cb.checked; // Görsel toggle'ı geri al
+      return;
+    }
+    const card = cb.closest('.ecuActionCard');
+    if (cb.checked) {
+      state.selectedActions.set(aid, action);
+      card?.classList.add('selected');
+    } else {
+      state.selectedActions.delete(aid);
+      const anyChecked = card && card.querySelector('.ecuActionCheck:checked');
+      if (!anyChecked) card?.classList.remove('selected');
+    }
+    updateGoCount();
+  }
+
   function bindActionCards() {
+    // Label yerine div kullanıyoruz (iOS Safari label-checkbox bug'ı)
+    // Tüm toggle'lar click handler'lar üzerinden
+
+    // 1) Tek-aksiyon kartları — kartın HER YERİNE dokunma ile toggle
+    $$('.ecuActionCard.ecuActionSingle').forEach(card => {
+      card.addEventListener('click', e => {
+        if (e.target.closest('a')) return; // Link tıklaması
+        e.preventDefault();
+        const cb = card.querySelector('.ecuActionCheck');
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        toggleAction(cb);
+      });
+    });
+
+    // 2) Gruplanmış kartlarda her offset satırına dokunma ile toggle
+    $$('.ecuOffsetRow').forEach(row => {
+      row.addEventListener('click', e => {
+        e.preventDefault();
+        const cb = row.querySelector('.ecuActionCheck');
+        if (!cb) return;
+        cb.checked = !cb.checked;
+        toggleAction(cb);
+      });
+    });
+
+    // 3) Checkbox'a doğrudan tıklamayı da yakala (change event, kart handler ile çakışmasın)
     $$('.ecuActionCheck').forEach(cb => {
-      cb.addEventListener('change', e => {
-        const aid = e.target.dataset.id;
-        const action = findActionById(aid);
-        if (!action) return;
-        const card = e.target.closest('.ecuActionCard');
-        if (e.target.checked) {
-          state.selectedActions.set(aid, action);
-          card?.classList.add('selected');
-        } else {
-          state.selectedActions.delete(aid);
-          // Gruplanmış kartta başka seçili checkbox varsa selected kalsın
-          const anyChecked = card && card.querySelector('.ecuActionCheck:checked');
-          if (!anyChecked) card?.classList.remove('selected');
-        }
-        updateGoCount();
+      cb.addEventListener('click', e => {
+        e.stopPropagation(); // Kart/satır handler'ına da gitmesini engelle
+        // checked zaten browser tarafından toggle edildi
+        toggleAction(cb);
       });
     });
   }

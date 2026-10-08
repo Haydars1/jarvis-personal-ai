@@ -168,13 +168,14 @@ h3{font-size:14px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercas
 .ecuRegionStr{color:#9fb6c9;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* === ECU ACTION CARD === */
-.ecuActionCard{margin:6px 0;padding:12px;background:#081226;border:1px solid #294466;border-radius:12px;transition:border-color .15s,background .15s}
+.ecuActionCard{margin:6px 0;padding:12px;background:#081226;border:1px solid #294466;border-radius:12px;transition:border-color .15s,background .15s;cursor:pointer;-webkit-tap-highlight-color:rgba(53,223,154,.15);touch-action:manipulation}
 .ecuActionCard:hover{border-color:#31dfff44}
+.ecuActionCard:active{background:#0a1a30}
 .ecuActionCard.selected{border-color:#35df9a;background:#07140e}
 .ecuActionTop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}
-.ecuActionLabel{display:flex;align-items:center;gap:8px;cursor:pointer}
+.ecuActionLabel{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:44px;-webkit-tap-highlight-color:transparent}
 .ecuActionLabel b{font-size:13px}
-.ecuActionCheck{width:18px;height:18px;accent-color:#35df9a;cursor:pointer;flex:0 0 18px}
+.ecuActionCheck{width:22px;height:22px;accent-color:#35df9a;cursor:pointer;flex:0 0 22px;touch-action:manipulation}
 .ecuActionBadges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .ecuRiskPill{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;white-space:nowrap}
 .ecuActionExplain{margin-top:8px;font-size:12px;line-height:1.5;color:#b8d0e0}
@@ -185,8 +186,8 @@ h3{font-size:14px;margin:14px 0 8px;letter-spacing:.04em;text-transform:uppercas
 
 /* === ECU GROUPED ACTIONS === */
 .ecuActionGrouped .ecuActionOffsets{margin-top:10px;display:grid;gap:4px}
-.ecuOffsetRow{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#060a15;border-radius:6px;cursor:pointer;font-size:12px;transition:background .12s}
-.ecuOffsetRow:hover{background:#0a1222}
+.ecuOffsetRow{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#060a15;border-radius:6px;cursor:pointer;font-size:12px;transition:background .12s;min-height:44px;-webkit-tap-highlight-color:rgba(53,223,154,.15);touch-action:manipulation}
+.ecuOffsetRow:hover,.ecuOffsetRow:active{background:#0a1222}
 .ecuOffsetRow code{color:#9fb6c9;font-size:11px}
 .ecuOffsetCount{font-size:10px;padding:2px 7px;background:#31dfff18;color:#31dfff;border-radius:5px;font-weight:600;margin-left:6px}
 .ecuSysNoAction{opacity:.55}
