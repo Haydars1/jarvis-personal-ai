@@ -1,0 +1,30 @@
+name: Agent Hub validation
+on:
+  pull_request:
+    paths:
+      - 'src/lib/agent-hub-*'
+      - 'src/application/capabilities/cloud-execution.js'
+      - 'src/lib/user-curated-capability-seeds.js'
+      - 'public/agent-hub-ui.js'
+      - 'tests/agent-hub-*'
+      - '.github/workflows/agent-hub-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check src/lib/agent-hub-providers.js
+          node --check src/lib/agent-hub-workflow.js
+          node --check src/application/capabilities/cloud-execution.js
+          node --check public/agent-hub-ui.js
+      - name: Unit tests
+        run: node --test tests/agent-hub-*.test.js
