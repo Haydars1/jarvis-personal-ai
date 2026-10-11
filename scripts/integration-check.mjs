@@ -79,6 +79,9 @@ try {
   assert.equal(result.job.status, 'completed');
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
+  const hubDashboard = await (await call('/api/tools/agent-hub', 200)).json();
+  assert.equal(hubDashboard.ok,true);
+  assert.ok(hubDashboard.capabilities.curated_repositories>0);
   const hubCatalog = await (await call('/api/tools/agent-hub/catalog', 200)).json();
   assert.ok(hubCatalog.repositories.includes('haydars1/jarvis-personal-ai'));
   assert.ok(hubCatalog.repositories.includes('haydars1/6006coding-site'));
@@ -136,7 +139,15 @@ try {
       // Tools is no longer a navigation page: Agent Hub is mounted under settings.
       await page.locator('[data-page="settings"]:visible').first().click();
       await page.locator('#jarvisAgentHub').waitFor({ state:'visible' });
-      await page.locator('#agentHubStats').filter({ hasText:'Katalog:' }).waitFor();
+      const hubResponse = await page.evaluate(async()=>{
+        const res=await fetch('/api/tools/agent-hub',{credentials:'same-origin'});
+        return {status:res.status,body:await res.text()};
+      });
+      console.log('Browser Agent Hub API',hubResponse.status,hubResponse.body.slice(0,400));
+      console.log('Browser Agent Hub panel',await page.locator('#agentHubStats').innerText(),
+        await page.locator('#agentHubMessage').innerText());
+      assert.equal(hubResponse.status,200,'Agent Hub must be available to authenticated browser session');
+      await page.locator('#agentHubStats').filter({ hasText:'Katalog:' }).waitFor({ timeout:10000 });
       await page.locator('#hubAutoRepo').fill('Haydars1/jarvis-personal-ai');
       await page.locator('#hubAutoTask').fill('ECU dosya yükleme sorunu');
       assert.equal(await page.locator('#hubAutoRepo').inputValue(),'Haydars1/jarvis-personal-ai');
