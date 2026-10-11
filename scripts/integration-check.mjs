@@ -133,15 +133,18 @@ try {
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
-      await page.locator('[data-page="tools"]:visible').first().click();
-      await page.locator('#repositoryRefresh').click();
-      await page.locator('#repositoryStatus').filter({ hasText: `${expectedRepositoryTotal} repo` }).waitFor();
-      assert.equal(await page.locator('#repositoryRows article').count(), expectedRepositoryTotal);
-      await page.locator('#repositorySearch').fill('thinkcar-tc-reader');
-      assert.equal(await page.locator('#repositoryRows article').count(), 1);
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
+      // Tools is no longer a navigation page: Agent Hub is mounted under settings.
+      await page.locator('[data-page="settings"]:visible').first().click();
+      await page.locator('#jarvisAgentHub').waitFor({ state:'visible' });
+      await page.locator('#agentHubStats').filter({ hasText:'Katalog:' }).waitFor();
+      await page.locator('#hubAutoRepo').fill('Haydars1/jarvis-personal-ai');
+      await page.locator('#hubAutoTask').fill('ECU dosya yükleme sorunu');
+      assert.equal(await page.locator('#hubAutoRepo').inputValue(),'Haydars1/jarvis-personal-ai');
+      await page.locator('#hubSkillSource').selectOption('anthropics/skills');
+      await page.screenshot({ animations:'disabled',timeout:10000,path:'.wrangler/browser-report/agent-hub-settings.png',fullPage:true });
+      // Repository counts are checked through the authenticated HTTP API above.
       assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log(`Browser checks passed: sign-in, ECU upload, analysis options, device panel, ${expectedRepositoryTotal}-repo catalog, desktop/mobile rendering. TC/PDF diagnostic API checks passed separately.`);
+      console.log(`Browser checks passed: sign-in, ECU upload, analysis options, device panel, Agent Hub settings, desktop/mobile rendering. TC/PDF diagnostic API checks passed separately.`);
     } finally { await browser.close(); }
   }
   console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);
