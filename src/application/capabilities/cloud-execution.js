@@ -1,3 +1,4 @@
+import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
 import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js';
@@ -217,6 +218,10 @@ export function createCloudCapabilityExecution(core){
     async fetch(req,env,ctx){
       const url=new URL(req.url),path=url.pathname,method=req.method;
       // Agent Hub: unified cloud dashboard + safe skill routing without enabling arbitrary execution.
+      if(path==='/api/tools/agent-hub/providers'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        return jsonResponse({providers:hubProviderStatus(env),mode:'Cloudflare Workers',installation:'external services required'});
+      }
       if(path==='/api/tools/agent-hub'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         const skills=(await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300')).map(publicSkill);
