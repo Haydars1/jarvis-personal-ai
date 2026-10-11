@@ -42,10 +42,25 @@
       const repo=$('hubAutoRepo').value.trim(),task=$('hubAutoTask').value.trim();
       if(!repo||!task){$('agentHubMessage').textContent='Depo ve görev gerekli';return;}
       try{
-        const result=await api('/api/tools/agent-hub/agent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({repo,task})});
-        $('agentHubMessage').textContent='Ajan kuyruğa eklendi: '+result.workflow_id+' — 3 görev adımı.';
+        const result=await api('/api/tools/agent-hub/durable',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({repo,task})});
+        $('agentHubMessage').textContent='Cloudflare ajanı başlatıldı: '+result.workflow_id+' — '+result.plan.steps.length+' adım.';
+        $('agentHubWorkflowId').value=result.workflow_id;
         refresh();
       }catch(error){$('agentHubMessage').textContent=error.message;}
+    });
+    const track=document.createElement('div');
+    track.innerHTML='<h3>Cloudflare ajan durumu</h3><input id="agentHubWorkflowId" placeholder="Workflow kimliği" aria-label="Workflow kimliği"><button type="button" id="hubCheckWorkflow">Ajan durumunu kontrol et</button><pre id="hubWorkflowReport" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre>';
+    section.appendChild(track);
+    $('hubCheckWorkflow').addEventListener('click',async()=>{
+      const id=$('agentHubWorkflowId').value.trim();
+      if(!/^[a-f0-9-]{36}$/i.test(id)){$('hubWorkflowReport').textContent='Geçerli bir Workflow kimliği gir.';return;}
+      try{
+        const data=await api('/api/tools/agent-hub/durable/'+encodeURIComponent(id));
+        const output=data.output||{};
+        $('hubWorkflowReport').textContent='Durum: '+(data.status||'?')+
+          (output.summary?'\\n\\n'+String(output.summary.text||''):'')+
+          (output.progress?'\\n\\nGörev: '+String(output.progress.status||''):'');
+      }catch(error){$('hubWorkflowReport').textContent=error.message;}
     });
     const providers=document.createElement('div');
     providers.innerHTML='<h3>Entegrasyonlar</h3><div id="agentHubProviders">Durum yükleniyor...</div>';
