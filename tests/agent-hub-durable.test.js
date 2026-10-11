@@ -41,3 +41,15 @@ test('authenticated durable launch and status APIs are present',()=>{
   assert.match(api,/env\.AGENT_HUB_WORKFLOW\.get/);
   assert.match(api,/appAuthed\(core,req,env,ctx\)/);
 });
+
+test('out-of-order GitHub callbacks cannot regress durable stage progress',()=>{
+ const rows=[row('wf',2,'completed'),row('wf',0,'completed'),row('wf',1,'completed')];
+ assert.equal(hubWorkflowProgress(rows,'wf',3).status,'completed');
+});
+test('nullable result payload from a failed GitHub job never crashes reporting',()=>{
+ const rows=[{...row('wf',0,'failed',1),result_json:'null',error:null}];
+ const report=deterministicHubReport(rows,'wf',3);
+ assert.equal(report.status,'failed');
+ assert.equal(typeof report.jobs[0].result,'string');
+ assert.equal(typeof report.jobs[0].error,'string');
+});
