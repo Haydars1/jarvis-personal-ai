@@ -79,6 +79,14 @@ try {
   assert.equal(result.job.status, 'completed');
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
+  const hubCatalog = await (await call('/api/tools/agent-hub/catalog', 200)).json();
+  assert.ok(hubCatalog.repositories.includes('haydars1/jarvis-personal-ai'));
+  assert.ok(hubCatalog.repositories.includes('haydars1/6006coding-site'));
+  const hubProviders = await (await call('/api/tools/agent-hub/providers', 200)).json();
+  assert.deepEqual(hubProviders.providers.map(p => p.id), ['openhands','n8n','skills','ollama']);
+  assert.ok(hubProviders.providers.every(p => p.available === false));
+  await call('/api/tools/agent-hub/durable/no-such-workflow', 404, undefined);
+
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
