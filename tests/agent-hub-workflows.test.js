@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateHubSteps,nextHubStep } from '../src/lib/agent-hub-workflow.js';
+import { validateHubSteps,nextHubStep,createAgentPlan } from '../src/lib/agent-hub-workflow.js';
 import {readFileSync} from 'node:fs';
 const repo=new Set(['owner/sample']);
 test('validates curated read-only steps',()=>{
@@ -26,4 +26,16 @@ test('Cloudflare existing entrypoint routes authenticated hub API',()=>{
  assert.match(src,/\/api\/tools\/agent-hub\/workflows/);
  assert.match(src,/appAuthed\(core,req,env,ctx\)/);
  assert.match(src,/nextHubStep\(input.__agent_hub,ok\)/);
+});
+
+test('task-to-agent plan is bounded and uses allowlisted adapters',()=>{
+ const plan=createAgentPlan({repo:'owner/sample',task:'Examine payment error'},repo);
+ assert.equal(plan.steps.length,3);
+ assert.deepEqual(plan.steps.map(s=>s.adapter_id),['repo-inspect','source-search','skill-analyze']);
+ assert.throws(()=>createAgentPlan({repo:'unknown/tool',task:'inspect'},repo),/REPOSITORY_NOT_CURATED/);
+});
+test('authenticated agent launch appears in existing Cloudflare API',()=>{
+ const src=readFileSync(new URL('../src/application/capabilities/cloud-execution.js',import.meta.url),'utf8');
+ assert.match(src,/\/api\/tools\/agent-hub\/agent/);
+ assert.match(src,/createAgentPlan\(body,CURATED_REPOS\)/);
 });
