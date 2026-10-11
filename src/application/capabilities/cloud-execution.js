@@ -1,3 +1,4 @@
+import { validateHubSteps, nextHubStep } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
 import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from '../../lib/obd-pdf-seeds.js';
@@ -241,6 +242,27 @@ export function createCloudCapabilityExecution(core){
           next_step:matches.length?'SELECT_APPROVED_SKILL':'NO_VERIFIED_SKILL',
           automatic_execution:false,reason:'GitHub araclari guvenlik onayi olmadan calistirilmaz'});
       }
+      if(path==='/api/tools/agent-hub'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const rows=await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300');
+        const jobs=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 30');
+        return jsonResponse({ok:true,language:'tr',skills:rows.map(publicSkill),jobs:jobs.map(publicJob),curated_repositories:CURATED_REPOS.size});
+      }
+      if(path==='/api/tools/agent-hub/workflows'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        let steps;
+        try{steps=validateHubSteps(body.steps,CURATED_REPOS);}catch(e){return jsonResponse({error:e.message},400);}
+        const workflow_id=uid();
+        const input={...steps[0].input,__agent_hub:{workflow_id,position:0,attempts:0,steps}};
+        const job=await queueCloudJob(env,{adapterId:steps[0].adapter_id,repo:steps[0].repo,input});
+        return jsonResponse({ok:true,workflow_id,job,steps:steps.length},202);
+      }
+      if(path==='/api/tools/agent-hub/workflows'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const rows=await queryAll(env,"SELECT * FROM cloud_tool_jobs WHERE input_json LIKE '%__agent_hub%' ORDER BY created_at DESC LIMIT 100");
+        return jsonResponse({jobs:rows.map(publicJob)});
+      }
       if(path==='/api/tools/cloud/adapters'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({adapters:Object.entries(ALLOWED_ADAPTERS).map(([id,meta])=>({id,...meta})),curated_repositories:CURATED_REPOS.size});
@@ -313,6 +335,14 @@ export function createCloudCapabilityExecution(core){
         let persistedSkill=null;
         if(ok&&row.adapter_id==='skill-analyze')persistedSkill=await upsertRepositorySkill(env,body.result,ts);
         await execute(env,'UPDATE cloud_tool_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=?',ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'CLOUD_TOOL_FAILED'),ts,ts,id);
+        // Schedule only the next validated read-only step; one retry per failed step.
+        if(row.status==='running'){
+          const input=parse(row.input_json,{});
+          const next=nextHubStep(input.__agent_hub,ok);
+          if(next){
+            await queueCloudJob(env,{adapterId:next.adapter_id,repo:next.repo,input:{...next.input,__agent_hub:next.meta}});
+          }
+        }
         return jsonResponse({ok:true,skill:persistedSkill,job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id))});
       }
       return core.fetch(req,env,ctx);
