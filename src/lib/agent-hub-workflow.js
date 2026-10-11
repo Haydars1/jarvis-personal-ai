@@ -18,3 +18,19 @@ export function nextHubStep(meta,ok){
   if(!ok)return Number(meta.attempts||0)<1?{...meta.steps[position],meta:{...meta,attempts:1}}:null;
   return position+1<meta.steps.length?{...meta.steps[position+1],meta:{...meta,position:position+1,attempts:0}}:null;
 }
+
+/** Deterministic task-to-agent planner: no paid LLM call, no arbitrary execution. */
+export function createAgentPlan({task,repo},curated){
+ const goal=String(task||'').trim().slice(0,1000);
+ const name=String(repo||'').trim();
+ if(!goal)throw Error('TASK_REQUIRED');
+ if(!curated.has(name.toLowerCase()))throw Error('REPOSITORY_NOT_CURATED');
+ const terms=goal.toLowerCase().match(/[a-z0-9_-]{3,}/g)||[];
+ const search=terms.find(t=>!['please','check','inspect','repository','github','project','jarvis','kontrol','incele','hatayi','hatasi','sistem','kodlari','bulun','bakar','ariza'].includes(t))||'TODO';
+ const steps=[
+ {adapter_id:'repo-inspect',repo:name,input:{source:'agent-hub',goal}},
+ {adapter_id:'source-search',repo:name,input:{term:search,source:'agent-hub',goal}},
+ {adapter_id:'skill-analyze',repo:name,input:{source:'agent-hub',goal}}
+ ];
+ return {goal,repo:name,steps:validateHubSteps(steps,curated),roles:['araştırmacı','kod inceleyici','beceri analisti']};
+}
