@@ -64,3 +64,11 @@ test('cloud runner claims and reports cannot duplicate chained tasks',()=>{
  assert.match(src,/AND status='running' AND claimed_by=\?/);
  assert.match(src,/Number\(result\?\.meta\?\.changes\|\|0\)!==1/);
 });
+
+test('runner ownership is checked before duplicate result is disclosed',()=>{
+ const src=readFileSync(new URL('../src/application/capabilities/cloud-execution.js',import.meta.url),'utf8');
+ const owner=src.indexOf("if(row.claimed_by!==");
+ const duplicate=src.indexOf("if(row.status!=='running')");
+ assert.ok(owner>=0&&duplicate>owner);
+ assert.match(src,/try\{persistedSkill=await upsertRepositorySkill/);
+});
