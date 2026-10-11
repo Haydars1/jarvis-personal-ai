@@ -1,3 +1,4 @@
+import { APPROVED_SKILL_REPOS, discoverSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
 import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
@@ -218,6 +219,22 @@ export function createCloudCapabilityExecution(core){
     async fetch(req,env,ctx){
       const url=new URL(req.url),path=url.pathname,method=req.method;
       // Agent Hub: unified cloud dashboard + safe skill routing without enabling arbitrary execution.
+      if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/skills-directory'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const repo=String(url.searchParams.get('repo')||APPROVED_SKILL_REPOS[0]);
+        try{return jsonResponse(await discoverSkillManifests(repo));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
+      if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const repo=String(url.searchParams.get('repo')||''),file=String(url.searchParams.get('path')||'');
+        try{return jsonResponse(await previewSkillManifest(repo,file));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
       if(path==='/api/tools/agent-hub/providers'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({providers:hubProviderStatus(env),mode:'Cloudflare Workers',installation:'external services required'});
@@ -246,12 +263,6 @@ export function createCloudCapabilityExecution(core){
         return jsonResponse({ok:true,task,language:'tr',recommended_skills:matches,
           next_step:matches.length?'SELECT_APPROVED_SKILL':'NO_VERIFIED_SKILL',
           automatic_execution:false,reason:'GitHub araclari guvenlik onayi olmadan calistirilmaz'});
-      }
-      if(path==='/api/tools/agent-hub'&&method==='GET'){
-        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
-        const rows=await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300');
-        const jobs=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 30');
-        return jsonResponse({ok:true,language:'tr',skills:rows.map(publicSkill),jobs:jobs.map(publicJob),curated_repositories:CURATED_REPOS.size});
       }
       if(path==='/api/tools/agent-hub/agent'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
