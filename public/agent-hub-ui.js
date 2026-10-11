@@ -35,6 +35,18 @@
         $('agentHubMessage').textContent='Görev kuyruğa eklendi: '+result.workflow_id;await refresh();
       }catch(error){$('agentHubMessage').textContent=error.message;}
     });
+    const launcher=document.createElement('div');
+    launcher.innerHTML='<h3>JARVIS otomatik ajanı</h3><input id="hubAutoRepo" aria-label="GitHub deposu" placeholder="GitHub kaynak deposu (owner/repo)"><textarea id="hubAutoTask" aria-label="Ajan görevi" placeholder="Ne araştırılsın?"></textarea><button type="button" id="hubAutoStart">Ajanı başlat</button>';
+    section.appendChild(launcher);
+    $('hubAutoStart').addEventListener('click',async()=>{
+      const repo=$('hubAutoRepo').value.trim(),task=$('hubAutoTask').value.trim();
+      if(!repo||!task){$('agentHubMessage').textContent='Depo ve görev gerekli';return;}
+      try{
+        const result=await api('/api/tools/agent-hub/agent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({repo,task})});
+        $('agentHubMessage').textContent='Ajan kuyruğa eklendi: '+result.workflow_id+' — 3 görev adımı.';
+        refresh();
+      }catch(error){$('agentHubMessage').textContent=error.message;}
+    });
     $('agentHubRefresh').addEventListener('click',refresh);
     $('agentHubPlan').addEventListener('click',async()=>{
       const task=$('agentHubTask').value.trim();
