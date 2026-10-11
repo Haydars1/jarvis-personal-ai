@@ -215,6 +215,32 @@ export function createCloudCapabilityExecution(core){
   return {
     async fetch(req,env,ctx){
       const url=new URL(req.url),path=url.pathname,method=req.method;
+      // Agent Hub: unified cloud dashboard + safe skill routing without enabling arbitrary execution.
+      if(path==='/api/tools/agent-hub'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const skills=(await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300')).map(publicSkill);
+        const recent=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 15');
+        const capability=String(url.searchParams.get('capability')||'').slice(0,200);
+        const matches=capability?await discoverSkills(env,capability):[];
+        return jsonResponse({
+          ok:true,mode:'cloudflare',language:'tr',
+          capabilities:summarizeExecutionStates(skills,CURATED_REPOS.size,recent.filter(job=>job.status==='completed').length),
+          jobs:recent.map(publicJob),
+          matches,
+          local_runner:{connected:false,reason:'SECURE_PC_BRIDGE_NOT_CONFIGURED'},
+          execution_policy:{allow_arbitrary_github_code:false,allow_production_deploy:false,allow_paid_api:false},
+          links:{skills:'/api/tools/skills',discover:'/api/tools/discover',jobs:'/api/tools/cloud/jobs'}
+        });
+      }
+      if(path==='/api/tools/agent-hub/plan'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const request=await readJson(req),task=String(request.task||'').trim().slice(0,1000);
+        if(!task)return jsonResponse({error:'TASK_REQUIRED'},400);
+        const matches=(await discoverSkills(env,task)).filter(skill=>!skill.requires_paid_api).slice(0,8);
+        return jsonResponse({ok:true,task,language:'tr',recommended_skills:matches,
+          next_step:matches.length?'SELECT_APPROVED_SKILL':'NO_VERIFIED_SKILL',
+          automatic_execution:false,reason:'GitHub araclari guvenlik onayi olmadan calistirilmaz'});
+      }
       if(path==='/api/tools/cloud/adapters'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({adapters:Object.entries(ALLOWED_ADAPTERS).map(([id,meta])=>({id,...meta})),curated_repositories:CURATED_REPOS.size});
