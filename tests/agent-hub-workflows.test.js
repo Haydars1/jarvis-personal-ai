@@ -55,3 +55,12 @@ test('Turkish task routing uses real repository symbols',()=>{
   assert.equal(plan.steps[1].input.term,term,task);
  }
 });
+
+test('cloud runner claims and reports cannot duplicate chained tasks',()=>{
+ const src=readFileSync(new URL('../src/application/capabilities/cloud-execution.js',import.meta.url),'utf8');
+ assert.match(src,/UPDATE cloud_tool_jobs SET status='running',claimed_by=\?,claimed_at=\?,updated_at=\? WHERE id=\? AND status='queued'/);
+ assert.match(src,/Number\(claim\?\.meta\?\.changes\|\|0\)!==1/);
+ assert.match(src,/RUNNER_CLAIM_MISMATCH/);
+ assert.match(src,/AND status='running' AND claimed_by=\?/);
+ assert.match(src,/Number\(result\?\.meta\?\.changes\|\|0\)!==1/);
+});
