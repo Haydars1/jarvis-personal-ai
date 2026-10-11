@@ -24,6 +24,17 @@
         $('agentHubJobs').innerHTML = (data.jobs||[]).slice(0,10).map(j=>'<div class="muted">'+esc(j.adapter_id)+' — '+esc(j.repo)+' — '+esc(j.status)+'</div>').join('') || '<p class="muted">Görev yok.</p>';
       } catch(e) { $('agentHubMessage').textContent = 'Agent Hub: '+e.message; }
     }
+    const workflowBox=document.createElement('div');
+    workflowBox.innerHTML='<h3>Çoklu ajan zinciri</h3><p class="muted">Önce kayıtlı depoyu incele, sonra kaynak içinde ara. Yalnızca izinli, salt-okunur işlemler.</p><input id="agentHubRepo" placeholder="owner/repository" aria-label="GitHub deposu"><input id="agentHubTerm" placeholder="Kaynakta aranacak kelime" aria-label="Aranacak kelime"><button type="button" id="agentHubStartWorkflow">Zinciri başlat</button>';
+    section.appendChild(workflowBox);
+    $('agentHubStartWorkflow').addEventListener('click',async()=>{
+      const repo=$('agentHubRepo').value.trim(),term=$('agentHubTerm').value.trim();
+      if(!repo||!term){$('agentHubMessage').textContent='Depo ve aranacak kelime gerekli.';return;}
+      try{
+        const result=await api('/api/tools/agent-hub/workflows',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({steps:[{adapter_id:'repo-inspect',repo},{adapter_id:'source-search',repo,input:{term}}]})});
+        $('agentHubMessage').textContent='Görev kuyruğa eklendi: '+result.workflow_id;await refresh();
+      }catch(error){$('agentHubMessage').textContent=error.message;}
+    });
     $('agentHubRefresh').addEventListener('click',refresh);
     $('agentHubPlan').addEventListener('click',async()=>{
       const task=$('agentHubTask').value.trim();
