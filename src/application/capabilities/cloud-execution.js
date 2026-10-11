@@ -264,6 +264,34 @@ export function createCloudCapabilityExecution(core){
           next_step:matches.length?'SELECT_APPROVED_SKILL':'NO_VERIFIED_SKILL',
           automatic_execution:false,reason:'GitHub araclari guvenlik onayi olmadan calistirilmaz'});
       }
+      // Durable, Cloudflare-native execution. The existing GitHub OIDC runner performs the read-only jobs.
+      if(path==='/api/tools/agent-hub/durable'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!env.AGENT_HUB_WORKFLOW)return jsonResponse({error:'WORKFLOW_BINDING_NOT_AVAILABLE'},503);
+        const body=await readJson(req);
+        let plan;
+        try{plan=createAgentPlan(body,CURATED_REPOS);}catch(error){return jsonResponse({error:error.message},400);}
+        const recent=await queryOne(env,"SELECT COUNT(*) AS total FROM cloud_tool_jobs WHERE status IN ('queued','running') AND input_json LIKE '%__agent_hub%' AND created_at>?",now()-3600000);
+        if(Number(recent?.total||0)>=12)return jsonResponse({error:'AGENT_HUB_BUSY'},429);
+        const workflow_id=uid();
+        try{
+          const instance=await env.AGENT_HUB_WORKFLOW.create({
+            id:workflow_id,
+            params:{workflow_id,task:plan.goal,repo:plan.repo,steps:plan.steps}
+          });
+          return jsonResponse({ok:true,workflow_id:instance.id,engine:'cloudflare-workflows',plan,status:'queued',requires_pc:false},202);
+        }catch(error){return jsonResponse({error:'WORKFLOW_CREATE_FAILED',detail:String(error.message||'').slice(0,180)},503);}
+      }
+      const durableMatch=path.match(/^\/api\/tools\/agent-hub\/durable\/([a-zA-Z0-9-]+)$/);
+      if(durableMatch&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!env.AGENT_HUB_WORKFLOW)return jsonResponse({error:'WORKFLOW_BINDING_NOT_AVAILABLE'},503);
+        try{
+          const instance=await env.AGENT_HUB_WORKFLOW.get(durableMatch[1]);
+          const state=await instance.status();
+          return jsonResponse({ok:true,workflow_id:instance.id,...state});
+        }catch{return jsonResponse({error:'WORKFLOW_NOT_FOUND'},404);}
+      }
       if(path==='/api/tools/agent-hub/agent'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         const body=await readJson(req);
