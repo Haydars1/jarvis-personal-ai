@@ -49,8 +49,37 @@
       }catch(error){$('agentHubMessage').textContent=error.message;}
     });
     const track=document.createElement('div');
-    track.innerHTML='<h3>Cloudflare ajan durumu</h3><input id="agentHubWorkflowId" placeholder="Workflow kimliği" aria-label="Workflow kimliği"><button type="button" id="hubCheckWorkflow">Ajan durumunu kontrol et</button><pre id="hubWorkflowReport" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre>';
+    track.innerHTML='<h3>Cloudflare ajan durumu</h3><select id="agentHubRecent" aria-label="Son ajan görevleri"><option value="">Önceki görevlerden seç</option></select><button type="button" id="hubLoadRecent">Görev geçmişini yenile</button><input id="agentHubWorkflowId" placeholder="Workflow kimliği" aria-label="Workflow kimliği"><button type="button" id="hubCheckWorkflow">Ajan durumunu kontrol et</button><pre id="hubWorkflowReport" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto"></pre>';
     section.appendChild(track);
+    async function loadRecentWorkflows(){
+      try{
+        const data=await api('/api/tools/agent-hub/workflows');
+        const seen=new Set();
+        const recent=[];
+        for(const job of data.jobs||[]){
+          const meta=job.input?.__agent_hub||{};
+          const id=String(meta.workflow_id||'');
+          if(!/^[a-f0-9-]{36}$/i.test(id)||seen.has(id))continue;
+          seen.add(id);
+          recent.push({id,repo:job.repo,status:job.status});
+          if(recent.length>=20)break;
+        }
+        const control=$('agentHubRecent');
+        control.replaceChildren();
+        const placeholder=document.createElement('option');
+        placeholder.value='';placeholder.textContent='Önceki ajan görevlerinden seç';
+        control.appendChild(placeholder);
+        for(const job of recent){
+          const option=document.createElement('option');
+          option.value=job.id;
+          option.textContent=(job.repo||'depo')+' — '+job.status+' — '+job.id.slice(0,8);
+          control.appendChild(option);
+        }
+      }catch(error){$('hubWorkflowReport').textContent='Geçmiş alınamadı: '+error.message;}
+    }
+    $('agentHubRecent').addEventListener('change',e=>{$('agentHubWorkflowId').value=e.target.value;});
+    $('hubLoadRecent').addEventListener('click',loadRecentWorkflows);
+    loadRecentWorkflows();
     $('hubCheckWorkflow').addEventListener('click',async()=>{
       const id=$('agentHubWorkflowId').value.trim();
       if(!/^[a-f0-9-]{36}$/i.test(id)){$('hubWorkflowReport').textContent='Geçerli bir Workflow kimliği gir.';return;}
