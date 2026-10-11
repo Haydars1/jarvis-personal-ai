@@ -375,11 +375,17 @@ export function createCloudCapabilityExecution(core){
       }
       if(path==='/api/tools/cloud/runner/claim'&&method==='POST'){
         const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
-        const row=await queryOne(env,"SELECT * FROM cloud_tool_jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1");
-        if(!row)return jsonResponse({job:null});
-        const ts=now(),claimedBy=`github:${claims.run_id||'unknown'}`;
-        await execute(env,"UPDATE cloud_tool_jobs SET status='running',claimed_by=?,claimed_at=?,updated_at=? WHERE id=? AND status='queued'",claimedBy,ts,ts,row.id);
-        return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',row.id))});
+        const claimedBy=`github:${claims.run_id||'unknown'}`;
+        for(let attempt=0;attempt<3;attempt++){
+          const row=await queryOne(env,"SELECT id FROM cloud_tool_jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1");
+          if(!row)return jsonResponse({job:null});
+          const ts=now();
+          const claim=await execute(env,"UPDATE cloud_tool_jobs SET status='running',claimed_by=?,claimed_at=?,updated_at=? WHERE id=? AND status='queued'",claimedBy,ts,ts,row.id);
+          if(Number(claim?.meta?.changes||0)!==1)continue;
+          const assigned=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',row.id);
+          if(assigned?.status==='running'&&assigned?.claimed_by===claimedBy)return jsonResponse({job:publicJob(assigned)});
+        }
+        return jsonResponse({job:null,reason:'CLAIM_RACE_RETRY'});
       }
       const resultMatch=path.match(/^\/api\/tools\/cloud\/runner\/jobs\/([^/]+)\/result$/);
       if(resultMatch&&method==='POST'){
