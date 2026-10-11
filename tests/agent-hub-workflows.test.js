@@ -39,3 +39,19 @@ test('authenticated agent launch appears in existing Cloudflare API',()=>{
  assert.match(src,/\/api\/tools\/agent-hub\/agent/);
  assert.match(src,/createAgentPlan\(body,CURATED_REPOS\)/);
 });
+
+test('Turkish task routing uses real repository symbols',()=>{
+ const cases=[
+  ['Sitede araç seçimi çalışmıyor','vehicle'],
+  ['ECU dosyasını incele','ecu'],
+  ['SEO arama motoru sorunlarını düzelt','seo'],
+  ['Dosya yükleme başarısız','upload'],
+  ['Giriş ekranı şifre sorunu','auth'],
+  ['Bildirim gitmiyor','notification'],
+  ['D1 veritabanı hatası','database']
+ ];
+ for(const [task,term] of cases){
+  const plan=createAgentPlan({repo:'owner/sample',task},repo);
+  assert.equal(plan.steps[1].input.term,term,task);
+ }
+});
