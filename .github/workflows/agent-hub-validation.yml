@@ -23,6 +23,7 @@ jobs:
       - name: Syntax check
         run: |
           node --check src/lib/agent-hub-providers.js
+          node --check src/lib/agent-hub-skill-directory.js
           node --check src/lib/agent-hub-workflow.js
           node --check src/application/capabilities/cloud-execution.js
           node --check public/agent-hub-ui.js
