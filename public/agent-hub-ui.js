@@ -72,8 +72,19 @@
       }
     }).catch(error=>{$('agentHubMessage').textContent='Kaynak listesi: '+error.message;});
     const directory=document.createElement('div');
-    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/skills">Skills.sh CLI deposu</option></select><button type="button" id="hubSkillScan">Becerileri tara</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
+    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/skills">Skills.sh CLI deposu</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
+    $('hubSkillLearn').addEventListener('click',async()=>{
+      const repo=$('hubSkillSource').value;
+      $('hubSkillStatus').textContent='Kaynak öğrenme görevi hazırlanıyor...';
+      try {
+        const result=await api('/api/tools/skills/compile',{
+          method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({repo})
+        });
+        $('hubSkillStatus').textContent='Öğrenme görevi kuyruğa eklendi: '+(result.job?.id||'')+'. Sonuç için görev durumunu yenile.';
+        await refresh();
+      }catch(error){$('hubSkillStatus').textContent=error.message;}
+    });
     $('hubSkillScan').addEventListener('click',async()=>{
       const selected=$('hubSkillSource').value;
       $('hubSkillStatus').textContent='GitHub beceri dosyaları aranıyor...';
