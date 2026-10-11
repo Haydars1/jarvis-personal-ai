@@ -8,6 +8,8 @@ const hostGated = restriction => ({ autoExecute: false, restriction });
 const catalogOnly = restriction => ({ autoExecute: false, restriction });
 
 export const USER_CURATED_CAPABILITY_SEEDS = Object.freeze([
+  seed('Haydars1/jarvis-personal-ai','coding-agent','external-service',hostGated('Owner repository: only inspect via authenticated safe runner; do not auto-merge or deploy.')),
+  seed('Haydars1/6006coding-site','coding-agent','external-service',hostGated('Owner website repository: inspect read-only; deploy and writes require explicit review.')),
   seed('OpenHands/OpenHands','coding-agent','external-service',hostGated('OpenHands requires a separately hosted, authenticated container runtime. Not executable inside Cloudflare Workers.')),
   seed('n8n-io/n8n','workflow-rpa','external-service',hostGated('n8n needs a separately managed self-hosted/cloud instance and authenticated workflows.')),
   seed('vercel-labs/skills','mcp-tooling','external-service',catalogOnly('Skills.sh is a skill discovery and installation CLI; inspect each SKILL.md before importing, no automatic execution.')),
