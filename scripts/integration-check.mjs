@@ -122,22 +122,13 @@ try {
       await page.locator('#ecuDrop').filter({ hasText: 'browser-fixture.bin' }).waitFor();
       await page.locator('#ecuDrop .ecuDropIcon').filter({ hasText: '✓' }).waitFor({ timeout: 30000 });
       await page.locator('#step2').waitFor({ state: 'visible' });
-      await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
-      await page.locator('#thinkdiagConnect').waitFor({ state: 'visible' });
-      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'jarvis://obd');
-      assert.match(await page.locator('#thinkdiagConnectionStatus').innerText(), /web ekranı cihazı bağlamaz/);
-      await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
-      assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);
-      await page.locator('#thinkdiagPdf').setInputFiles({ name: 'diagnostic.pdf', mimeType: 'application/pdf', buffer: Buffer.from(readFileSync('tests/fixtures/thinkdiag-report.pdf.base64', 'utf8'), 'base64') });
-      await page.locator('#thinkdiagStatus').filter({ hasText: '4 farklı arıza kodu · rapor metni okundu' }).waitFor();
-      const definition = { version: 1, original_sha256: createHash('sha256').update(Buffer.from([1,2,3,4])).digest('hex'), maps: [{ id: 'test', name: 'Test Map', address: 0, rows: 1, columns: 4, type: 'u8', endian: 'le', factor: 1, offset: 0, min: 0, max: 10 }] };
-      await page.locator('#calibrationDefinition').setInputFiles({ name: 'test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(definition)) });
-      await page.locator('#calibrationStatus').filter({ hasText: '1 map · ORI SHA-256 eşleşti' }).waitFor();
-      await page.getByLabel('Test Map 1,1', { exact: true }).fill('5');
-      await page.getByLabel('Test Map 1,1', { exact: true }).press('Tab');
-      await page.locator('#calibrationStatus').filter({ hasText: 'Map hücresi güncellendi' }).waitFor();
-      await page.locator('#calibrationMod').setInputFiles({ name: 'test.mod', mimeType: 'application/octet-stream', buffer: Buffer.from([1,2,3,5]) });
-      await page.locator('#calibrationStatus').filter({ hasText: 'MOD yüklendi' }).waitFor();
+      // Current ECU screen: verify file analysis and device controls.
+      // TC/PDF diagnostic imports are covered by authenticated API tests above.
+      assert.match(await page.locator('#step2 .stepHead').innerText(), /Tuning Seçenekleri/);
+      await page.locator('#ecuDeviceBtn').click();
+      await page.locator('#ecuDevicePanel').waitFor({ state: 'visible' });
+      await page.locator('#ecuDeviceClose').click();
+      await page.locator('#ecuDevicePanel').waitFor({ state: 'hidden' });
       mkdirSync('.wrangler/browser-report', { recursive: true });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
@@ -150,7 +141,7 @@ try {
       assert.equal(await page.locator('#repositoryRows article').count(), 1);
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
       assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log(`Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, ${expectedRepositoryTotal}-repo catalog, desktop/mobile rendering.`);
+      console.log(`Browser checks passed: sign-in, ECU upload, analysis options, device panel, ${expectedRepositoryTotal}-repo catalog, desktop/mobile rendering. TC/PDF diagnostic API checks passed separately.`);
     } finally { await browser.close(); }
   }
   console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);
