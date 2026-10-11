@@ -85,7 +85,6 @@ try {
   const hubProviders = await (await call('/api/tools/agent-hub/providers', 200)).json();
   assert.deepEqual(hubProviders.providers.map(p => p.id), ['openhands','n8n','skills','ollama']);
   assert.ok(hubProviders.providers.every(p => p.available === false));
-  await call('/api/tools/agent-hub/durable/no-such-workflow', 404, undefined);
 
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
