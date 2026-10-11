@@ -1,4 +1,4 @@
-import { validateHubSteps, nextHubStep } from '../../lib/agent-hub-workflow.js';
+import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
 import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from '../../lib/obd-pdf-seeds.js';
@@ -247,6 +247,16 @@ export function createCloudCapabilityExecution(core){
         const rows=await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300');
         const jobs=await queryAll(env,'SELECT * FROM cloud_tool_jobs ORDER BY created_at DESC LIMIT 30');
         return jsonResponse({ok:true,language:'tr',skills:rows.map(publicSkill),jobs:jobs.map(publicJob),curated_repositories:CURATED_REPOS.size});
+      }
+      if(path==='/api/tools/agent-hub/agent'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        let plan;
+        try{plan=createAgentPlan(body,CURATED_REPOS);}catch(error){return jsonResponse({error:error.message},400);}
+        const workflow_id=uid();
+        const first=plan.steps[0];
+        const job=await queueCloudJob(env,{adapterId:first.adapter_id,repo:first.repo,input:{...first.input,__agent_hub:{workflow_id,position:0,attempts:0,steps:plan.steps}}});
+        return jsonResponse({ok:true,workflow_id,plan,job,execution:'queued',requires_pc:false},202);
       }
       if(path==='/api/tools/agent-hub/workflows'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
