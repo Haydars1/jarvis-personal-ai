@@ -25,8 +25,23 @@ export function createAgentPlan({task,repo},curated){
  const name=String(repo||'').trim();
  if(!goal)throw Error('TASK_REQUIRED');
  if(!curated.has(name.toLowerCase()))throw Error('REPOSITORY_NOT_CURATED');
- const terms=goal.toLowerCase().match(/[a-z0-9_-]{3,}/g)||[];
- const search=terms.find(t=>!['please','check','inspect','repository','github','project','jarvis','kontrol','incele','hatayi','hatasi','sistem','kodlari','bulun','bakar','ariza'].includes(t))||'TODO';
+ // Route Turkish/English problem descriptions to actual repository symbols.
+ // No AI/API calls, and no uncontrolled shell commands.
+ const topicRules=[
+  {pattern:/\b(seo|arama motoru|google search)\b/i,term:'seo'},
+  {pattern:/\b(ecu|motor beyni|beyin dosya|tuning)\b/i,term:'ecu'},
+  {pattern:/(araç seç|araba seç|vehicle select|vehicle finder|marka model)/i,term:'vehicle'},
+  {pattern:/(dosya yükle|file upload|upload|yükleme)/i,term:'upload'},
+  {pattern:/(giriş|oturum|login|authentication|şifre)/i,term:'auth'},
+  {pattern:/(bildirim|notification|push)/i,term:'notification'},
+  {pattern:/(veritaban|database|d1|sql)/i,term:'database'},
+  {pattern:/(görev|ajan|agent|workflow|otomasyon)/i,term:'job'},
+  {pattern:/(hata kod|fault code|diagnostic|dtc)/i,term:'dtc'}
+ ];
+ const detected=topicRules.find(rule=>rule.pattern.test(goal));
+ const terms=goal.toLowerCase().normalize('NFKD').match(/[a-z0-9_-]{3,}/g)||[];
+ const ignored=new Set(['please','check','inspect','repository','github','project','jarvis','kontrol','incele','hatayi','hatasi','sistem','kodlari','bulun','bakar','ariza','error','issue','problem','fix','debug','düzelt','sorunu','geliştir','inceleyin','hataları','sitesindeki','dosyasını']);
+ const search=detected?.term||terms.find(t=>!ignored.has(t))||'TODO';
  const steps=[
  {adapter_id:'repo-inspect',repo:name,input:{source:'agent-hub',goal}},
  {adapter_id:'source-search',repo:name,input:{term:search,source:'agent-hub',goal}},
