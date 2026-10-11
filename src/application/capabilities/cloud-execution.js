@@ -392,14 +392,18 @@ export function createCloudCapabilityExecution(core){
         const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
         const id=decodeURIComponent(resultMatch[1]),body=await readJson(req),ts=now(),ok=body.ok===true;
         const row=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id);if(!row)return jsonResponse({error:'JOB_NOT_FOUND'},404);
-        if(row.status!=='running')return jsonResponse({ok:true,already_processed:true,job:publicJob(row)});
+        // Never leak another runner's result, including completed jobs.
         if(row.claimed_by!==`github:${claims.run_id||'unknown'}`)return jsonResponse({error:'RUNNER_CLAIM_MISMATCH'},403);
+        if(row.status!=='running')return jsonResponse({ok:true,already_processed:true,job:publicJob(row)});
         // Compare-and-swap guarantees at most one successful result processing.
         const result=await execute(env,"UPDATE cloud_tool_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=? AND status='running' AND claimed_by=?",
           ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'CLOUD_TOOL_FAILED'),ts,ts,id,row.claimed_by);
         if(Number(result?.meta?.changes||0)!==1)return jsonResponse({ok:true,already_processed:true,job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id))});
         let persistedSkill=null;
-        if(ok&&row.adapter_id==='skill-analyze')persistedSkill=await upsertRepositorySkill(env,body.result,ts);
+        if(ok&&row.adapter_id==='skill-analyze'){
+          try{persistedSkill=await upsertRepositorySkill(env,body.result,ts);}
+          catch(error){console.warn('Agent Hub skill persistence failed:',String(error?.message||error).slice(0,160));}
+        }
         // Every completed step queues exactly one successor; failed steps retry once.
         const input=parse(row.input_json,{});
         const next=nextHubStep(input.__agent_hub,ok);
