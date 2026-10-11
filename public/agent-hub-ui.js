@@ -79,7 +79,6 @@
     }
     $('agentHubRecent').addEventListener('change',e=>{$('agentHubWorkflowId').value=e.target.value;});
     $('hubLoadRecent').addEventListener('click',loadRecentWorkflows);
-    loadRecentWorkflows();
     $('hubCheckWorkflow').addEventListener('click',async()=>{
       const id=$('agentHubWorkflowId').value.trim();
       if(!/^[a-f0-9-]{36}$/i.test(id)){$('hubWorkflowReport').textContent='Geçerli bir Workflow kimliği gir.';return;}
@@ -100,7 +99,6 @@
         $('agentHubProviders').innerHTML=data.providers.map(p=>'<p><strong>'+esc(p.name)+'</strong> — '+esc(p.state)+'<br><small>'+esc(p.requirements)+'</small></p>').join('');
       }catch(e){$('agentHubProviders').textContent=e.message;}
     }
-    refreshProviders();
     // Curated repository suggestions and Skills.sh-compatible SKILL.md discovery.
     const suggestions=document.createElement('datalist');
     suggestions.id='agentHubRepoList';
@@ -109,12 +107,16 @@
       $(field).setAttribute('list','agentHubRepoList');
       $(field).value='Haydars1/jarvis-personal-ai';
     }
-    api('/api/tools/agent-hub/catalog').then(data=>{
-      for (const repo of data.repositories||[]) {
-        const option=document.createElement('option');
-        option.value=repo;suggestions.appendChild(option);
-      }
-    }).catch(error=>{$('agentHubMessage').textContent='Kaynak listesi: '+error.message;});
+    async function loadRepoSuggestions(){
+      try{
+        const data=await api('/api/tools/agent-hub/catalog');
+        suggestions.replaceChildren();
+        for(const repo of data.repositories||[]){
+          const option=document.createElement('option');
+          option.value=repo;suggestions.appendChild(option);
+        }
+      }catch(error){if(error.message!=='AUTH_REQUIRED')$('agentHubMessage').textContent='Kaynak listesi: '+error.message;}
+    }
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/skills">Skills.sh CLI deposu</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
@@ -151,7 +153,14 @@
         }
       }catch(error){$('hubSkillStatus').textContent=error.message;}
     });
-    $('agentHubRefresh').addEventListener('click',()=>{refresh();refreshProviders();});
+    function refreshHubAfterLogin(){
+      refresh();refreshProviders();loadRecentWorkflows();loadRepoSuggestions();
+    }
+    $('agentHubRefresh').addEventListener('click',refreshHubAfterLogin);
+    // The panel mounts behind the login screen. Fetch again after the owner opens Settings.
+    document.querySelectorAll('[data-page="settings"]').forEach(button=>{
+      button.addEventListener('click',refreshHubAfterLogin);
+    });
     $('agentHubPlan').addEventListener('click',async()=>{
       const task=$('agentHubTask').value.trim();
       if (!task) return;
@@ -162,7 +171,9 @@
         $('agentHubSkills').innerHTML=(data.recommended_skills||[]).map(s=>'<div class="card"><strong>'+esc(s.repo)+'</strong><p class="muted">'+esc(s.primary_capability)+' • '+esc(s.execution_state)+' • '+esc(s.risk)+'</p></div>').join('') || '<p class="muted">Bu görev için doğrulanmış beceri bulunamadı.</p>';
       } catch(e) { $('agentHubMessage').textContent=e.message; }
     });
-    refresh();
+    // Do not fetch authenticated data before sign-in; Settings navigation triggers load.
+    if(document.getElementById('app')?.classList.contains('hidden')===false &&
+       document.getElementById('settings')?.classList.contains('active'))refreshHubAfterLogin();
   }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount);
   else mount();
