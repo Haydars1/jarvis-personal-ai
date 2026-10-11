@@ -47,7 +47,17 @@
         refresh();
       }catch(error){$('agentHubMessage').textContent=error.message;}
     });
-    $('agentHubRefresh').addEventListener('click',refresh);
+    const providers=document.createElement('div');
+    providers.innerHTML='<h3>Entegrasyonlar</h3><div id="agentHubProviders">Durum yükleniyor...</div>';
+    section.appendChild(providers);
+    async function refreshProviders(){
+      try{
+        const data=await api('/api/tools/agent-hub/providers');
+        $('agentHubProviders').innerHTML=data.providers.map(p=>'<p><strong>'+esc(p.name)+'</strong> — '+esc(p.state)+'<br><small>'+esc(p.requirements)+'</small></p>').join('');
+      }catch(e){$('agentHubProviders').textContent=e.message;}
+    }
+    refreshProviders();
+    $('agentHubRefresh').addEventListener('click',()=>{refresh();refreshProviders();});
     $('agentHubPlan').addEventListener('click',async()=>{
       const task=$('agentHubTask').value.trim();
       if (!task) return;
