@@ -4,6 +4,9 @@ on:
     paths:
       - 'src/lib/agent-hub-*'
       - 'src/application/capabilities/cloud-execution.js'
+      - 'src/application/capabilities/agent-hub-workflow.js'
+      - 'src/app-entry.js'
+      - 'wrangler.jsonc'
       - 'src/lib/user-curated-capability-seeds.js'
       - 'public/agent-hub-ui.js'
       - 'tests/agent-hub-*'
@@ -25,7 +28,13 @@ jobs:
           node --check src/lib/agent-hub-providers.js
           node --check src/lib/agent-hub-skill-directory.js
           node --check src/lib/agent-hub-workflow.js
+          node --check src/lib/agent-hub-durable-report.js
+          node --check src/application/capabilities/agent-hub-workflow.js
           node --check src/application/capabilities/cloud-execution.js
           node --check public/agent-hub-ui.js
       - name: Unit tests
         run: node --test tests/agent-hub-*.test.js
+      - name: Cloudflare integration dry-run
+        run: |
+          npm install --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir .wrangler-agent-hub
