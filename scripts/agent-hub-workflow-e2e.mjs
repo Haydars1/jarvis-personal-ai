@@ -44,6 +44,23 @@ try{
  const login=await req('/api/auth/setup','POST',{password:'workflow-e2e-test-only-password'});
  assert.equal(login.status,200,JSON.stringify(login.data));
  cookie=login.headers.get('set-cookie').split(';')[0];
+ // Browser-equivalent file API test against the isolated Cloudflare Worker.
+ const binaryOriginal=Uint8Array.of(0,1,2,3,4),binaryModified=Uint8Array.of(0,9,2,3,4);
+ const inspectResponse=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{
+   method:'POST',headers:{cookie,'content-type':'application/octet-stream','x-ecu-filename':'ecu-test.bin'},body:binaryOriginal
+ });
+ assert.equal(inspectResponse.status,200,'ECU upload endpoint failed: '+await inspectResponse.text());
+ const compareForm=new FormData();
+ compareForm.set('original',new Blob([binaryOriginal]),'orig.bin');
+ compareForm.set('modified',new Blob([binaryModified]),'mod.bin');
+ const compareResponse=await fetch(base+'/api/tools/agent-hub/ecu-compare',{method:'POST',headers:{cookie},body:compareForm});
+ const compareJson=await compareResponse.json();
+ assert.equal(compareResponse.status,200,'ECU compare endpoint failed: '+JSON.stringify(compareJson));
+ assert.equal(compareJson.comparison.changed_bytes,1);
+ assert.equal(compareJson.comparison.ranges[0].start_hex,'0x00000001');
+ assert.equal(compareJson.comparison.persisted,false);
+ console.log('Authenticated ECU original/modified upload and byte comparison E2E passed');
+
  const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve ECU BIN analizi yap'});
  assert.equal(plan.status,202,'Workflow launch: '+JSON.stringify(plan.data)+' logs '+output.slice(-1500));
  assert.match(plan.data.workflow_id,/^[0-9a-f-]{36}$/i);
