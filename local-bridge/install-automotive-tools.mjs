@@ -9,7 +9,7 @@ const manifest=JSON.parse(readFileSync(join(here,'automotive-install-manifest.js
 const args=process.argv.slice(2);
 const apply=args.includes('--apply');
 const showStatus=args.includes('--status');
-const root=resolve(here,'..','..',manifest.install_root);
+const root=resolve(here,'..',manifest.install_root);
 const allowedKinds=new Set(['python-library','device-adapter-source','reference-data-source','desktop-application-source','reference-client-source','self-hosted-service-source','coding-agent-source']);
 if(!Array.isArray(manifest.entries)||manifest.entries.length!==12)throw Error('INSTALL_MANIFEST_INVALID');
 const entries=manifest.entries.map(entry=>{
