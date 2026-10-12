@@ -80,8 +80,11 @@ test('cross-source search paginates all approved GitHub skill indexes',async()=>
  assert.equal(a.skills.length,10);
  assert.equal(a.has_more,true);
  const b=await discoverAllSkillManifests(fetcher,{limit:10,offset:10});
- assert.equal(b.skills.length,8);
- assert.equal(b.has_more,false);
+ assert.equal(b.skills.length,10);
+ assert.equal(b.has_more,APPROVED_SKILL_REPOS.length*2>20);
+ const final=await discoverAllSkillManifests(fetcher,{limit:10,offset:a.total-8});
+ assert.equal(final.skills.length,8);
+ assert.equal(final.has_more,false);
  const matching=await discoverAllSkillManifests(fetcher,{query:'cloudflare-workers',limit:20});
  assert.equal(matching.total,APPROVED_SKILL_REPOS.length);
  assert.ok(matching.skills.every(x=>x.path.includes('cloudflare-workers')&&APPROVED_SKILL_REPOS.includes(x.repo)));
