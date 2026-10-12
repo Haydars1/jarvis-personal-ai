@@ -1,4 +1,5 @@
 import { suggestSkillsForTask } from './agent-hub-skill-matcher.js';
+import { recommendAutomotiveTools } from './agent-hub-automotive-tools.js';
 // Bounded, read-only Cloudflare Agent Hub workflow.
 export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','source-audit','skill-analyze'];
 export function validateHubSteps(steps,curated){
@@ -50,5 +51,5 @@ export function createAgentPlan({task,repo},curated){
  {adapter_id:'skill-analyze',repo:name,input:{source:'agent-hub',goal}}
  ];
  if(recommendedSkills.some(skill=>skill.path==='skills/web-design-guidelines/SKILL.md'))steps.push({adapter_id:'source-audit',repo:name,input:{source:'agent-hub',skill_references:recommendedSkills.map(skill=>skill.path).slice(0,5)}});
- return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:recommendedSkills,roles:['araştırmacı','kod inceleyici','beceri analisti']};
+ return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:recommendedSkills,automotive_tools:recommendAutomotiveTools(goal).map(tool=>({repo:tool.repo,area:tool.area,title:tool.title,installed:false,auto_execute:false,device_required:tool.device_required})),roles:['araştırmacı','kod inceleyici','beceri analisti']};
 }
