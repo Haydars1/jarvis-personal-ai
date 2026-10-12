@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {AUTOMOTIVE_TOOLS,recommendAutomotiveTools} from '../src/lib/agent-hub-automotive-tools.js';
 test('verified automotive catalog only contains the selected repositories',()=>{
- assert.equal(AUTOMOTIVE_TOOLS.length,8);
+ assert.equal(AUTOMOTIVE_TOOLS.length,12);
  assert.ok(AUTOMOTIVE_TOOLS.every(t=>t.repo.includes('/')&&t.runtime));
  assert.ok(AUTOMOTIVE_TOOLS.every(t=>t.thinkdiag_compatible===false));
 });
@@ -13,6 +13,9 @@ test('OBD, firmware and VIN tasks resolve to relevant sources',()=>{
  assert.ok(obd.some(x=>x.repo==='tronikos/elm327_obdii'));
  const ecu=recommendAutomotiveTools('KT200 ECU BIN firmware analizi');
  assert.ok(ecu.some(x=>x.repo==='NationalSecurityAgency/ghidra'));
+ const maps=recommendAutomotiveTools('VAG EDC16 BIN XDF kalibrasyon harita');
+ assert.ok(maps.some(x=>x.repo==='mapforger/mapforge'));
+ assert.ok(maps.some(x=>x.repo==='LeZed97/ZedSuite'));
  const vin=recommendAutomotiveTools('VIN şasi ile marka model araç bul');
  assert.ok(vin.some(x=>x.repo==='davidpeckham/vpic-api'));
  assert.deepEqual(recommendAutomotiveTools(''),[]);
