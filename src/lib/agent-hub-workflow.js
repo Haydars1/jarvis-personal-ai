@@ -1,7 +1,7 @@
 import { suggestSkillsForTask } from './agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from './agent-hub-automotive-tools.js';
 // Bounded, read-only Cloudflare Agent Hub workflow.
-export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','source-audit','skill-analyze'];
+export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','source-audit','ecu-bin-inspect','skill-analyze'];
 export function validateHubSteps(steps,curated){
   if(!Array.isArray(steps)||!steps.length||steps.length>8)throw Error('STEPS_MUST_BE_1_TO_8');
   return steps.map((s,i)=>{
@@ -50,6 +50,7 @@ export function createAgentPlan({task,repo},curated){
  {adapter_id:'source-search',repo:name,input:{term:search,source:'agent-hub',goal}},
  {adapter_id:'skill-analyze',repo:name,input:{source:'agent-hub',goal}}
  ];
+ if(/\b(ecu|firmware|edc15|edc16|edc17|bin|hex|kt200)\b/i.test(goal))steps.push({adapter_id:'ecu-bin-inspect',repo:name,input:{source:'agent-hub',goal}});
  if(recommendedSkills.some(skill=>skill.path==='skills/web-design-guidelines/SKILL.md'))steps.push({adapter_id:'source-audit',repo:name,input:{source:'agent-hub',skill_references:recommendedSkills.map(skill=>skill.path).slice(0,5)}});
  return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:recommendedSkills,automotive_tools:recommendAutomotiveTools(goal).map(tool=>({repo:tool.repo,area:tool.area,title:tool.title,installed:false,auto_execute:false,device_required:tool.device_required})),roles:['araştırmacı','kod inceleyici','beceri analisti']};
 }
