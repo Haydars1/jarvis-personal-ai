@@ -1,4 +1,5 @@
 import { APPROVED_SKILL_REPOS, discoverSkillManifests, discoverAllSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
+import { discoverSkillRepositories } from '../../lib/agent-hub-skill-repository-search.js';
 import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
 import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
@@ -302,6 +303,13 @@ export function createCloudCapabilityExecution(core){
         const offset=Number(url.searchParams.get('offset')||0);
         const limit=Number(url.searchParams.get('limit')||150);
         try{return jsonResponse(repo==='all'?await discoverAllSkillManifests(fetch,{query,offset,limit}):await discoverSkillManifests(repo,fetch,{query,offset,limit}));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
+      if(path==='/api/tools/agent-hub/skill-repository-search'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const query=String(url.searchParams.get('query')||'');
+        const page=Number(url.searchParams.get('page')||1);
+        try{return jsonResponse(await discoverSkillRepositories(query,fetch,{page,limit:20}));}
         catch(error){return jsonResponse({error:error.message},400);}
       }
       if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
