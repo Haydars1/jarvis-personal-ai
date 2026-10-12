@@ -272,7 +272,13 @@ export function createCloudCapabilityExecution(core){
       }
       if(path==='/api/tools/agent-hub/providers'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
-        return jsonResponse({providers:hubProviderStatus(env),mode:'Cloudflare Workers',installation:'external services required'});
+        const providers=hubProviderStatus(env);
+        const gateway=await queryOne(env,"SELECT last_status,enabled FROM credentials WHERE provider='freellmapi' ORDER BY created_at DESC LIMIT 1").catch(()=>null);
+        return jsonResponse({providers:providers.map(item=>item.id==='freellmapi'?{
+          ...item,
+          state:gateway?(Number(gateway.enabled)===1&&gateway.last_status==='ok'?'connected':'configured-unverified'):item.state,
+          available:!!gateway&&Number(gateway.enabled)===1&&gateway.last_status==='ok'
+        }:item),mode:'Cloudflare Workers',installation:'external services required'});
       }
       if(path==='/api/tools/agent-hub'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
