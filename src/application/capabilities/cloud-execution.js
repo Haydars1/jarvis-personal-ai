@@ -60,7 +60,18 @@ async function verifyGithubOidc(token,audience,workflowRefs){
 async function verifyRunnerJwt(token){return verifyGithubOidc(token,OIDC_AUDIENCE,TRUSTED_WORKFLOW);}
 async function verifySkillBuilderJwt(token){return verifyGithubOidc(token,SKILL_BUILDER_AUDIENCE,SKILL_BUILDER_WORKFLOWS);}
 function bearer(req){const m=String(req.headers.get('authorization')||'').match(/^Bearer\s+(.+)$/i);return m?m[1].trim():'';}
-async function runnerAuth(req){try{return await verifyRunnerJwt(bearer(req));}catch{return null;}}
+async function runnerAuth(req,env){
+  try{
+    const url=new URL(req.url);
+    // Isolated CI only: the normal production URL and trusted workflow are unchanged.
+    // Still verifies GitHub's real signed OIDC token, repository and hosted runner.
+    const ref=String(env?.AGENT_HUB_E2E_WORKFLOW_REF||'');
+    const isolated=url.hostname==='127.0.0.1'&&env?.AGENT_HUB_E2E_LOCAL==='true'&&
+      /^Haydars1\/jarvis-personal-ai\/\.github\/workflows\/agent-hub-validation\.yml@refs\/pull\/121\/merge$/.test(ref);
+    const workflows=isolated?[TRUSTED_WORKFLOW,ref]:TRUSTED_WORKFLOW;
+    return await verifyGithubOidc(bearer(req),OIDC_AUDIENCE,workflows);
+  }catch{return null;}
+}
 async function skillBuilderAuth(req){try{return await verifySkillBuilderJwt(bearer(req));}catch{return null;}}
 async function appAuthed(core,req,env,ctx){
   const response=await core.fetch(new Request(new URL('/api/auth/status',req.url),{headers:req.headers}),env,ctx);
@@ -374,7 +385,7 @@ export function createCloudCapabilityExecution(core){
         return jsonResponse({job:publicJob(row),answer:cloudJobAnswer(row)});
       }
       if(path==='/api/tools/cloud/runner/claim'&&method==='POST'){
-        const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
+        const claims=await runnerAuth(req,env);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
         const claimedBy=`github:${claims.run_id||'unknown'}`;
         for(let attempt=0;attempt<3;attempt++){
           const row=await queryOne(env,"SELECT id FROM cloud_tool_jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1");
@@ -389,7 +400,7 @@ export function createCloudCapabilityExecution(core){
       }
       const resultMatch=path.match(/^\/api\/tools\/cloud\/runner\/jobs\/([^/]+)\/result$/);
       if(resultMatch&&method==='POST'){
-        const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
+        const claims=await runnerAuth(req,env);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
         const id=decodeURIComponent(resultMatch[1]),body=await readJson(req),ts=now(),ok=body.ok===true;
         const row=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id);if(!row)return jsonResponse({error:'JOB_NOT_FOUND'},404);
         // Never leak another runner's result, including completed jobs.
