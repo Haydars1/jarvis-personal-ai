@@ -117,6 +117,7 @@ try {
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
+      await page.locator('[data-page="chat"]:visible').first().click({ timeout: 10000 });
       await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
