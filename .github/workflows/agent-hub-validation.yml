@@ -3,6 +3,12 @@ on:
   pull_request:
     paths:
       - 'src/lib/agent-hub-*'
+      - 'src/lib/freellmapi-gateway.js'
+      - 'src/application/chat/smart-router.js'
+      - 'src/lib/orchestration.js'
+      - 'src/worker.js'
+      - 'public/provider-catalog.js'
+      - 'tests/freellmapi-gateway.test.js'
       - 'src/application/capabilities/cloud-execution.js'
       - 'src/application/capabilities/agent-hub-workflow.js'
       - 'src/app-entry.js'
@@ -29,6 +35,9 @@ jobs:
       - name: Syntax check
         run: |
           node --check src/lib/agent-hub-providers.js
+          node --check src/lib/freellmapi-gateway.js
+          node --check src/application/chat/smart-router.js
+          node --check public/provider-catalog.js
           node --check src/lib/agent-hub-skill-directory.js
           node --check src/lib/agent-hub-workflow.js
           node --check src/lib/agent-hub-durable-report.js
@@ -36,7 +45,7 @@ jobs:
           node --check src/application/capabilities/cloud-execution.js
           node --check public/agent-hub-ui.js
       - name: Unit tests
-        run: node --test tests/agent-hub-*.test.js
+        run: node --test tests/agent-hub-*.test.js tests/freellmapi-gateway.test.js
       - name: Cloudflare integration dry-run
         run: |
           npm install --no-audit --no-fund
