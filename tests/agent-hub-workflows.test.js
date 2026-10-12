@@ -77,5 +77,5 @@ test('agent plan includes safe suggested skills without installing them',()=>{
  const plan=createAgentPlan({repo:'owner/sample',task:'6006 web SEO sorunlarını araştır'},repo);
  assert.ok(plan.recommended_skills.some(skill=>skill.path==='skills/web-design-guidelines/SKILL.md'));
  assert.ok(plan.recommended_skills.every(skill=>skill.auto_install===false&&skill.execution==='preview-only'));
- assert.deepEqual(plan.steps.map(step=>step.adapter_id),['repo-inspect','source-search','skill-analyze']);
+ assert.deepEqual(plan.steps.map(step=>step.adapter_id),['repo-inspect','source-search','skill-analyze','source-audit']);
 });
