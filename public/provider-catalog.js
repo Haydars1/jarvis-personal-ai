@@ -1,6 +1,12 @@
 (() => {
   const PROVIDERS = [
     {
+      id:'freellmapi', name:'FreeLLMAPI', desc:'Ücretsiz katmanları birleştiren uzaktaki API geçidi; 429 / limit durumunda otomatik model değişimi ve bağlamı koruma. Bağımsız HTTPS sunucu gerektirir.',
+      endpoint:'', model:'auto', priority:25,
+      caps:['chat','coding','reasoning','research'],
+      url:'https://github.com/tashfeenahmed/freellmapi', badge:'BULUT GEÇİDİ • HARİCİ SUNUCU GEREKİR'
+    },
+    {
       id:'deepseek', name:'DeepSeek', desc:'Güçlü reasoning + kodlama, OpenAI uyumlu API',
       endpoint:'https://api.deepseek.com', model:'deepseek-v4-flash', priority:22,
       caps:['chat','coding','reasoning','research'],
@@ -56,12 +62,16 @@
         <small>${escLocal(p.desc)}</small>
         <div class="providerModel">${escLocal(p.badge)} • ${escLocal(p.model)}</div>
         <input class="pcModel" autocomplete="off" value="${escLocal(p.model)}" placeholder="Model ID">
+        ${p.id==='freellmapi'?'<input class="pcEndpoint" inputmode="url" autocomplete="url" placeholder="https://senin-gateway-adresin.example/v1" aria-label="FreeLLMAPI HTTPS geçit adresi">':''}
         <input class="pcKey" type="password" autocomplete="new-password" placeholder="${escLocal(p.name)} API key">
         <div class="row"><a href="${p.url}" target="_blank" rel="noopener">API ANAHTARI AL</a><button class="pcConnect">BAĞLA + TEST</button></div>`;
 
       d.querySelector('.pcConnect').onclick = async () => {
         const secret = d.querySelector('.pcKey').value.trim();
         const model = d.querySelector('.pcModel').value.trim() || p.model;
+        const endpoint = p.id==='freellmapi' ? d.querySelector('.pcEndpoint')?.value.trim() : p.endpoint;
+        if (p.id==='freellmapi' && (!endpoint || !/^https:\/\//i.test(endpoint)))
+          return toast('FreeLLMAPI için herkese açık HTTPS geçit adresi gerekli.');
         if (!secret) return toast(p.name + ' API key gerekli');
         try {
           const saved = await api('/api/credentials', {
@@ -71,7 +81,7 @@
               label:p.name,
               secret,
               model,
-              endpoint:p.endpoint,
+              endpoint,
               priority:p.priority,
               capabilities:p.caps
             })
