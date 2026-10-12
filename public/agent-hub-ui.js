@@ -167,6 +167,34 @@
         output.textContent=['Dosya: '+a.file,'Boyut: '+a.size_bytes+' bayt','Entropi: '+a.entropy_bits_per_byte+' bit/bayt','İşaretler: '+((a.ascii_markers||[]).join(', ')||'Bulunamadı'),'Başlık: '+a.header_hex,'Checksum doğrulandı: Hayır','ECU tanımlaması kesin değil'].join('\n');
       }catch(error){output.textContent='Analiz başarısız: '+error.message;}
     });
+    const ecuCompare=document.createElement('section');
+    ecuCompare.innerHTML='<h3>Orijinal / değiştirilmiş ECU dosyası karşılaştırma</h3><p class="muted">İki BIN, ORI, ROM veya Intel HEX dosyasını karşılaştır. Değişen byte sayısı ve adres aralıkları gösterilir. Dosyalar kaydedilmez; firmware checksum otomatik düzeltilmez.</p><div class="row"><label>Orijinal dosya<input id="hubEcuOriginal" type="file" accept=".bin,.hex,.rom,.ori"></label><label>Değiştirilmiş dosya<input id="hubEcuModified" type="file" accept=".bin,.hex,.rom,.ori"></label></div><button type="button" id="hubEcuCompare">Dosyaları karşılaştır</button><pre id="hubEcuCompareResult" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:400px;overflow:auto" aria-live="polite"></pre>';
+    section.appendChild(ecuCompare);
+    $('hubEcuCompare').addEventListener('click',async()=>{
+      const original=$('hubEcuOriginal').files?.[0],modified=$('hubEcuModified').files?.[0],output=$('hubEcuCompareResult');
+      if(!original||!modified){output.textContent='Karşılaştırmak için iki dosya seç.';return;}
+      const permitted=file=>/\.(bin|hex|rom|ori)$/i.test(file.name)&&file.size>0&&file.size<=4*1024*1024;
+      if(!permitted(original)||!permitted(modified)){output.textContent='Dosyalar 4 MB veya daha küçük BIN, HEX, ORI ya da ROM olmalı.';return;}
+      const form=new FormData();form.set('original',original);form.set('modified',modified);
+      output.textContent='Dosyalar karşılaştırılıyor...';
+      try{
+        const result=await api('/api/tools/agent-hub/ecu-compare',{method:'POST',body:form});
+        const c=result.comparison||{};
+        const lines=['Orijinal: '+(c.original?.file||'?')+' ('+(c.original?.format||'?')+')',
+          'Yeni: '+(c.modified?.file||'?')+' ('+(c.modified?.format||'?')+')',
+          'Durum: '+(c.identical?'Aynı':'Farklı'),
+          'Değişen byte: '+c.changed_bytes,'Eklenen byte: '+c.added_bytes,'Çıkarılan byte: '+c.removed_bytes,
+          'Farklı adres aralığı: '+c.total_changed_ranges,
+          'Intel HEX kayıt checksum: '+(c.intel_hex_record_checksums_valid===true?'Geçerli':c.intel_hex_record_checksums_valid===null?'Uygulanmaz':'Doğrulanmadı'),
+          'ECU firmware checksum: Doğrulanmadı'];
+        for(const range of c.ranges||[]){
+          lines.push(range.start_hex+' – '+range.end_hex+' ('+(range.changed+range.added+range.removed)+' byte)',
+            '  Önce: '+range.before_hex,'  Sonra: '+range.after_hex);
+        }
+        if(c.truncated_ranges)lines.push('Not: İlk 64 farklı adres aralığı gösteriliyor.');
+        output.textContent=lines.join('\n');
+      }catch(error){output.textContent='Karşılaştırma başarısız: '+error.message;}
+    });
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/agent-skills">Vercel Agent Skills</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
