@@ -20,7 +20,7 @@ test('web tasks automatically include safe audit after skill inspection',()=>{
  const plan=createAgentPlan({repo:'owner/site',task:'6006 web sitesi SEO ve tasarım sorunları'},curated);
  assert.deepEqual(plan.steps.map(s=>s.adapter_id),['repo-inspect','source-search','skill-analyze','source-audit']);
  assert.ok(plan.steps[3].input.skill_references.includes('skills/web-design-guidelines/SKILL.md'));
- assert.deepEqual(createAgentPlan({repo:'owner/site',task:'ECU upload'},curated).steps.map(s=>s.adapter_id),['repo-inspect','source-search','skill-analyze']);
+ assert.deepEqual(createAgentPlan({repo:'owner/site',task:'ECU upload'},curated).steps.map(s=>s.adapter_id),['repo-inspect','source-search','skill-analyze','ecu-bin-inspect']);
 });
 
 test('finished Workflow report presents source-audit findings without extra network calls',async()=>{
