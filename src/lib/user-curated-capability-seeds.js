@@ -8,6 +8,10 @@ const hostGated = restriction => ({ autoExecute: false, restriction });
 const catalogOnly = restriction => ({ autoExecute: false, restriction });
 
 export const USER_CURATED_CAPABILITY_SEEDS = Object.freeze([
+  seed('mapforger/mapforge','ecu-calibration','external-service',hostGated('XDF/BIN viewer and editor. AGPL-3.0 licensing; local host required; not KT200 integration.')),
+  seed('LeZed97/ZedSuite','ecu-calibration','external-service',hostGated('VAG EDC15/EDC16-focused experimental map detection; vehicle compatibility must be verified.')),
+  seed('CAATZ/bimmerstein-bin-analyzer','ecu-calibration','external-service',hostGated('BMW MS41-specific local Windows binary analyzer, not universal ECU support.')),
+  seed('pylessard/python-udsoncan','obd-diagnostics','external-service',hostGated('UDS library needs a compatible host CAN adapter; Thinkdiag compatibility not established.')),
   seed('brendan-w/python-OBD','obd-diagnostics','local-cpu',hostGated('Standard ELM327 OBD-II only; not compatible with proprietary Thinkdiag or KT200 by default.')),
   seed('tronikos/elm327_obdii','obd-diagnostics','device',hostGated('ELM327 BLE and vehicle PID formats need hardware and licensed profile datasets.')),
   seed('commaai/opendbc','automotive-data','catalog-only',hostGated('DBC CAN formats for supported cars; vehicle-specific compatibility and licenses need checking.')),
