@@ -166,7 +166,7 @@ export function createEcuDeviceBridge(core){
         if(!job)return jsonResponse({job:null});
         const ts=now();
         const claimed=await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending'",ts,ts,job.id,bridge.id);
-        if(claimed.meta?.changes!==1)return jsonResponse({job:null});
+        if(Number(claimed.meta?.changes??claimed.changes??claimed.rowsAffected)!==1)return jsonResponse({job:null});
         return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
       }
 
@@ -180,7 +180,7 @@ export function createEcuDeviceBridge(core){
         const body=await readJson(req),ok=body.ok===true,ts=now();
         const settled=await execute(env,"UPDATE ecu_device_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='running'",
           ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'DEVICE_JOB_FAILED'),ts,ts,id,bridge.id);
-        if(settled.meta?.changes!==1)return jsonResponse({error:'JOB_NOT_RUNNING'},409);
+        if(Number(settled.meta?.changes??settled.changes??settled.rowsAffected)!==1)return jsonResponse({error:'JOB_NOT_RUNNING'},409);
         return jsonResponse({ok:true,job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',id))});
       }
 
