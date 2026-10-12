@@ -118,7 +118,7 @@
       }catch(error){if(error.message!=='AUTH_REQUIRED')$('agentHubMessage').textContent='Kaynak listesi: '+error.message;}
     }
     const directory=document.createElement('div');
-    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/skills">Skills.sh CLI deposu</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
+    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/agent-skills">Vercel Agent Skills</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
     $('hubSkillLearn').addEventListener('click',async()=>{
       const repo=$('hubSkillSource').value;
