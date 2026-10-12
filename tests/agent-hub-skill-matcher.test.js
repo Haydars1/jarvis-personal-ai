@@ -13,6 +13,13 @@ test('React and PDF tasks suggest matching actual skill paths',()=>{
  assert.deepEqual(suggestSkillsForTask(''),[]);
  assert.ok(RECOMMENDED_SKILLS.every(s=>s.repo&&s.path.endsWith('SKILL.md')));
 });
+test('Cloudflare and security tasks match verified upstream agent skills',()=>{
+ const cloud=suggestSkillsForTask('Cloudflare Workers D1 görevleri için agent hub geliştir',{limit:8});
+ assert.ok(cloud.some(s=>s.repo==='cloudflare/skills'&&s.path==='skills/workers-best-practices/SKILL.md'));
+ const security=suggestSkillsForTask('MCP plugin güvenlik kod incele',{limit:8});
+ assert.ok(security.some(s=>s.path==='skills/mcp-implementation-security-review/SKILL.md'));
+ assert.ok(security.every(s=>s.execution==='preview-only'&&!s.auto_install));
+});
 test('authenticated API and Turkish UI expose task-based recommendations',()=>{
  const api=readFileSync(new URL('../src/application/capabilities/cloud-execution.js',import.meta.url),'utf8');
  const ui=readFileSync(new URL('../public/agent-hub-ui.js',import.meta.url),'utf8');
