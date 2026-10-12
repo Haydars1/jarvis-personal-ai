@@ -255,7 +255,14 @@ export function createCloudCapabilityExecution(core){
         if(!original.size||!modified.size||original.size>4*1024*1024||modified.size>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
         try{
           const [a,b]=await Promise.all([original.arrayBuffer(),modified.arrayBuffer()]);
-          return jsonResponse({ok:true,comparison:compareEcuFiles(new Uint8Array(a),new Uint8Array(b),aName,bName)});
+          const [digestA,digestB]=await Promise.all([crypto.subtle.digest('SHA-256',a),crypto.subtle.digest('SHA-256',b)]);
+          const toHex=digest=>Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+          const comparison=compareEcuFiles(new Uint8Array(a),new Uint8Array(b),aName,bName);
+          comparison.original.sha256=toHex(digestA);
+          comparison.modified.sha256=toHex(digestB);
+          comparison.hash_algorithm='SHA-256';
+          comparison.file_fingerprints_only=true;
+          return jsonResponse({ok:true,comparison});
         }catch(error){return jsonResponse({error:String(error.message||'ECU_COMPARE_FAILED').slice(0,120)},400);}
       }
       if(path==='/api/tools/agent-hub/ecu-file-inspect'&&method==='POST'){
