@@ -20,13 +20,19 @@ export class JarvisAgentWorkflow extends WorkflowEntrypoint {
     });
     let report={status:'queued',finished:false};
     for(let attempt=0;attempt<HUB_WORKFLOW_LIMITS.maxChecks;attempt++){
+      // Completion events are buffered by Cloudflare even if the runner finishes
+      // before this wait begins. Timeout also covers lost notification events.
+      try{
+        await step.waitForEvent(`runner-result-${attempt}`,{type:'job-finished',timeout:'30 seconds'});
+      }catch(error){
+        console.warn('Agent Hub runner notification timeout: checking D1 queue');
+      }
       report=await step.do(`check-queue-${attempt}`,async()=>{
         const results=await this.env.DB.prepare("SELECT * FROM cloud_tool_jobs WHERE input_json LIKE ? ORDER BY created_at ASC LIMIT 40")
           .bind(`%${workflow_id}%`).all();
         return deterministicHubReport(results.results||[],workflow_id,steps.length);
       });
       if(report.finished)break;
-      if(attempt<HUB_WORKFLOW_LIMITS.maxChecks-1)await step.sleep(`sleep-between-checks-${attempt}`,HUB_WORKFLOW_LIMITS.interval);
     }
     if(!report.finished)report={...report,status:'timed-out',finished:true};
     const summary=await step.do('summarize-results',async()=>{
