@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
- APPROVED_SKILL_REPOS, validSkillManifestPath, discoverSkillManifests, previewSkillManifest
+ APPROVED_SKILL_REPOS, validSkillManifestPath, discoverSkillManifests, discoverAllSkillManifests, previewSkillManifest
 } from '../src/lib/agent-hub-skill-directory.js';
 
 test('rejects paths outside read-only approved skill repositories',async()=>{
@@ -58,6 +58,55 @@ test('rejects malformed skill directory pagination and oversized search',async()
  await assert.rejects(discoverSkillManifests('openai/skills',offline,{offset:-1}),/INVALID_SKILL_PAGE_OFFSET/);
  await assert.rejects(discoverSkillManifests('openai/skills',offline,{query:'x'.repeat(101)}),/INVALID_SKILL_QUERY/);
 });
+test('cross-source search paginates all approved GitHub skill indexes',async()=>{
+ const fetched=[];
+ const fetcher=async url=>{
+  const name=url.match(/repos\/([^/]+\/[^/]+)\/git\/trees\/main/)?.[1];
+  assert.ok(APPROVED_SKILL_REPOS.includes(name));
+  fetched.push(name);
+  return {ok:true,json:async()=>({tree:[
+   {path:'skills/general/SKILL.md',type:'blob',sha:'b'.repeat(40)},
+   {path:'skills/cloudflare-workers/SKILL.md',type:'blob',sha:'a'.repeat(40)}
+  ],truncated:false})};
+ };
+ const a=await discoverAllSkillManifests(fetcher,{limit:10});
+ assert.equal(a.total,APPROVED_SKILL_REPOS.length*2);
+ assert.equal(a.sources_loaded,APPROVED_SKILL_REPOS.length);
+ assert.equal(a.partial,false);
+ assert.equal(a.auto_install,false);
+ assert.equal(a.skills.length,10);
+ assert.equal(a.has_more,true);
+ const b=await discoverAllSkillManifests(fetcher,{limit:10,offset:10});
+ assert.equal(b.skills.length,8);
+ assert.equal(b.has_more,false);
+ const matching=await discoverAllSkillManifests(fetcher,{query:'cloudflare-workers',limit:20});
+ assert.equal(matching.total,APPROVED_SKILL_REPOS.length);
+ assert.ok(matching.skills.every(x=>x.path.includes('cloudflare-workers')&&APPROVED_SKILL_REPOS.includes(x.repo)));
+ assert.equal(new Set(fetched).size,APPROVED_SKILL_REPOS.length);
+});
+
+test('cross-source scan reports GitHub failures rather than claiming missing skills',async()=>{
+ const blockedRepo=APPROVED_SKILL_REPOS[2];
+ const fetcher=async url=>{
+  if(url.includes('/'+blockedRepo+'/'))return {ok:false,status:429};
+  return {ok:true,json:async()=>({tree:[{path:'skills/safe/SKILL.md',type:'blob'}],truncated:false})};
+ };
+ const result=await discoverAllSkillManifests(fetcher);
+ assert.equal(result.partial,true);
+ assert.equal(result.index_complete,false);
+ assert.equal(result.sources_loaded,APPROVED_SKILL_REPOS.length-1);
+ assert.deepEqual(result.source_errors.map(x=>x.repo),[blockedRepo]);
+ assert.equal(result.total,APPROVED_SKILL_REPOS.length-1);
+ await assert.rejects(discoverAllSkillManifests(async()=>({ok:false,status:403})),/SKILL_SOURCES_UNAVAILABLE/);
+});
+
+test('Agent Hub UI previews skills from their original repo in all-source search',()=>{
+ const src=readFileSync(new URL('../public/agent-hub-ui.js',import.meta.url),'utf8');
+ assert.match(src,/allSources\.value='all'/);
+ assert.match(src,/encodeURIComponent\(skill\.repo\).*encodeURIComponent\(skill\.path\)/);
+ assert.match(src,/hubSkillLearn'\)\.disabled=skillSource\.value==='all'/);
+});
+
 test('can preview but never execute approved SKILL.md text',async()=>{
  const preview=await previewSkillManifest('anthropics/skills','skills/pdf/SKILL.md',async url=>{
   assert.equal(url,'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf/SKILL.md');
