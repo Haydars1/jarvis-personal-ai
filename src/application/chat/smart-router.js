@@ -9,6 +9,7 @@ import {
 } from '../../lib/runtime.js';
 import { scoreProvider, taskKind } from '../../lib/orchestration.js';
 import { capabilityProfile } from '../../lib/capability-policy.js';
+import { freeLlmChat } from '../../lib/freellmapi-gateway.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
 const IMAGE_CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
@@ -72,7 +73,7 @@ async function cfText(env, messages) {
 
 export async function rankedVaultRows(env, capability) {
   const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures, m.last_error AS metric_last_error, m.updated_at AS metric_updated_at FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
-  const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible'];
+  const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible','freellmapi'];
   return rows
     .filter(row => supported.includes(String(row.provider || '').toLowerCase()))
     .map(row => ({ row, score:scoreProvider(row, capability) }))
@@ -138,6 +139,9 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
   const provider = String(credential.provider || '').toLowerCase();
   if (provider === 'nvidia') return nvidiaCall(env, credential, messages, capability, Math.min(timeoutMs, 7000));
   const secret = await decryptCredential(env, credential.encrypted_secret);
+  if (provider === 'freellmapi') {
+    return freeLlmChat({endpoint:credential.endpoint,key:secret,model:credential.model||'auto',messages,timeoutMs});
+  }
   if (provider === 'gemini') {
     const model = credential.model || 'gemini-2.5-flash';
     const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(secret)}`, {
