@@ -9,7 +9,21 @@ export const APPROVED_SKILL_REPOS=Object.freeze([
   'microsoft/skills',
   'cloudflare/skills',
   'huggingface/skills',
-  'expo/skills'
+  'expo/skills',
+  'google/skills',
+  'remotion-dev/skills',
+  'NVIDIA/skills',
+  'trailofbits/skills',
+  'browserbase/skills',
+  'dotnet/skills',
+  'oracle/skills',
+  'Unity-Technologies/skills',
+  'antfu/skills',
+  'elevenlabs/skills',
+  'mattpocock/skills',
+  'BuilderIO/skills',
+  'wshobson/agents',
+  'alirezarezvani/claude-skills'
 ]);
 const allowed=new Set(APPROVED_SKILL_REPOS);
 
