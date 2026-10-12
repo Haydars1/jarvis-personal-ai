@@ -131,6 +131,25 @@
         await refresh();
       }catch(error){$('hubSkillStatus').textContent=error.message;}
     });
+    const featured=document.createElement('div');
+    featured.innerHTML='<h4>Önerilen beceriler</h4><p class="muted">Doğrulanmış kaynak dosyalarını açar; kod çalıştırmaz.</p><div id="hubRecommendedSkills"></div>';
+    directory.appendChild(featured);
+    for(const skill of [
+      {name:'Web tasarımı ve erişilebilirlik',path:'skills/web-design-guidelines/SKILL.md'},
+      {name:'React performansı',path:'skills/react-best-practices/SKILL.md'},
+      {name:'React bileşen mimarisi',path:'skills/composition-patterns/SKILL.md'}
+    ]){
+      const button=document.createElement('button');button.type='button';
+      button.textContent=skill.name;
+      button.addEventListener('click',async()=>{
+        $('hubSkillPreview').textContent='Kaynak okunuyor...';
+        try{
+          const result=await api('/api/tools/agent-hub/skill-preview?repo=vercel-labs%2Fagent-skills&path='+encodeURIComponent(skill.path));
+          $('hubSkillPreview').textContent=result.content.slice(0,8000);
+        }catch(error){$('hubSkillPreview').textContent=error.message;}
+      });
+      $('hubRecommendedSkills').appendChild(button);
+    }
     $('hubSkillScan').addEventListener('click',async()=>{
       const selected=$('hubSkillSource').value;
       $('hubSkillStatus').textContent='GitHub beceri dosyaları aranıyor...';
