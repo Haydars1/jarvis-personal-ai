@@ -10,14 +10,17 @@ on:
       - 'src/lib/user-curated-capability-seeds.js'
       - 'public/agent-hub-ui.js'
       - 'tests/agent-hub-*'
+      - 'scripts/agent-hub-workflow-e2e.mjs'
+      - '.github/scripts/cloud-tool-runner.mjs'
       - '.github/workflows/agent-hub-validation.yml'
   workflow_dispatch:
 permissions:
   contents: read
+  id-token: write
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,3 +43,5 @@ jobs:
           npx wrangler deploy --dry-run --outdir .wrangler-agent-hub
       - name: Cloudflare Workflow and D1 isolated E2E
         run: node scripts/agent-hub-workflow-e2e.mjs
+        env:
+          JARVIS_CLOUD_MAX_JOBS: '3'
