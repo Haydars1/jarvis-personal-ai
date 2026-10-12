@@ -46,7 +46,7 @@ function parseIntelHex(bytes){
 }
 export function parseEcuImage(value,filename='image.bin'){
  const bytes=asBytes(value),name=String(filename||'image.bin');
- if(/\.hex$/i.test(name)&&bytes[0]===58)return parseIntelHex(bytes);
+ if(/\.hex$/i.test(name))return parseIntelHex(bytes);
  return {format:'raw-binary',segments:[{start:0,bytes}],dataBytes:bytes.length,records:null,checksum_valid:null};
 }
 function cursor(segments){
