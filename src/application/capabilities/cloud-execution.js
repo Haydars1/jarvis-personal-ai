@@ -1,5 +1,6 @@
 import { APPROVED_SKILL_REPOS, discoverSkillManifests, discoverAllSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
 import { discoverSkillRepositories } from '../../lib/agent-hub-skill-repository-search.js';
+import { NATIVE_SKILL_AUDITS, nativeSkillAuditJobInput } from '../../lib/agent-hub-native-skill-audits.js';
 import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
 import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
@@ -311,6 +312,28 @@ export function createCloudCapabilityExecution(core){
         const page=Number(url.searchParams.get('page')||1);
         try{return jsonResponse(await discoverSkillRepositories(query,fetch,{page,limit:20}));}
         catch(error){return jsonResponse({error:error.message},400);}
+      }
+      // Selected public skills may be used through audited, JARVIS-owned adapters only.
+      if(path==='/api/tools/agent-hub/skill-executors'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        return jsonResponse({executors:NATIVE_SKILL_AUDITS,mode:'jarvis-owned-read-only',
+          third_party_instructions_executed:false,auto_install:false});
+      }
+      if(path==='/api/tools/agent-hub/skill-run'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        const targetRepo=String(body.target_repo||'').trim();
+        if(!validRepo(targetRepo))return jsonResponse({error:'REPOSITORY_NOT_CURATED'},400);
+        let input;
+        try{input=nativeSkillAuditJobInput(body.skill_repo,body.skill_path);}
+        catch(error){return jsonResponse({error:error.message},400);}
+        const commit=String(body.commit||'');
+        if(commit&&!/^[0-9a-f]{40}$/i.test(commit))return jsonResponse({error:'INVALID_COMMIT'},400);
+        const active=await queryOne(env,"SELECT COUNT(*) AS count FROM cloud_tool_jobs WHERE adapter_id='source-audit' AND status IN ('queued','running') AND created_at>?",now()-3600000);
+        if(Number(active?.count||0)>=12)return jsonResponse({error:'SKILL_RUNNER_BUSY'},429);
+        const job=await queueCloudJob(env,{adapterId:'source-audit',repo:targetRepo,commit:commit||null,input});
+        return jsonResponse({job,skill:input.skill_reference,audit_profile:input.audit_profile,
+          status:'queued',runner:'github-oidc-read-only',external_instructions_executed:false},202);
       }
       if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
