@@ -1,4 +1,5 @@
 import { APPROVED_SKILL_REPOS, discoverSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
+import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
@@ -233,6 +234,12 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/skill-suggest'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const task=String(url.searchParams.get('task')||'').slice(0,1000);
+        if(!task.trim())return jsonResponse({error:'TASK_REQUIRED'},400);
+        return jsonResponse({ok:true,task,skills:suggestSkillsForTask(task),execution:'preview-only',auto_install:false});
       }
       if(path==='/api/tools/agent-hub/skills-directory'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
