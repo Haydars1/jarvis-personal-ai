@@ -28,6 +28,7 @@ const ALLOWED_ADAPTERS=Object.freeze({
   'source-search':{label:'Source search',mode:'read-only'},
   'source-read':{label:'Source file read',mode:'read-only'},
   'source-audit':{label:'Website source audit',mode:'read-only'},
+  'ecu-bin-inspect':{label:'ECU firmware binary inspection',mode:'read-only'},
   'skill-analyze':{label:'Learn repository skill',mode:'read-only'},
   'youtube-teaching':{label:'YouTube teaching',mode:'read-only-learning'}
 });
