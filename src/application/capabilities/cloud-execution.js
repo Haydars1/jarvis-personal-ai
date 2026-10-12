@@ -419,6 +419,16 @@ export function createCloudCapabilityExecution(core){
         const input=parse(row.input_json,{});
         const next=nextHubStep(input.__agent_hub,ok);
         if(next)await queueCloudJob(env,{adapterId:next.adapter_id,repo:next.repo,input:{...next.input,__agent_hub:next.meta}});
+        if(env.AGENT_HUB_WORKFLOW&&input.__agent_hub?.workflow_id){
+          try{
+            const instance=await env.AGENT_HUB_WORKFLOW.get(input.__agent_hub.workflow_id);
+            await instance.sendEvent({type:'job-finished',payload:{job_id:id,ok}});
+          }catch(error){
+            // The durable Workflow also polls D1 on event timeout, so a notification
+            // failure must never make the runner retry an already completed job.
+            console.warn('Agent Hub completion event unavailable:',String(error?.message||error).slice(0,160));
+          }
+        }
         return jsonResponse({ok:true,skill:persistedSkill,job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id))});
       }
       return core.fetch(req,env,ctx);
