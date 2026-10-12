@@ -22,3 +22,14 @@ test('web tasks automatically include safe audit after skill inspection',()=>{
  assert.ok(plan.steps[3].input.skill_references.includes('skills/web-design-guidelines/SKILL.md'));
  assert.deepEqual(createAgentPlan({repo:'owner/site',task:'ECU upload'},curated).steps.map(s=>s.adapter_id),['repo-inspect','source-search','skill-analyze']);
 });
+
+test('finished Workflow report presents source-audit findings without extra network calls',async()=>{
+ const {deterministicHubReport}=await import('../src/lib/agent-hub-durable-report.js');
+ const workflowId='wf-audit';
+ const steps=[0,1,2].map(position=>({adapter_id:'repo-inspect',status:'completed',created_at:position,input_json:JSON.stringify({__agent_hub:{workflow_id:workflowId,position,attempts:0}}),result_json:'{}'}));
+ const audit={adapter_id:'source-audit',status:'completed',created_at:3,input_json:JSON.stringify({__agent_hub:{workflow_id:workflowId,position:3,attempts:0}}),result_json:JSON.stringify({findings:[{file:'public/index.html',line:17,rule:'img-alt',message:'Alt missing',severity:'medium'}]})};
+ const report=deterministicHubReport([...steps,audit],workflowId,4);
+ assert.equal(report.status,'completed');
+ assert.equal(report.audit_findings[0].line,17);
+ assert.equal(report.audit_findings[0].file,'public/index.html');
+});
