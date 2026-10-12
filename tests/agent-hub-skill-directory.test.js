@@ -6,7 +6,11 @@ import {
 } from '../src/lib/agent-hub-skill-directory.js';
 
 test('rejects paths outside read-only approved skill repositories',async()=>{
- assert.deepEqual(APPROVED_SKILL_REPOS,['anthropics/skills','vercel-labs/agent-skills']);
+ assert.equal(APPROVED_SKILL_REPOS.length,9);
+ assert.ok(APPROVED_SKILL_REPOS.includes('anthropics/skills'));
+ assert.ok(APPROVED_SKILL_REPOS.includes('openai/skills'));
+ assert.ok(APPROVED_SKILL_REPOS.includes('github/awesome-copilot'));
+ assert.equal(new Set(APPROVED_SKILL_REPOS).size,APPROVED_SKILL_REPOS.length);
  assert.equal(validSkillManifestPath('skills/pdf/SKILL.md'),true);
  assert.equal(validSkillManifestPath('../SKILL.md'),false);
  assert.equal(validSkillManifestPath('skills/../../SKILL.md'),false);
@@ -28,6 +32,31 @@ test('lists only bounded SKILL.md manifests from GitHub read-only tree',async()=
  const data=await discoverSkillManifests('anthropics/skills',fetcher);
  assert.deepEqual(data.skills.map(x=>x.name),['pdf','html']);
  assert.equal(data.auto_install,false);
+});
+test('search and paging access skills beyond the old 150-item limit',async()=>{
+ const tree=Array.from({length:445},(_,i)=>({path:`skills/topic-${String(i).padStart(3,'0')}/SKILL.md`,type:'blob',sha:'a'.repeat(40)}));
+ const fetcher=async()=>({ok:true,json:async()=>({tree,truncated:false})});
+ const first=await discoverSkillManifests('github/awesome-copilot',fetcher,{offset:0,limit:150});
+ const middle=await discoverSkillManifests('github/awesome-copilot',fetcher,{offset:150,limit:150});
+ const last=await discoverSkillManifests('github/awesome-copilot',fetcher,{offset:300,limit:150});
+ assert.equal(first.total,445);
+ assert.equal(first.skills.length,150);
+ assert.equal(first.next_offset,150);
+ assert.equal(middle.skills[0].name,'topic-150');
+ assert.equal(last.skills.length,145);
+ assert.equal(last.has_more,false);
+ assert.equal(last.skills.at(-1).name,'topic-444');
+ const filtered=await discoverSkillManifests('github/awesome-copilot',fetcher,{query:'TOPIC-444',limit:20});
+ assert.equal(filtered.total,1);
+ assert.equal(filtered.skills[0].source_blob_sha,'a'.repeat(40));
+ assert.equal(filtered.auto_install,false);
+ assert.equal(filtered.source_verified,false);
+});
+test('rejects malformed skill directory pagination and oversized search',async()=>{
+ const offline=()=>{throw Error('request must be rejected before network')};
+ await assert.rejects(discoverSkillManifests('openai/skills',offline,{limit:1000}),/INVALID_SKILL_PAGE_LIMIT/);
+ await assert.rejects(discoverSkillManifests('openai/skills',offline,{offset:-1}),/INVALID_SKILL_PAGE_OFFSET/);
+ await assert.rejects(discoverSkillManifests('openai/skills',offline,{query:'x'.repeat(101)}),/INVALID_SKILL_QUERY/);
 });
 test('can preview but never execute approved SKILL.md text',async()=>{
  const preview=await previewSkillManifest('anthropics/skills','skills/pdf/SKILL.md',async url=>{
