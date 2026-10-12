@@ -266,7 +266,8 @@ export function createCloudCapabilityExecution(core){
         if(!/\.(bin|hex|rom|ori)$/i.test(name))return jsonResponse({error:'ECU_EXTENSION_NOT_ALLOWED'},400);
         const bytes=new Uint8Array(await req.arrayBuffer());
         if(!bytes.length||bytes.length>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
-        return jsonResponse({ok:true,analysis:inspectEcuBinary(bytes,name),third_party_executed:false,persisted:false});
+        try{return jsonResponse({ok:true,analysis:inspectEcuBinary(bytes,name),third_party_executed:false,persisted:false});}
+        catch(error){return jsonResponse({error:String(error?.message||'ECU_FILE_INVALID').slice(0,120)},400);}
       }
       if(path==='/api/tools/agent-hub/vin-decode'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
