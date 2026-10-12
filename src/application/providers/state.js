@@ -1,6 +1,7 @@
 import { jsonResponse, queryAll } from '../../lib/runtime.js';
 
 const AI_PROVIDER_NAMES = {
+  freellmapi: 'FreeLLMAPI',
   deepseek: 'DeepSeek',
   mistral: 'Mistral',
   xai: 'xAI',
