@@ -1,5 +1,5 @@
 // Read-only SKILL.md discovery for vetted public sources. Never installs or executes remote code.
-export const APPROVED_SKILL_REPOS = Object.freeze(['anthropics/skills','vercel-labs/skills']);
+export const APPROVED_SKILL_REPOS = Object.freeze(['anthropics/skills','vercel-labs/agent-skills']);
 const allowed=new Set(APPROVED_SKILL_REPOS);
 export function validSkillManifestPath(path) {
   const value=String(path||'');
