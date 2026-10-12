@@ -131,6 +131,32 @@
         await refresh();
       }catch(error){$('hubSkillStatus').textContent=error.message;}
     });
+    const matcher=document.createElement('div');
+    matcher.innerHTML='<h3>Göreve göre beceri öner</h3><p class="muted">Görev yaz; JARVIS onaylı SKILL.md kaynaklarını önerir. Kod çalıştırmaz.</p><input id="hubSkillTask" maxlength="1000" placeholder="Örn: 6006 web sitesinin SEO ve erişilebilirliğini iyileştir"><button type="button" id="hubSuggestSkills">Beceri öner</button><div id="hubSuggestedSkills" aria-live="polite"></div>';
+    directory.appendChild(matcher);
+    $('hubSuggestSkills').addEventListener('click',async()=>{
+      const task=$('hubSkillTask').value.trim();
+      if(!task){$('hubSuggestedSkills').textContent='Görev açıklaması yaz.';return;}
+      $('hubSuggestedSkills').textContent='Uygun beceriler aranıyor...';
+      try{
+        const data=await api('/api/tools/agent-hub/skill-suggest?task='+encodeURIComponent(task));
+        const target=$('hubSuggestedSkills');
+        target.replaceChildren();
+        if(!data.skills?.length){target.textContent='Bu görev için onaylı beceri bulunamadı.';return;}
+        for(const skill of data.skills){
+          const button=document.createElement('button');button.type='button';
+          button.textContent=skill.name+' ('+skill.repo+')';
+          button.addEventListener('click',async()=>{
+            $('hubSkillPreview').textContent='Beceri okunuyor...';
+            try{
+              const result=await api('/api/tools/agent-hub/skill-preview?repo='+encodeURIComponent(skill.repo)+'&path='+encodeURIComponent(skill.path));
+              $('hubSkillPreview').textContent=result.content.slice(0,8000);
+            }catch(error){$('hubSkillPreview').textContent=error.message;}
+          });
+          target.appendChild(button);
+        }
+      }catch(error){$('hubSuggestedSkills').textContent=error.message;}
+    });
     const featured=document.createElement('div');
     featured.innerHTML='<h4>Önerilen beceriler</h4><p class="muted">Doğrulanmış kaynak dosyalarını açar; kod çalıştırmaz.</p><div id="hubRecommendedSkills"></div>';
     directory.appendChild(featured);
