@@ -111,6 +111,38 @@ test('device job completes registration, token heartbeat, claim and simulated re
   assert.equal((await call('jobs', { action: 'clear_dtc' })).status, 409);
 });
 
+test('device poll skips unsupported backlog and refuses unconfirmed write jobs', async t => {
+  const env = database(t);
+  const bridge = createEcuDeviceBridge({ fetch: async () => new Response('{"authenticated":true}') });
+  const call = async (path, body, token) => bridge.fetch(new Request(`https://jarvis.test/api/ecu/device/${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  }), env, {});
+  const registered = await (await call('bridges/register', { label: 'Queue safety fixture' })).json();
+  const token = registered.token, bridgeId = registered.bridge.id;
+  await call('heartbeat', { capabilities: ['read_dtc'] }, token);
+  for (let i = 0; i < 25; i++) {
+    const response = await call('jobs', { action: 'read_live_data', bridge_id: bridgeId });
+    assert.equal(response.status, 201);
+  }
+  const ready = await (await call('jobs', { action: 'read_dtc', bridge_id: bridgeId })).json();
+  const claimed = await (await call('jobs/next', undefined, token)).json();
+  assert.equal(claimed.job.id, ready.job.id, 'eligible work must not starve behind 25 unsupported jobs');
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null);
+
+  await call('heartbeat', { capabilities: ['read_dtc', 'clear_dtc'] }, token);
+  const pendingId = crypto.randomUUID();
+  const ts = Date.now();
+  env.db.prepare("INSERT INTO ecu_device_jobs(id,bridge_id,action,module,request_json,status,requires_confirmation,confirmed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)")
+    .run(pendingId, bridgeId, 'clear_dtc', '', '{}', 'pending', 1, null, ts, ts);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'write action requires confirmation');
+  env.db.prepare('UPDATE ecu_device_jobs SET confirmed_at=? WHERE id=?').run(ts, pendingId);
+  const approved = await (await call('jobs/next', undefined, token)).json();
+  assert.equal(approved.job.id, pendingId);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'claimed job cannot be redelivered');
+});
+
 test('binary inspector calculates actual ORI/MOD differences including appended bytes', async () => {
   const handler = createEcuBinaryInspector(core);
   const response = await handler.fetch(request({ channel: 'ecu', attachments: [
