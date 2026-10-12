@@ -121,6 +121,18 @@
     const automotive=document.createElement('section');
     automotive.innerHTML='<h3>Otomotiv ve ECU araçları</h3><p class="muted">Gerçek GitHub projeleri: OBD teşhis, VIN, CAN, ECU firmware analizi. Katalog ve uyumluluk bilgisi; cihaz bağlantısı veya kurulum değildir.</p><input id="hubAutoToolsQuery" maxlength="1000" placeholder="Örn: Thinkdiag canlı veri, ECU BIN analizi veya VIN ile araç bul"><button type="button" id="hubAutoToolsFind">Uygun otomotiv aracını bul</button><div id="hubAutoToolsResults" aria-live="polite"></div>';
     section.appendChild(automotive);
+    const vinWidget=document.createElement('section');
+    vinWidget.innerHTML='<h4>VIN ile araç tanımla (ücretsiz NHTSA)</h4><p class="muted">VIN yalnızca sorgu düğmesine basınca NHTSA API ile paylaşılır. Avrupa modellerinde sonuç eksik olabilir.</p><input id="hubVinInput" maxlength="17" autocomplete="off" placeholder="17 haneli şasi numarası"><button type="button" id="hubVinDecode">VIN sorgula</button><pre id="hubVinResult" style="white-space:pre-wrap"></pre>';
+    automotive.appendChild(vinWidget);
+    $('hubVinDecode').addEventListener('click',async()=>{
+      const vin=$('hubVinInput').value.trim();
+      $('hubVinResult').textContent='NHTSA sorgulanıyor...';
+      try{
+        const response=await api('/api/tools/agent-hub/vin-decode',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({vin})});
+        const v=response.vehicle||{};
+        $('hubVinResult').textContent=['Marka: '+(v.make||'?'),'Model: '+(v.model||'?'),'Yıl: '+(v.year||'?'),'Motor: '+(v.engine||'?'),'Yakıt: '+(v.fuel||'?'),'Kaynak: NHTSA vPIC'].join('\\n');
+      }catch(error){$('hubVinResult').textContent='VIN sorgusu başarısız: '+error.message;}
+    });
     $('hubAutoToolsFind').addEventListener('click',async()=>{
       const q=$('hubAutoToolsQuery').value.trim();
       if(!q){$('hubAutoToolsResults').textContent='Ne yapmak istediğini yaz.';return;}
