@@ -43,7 +43,7 @@
       if(!repo||!task){$('agentHubMessage').textContent='Depo ve görev gerekli';return;}
       try{
         const result=await api('/api/tools/agent-hub/durable',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({repo,task})});
-        $('agentHubMessage').textContent='Cloudflare ajanı başlatıldı: '+result.workflow_id+' — '+result.plan.steps.length+' adım.';
+        $('agentHubMessage').textContent='Cloudflare ajanı başlatıldı: '+result.workflow_id+' — '+result.plan.steps.length+' adım • '+(result.plan.recommended_skills||[]).length+' güvenli beceri önerisi.';
         $('agentHubWorkflowId').value=result.workflow_id;
         refresh();
       }catch(error){$('agentHubMessage').textContent=error.message;}
