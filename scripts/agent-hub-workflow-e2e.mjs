@@ -40,7 +40,7 @@ try{
    const data=await response.json();
    return {status:response.status,data,headers:response.headers};
  }
- assert.equal((await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve tasarım sorunlarını incele'})).status,401);
+ assert.equal((await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve ECU BIN analizi yap'})).status,401);
  const login=await req('/api/auth/setup','POST',{password:'workflow-e2e-test-only-password'});
  assert.equal(login.status,200,JSON.stringify(login.data));
  cookie=login.headers.get('set-cookie').split(';')[0];
@@ -71,7 +71,7 @@ try{
    assert.equal(response.status,200,path+': '+JSON.stringify(result));
    return result;
  }
- const stages=['repo-inspect','source-search','skill-analyze','source-audit'];
+ const stages=['repo-inspect','source-search','skill-analyze','ecu-bin-inspect','source-audit'];
  for(const stage of stages){
    let claimed=null;
    for(let retry=0;retry<25;retry++){
@@ -102,8 +102,8 @@ try{
  }
  assert.ok(finished,'Workflow did not finish after authenticated GitHub runner callbacks. Logs: '+output.slice(-3500));
  assert.equal(finished.output.status,'completed');
- assert.equal(finished.output.progress.current_step,4);
- assert.equal(finished.output.progress.jobs.length,4);
+ assert.equal(finished.output.progress.current_step,5);
+ assert.equal(finished.output.progress.jobs.length,5);
  assert.ok(Array.isArray(finished.output.progress.audit_findings),'Source audit findings missing from completed Workflow');
  console.log('REAL GitHub Actions OIDC runner → local Cloudflare Workflow → D1 → completion E2E passed:',plan.data.workflow_id);
 }finally{
