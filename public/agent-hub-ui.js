@@ -211,6 +211,36 @@
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource" aria-label="GitHub beceri kaynağı"><option value="all">Tüm doğrulanmış kaynaklar</option></select><input id="hubSkillQuery" maxlength="100" placeholder="Beceri ara: cloudflare, code-review..." aria-label="Beceri ara"><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div class="row"><button type="button" id="hubSkillPrevious" disabled>Önceki sayfa</button><button type="button" id="hubSkillNext" disabled>Sonraki sayfa</button></div><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
+    const sourceFinder=document.createElement('section');
+    sourceFinder.innerHTML='<h4>GitHub genelinde yeni Skills depoları ara</h4><p class="muted">GitHub arama sonuçları incelenmemiş adaylardır; otomatik kurulum veya çalıştırma yapılmaz.</p><input id="hubSkillRepoQuery" maxlength="80" placeholder="Örn: agent skills, automotive, cloudflare"><button type="button" id="hubSkillRepoSearch">GitHub depolarını ara</button><button type="button" id="hubSkillRepoMore" disabled>Daha fazla depo</button><p id="hubSkillRepoStatus" aria-live="polite"></p><div id="hubSkillRepoResults"></div>';
+    directory.appendChild(sourceFinder);
+    let sourceSearchPage=1;
+    async function searchSkillRepositories(page=1){
+      const term=$('hubSkillRepoQuery').value.trim();
+      if(term.length<2){$('hubSkillRepoStatus').textContent='En az 2 harf yaz.';return;}
+      $('hubSkillRepoSearch').disabled=true;$('hubSkillRepoMore').disabled=true;
+      $('hubSkillRepoStatus').textContent='GitHub kaynakları aranıyor...';
+      try{
+        const data=await api('/api/tools/agent-hub/skill-repository-search?query='+encodeURIComponent(term)+'&page='+page);
+        sourceSearchPage=page;
+        if(page===1)$('hubSkillRepoResults').replaceChildren();
+        for(const source of data.results||[]){
+          const container=document.createElement('p');
+          const link=document.createElement('a');
+          link.href=source.url;link.target='_blank';link.rel='noopener noreferrer';
+          link.textContent=source.repo;
+          const description=document.createElement('small');
+          description.textContent=' — '+(source.description||'Açıklama yok')+' • ★ '+source.stars+
+            ' • '+(source.approved_source?'Beceri dizini onaylı':'İncelenmemiş kaynak, kurulu değil');
+          container.append(link,description);$('hubSkillRepoResults').appendChild(container);
+        }
+        $('hubSkillRepoMore').disabled=!data.next_page;
+        $('hubSkillRepoStatus').textContent=(data.results||[]).length+' depo bulundu (sayfa '+page+'). GitHub eşleşmeleri beceri kurulumu değildir.';
+      }catch(error){$('hubSkillRepoStatus').textContent=error.message;}
+      finally{$('hubSkillRepoSearch').disabled=false;}
+    }
+    $('hubSkillRepoSearch').addEventListener('click',()=>searchSkillRepositories(1));
+    $('hubSkillRepoMore').addEventListener('click',()=>searchSkillRepositories(sourceSearchPage+1));
     $('hubSkillLearn').addEventListener('click',async()=>{
       const repo=$('hubSkillSource').value;
       if(repo==='all'){$('hubSkillStatus').textContent='Bütün kaynaklar topluca çalıştırılamaz. İncelemek istediğin depoyu seç.';return;}
