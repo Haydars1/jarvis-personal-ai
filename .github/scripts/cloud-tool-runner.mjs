@@ -6,12 +6,14 @@ import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex, fuseYouTubeLearning } from '../../src/lib/youtube-teaching-runtime.js';
 import { executeCodeGraphJob } from './code-graph-job.mjs';
 import { reviewSourceFile } from '../../src/lib/agent-hub-source-audit.js';
+import { inspectEcuBinary } from '../../src/lib/agent-hub-ecu-binary.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
   'source-read':true,
   'source-audit':true,
+  'ecu-bin-inspect':true,
   'skill-analyze':true,
   'youtube-teaching':true,
   'code-graph-query':true
@@ -129,6 +131,18 @@ async function sourceAudit(job,ctx){
   }catch{}
  }
  return {repo:job.repo,commit:ctx.commit,skill_references:Array.isArray(job.input?.skill_references)?job.input.skill_references.slice(0,5):[],scanned_files:scanned,findings,total_findings:findings.length,limited:findings.length>=80,read_only:true};
+}
+async function ecuBinInspect(job,ctx){
+ const matches=(await trackedFiles(ctx.dest)).filter(f=>/\.(bin|hex|rom|ori)$/i.test(f)).slice(0,30);
+ const results=[];
+ for(const file of matches){
+  const full=path.join(ctx.dest,file);
+  const info=await stat(full).catch(()=>null);
+  if(!info||info.size===0||info.size>4*1024*1024)continue;
+  const buffer=await readFile(full);
+  results.push(inspectEcuBinary(buffer,file));
+ }
+ return {repo:job.repo,commit:ctx.commit,files:results,scanned_files:results.length,read_only:true,third_party_code_executed:false};
 }
 async function sourceRead(job,ctx){
   const file=safeRelative(job.input?.path),files=await trackedFiles(ctx.dest);if(!files.includes(file))throw new Error('FILE_NOT_TRACKED');
@@ -260,6 +274,7 @@ export async function executeJob(job,ctx,token){
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
   if(adapter==='source-audit')return sourceAudit(job,ctx);
+  if(adapter==='ecu-bin-inspect')return ecuBinInspect(job,ctx);
   if(adapter==='skill-analyze')return skillAnalyze(job,ctx);
   throw new Error('ADAPTER_NOT_IMPLEMENTED');
 }
