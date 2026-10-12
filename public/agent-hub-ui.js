@@ -211,6 +211,67 @@
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource" aria-label="GitHub beceri kaynağı"><option value="all">Tüm doğrulanmış kaynaklar</option></select><input id="hubSkillQuery" maxlength="100" placeholder="Beceri ara: cloudflare, code-review..." aria-label="Beceri ara"><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div class="row"><button type="button" id="hubSkillPrevious" disabled>Önceki sayfa</button><button type="button" id="hubSkillNext" disabled>Sonraki sayfa</button></div><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
+    // Only four JARVIS-owned analyzers are runnable; remote SKILL.md is never executed.
+    const nativeSkillsPanel=document.createElement('section');
+    nativeSkillsPanel.innerHTML='<h4>Çalışan JARVIS becerileri</h4><p class="muted">Denetlenmiş beceri eşlemesi ile kaynak kod analizi. Üçüncü taraf betikleri çalıştırılmaz; değişiklik, deploy ve ücretli işlem yoktur.</p><label>Beceri<select id="hubNativeSkill" aria-label="Çalıştırılabilir beceri"></select></label><label>İncelenecek GitHub deposu<input id="hubNativeTargetRepo" aria-label="Hedef depo" list="agentHubRepoList" value="Haydars1/jarvis-personal-ai" placeholder="owner/repository"></label><div class="row"><button type="button" id="hubNativeStart" disabled>Denetimi başlat</button><button type="button" id="hubNativeCheck" disabled>Görev sonucunu kontrol et</button></div><pre id="hubNativeResult" aria-live="polite" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
+    directory.appendChild(nativeSkillsPanel);
+    let nativeSkillExecutors=[],activeNativeJobId='';
+    async function loadNativeSkillExecutors(){
+      try{
+        const data=await api('/api/tools/agent-hub/skill-executors');
+        nativeSkillExecutors=Array.isArray(data.executors)?data.executors:[];
+        const control=$('hubNativeSkill'),old=control.value;
+        control.replaceChildren();
+        for(const skill of nativeSkillExecutors){
+          const option=document.createElement('option');
+          option.value=skill.repo+'|'+skill.path;
+          option.textContent=skill.name+' ('+skill.repo+')';
+          control.appendChild(option);
+        }
+        if(nativeSkillExecutors.some(x=>x.repo+'|'+x.path===old))control.value=old;
+        $('hubNativeStart').disabled=nativeSkillExecutors.length===0;
+      }catch(error){$('hubNativeResult').textContent='Beceri çalıştırıcıları yüklenemedi: '+error.message;}
+    }
+    $('hubNativeStart').addEventListener('click',async()=>{
+      const selected=$('hubNativeSkill').value;
+      const executor=nativeSkillExecutors.find(x=>x.repo+'|'+x.path===selected);
+      const target=$('hubNativeTargetRepo').value.trim();
+      if(!executor||!target){$('hubNativeResult').textContent='Beceri ve izinli GitHub deposu seç.';return;}
+      $('hubNativeStart').disabled=true;
+      $('hubNativeResult').textContent='JARVIS kaynak kod denetimi kuyruğa alınıyor...';
+      try{
+        const result=await api('/api/tools/agent-hub/skill-run',{
+          method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({skill_repo:executor.repo,skill_path:executor.path,target_repo:target})
+        });
+        activeNativeJobId=result.job?.id||'';
+        $('hubNativeCheck').disabled=!activeNativeJobId;
+        $('hubNativeResult').textContent='Gerçek görev kuyruğa alındı: '+activeNativeJobId+
+          '\\nBeceri: '+executor.name+'\\nÇalıştırıcı: JARVIS kaynak kod denetçisi'+
+          '\\nÜçüncü taraf kod: çalıştırılmıyor.\\nSonuç için Görev sonucunu kontrol et düğmesine bas.';
+        refresh();
+      }catch(error){$('hubNativeResult').textContent='Denetim başlatılamadı: '+error.message;}
+      finally{$('hubNativeStart').disabled=nativeSkillExecutors.length===0;}
+    });
+    $('hubNativeCheck').addEventListener('click',async()=>{
+      if(!activeNativeJobId)return;
+      $('hubNativeResult').textContent='Bulut görev durumu kontrol ediliyor...';
+      try{
+        const data=await api('/api/tools/cloud/jobs/'+encodeURIComponent(activeNativeJobId));
+        const job=data.job||{},report=job.result||{},findings=Array.isArray(report.findings)?report.findings:[];
+        const lines=['Görev: '+activeNativeJobId,'Durum: '+(job.status||'?'),
+          'Depo: '+(job.repo||'?'),'Profil: '+(report.audit_profile||'?'),
+          'İncelenen dosya: '+Number(report.scanned_files||0),
+          'Bulunan denetim uyarısı: '+Number(report.total_findings||0),
+          'Üçüncü taraf kod çalıştırıldı: Hayır'];
+        if(job.error)lines.push('Hata: '+job.error);
+        for(const item of findings.slice(0,40)){
+          lines.push(String(item.file||'?')+':'+Number(item.line||0)+' ['+String(item.severity||'')+'] '+String(item.message||''));
+        }
+        if(report.limited)lines.push('İlk 80 uyarı gösteriliyor.');
+        $('hubNativeResult').textContent=lines.join('\\n');
+      }catch(error){$('hubNativeResult').textContent='Görev kontrolü başarısız: '+error.message;}
+    });
     const sourceFinder=document.createElement('section');
     sourceFinder.innerHTML='<h4>GitHub genelinde yeni Skills depoları ara</h4><p class="muted">GitHub arama sonuçları incelenmemiş adaylardır; otomatik kurulum veya çalıştırma yapılmaz.</p><input id="hubSkillRepoQuery" maxlength="80" placeholder="Örn: agent skills, automotive, cloudflare"><button type="button" id="hubSkillRepoSearch">GitHub depolarını ara</button><button type="button" id="hubSkillRepoMore" disabled>Daha fazla depo</button><p id="hubSkillRepoStatus" aria-live="polite"></p><div id="hubSkillRepoResults"></div>';
     directory.appendChild(sourceFinder);
@@ -340,7 +401,7 @@
     $('hubSkillSource').addEventListener('change',()=>{ $('hubSkillLearn').disabled=$('hubSkillSource').value==='all';scanSkills(0); });
     $('hubSkillQuery').addEventListener('keydown',event=>{if(event.key==='Enter')scanSkills(0);});
     function refreshHubAfterLogin(){
-      refresh();refreshProviders();loadRecentWorkflows();loadRepoSuggestions();
+      refresh();refreshProviders();loadRecentWorkflows();loadRepoSuggestions();loadNativeSkillExecutors();
     }
     $('agentHubRefresh').addEventListener('click',refreshHubAfterLogin);
     // The panel mounts behind the login screen. Fetch again after the owner opens Settings.
