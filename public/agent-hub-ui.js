@@ -153,6 +153,20 @@
         }
       }catch(error){$('hubAutoToolsResults').textContent=error.message;}
     });
+    const ecuUpload=document.createElement('section');
+    ecuUpload.innerHTML='<h3>ECU dosya analizi</h3><p class="muted">BIN, HEX, ROM veya ORI dosyanı seç (en fazla 4 MB). Analiz bellekte yapılır; dosya saklanmaz veya ECU\'ya yazılmaz.</p><input id="hubEcuFile" type="file" accept=".bin,.hex,.rom,.ori"><button type="button" id="hubEcuAnalyze">Dosyayı analiz et</button><pre id="hubEcuAnalysis" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>';
+    section.appendChild(ecuUpload);
+    $('hubEcuAnalyze').addEventListener('click',async()=>{
+      const file=$('hubEcuFile').files?.[0],output=$('hubEcuAnalysis');
+      if(!file){output.textContent='Bir ECU dosyası seç.';return;}
+      if(!/\.(bin|hex|rom|ori)$/i.test(file.name)||file.size>4*1024*1024||file.size===0){output.textContent='Desteklenen uzantı ve boyut gerekli (1 bayt–4 MB).';return;}
+      output.textContent='Dosya analiz ediliyor...';
+      try{
+        const result=await api('/api/tools/agent-hub/ecu-file-inspect',{method:'POST',headers:{'content-type':'application/octet-stream','x-ecu-filename':file.name},body:file});
+        const a=result.analysis||{};
+        output.textContent=['Dosya: '+a.file,'Boyut: '+a.size_bytes+' bayt','Entropi: '+a.entropy_bits_per_byte+' bit/bayt','İşaretler: '+((a.ascii_markers||[]).join(', ')||'Bulunamadı'),'Başlık: '+a.header_hex,'Checksum doğrulandı: Hayır','ECU tanımlaması kesin değil'].join('\n');
+      }catch(error){output.textContent='Analiz başarısız: '+error.message;}
+    });
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/agent-skills">Vercel Agent Skills</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
