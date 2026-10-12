@@ -298,7 +298,10 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/agent-hub/skills-directory'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         const repo=String(url.searchParams.get('repo')||APPROVED_SKILL_REPOS[0]);
-        try{return jsonResponse(await discoverSkillManifests(repo));}
+        const query=String(url.searchParams.get('query')||'');
+        const offset=Number(url.searchParams.get('offset')||0);
+        const limit=Number(url.searchParams.get('limit')||150);
+        try{return jsonResponse(await discoverSkillManifests(repo,fetch,{query,offset,limit}));}
         catch(error){return jsonResponse({error:error.message},400);}
       }
       if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
