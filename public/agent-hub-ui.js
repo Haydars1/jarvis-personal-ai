@@ -186,6 +186,9 @@
           'Değişen byte: '+c.changed_bytes,'Eklenen byte: '+c.added_bytes,'Çıkarılan byte: '+c.removed_bytes,
           'Farklı adres aralığı: '+c.total_changed_ranges,
           'Intel HEX kayıt checksum: '+(c.intel_hex_record_checksums_valid===true?'Geçerli':c.intel_hex_record_checksums_valid===null?'Uygulanmaz':'Doğrulanmadı'),
+          'Orijinal SHA-256: '+(c.original?.sha256||'?'),
+          'Değiştirilmiş SHA-256: '+(c.modified?.sha256||'?'),
+          'Not: SHA-256 dosya parmak izidir, ECU checksum değildir.',
           'ECU firmware checksum: Doğrulanmadı'];
         for(const range of c.ranges||[]){
           lines.push(range.start_hex+' – '+range.end_hex+' ('+(range.changed+range.added+range.removed)+' byte)',
