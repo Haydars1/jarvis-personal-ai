@@ -5,6 +5,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const dir=mkdtempSync(join(tmpdir(),'jarvis-hub-workflow-'));
 const config=join(dir,'wrangler.json');
@@ -59,6 +60,11 @@ try{
  assert.equal(compareJson.comparison.changed_bytes,1);
  assert.equal(compareJson.comparison.ranges[0].start_hex,'0x00000001');
  assert.equal(compareJson.comparison.persisted,false);
+ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+ assert.equal(compareJson.comparison.original.sha256,sha(binaryOriginal));
+ assert.equal(compareJson.comparison.modified.sha256,sha(binaryModified));
+ assert.equal(compareJson.comparison.file_fingerprints_only,true);
+ assert.equal(compareJson.comparison.ecu_firmware_checksum_verified,false);
 
  // Verify auth and actual Intel HEX multipart uploads through Cloudflare, not only unit tests.
  const unauthorized=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{method:'POST',headers:{'content-type':'application/octet-stream','x-ecu-filename':'secret.bin'},body:binaryOriginal});
@@ -85,6 +91,9 @@ try{
  assert.equal(hexResult.comparison.changed_bytes,1);
  assert.equal(hexResult.comparison.ranges[0].start_hex,'0x00010021');
  assert.equal(hexResult.comparison.intel_hex_record_checksums_valid,true);
+ assert.equal(hexResult.comparison.original.sha256,sha(Buffer.from(originalHex)));
+ assert.equal(hexResult.comparison.modified.sha256,sha(Buffer.from(modifiedHex)));
+ assert.equal(hexResult.comparison.ecu_firmware_checksum_verified,false);
  const invalidHex=new TextEncoder().encode(originalHex.replace('010203','010204'));
  const invalidResponse=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{
    method:'POST',headers:{cookie,'content-type':'application/octet-stream','x-ecu-filename':'corrupted.hex'},body:invalidHex
