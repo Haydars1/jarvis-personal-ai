@@ -40,11 +40,11 @@ try{
    const data=await response.json();
    return {status:response.status,data,headers:response.headers};
  }
- assert.equal((await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'ECU upload'})).status,401);
+ assert.equal((await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve tasarım sorunlarını incele'})).status,401);
  const login=await req('/api/auth/setup','POST',{password:'workflow-e2e-test-only-password'});
  assert.equal(login.status,200,JSON.stringify(login.data));
  cookie=login.headers.get('set-cookie').split(';')[0];
- const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'ECU upload'});
+ const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve tasarım sorunlarını incele'});
  assert.equal(plan.status,202,'Workflow launch: '+JSON.stringify(plan.data)+' logs '+output.slice(-1500));
  assert.match(plan.data.workflow_id,/^[0-9a-f-]{36}$/i);
  let found=false;
@@ -71,7 +71,7 @@ try{
    assert.equal(response.status,200,path+': '+JSON.stringify(result));
    return result;
  }
- const stages=['repo-inspect','source-search','skill-analyze'];
+ const stages=['repo-inspect','source-search','skill-analyze','source-audit'];
  for(const stage of stages){
    let claimed=null;
    for(let retry=0;retry<25;retry++){
@@ -102,8 +102,9 @@ try{
  }
  assert.ok(finished,'Workflow did not finish after authenticated GitHub runner callbacks. Logs: '+output.slice(-3500));
  assert.equal(finished.output.status,'completed');
- assert.equal(finished.output.progress.current_step,3);
- assert.equal(finished.output.progress.jobs.length,3);
+ assert.equal(finished.output.progress.current_step,4);
+ assert.equal(finished.output.progress.jobs.length,4);
+ assert.ok(Array.isArray(finished.output.progress.audit_findings),'Source audit findings missing from completed Workflow');
  console.log('REAL GitHub Actions OIDC runner → local Cloudflare Workflow → D1 → completion E2E passed:',plan.data.workflow_id);
 }finally{
  if(server&&server.exitCode===null){server.kill('SIGTERM');await new Promise(r=>setTimeout(r,500));if(server.exitCode===null)server.kill('SIGKILL');}
