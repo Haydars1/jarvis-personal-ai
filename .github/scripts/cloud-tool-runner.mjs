@@ -5,11 +5,13 @@ import { spawn } from 'node:child_process';
 import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex, fuseYouTubeLearning } from '../../src/lib/youtube-teaching-runtime.js';
 import { executeCodeGraphJob } from './code-graph-job.mjs';
+import { reviewSourceFile } from '../../src/lib/agent-hub-source-audit.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
   'source-read':true,
+  'source-audit':true,
   'skill-analyze':true,
   'youtube-teaching':true,
   'code-graph-query':true
@@ -112,6 +114,21 @@ async function sourceSearch(job,ctx){
     const lines=text.split(/\r?\n/);for(let i=0;i<lines.length&&matches.length<50;i++){if(lines[i].toLowerCase().includes(lower))matches.push({file,line:i+1,text:lines[i].slice(0,500)});}
   }
   return {repo:job.repo,commit:ctx.commit,term,matches};
+}
+async function sourceAudit(job,ctx){
+ const files=(await trackedFiles(ctx.dest)).filter(file=>/\.(html|jsx|tsx|js|ts)$/i.test(file)).slice(0,600);
+ const findings=[];let scanned=0;
+ for(const file of files){
+  if(findings.length>=80)break;
+  const full=path.join(ctx.dest,file);
+  let info;try{info=await stat(full);}catch{continue;}
+  if(info.size>250000)continue;
+  try{
+   const content=await readFile(full,'utf8');
+   scanned++;findings.push(...reviewSourceFile(file,content,{limit:Math.min(20,80-findings.length)}));
+  }catch{}
+ }
+ return {repo:job.repo,commit:ctx.commit,skill_references:Array.isArray(job.input?.skill_references)?job.input.skill_references.slice(0,5):[],scanned_files:scanned,findings,total_findings:findings.length,limited:findings.length>=80,read_only:true};
 }
 async function sourceRead(job,ctx){
   const file=safeRelative(job.input?.path),files=await trackedFiles(ctx.dest);if(!files.includes(file))throw new Error('FILE_NOT_TRACKED');
@@ -242,6 +259,7 @@ export async function executeJob(job,ctx,token){
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
+  if(adapter==='source-audit')return sourceAudit(job,ctx);
   if(adapter==='skill-analyze')return skillAnalyze(job,ctx);
   throw new Error('ADAPTER_NOT_IMPLEMENTED');
 }
