@@ -29,3 +29,10 @@ test('automotive discovery API and UI are authenticated and label device limits'
  assert.match(ui,/hubAutoToolsFind/);
  assert.match(ui,/Thinkdiag uyumluluğu doğrulanmadı/);
 });
+
+test('durable agent plans include matching automotive repos without falsely claiming they are installed',async()=>{
+ const {createAgentPlan}=await import('../src/lib/agent-hub-workflow.js');
+ const plan=createAgentPlan({repo:'owner/sample',task:'KT200 ECU BIN dosyasını incele'},new Set(['owner/sample']));
+ assert.ok(plan.automotive_tools.some(tool=>tool.repo==='NationalSecurityAgency/ghidra'));
+ assert.ok(plan.automotive_tools.every(tool=>tool.installed===false&&tool.auto_execute===false));
+});
