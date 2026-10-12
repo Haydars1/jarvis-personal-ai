@@ -20,8 +20,12 @@ export function hubWorkflowProgress(rows=[], workflowId, stepCount=3) {
 export function deterministicHubReport(rows=[],workflowId,stepCount=3){
   const matches=(rows||[]).filter(row=>safeJson(row.input_json).__agent_hub?.workflow_id===workflowId);
   const progress=hubWorkflowProgress(matches,workflowId,stepCount);
+  const audits=matches.filter(row=>row.adapter_id==='source-audit'&&row.status==='completed')
+    .flatMap(row=>Array.isArray(safeJson(row.result_json).findings)?safeJson(row.result_json).findings:[])
+    .slice(0,80).map(f=>({file:String(f.file||'').slice(0,220),line:Number(f.line||0),rule:String(f.rule||'').slice(0,80),message:String(f.message||'').slice(0,220),severity:String(f.severity||'low')}));
   return {
     ...progress,
+    audit_findings:audits,
     jobs:matches.slice(-16).map(row=>({
       adapter:row.adapter_id,repo:row.repo,status:row.status,
       result:redact(JSON.stringify(safeJson(row.result_json))?.slice(0,1200)||''),
