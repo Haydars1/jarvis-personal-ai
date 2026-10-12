@@ -59,6 +59,40 @@ try{
  assert.equal(compareJson.comparison.changed_bytes,1);
  assert.equal(compareJson.comparison.ranges[0].start_hex,'0x00000001');
  assert.equal(compareJson.comparison.persisted,false);
+
+ // Verify auth and actual Intel HEX multipart uploads through Cloudflare, not only unit tests.
+ const unauthorized=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{method:'POST',headers:{'content-type':'application/octet-stream','x-ecu-filename':'secret.bin'},body:binaryOriginal});
+ assert.equal(unauthorized.status,401,'ECU files must not be processed anonymously');
+ const record=(type,address,data=[])=>{
+   const values=[data.length,address>>>8,address&255,type,...data];
+   return ':'+[...values,(-values.reduce((sum,value)=>sum+value,0))&255].map(n=>n.toString(16).padStart(2,'0').toUpperCase()).join('');
+ };
+ const originalHex=[record(4,0,[0,1]),record(0,0x20,[1,2,3]),record(1,0)].join('\n');
+ const modifiedHex=[record(4,0,[0,1]),record(0,0x20,[1,9,3]),record(1,0)].join('\n');
+ const originalHexInspect=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{
+   method:'POST',headers:{cookie,'content-type':'application/octet-stream','x-ecu-filename':'stock.hex'},body:new TextEncoder().encode(originalHex)
+ });
+ const hexInspectJson=await originalHexInspect.json();
+ assert.equal(originalHexInspect.status,200,JSON.stringify(hexInspectJson));
+ assert.equal(hexInspectJson.analysis.record_checksums_valid,true);
+ assert.equal(hexInspectJson.analysis.address_start_hex,'0x00010020');
+ const hexForm=new FormData();
+ hexForm.set('original',new Blob([originalHex]),'stock.hex');
+ hexForm.set('modified',new Blob([modifiedHex]),'modified.hex');
+ const hexCompare=await fetch(base+'/api/tools/agent-hub/ecu-compare',{method:'POST',headers:{cookie},body:hexForm});
+ const hexResult=await hexCompare.json();
+ assert.equal(hexCompare.status,200,JSON.stringify(hexResult));
+ assert.equal(hexResult.comparison.changed_bytes,1);
+ assert.equal(hexResult.comparison.ranges[0].start_hex,'0x00010021');
+ assert.equal(hexResult.comparison.intel_hex_record_checksums_valid,true);
+ const invalidHex=new TextEncoder().encode(originalHex.replace('010203','010204'));
+ const invalidResponse=await fetch(base+'/api/tools/agent-hub/ecu-file-inspect',{
+   method:'POST',headers:{cookie,'content-type':'application/octet-stream','x-ecu-filename':'corrupted.hex'},body:invalidHex
+ });
+ assert.equal(invalidResponse.status,400,'Bad Intel HEX checksum must return 400, not a Worker failure');
+ const invalidJson=await invalidResponse.json();
+ assert.equal(invalidJson.error,'HEX_RECORD_CHECKSUM_INVALID');
+ console.log('Authenticated Intel HEX checksum, address-aware comparison and invalid upload E2E passed');
  console.log('Authenticated ECU original/modified upload and byte comparison E2E passed');
 
  const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve ECU BIN analizi yap'});
