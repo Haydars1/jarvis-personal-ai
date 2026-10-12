@@ -175,6 +175,7 @@ export function createEcuDeviceBridge(core){
         if(!bridge)return jsonResponse({error:'BRIDGE_AUTH_REQUIRED'},401);
         const id=decodeURIComponent(resultMatch[1]),job=await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',id);
         if(!job||job.bridge_id!==bridge.id)return jsonResponse({error:'JOB_NOT_FOUND'},404);
+        if(job.status!=='running')return jsonResponse({error:'JOB_NOT_RUNNING',status:job.status},409);
         const body=await readJson(req),ok=body.ok===true,ts=now();
         await execute(env,'UPDATE ecu_device_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=?',
           ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'DEVICE_JOB_FAILED'),ts,ts,id);
