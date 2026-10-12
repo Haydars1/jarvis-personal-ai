@@ -8,6 +8,9 @@ const hostGated = restriction => ({ autoExecute: false, restriction });
 const catalogOnly = restriction => ({ autoExecute: false, restriction });
 
 export const USER_CURATED_CAPABILITY_SEEDS = Object.freeze([
+  seed('vercel-labs/agent-skills','coding-agent','catalog-only',catalogOnly('Official Agent Skills: inspect SKILL.md only; never execute bundled scripts or install automatically.')),
+  seed('modelcontextprotocol/servers','mcp-tooling','catalog-only',catalogOnly('MCP reference implementations are examples, not production-ready plug-ins; require explicit sandbox integration and approval.')),
+  seed('microsoft/playwright-mcp','browser-agent','external-service',hostGated('Playwright MCP needs an approved browser runtime and isolated runner; do not grant arbitrary web or account access.')),
   seed('Haydars1/jarvis-personal-ai','coding-agent','external-service',hostGated('Owner repository: only inspect via authenticated safe runner; do not auto-merge or deploy.')),
   seed('Haydars1/6006coding-site','coding-agent','external-service',hostGated('Owner website repository: inspect read-only; deploy and writes require explicit review.')),
   seed('OpenHands/OpenHands','coding-agent','external-service',hostGated('OpenHands requires a separately hosted, authenticated container runtime. Not executable inside Cloudflare Workers.')),
