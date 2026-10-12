@@ -86,7 +86,7 @@ try {
   assert.ok(hubCatalog.repositories.includes('haydars1/jarvis-personal-ai'));
   assert.ok(hubCatalog.repositories.includes('haydars1/6006coding-site'));
   const hubProviders = await (await call('/api/tools/agent-hub/providers', 200)).json();
-  assert.deepEqual(hubProviders.providers.map(p => p.id), ['openhands','n8n','skills','ollama']);
+  assert.deepEqual(hubProviders.providers.map(p => p.id), ['openhands','n8n','skills','freellmapi','ollama']);
   assert.ok(hubProviders.providers.every(p => p.available === false));
 
   await call('/api/integrations/status', 200);
