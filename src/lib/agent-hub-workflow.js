@@ -1,6 +1,6 @@
 import { suggestSkillsForTask } from './agent-hub-skill-matcher.js';
 // Bounded, read-only Cloudflare Agent Hub workflow.
-export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','skill-analyze'];
+export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','source-audit','skill-analyze'];
 export function validateHubSteps(steps,curated){
   if(!Array.isArray(steps)||!steps.length||steps.length>8)throw Error('STEPS_MUST_BE_1_TO_8');
   return steps.map((s,i)=>{
@@ -43,10 +43,12 @@ export function createAgentPlan({task,repo},curated){
  const terms=goal.toLowerCase().normalize('NFKD').match(/[a-z0-9_-]{3,}/g)||[];
  const ignored=new Set(['please','check','inspect','repository','github','project','jarvis','kontrol','incele','hatayi','hatasi','sistem','kodlari','bulun','bakar','ariza','error','issue','problem','fix','debug','düzelt','sorunu','geliştir','inceleyin','hataları','sitesindeki','dosyasını']);
  const search=detected?.term||terms.find(t=>!ignored.has(t))||'TODO';
+ const recommendedSkills=suggestSkillsForTask(goal);
  const steps=[
  {adapter_id:'repo-inspect',repo:name,input:{source:'agent-hub',goal}},
  {adapter_id:'source-search',repo:name,input:{term:search,source:'agent-hub',goal}},
  {adapter_id:'skill-analyze',repo:name,input:{source:'agent-hub',goal}}
  ];
- return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:suggestSkillsForTask(goal),roles:['araştırmacı','kod inceleyici','beceri analisti']};
+ if(recommendedSkills.some(skill=>skill.path==='skills/web-design-guidelines/SKILL.md'))steps.push({adapter_id:'source-audit',repo:name,input:{source:'agent-hub',skill_references:recommendedSkills.map(skill=>skill.path).slice(0,5)}});
+ return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:recommendedSkills,roles:['araştırmacı','kod inceleyici','beceri analisti']};
 }
