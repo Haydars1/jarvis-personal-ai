@@ -2,6 +2,7 @@ import { APPROVED_SKILL_REPOS, discoverSkillManifests, previewSkillManifest } fr
 import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
 import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
+import { inspectEcuBinary } from '../../lib/agent-hub-ecu-binary.js';
 import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
@@ -238,6 +239,16 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/ecu-file-inspect'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const length=Number(req.headers.get('content-length')||0);
+        if(length>4*1024*1024)return jsonResponse({error:'ECU_FILE_TOO_LARGE'},413);
+        const name=String(req.headers.get('x-ecu-filename')||'uploaded.bin').slice(0,120);
+        if(!/\.(bin|hex|rom|ori)$/i.test(name))return jsonResponse({error:'ECU_EXTENSION_NOT_ALLOWED'},400);
+        const bytes=new Uint8Array(await req.arrayBuffer());
+        if(!bytes.length||bytes.length>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
+        return jsonResponse({ok:true,analysis:inspectEcuBinary(bytes,name),third_party_executed:false,persisted:false});
       }
       if(path==='/api/tools/agent-hub/vin-decode'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
