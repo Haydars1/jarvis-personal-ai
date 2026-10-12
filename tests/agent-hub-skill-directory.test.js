@@ -6,7 +6,7 @@ import {
 } from '../src/lib/agent-hub-skill-directory.js';
 
 test('rejects paths outside read-only approved skill repositories',async()=>{
- assert.deepEqual(APPROVED_SKILL_REPOS,['anthropics/skills','vercel-labs/skills']);
+ assert.deepEqual(APPROVED_SKILL_REPOS,['anthropics/skills','vercel-labs/agent-skills']);
  assert.equal(validSkillManifestPath('skills/pdf/SKILL.md'),true);
  assert.equal(validSkillManifestPath('../SKILL.md'),false);
  assert.equal(validSkillManifestPath('skills/../../SKILL.md'),false);
