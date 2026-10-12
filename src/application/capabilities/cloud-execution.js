@@ -1,4 +1,4 @@
-import { APPROVED_SKILL_REPOS, discoverSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
+import { APPROVED_SKILL_REPOS, discoverSkillManifests, discoverAllSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
 import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
 import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
@@ -301,7 +301,7 @@ export function createCloudCapabilityExecution(core){
         const query=String(url.searchParams.get('query')||'');
         const offset=Number(url.searchParams.get('offset')||0);
         const limit=Number(url.searchParams.get('limit')||150);
-        try{return jsonResponse(await discoverSkillManifests(repo,fetch,{query,offset,limit}));}
+        try{return jsonResponse(repo==='all'?await discoverAllSkillManifests(fetch,{query,offset,limit}):await discoverSkillManifests(repo,fetch,{query,offset,limit}));}
         catch(error){return jsonResponse({error:error.message},400);}
       }
       if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
