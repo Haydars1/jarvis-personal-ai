@@ -296,7 +296,7 @@
           button.addEventListener('click',async()=>{
             $('hubSkillPreview').textContent='Beceri okunuyor...';
             try{
-              const result=await api('/api/tools/agent-hub/skill-preview?repo='+encodeURIComponent(selected)+'&path='+encodeURIComponent(skill.path));
+              const result=await api('/api/tools/agent-hub/skill-preview?repo='+encodeURIComponent(skill.repo)+'&path='+encodeURIComponent(skill.path));
               $('hubSkillPreview').textContent=result.content.slice(0,8000);
             }catch(error){$('hubSkillPreview').textContent=error.message;}
           });
