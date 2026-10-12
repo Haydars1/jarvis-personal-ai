@@ -1,3 +1,4 @@
+import { freeLlmModels } from './lib/freellmapi-gateway.js';
 const te=new TextEncoder(), td=new TextDecoder();
 const nativeFetch=fetch;
 async function fetchT(input,init={},ms=12000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{return await nativeFetch(input,{...init,signal:init.signal||c.signal})}finally{clearTimeout(t)}}
@@ -100,6 +101,8 @@ async function testCredential(env,c){
       const r=await fetchT('https://graph.facebook.com/v24.0/me?access_token='+encodeURIComponent(sec));if(!r.ok)throw Error('HTTP_'+r.status);
     }else if(p==='github'){
       const r=await fetchT('https://api.github.com/user',{headers:{authorization:'Bearer '+sec,accept:'application/vnd.github+json','user-agent':'JARVIS-SelfUpdate'}});if(!r.ok)throw Error('HTTP_'+r.status);
+    }else if(p==='freellmapi'){
+      await freeLlmModels({endpoint:c.endpoint,key:sec,timeoutMs:6500});
     }else if(p==='anthropic'){
       const r=await fetchT('https://api.anthropic.com/v1/models',{headers:{'x-api-key':sec,'anthropic-version':'2023-06-01'}});if(!r.ok)throw Error('HTTP_'+r.status);
     }else{
