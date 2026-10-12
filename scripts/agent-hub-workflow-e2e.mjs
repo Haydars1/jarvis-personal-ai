@@ -1,3 +1,5 @@
+import { cloneJob, executeJob } from '../.github/scripts/cloud-tool-runner.mjs';
+import { rm as rmAsync } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -16,7 +18,7 @@ writeFileSync(config,JSON.stringify({
  assets:{directory:resolve('public'),binding:'ASSETS',not_found_handling:'single-page-application'},
  d1_databases:[{binding:'DB',database_name:'jarvis-hub-test',database_id:'00000000-0000-0000-0000-000000000002'}],
  workflows:[{name:'jarvis-agent-hub-test',binding:'AGENT_HUB_WORKFLOW',class_name:'JarvisAgentWorkflow'}],
- vars:{JARVIS_SECRET:'workflow-test-only-secret',CREDENTIAL_MASTER_KEY:'workflow-test-only-master'}
+ vars:{JARVIS_SECRET:'workflow-test-only-secret',CREDENTIAL_MASTER_KEY:'workflow-test-only-master',AGENT_HUB_E2E_LOCAL:'true',AGENT_HUB_E2E_WORKFLOW_REF:process.env.GITHUB_WORKFLOW_REF||''}
 }));
 let server,output='';
 try{
@@ -56,7 +58,53 @@ try{
  const status=await req('/api/tools/agent-hub/durable/'+plan.data.workflow_id);
  assert.equal(status.status,200,JSON.stringify(status.data));
  assert.ok(status.data.status,'Workflow instance state missing');
- console.log('Cloudflare local Workflows + D1 e2e passed:',plan.data.workflow_id,status.data.status);
+ assert.ok(process.env.ACTIONS_ID_TOKEN_REQUEST_URL&&process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN,'GitHub-hosted OIDC identity is required for real runner validation');
+ const oidcUrl=new URL(process.env.ACTIONS_ID_TOKEN_REQUEST_URL);
+ oidcUrl.searchParams.set('audience','jarvis-cloud-tool-runner');
+ const oidcResponse=await fetch(oidcUrl,{headers:{Authorization:'bearer '+process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN},signal:AbortSignal.timeout(15000)});
+ assert.equal(oidcResponse.status,200,'Unable to obtain real GitHub Actions OIDC token');
+ const token=(await oidcResponse.json()).value;
+ assert.ok(token,'Signed OIDC token missing');
+ async function runnerPost(path,body){
+   const response=await fetch(base+path,{method:'POST',headers:{Authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
+   const result=await response.json();
+   assert.equal(response.status,200,path+': '+JSON.stringify(result));
+   return result;
+ }
+ const stages=['repo-inspect','source-search','skill-analyze'];
+ for(const stage of stages){
+   let claimed=null;
+   for(let retry=0;retry<25;retry++){
+     const response=await runnerPost('/api/tools/cloud/runner/claim',{});
+     if(response.job){claimed=response.job;break;}
+     await new Promise(r=>setTimeout(r,400));
+   }
+   assert.ok(claimed,'GitHub runner did not claim stage '+stage);
+   assert.equal(claimed.adapter_id,stage,'Wrong queued stage');
+   assert.equal(claimed.repo.toLowerCase(),'haydars1/jarvis-personal-ai');
+   let ctx=null;
+   try{
+     ctx=await cloneJob(claimed);
+     const result=await executeJob(claimed,ctx,token);
+     const callback=await runnerPost('/api/tools/cloud/runner/jobs/'+encodeURIComponent(claimed.id)+'/result',{ok:true,result});
+     assert.equal(callback.job.status,'completed');
+     assert.equal(callback.already_processed,undefined,'Unexpected duplicate callback');
+     console.log('GitHub-hosted runner stage completed:',stage);
+   }finally{if(ctx?.root)await rmAsync(ctx.root,{recursive:true,force:true});}
+ }
+ let finished=null;
+ for(let retry=0;retry<40;retry++){
+   const current=await req('/api/tools/agent-hub/durable/'+plan.data.workflow_id);
+   assert.equal(current.status,200,'Workflow status unavailable');
+   if(current.data.status==='complete'){finished=current.data;break;}
+   if(current.data.status==='errored'||current.data.status==='terminated')throw Error('Workflow failed: '+JSON.stringify(current.data));
+   await new Promise(r=>setTimeout(r,500));
+ }
+ assert.ok(finished,'Workflow did not finish after authenticated GitHub runner callbacks. Logs: '+output.slice(-3500));
+ assert.equal(finished.output.status,'completed');
+ assert.equal(finished.output.progress.current_step,3);
+ assert.equal(finished.output.progress.jobs.length,3);
+ console.log('REAL GitHub Actions OIDC runner → local Cloudflare Workflow → D1 → completion E2E passed:',plan.data.workflow_id);
 }finally{
  if(server&&server.exitCode===null){server.kill('SIGTERM');await new Promise(r=>setTimeout(r,500));if(server.exitCode===null)server.kill('SIGKILL');}
  rmSync(dir,{recursive:true,force:true});
