@@ -116,6 +116,13 @@
           const option=document.createElement('option');
           option.value=repo;suggestions.appendChild(option);
         }
+        const skillSource=$('hubSkillSource'),previous=skillSource.value;
+        skillSource.replaceChildren();
+        for(const repo of data.skill_sources||[]){
+          const option=document.createElement('option');
+          option.value=repo;option.textContent=repo;skillSource.appendChild(option);
+        }
+        if((data.skill_sources||[]).includes(previous))skillSource.value=previous;
       }catch(error){if(error.message!=='AUTH_REQUIRED')$('agentHubMessage').textContent='Kaynak listesi: '+error.message;}
     }
     const automotive=document.createElement('section');
@@ -199,7 +206,7 @@
       }catch(error){output.textContent='Karşılaştırma başarısız: '+error.message;}
     });
     const directory=document.createElement('div');
-    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/agent-skills">Vercel Agent Skills</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
+    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource" aria-label="GitHub beceri kaynağı"><option value="anthropics/skills">anthropics/skills</option></select><input id="hubSkillQuery" maxlength="100" placeholder="Beceri ara: cloudflare, code-review..." aria-label="Beceri ara"><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div class="row"><button type="button" id="hubSkillPrevious" disabled>Önceki sayfa</button><button type="button" id="hubSkillNext" disabled>Sonraki sayfa</button></div><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
     $('hubSkillLearn').addEventListener('click',async()=>{
       const repo=$('hubSkillSource').value;
@@ -257,14 +264,26 @@
       });
       $('hubRecommendedSkills').appendChild(button);
     }
-    $('hubSkillScan').addEventListener('click',async()=>{
-      const selected=$('hubSkillSource').value;
+    const skillPageSize=40;
+    let skillPageOffset=0;
+    async function scanSkills(offset=0){
+      const selected=$('hubSkillSource').value,query=$('hubSkillQuery').value.trim();
       $('hubSkillStatus').textContent='GitHub beceri dosyaları aranıyor...';
       $('hubSkillList').replaceChildren();
       $('hubSkillPreview').textContent='';
+      $('hubSkillPrevious').disabled=true;
+      $('hubSkillNext').disabled=true;
       try{
-        const data=await api('/api/tools/agent-hub/skills-directory?repo='+encodeURIComponent(selected));
-        $('hubSkillStatus').textContent=(data.skills||[]).length+' SKILL.md bulundu.'+(data.truncated?' (GitHub listesi sınırlı)':'');
+        const url='/api/tools/agent-hub/skills-directory?repo='+encodeURIComponent(selected)+
+          '&query='+encodeURIComponent(query)+'&offset='+offset+'&limit='+skillPageSize;
+        const data=await api(url);
+        skillPageOffset=data.offset;
+        const count=(data.skills||[]).length;
+        $('hubSkillStatus').textContent=data.total+' eşleşen SKILL.md • '+(count?data.offset+1:0)+'–'+(data.offset+count)+
+          ' görüntüleniyor.'+(data.truncated?' GitHub dizini eksik olabilir.':'')+
+          ' Beceriler henüz kurulu veya çalıştırılabilir değil.';
+        $('hubSkillPrevious').disabled=skillPageOffset===0;
+        $('hubSkillNext').disabled=!data.has_more;
         for(const skill of data.skills||[]){
           const button=document.createElement('button');button.type='button';
           button.textContent=skill.name+' — '+skill.path;button.style.display='block';
@@ -278,7 +297,12 @@
           $('hubSkillList').appendChild(button);
         }
       }catch(error){$('hubSkillStatus').textContent=error.message;}
-    });
+    }
+    $('hubSkillScan').addEventListener('click',()=>scanSkills(0));
+    $('hubSkillPrevious').addEventListener('click',()=>scanSkills(Math.max(0,skillPageOffset-skillPageSize)));
+    $('hubSkillNext').addEventListener('click',()=>scanSkills(skillPageOffset+skillPageSize));
+    $('hubSkillSource').addEventListener('change',()=>scanSkills(0));
+    $('hubSkillQuery').addEventListener('keydown',event=>{if(event.key==='Enter')scanSkills(0);});
     function refreshHubAfterLogin(){
       refresh();refreshProviders();loadRecentWorkflows();loadRepoSuggestions();
     }
