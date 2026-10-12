@@ -3,6 +3,7 @@ import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
 import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
 import { inspectEcuBinary } from '../../lib/agent-hub-ecu-binary.js';
+import { compareEcuFiles } from '../../lib/agent-hub-ecu-file-tools.js';
 import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
@@ -239,6 +240,23 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/ecu-compare'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!String(req.headers.get('content-type')||'').toLowerCase().startsWith('multipart/form-data;'))return jsonResponse({error:'FORM_DATA_REQUIRED'},415);
+        const length=Number(req.headers.get('content-length')||0);
+        if(length>2*4*1024*1024+65536)return jsonResponse({error:'ECU_COMPARE_TOO_LARGE'},413);
+        let form;
+        try{form=await req.formData();}catch{return jsonResponse({error:'INVALID_MULTIPART'},400);}
+        const original=form.get('original'),modified=form.get('modified');
+        if(!original||!modified||typeof original.arrayBuffer!=='function'||typeof modified.arrayBuffer!=='function')return jsonResponse({error:'TWO_ECU_FILES_REQUIRED'},400);
+        const aName=String(original.name||'original.bin').slice(0,120),bName=String(modified.name||'modified.bin').slice(0,120);
+        if(!/\.(bin|hex|rom|ori)$/i.test(aName)||!/\.(bin|hex|rom|ori)$/i.test(bName))return jsonResponse({error:'ECU_EXTENSION_NOT_ALLOWED'},400);
+        if(!original.size||!modified.size||original.size>4*1024*1024||modified.size>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
+        try{
+          const [a,b]=await Promise.all([original.arrayBuffer(),modified.arrayBuffer()]);
+          return jsonResponse({ok:true,comparison:compareEcuFiles(new Uint8Array(a),new Uint8Array(b),aName,bName)});
+        }catch(error){return jsonResponse({error:String(error.message||'ECU_COMPARE_FAILED').slice(0,120)},400);}
       }
       if(path==='/api/tools/agent-hub/ecu-file-inspect'&&method==='POST'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
