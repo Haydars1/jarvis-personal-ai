@@ -160,14 +160,20 @@ export function createEcuDeviceBridge(core){
       if(path==='/api/ecu/device/jobs/next'&&method==='GET'){
         const bridge=await bridgeAuth(req,env);
         if(!bridge)return jsonResponse({error:'BRIDGE_AUTH_REQUIRED'},401);
-        const caps=parseJson(bridge.capabilities,[]);
-        const pending=await queryAll(env,"SELECT * FROM ecu_device_jobs WHERE bridge_id=? AND status='pending' ORDER BY created_at ASC LIMIT 20",bridge.id);
-        const job=pending.find(row=>bridgeSupportsAction(caps,row.action));
-        if(!job)return jsonResponse({job:null});
-        const ts=now();
-        const claimed=await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending'",ts,ts,job.id,bridge.id);
-        if(Number(claimed.meta?.changes??claimed.changes??claimed.rowsAffected)!==1)return jsonResponse({job:null});
-        return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
+        const announced=parseJson(bridge.capabilities,[]);
+        const caps=Array.isArray(announced)?[...new Set(announced.filter(action=>typeof action==='string'&&Object.prototype.hasOwnProperty.call(ACTIONS,action)))]:[];
+        if(!caps.length)return jsonResponse({job:null});
+        // Filter before LIMIT so unsupported/unconfirmed work cannot starve ready jobs.
+        const placeholders=caps.map(()=>'?').join(',');
+        const pending=await queryAll(env,`SELECT * FROM ecu_device_jobs WHERE bridge_id=? AND status='pending' AND action IN (${placeholders}) AND (requires_confirmation=0 OR confirmed_at IS NOT NULL) ORDER BY created_at ASC LIMIT 100`,bridge.id,...caps);
+        for(const job of pending){
+          const ts=now();
+          // A competing poller may claim the first candidate; then try the next one.
+          const claimed=await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending' AND (requires_confirmation=0 OR confirmed_at IS NOT NULL)",ts,ts,job.id,bridge.id);
+          if(Number(claimed.meta?.changes??claimed.changes??claimed.rowsAffected)!==1)continue;
+          return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
+        }
+        return jsonResponse({job:null});
       }
 
       const resultMatch=path.match(/^\/api\/ecu\/device\/jobs\/([^/]+)\/result$/);
