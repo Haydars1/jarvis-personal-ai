@@ -118,11 +118,14 @@
         }
         const skillSource=$('hubSkillSource'),previous=skillSource.value;
         skillSource.replaceChildren();
+        const allSources=document.createElement('option');
+        allSources.value='all';allSources.textContent='Tüm doğrulanmış kaynaklar';skillSource.appendChild(allSources);
         for(const repo of data.skill_sources||[]){
           const option=document.createElement('option');
           option.value=repo;option.textContent=repo;skillSource.appendChild(option);
         }
-        if((data.skill_sources||[]).includes(previous))skillSource.value=previous;
+        skillSource.value=(data.skill_sources||[]).includes(previous)?previous:'all';
+        $('hubSkillLearn').disabled=skillSource.value==='all';
       }catch(error){if(error.message!=='AUTH_REQUIRED')$('agentHubMessage').textContent='Kaynak listesi: '+error.message;}
     }
     const automotive=document.createElement('section');
@@ -206,10 +209,11 @@
       }catch(error){output.textContent='Karşılaştırma başarısız: '+error.message;}
     });
     const directory=document.createElement('div');
-    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource" aria-label="GitHub beceri kaynağı"><option value="anthropics/skills">anthropics/skills</option></select><input id="hubSkillQuery" maxlength="100" placeholder="Beceri ara: cloudflare, code-review..." aria-label="Beceri ara"><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div class="row"><button type="button" id="hubSkillPrevious" disabled>Önceki sayfa</button><button type="button" id="hubSkillNext" disabled>Sonraki sayfa</button></div><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
+    directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource" aria-label="GitHub beceri kaynağı"><option value="all">Tüm doğrulanmış kaynaklar</option></select><input id="hubSkillQuery" maxlength="100" placeholder="Beceri ara: cloudflare, code-review..." aria-label="Beceri ara"><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div class="row"><button type="button" id="hubSkillPrevious" disabled>Önceki sayfa</button><button type="button" id="hubSkillNext" disabled>Sonraki sayfa</button></div><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
     $('hubSkillLearn').addEventListener('click',async()=>{
       const repo=$('hubSkillSource').value;
+      if(repo==='all'){$('hubSkillStatus').textContent='Bütün kaynaklar topluca çalıştırılamaz. İncelemek istediğin depoyu seç.';return;}
       $('hubSkillStatus').textContent='Kaynak öğrenme görevi hazırlanıyor...';
       try {
         const result=await api('/api/tools/skills/compile',{
@@ -280,13 +284,15 @@
         skillPageOffset=data.offset;
         const count=(data.skills||[]).length;
         $('hubSkillStatus').textContent=data.total+' eşleşen SKILL.md • '+(count?data.offset+1:0)+'–'+(data.offset+count)+
-          ' görüntüleniyor.'+(data.truncated?' GitHub dizini eksik olabilir.':'')+
+          ' görüntüleniyor.'+(selected==='all'?' '+data.sources_loaded+'/'+data.sources+' kaynak tarandı.':'')+
+          (data.partial?' Bazı kaynaklar erişilemedi: '+(data.source_errors||[]).map(item=>item.repo).join(', ')+'.':'')+
+          (data.truncated?' GitHub dizini eksik olabilir.':'')+
           ' Beceriler henüz kurulu veya çalıştırılabilir değil.';
         $('hubSkillPrevious').disabled=skillPageOffset===0;
         $('hubSkillNext').disabled=!data.has_more;
         for(const skill of data.skills||[]){
           const button=document.createElement('button');button.type='button';
-          button.textContent=skill.name+' — '+skill.path;button.style.display='block';
+          button.textContent=skill.name+' — '+skill.repo+' / '+skill.path;button.style.display='block';
           button.addEventListener('click',async()=>{
             $('hubSkillPreview').textContent='Beceri okunuyor...';
             try{
@@ -301,7 +307,7 @@
     $('hubSkillScan').addEventListener('click',()=>scanSkills(0));
     $('hubSkillPrevious').addEventListener('click',()=>scanSkills(Math.max(0,skillPageOffset-skillPageSize)));
     $('hubSkillNext').addEventListener('click',()=>scanSkills(skillPageOffset+skillPageSize));
-    $('hubSkillSource').addEventListener('change',()=>scanSkills(0));
+    $('hubSkillSource').addEventListener('change',()=>{ $('hubSkillLearn').disabled=$('hubSkillSource').value==='all';scanSkills(0); });
     $('hubSkillQuery').addEventListener('keydown',event=>{if(event.key==='Enter')scanSkills(0);});
     function refreshHubAfterLogin(){
       refresh();refreshProviders();loadRecentWorkflows();loadRepoSuggestions();
