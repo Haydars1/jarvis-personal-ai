@@ -71,3 +71,27 @@ test('authenticated API and file form UI expose source comparison with size chec
  assert.match(ui,/new FormData/);
  assert.match(ui,/ecu-compare/);
 });
+
+test('Intel HEX with malformed text never falls back to binary parsing',()=>{
+ assert.throws(()=>parseEcuImage(encode('wrong format'),'broken.hex'),/HEX_RECORD_INVALID/);
+ assert.throws(()=>parseEcuImage(encode(hexRecord(7,0)),'unknown.hex'),/HEX_RECORD_TYPE_UNSUPPORTED|HEX_EOF_MISSING/);
+ assert.throws(()=>inspectEcuBinary(encode('not a valid record'),'damaged.hex'),/HEX_RECORD_INVALID/);
+});
+test('out-of-order Intel HEX records sort by physical address for comparisons',()=>{
+ const ext=hexRecord(4,0,[0,2]),eof=hexRecord(1,0,[]);
+ const before=encode([ext,hexRecord(0,0x20,[0x21]),hexRecord(0,0x10,[0x10]),eof].join('\n'));
+ const after=encode([ext,hexRecord(0,0x10,[0x10]),hexRecord(0,0x20,[0x22]),eof].join('\n'));
+ const result=compareEcuFiles(before,after,'before.hex','after.hex');
+ assert.equal(result.changed_bytes,1);
+ assert.equal(result.total_changed_ranges,1);
+ assert.equal(result.ranges[0].start_hex,'0x00020020');
+});
+test('large number of scattered ECU changes remains bounded to 64 displayed ranges',()=>{
+ const original=new Uint8Array(200),modified=new Uint8Array(200);
+ for(let i=0;i<200;i+=2)modified[i]=1;
+ const result=compareEcuFiles(original,modified);
+ assert.equal(result.changed_bytes,100);
+ assert.equal(result.total_changed_ranges,100);
+ assert.equal(result.ranges.length,64);
+ assert.equal(result.truncated_ranges,true);
+});
