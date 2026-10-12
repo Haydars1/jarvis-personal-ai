@@ -118,6 +118,29 @@
         }
       }catch(error){if(error.message!=='AUTH_REQUIRED')$('agentHubMessage').textContent='Kaynak listesi: '+error.message;}
     }
+    const automotive=document.createElement('section');
+    automotive.innerHTML='<h3>Otomotiv ve ECU araçları</h3><p class="muted">Gerçek GitHub projeleri: OBD teşhis, VIN, CAN, ECU firmware analizi. Katalog ve uyumluluk bilgisi; cihaz bağlantısı veya kurulum değildir.</p><input id="hubAutoToolsQuery" maxlength="1000" placeholder="Örn: Thinkdiag canlı veri, ECU BIN analizi veya VIN ile araç bul"><button type="button" id="hubAutoToolsFind">Uygun otomotiv aracını bul</button><div id="hubAutoToolsResults" aria-live="polite"></div>';
+    section.appendChild(automotive);
+    $('hubAutoToolsFind').addEventListener('click',async()=>{
+      const q=$('hubAutoToolsQuery').value.trim();
+      if(!q){$('hubAutoToolsResults').textContent='Ne yapmak istediğini yaz.';return;}
+      $('hubAutoToolsResults').textContent='Kaynaklar eşleştiriliyor...';
+      try{
+        const data=await api('/api/tools/agent-hub/automotive-tools?task='+encodeURIComponent(q));
+        const target=$('hubAutoToolsResults');target.replaceChildren();
+        if(!data.tools?.length){target.textContent='Bu iş için doğrulanmış araç bulunamadı.';return;}
+        for(const tool of data.tools){
+          const item=document.createElement('p');
+          const a=document.createElement('a');
+          a.href='https://github.com/'+encodeURI(tool.repo);a.target='_blank';a.rel='noopener noreferrer';
+          a.textContent=tool.repo;
+          item.appendChild(a);
+          const note=document.createElement('small');
+          note.textContent=' — '+tool.title+' • '+tool.runtime+' • '+(tool.device_required?'Cihaz gerekiyor':'Cihaz gerekmiyor')+' • '+(tool.thinkdiag_compatible?'Thinkdiag uyumlu':'Thinkdiag uyumluluğu doğrulanmadı')+' • Kurulu değil';
+          item.appendChild(note);target.appendChild(item);
+        }
+      }catch(error){$('hubAutoToolsResults').textContent=error.message;}
+    });
     const directory=document.createElement('div');
     directory.innerHTML='<h3>GitHub / Skills.sh beceri keşfi</h3><p class="muted">Beceri dosyaları yalnızca incelenir. Üçüncü taraf kodlar çalıştırılmaz.</p><div class="row"><select id="hubSkillSource"><option value="anthropics/skills">Anthropic Skills</option><option value="vercel-labs/agent-skills">Vercel Agent Skills</option></select><button type="button" id="hubSkillScan">Becerileri tara</button><button type="button" id="hubSkillLearn">Kaynağı JARVIS’e öğret</button></div><p id="hubSkillStatus" aria-live="polite"></p><div id="hubSkillList"></div><pre id="hubSkillPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:360px;overflow:auto"></pre>';
     section.appendChild(directory);
