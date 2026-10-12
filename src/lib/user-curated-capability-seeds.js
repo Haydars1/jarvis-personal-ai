@@ -8,6 +8,14 @@ const hostGated = restriction => ({ autoExecute: false, restriction });
 const catalogOnly = restriction => ({ autoExecute: false, restriction });
 
 export const USER_CURATED_CAPABILITY_SEEDS = Object.freeze([
+  seed('brendan-w/python-OBD','obd-diagnostics','local-cpu',hostGated('Standard ELM327 OBD-II only; not compatible with proprietary Thinkdiag or KT200 by default.')),
+  seed('tronikos/elm327_obdii','obd-diagnostics','device',hostGated('ELM327 BLE and vehicle PID formats need hardware and licensed profile datasets.')),
+  seed('commaai/opendbc','automotive-data','catalog-only',hostGated('DBC CAN formats for supported cars; vehicle-specific compatibility and licenses need checking.')),
+  seed('NationalSecurityAgency/ghidra','ecu-firmware-analysis','local-cpu',hostGated('Firmware static analysis requires sandbox; no ECU flashing, security bypass or unattended installation.')),
+  seed('OBDb/OBDb','automotive-data','catalog-only',hostGated('Community-maintained vehicle PID profiles; verify model coverage and dataset license per profile.')),
+  seed('davidpeckham/vpic-api','vin-decoding','external-service',hostGated('NHTSA VIN decoding covers US-supplied vehicles, may be incomplete for EU cars.')),
+  seed('laferil/vpic','vin-decoding','external-service',hostGated('Self-hosted VIN database needs container/Postgres, not installed on free Cloudflare Worker.')),
+  seed('Aider-AI/aider','coding-agent','external-service',hostGated('Git editing requires a vetted sandbox, consent and separate model configuration.')),
   seed('vercel-labs/agent-skills','coding-agent','catalog-only',catalogOnly('Official Agent Skills: inspect SKILL.md only; never execute bundled scripts or install automatically.')),
   seed('modelcontextprotocol/servers','mcp-tooling','catalog-only',catalogOnly('MCP reference implementations are examples, not production-ready plug-ins; require explicit sandbox integration and approval.')),
   seed('microsoft/playwright-mcp','browser-agent','external-service',hostGated('Playwright MCP needs an approved browser runtime and isolated runner; do not grant arbitrary web or account access.')),
