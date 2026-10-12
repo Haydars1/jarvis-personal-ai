@@ -1,3 +1,4 @@
+import { suggestSkillsForTask } from './agent-hub-skill-matcher.js';
 // Bounded, read-only Cloudflare Agent Hub workflow.
 export const HUB_ADAPTERS=['repo-inspect','source-search','source-read','skill-analyze'];
 export function validateHubSteps(steps,curated){
@@ -47,5 +48,5 @@ export function createAgentPlan({task,repo},curated){
  {adapter_id:'source-search',repo:name,input:{term:search,source:'agent-hub',goal}},
  {adapter_id:'skill-analyze',repo:name,input:{source:'agent-hub',goal}}
  ];
- return {goal,repo:name,steps:validateHubSteps(steps,curated),roles:['araştırmacı','kod inceleyici','beceri analisti']};
+ return {goal,repo:name,steps:validateHubSteps(steps,curated),recommended_skills:suggestSkillsForTask(goal),roles:['araştırmacı','kod inceleyici','beceri analisti']};
 }
