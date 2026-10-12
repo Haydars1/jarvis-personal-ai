@@ -1,6 +1,7 @@
 import { APPROVED_SKILL_REPOS, discoverSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
 import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
 import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
+import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
 import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
 import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
@@ -236,6 +237,13 @@ export function createCloudCapabilityExecution(core){
       if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/vin-decode'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const data=await readJson(req);
+        try{return jsonResponse({ok:true,vehicle:await decodeVehicleVin(data.vin)});}
+        catch(error){const message=String(error?.message||'VIN_DECODE_FAILED');
+          return jsonResponse({error:message},message.startsWith('INVALID_VIN')?400:502);}
       }
       if(path==='/api/tools/agent-hub/automotive-tools'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
