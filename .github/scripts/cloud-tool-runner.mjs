@@ -6,6 +6,7 @@ import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex, fuseYouTubeLearning } from '../../src/lib/youtube-teaching-runtime.js';
 import { executeCodeGraphJob } from './code-graph-job.mjs';
 import { reviewSourceFile } from '../../src/lib/agent-hub-source-audit.js';
+import { resolveNativeSkillAudit } from '../../src/lib/agent-hub-native-skill-audits.js';
 import { inspectEcuBinary } from '../../src/lib/agent-hub-ecu-binary.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
@@ -118,6 +119,11 @@ async function sourceSearch(job,ctx){
   return {repo:job.repo,commit:ctx.commit,term,matches};
 }
 async function sourceAudit(job,ctx){
+ const ref=job.input?.skill_reference;
+ const native=ref?resolveNativeSkillAudit(ref.repo,ref.path):null;
+ if(ref&&!native)throw new Error('SKILL_NATIVE_ADAPTER_UNAVAILABLE');
+ if(job.input?.audit_profile && job.input.audit_profile!==native?.profile)throw new Error('SOURCE_AUDIT_PROFILE_NOT_ALLOWED');
+ const profile=native?.profile||'all';
  const files=(await trackedFiles(ctx.dest)).filter(file=>/\.(html|jsx|tsx|js|ts)$/i.test(file)).slice(0,600);
  const findings=[];let scanned=0;
  for(const file of files){
@@ -127,10 +133,10 @@ async function sourceAudit(job,ctx){
   if(info.size>250000)continue;
   try{
    const content=await readFile(full,'utf8');
-   scanned++;findings.push(...reviewSourceFile(file,content,{limit:Math.min(20,80-findings.length)}));
+   scanned++;findings.push(...reviewSourceFile(file,content,{limit:Math.min(20,80-findings.length),profile}));
   }catch{}
  }
- return {repo:job.repo,commit:ctx.commit,skill_references:Array.isArray(job.input?.skill_references)?job.input.skill_references.slice(0,5):[],scanned_files:scanned,findings,total_findings:findings.length,limited:findings.length>=80,read_only:true};
+ return {repo:job.repo,commit:ctx.commit,skill_references:Array.isArray(job.input?.skill_references)?job.input.skill_references.slice(0,5):[],skill_reference:native?{repo:native.repo,path:native.path}:null,audit_profile:profile,engine:'jarvis-owned-static-source-audit',third_party_code_executed:false,scanned_files:scanned,findings,total_findings:findings.length,limited:findings.length>=80,read_only:true};
 }
 async function ecuBinInspect(job,ctx){
  const matches=(await trackedFiles(ctx.dest)).filter(f=>/\.(bin|hex|rom|ori)$/i.test(f)).slice(0,30);
