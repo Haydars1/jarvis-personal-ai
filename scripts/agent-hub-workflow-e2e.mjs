@@ -44,7 +44,7 @@ try{
  const login=await req('/api/auth/setup','POST',{password:'workflow-e2e-test-only-password'});
  assert.equal(login.status,200,JSON.stringify(login.data));
  cookie=login.headers.get('set-cookie').split(';')[0];
- const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve tasarım sorunlarını incele'});
+ const plan=await req('/api/tools/agent-hub/durable','POST',{repo:'Haydars1/jarvis-personal-ai',task:'6006 web sitesi SEO ve ECU BIN analizi yap'});
  assert.equal(plan.status,202,'Workflow launch: '+JSON.stringify(plan.data)+' logs '+output.slice(-1500));
  assert.match(plan.data.workflow_id,/^[0-9a-f-]{36}$/i);
  let found=false;
