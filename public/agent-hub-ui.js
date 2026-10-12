@@ -87,7 +87,8 @@
         const output=data.output||{};
         $('hubWorkflowReport').textContent='Durum: '+(data.status||'?')+
           (output.summary?'\\n\\n'+String(output.summary.text||''):'')+
-          (output.progress?'\\n\\nGörev: '+String(output.progress.status||''):'');
+          (output.progress?'\\n\\nGörev: '+String(output.progress.status||''):'')+
+          ((output.progress?.audit_findings||[]).length?'\\n\\nKOD DENETİMİ:\\n'+output.progress.audit_findings.slice(0,50).map(f=>String(f.file||'')+':'+Number(f.line||0)+' ['+String(f.severity||'')+'] '+String(f.message||'')).join('\\n'):'');
       }catch(error){$('hubWorkflowReport').textContent=error.message;}
     });
     const providers=document.createElement('div');
