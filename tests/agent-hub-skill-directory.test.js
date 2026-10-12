@@ -6,10 +6,13 @@ import {
 } from '../src/lib/agent-hub-skill-directory.js';
 
 test('rejects paths outside read-only approved skill repositories',async()=>{
- assert.equal(APPROVED_SKILL_REPOS.length,9);
+ assert.equal(APPROVED_SKILL_REPOS.length,23);
  assert.ok(APPROVED_SKILL_REPOS.includes('anthropics/skills'));
  assert.ok(APPROVED_SKILL_REPOS.includes('openai/skills'));
  assert.ok(APPROVED_SKILL_REPOS.includes('github/awesome-copilot'));
+ assert.ok(APPROVED_SKILL_REPOS.includes('NVIDIA/skills'));
+ assert.ok(APPROVED_SKILL_REPOS.includes('google/skills'));
+ assert.ok(APPROVED_SKILL_REPOS.includes('alirezarezvani/claude-skills'));
  assert.equal(new Set(APPROVED_SKILL_REPOS).size,APPROVED_SKILL_REPOS.length);
  assert.equal(validSkillManifestPath('skills/pdf/SKILL.md'),true);
  assert.equal(validSkillManifestPath('../SKILL.md'),false);
