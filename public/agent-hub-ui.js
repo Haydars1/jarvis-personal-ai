@@ -330,6 +330,11 @@
           const button=document.createElement('button');button.type='button';
           button.textContent=skill.name+' ('+skill.repo+')';
           button.addEventListener('click',async()=>{
+            const runnable=nativeSkillExecutors.find(item=>item.repo===skill.repo&&item.path===skill.path);
+            if(runnable){
+              $('hubNativeSkill').value=runnable.repo+'|'+runnable.path;
+              $('hubNativeResult').textContent=runnable.name+' seçildi. Hedef depoyu kontrol edip Denetimi başlat düğmesini kullan.';
+            }
             $('hubSkillPreview').textContent='Beceri okunuyor...';
             try{
               const result=await api('/api/tools/agent-hub/skill-preview?repo='+encodeURIComponent(skill.repo)+'&path='+encodeURIComponent(skill.path));
@@ -385,6 +390,11 @@
           const button=document.createElement('button');button.type='button';
           button.textContent=skill.name+' — '+skill.repo+' / '+skill.path;button.style.display='block';
           button.addEventListener('click',async()=>{
+            const runnable=nativeSkillExecutors.find(item=>item.repo===skill.repo&&item.path===skill.path);
+            if(runnable){
+              $('hubNativeSkill').value=runnable.repo+'|'+runnable.path;
+              $('hubNativeResult').textContent=runnable.name+' seçildi. Hedef depoyu kontrol edip Denetimi başlat düğmesini kullan.';
+            }
             $('hubSkillPreview').textContent='Beceri okunuyor...';
             try{
               const result=await api('/api/tools/agent-hub/skill-preview?repo='+encodeURIComponent(skill.repo)+'&path='+encodeURIComponent(skill.path));
