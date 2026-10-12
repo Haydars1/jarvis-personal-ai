@@ -72,7 +72,7 @@ function safeRelative(value){
   const p=String(value||'').replace(/\\/g,'/');
   if(!p||p.startsWith('/')||p.includes('../')||p==='..')throw new Error('INVALID_PATH');return p;
 }
-async function cloneJob(job){
+export async function cloneJob(job){
   const repo=safeRepo(job.repo),root=await mkdtemp(path.join(tmpdir(),'jarvis-cloud-tool-')),dest=path.join(root,'repo');
   await run('git',['clone','--depth','1','--filter=blob:none','--single-branch','--no-tags',`https://github.com/${repo}.git`,dest],{quiet:false});
   if(job.commit){
@@ -235,7 +235,7 @@ async function youtubeTeaching(job,token){
     audio_chunks:Number(media?.audioChunks?.length||0)
   };
 }
-async function executeJob(job,ctx,token){
+export async function executeJob(job,ctx,token){
   const adapter=String(job.adapter_id||'');if(!ALLOWED_ADAPTERS[adapter])throw new Error('ADAPTER_NOT_ALLOWED');
   if(adapter==='youtube-teaching')return youtubeTeaching(job,token);
   if(adapter==='code-graph-query')return executeCodeGraphJob(job,ctx);
