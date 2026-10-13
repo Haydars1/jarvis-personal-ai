@@ -3,54 +3,9 @@ import { te, td, nativeFetch, fetchT, withTimeout, now, id, j, txt, parseCookies
 import { q1, qall, run, kvGet, kvSet, log } from './lib/d1.js';
 import { hmac, sign, verify, hashPassword, masterKey, b64u, fromB64u, encSecret, decSecret, randB64u, bytesEq, sha256, readCbor } from './lib/crypto.js';
 import { FILE_CHUNK, filePut, d1Bytes, fileGet, fileList, fileDelete } from './lib/file-storage.js';
-async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
-function cookie(v,max=2592000){return `jarvis_session=${encodeURIComponent(v)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${max}`}
-async function passkeyCount(env){const r=await q1(env,'SELECT COUNT(*) n FROM passkeys');return Number(r?.n||0)}
-async function passkeys(env){return qall(env,'SELECT id,counter,transports,device_type,backed_up,created_at,last_used_at FROM passkeys ORDER BY created_at DESC')}
-function rpFrom(req){const u=new URL(req.url);return {rpID:u.hostname,origin:u.origin,rpName:'JARVIS Personal AI'}}
-async function registrationOptions(req,env){const rp=rpFrom(req),challenge=randB64u(),existing=await passkeys(env);await kvSet(env,'passkey_reg_challenge',{challenge,ts:now()});return {challenge,rp:{name:rp.rpName,id:rp.rpID},user:{id:b64u(te.encode('jarvis-owner')),name:'jarvis-owner',displayName:'JARVIS Owner'},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],timeout:60000,attestation:'none',excludeCredentials:existing.map(x=>({type:'public-key',id:x.id,transports:safeJsonParse(x.transports,[])})),authenticatorSelection:{residentKey:'required',requireResidentKey:true,userVerification:'required',authenticatorAttachment:'platform'}}}
-function coseToJwk(cose){const [m]=readCbor(cose,0);if(!(m instanceof Map))throw Error('COSE_INVALID');const kty=m.get(1),alg=m.get(3);if(kty===2&&m.get(-1)===1){return {jwk:{kty:'EC',crv:'P-256',x:b64u(m.get(-2)),y:b64u(m.get(-3)),ext:true},alg:alg||-7}}if(kty===3){return {jwk:{kty:'RSA',n:b64u(m.get(-1)),e:b64u(m.get(-2)),ext:true},alg:alg||-257}}throw Error('COSE_KEY_UNSUPPORTED')}
-async function verifyClient(clientDataB64,expectedChallenge,expectedOrigin,type){const raw=fromB64u(clientDataB64),d=JSON.parse(td.decode(raw));if(d.type!==type||d.challenge!==expectedChallenge||d.origin!==expectedOrigin)throw Error('PASSKEY_CLIENT_DATA_INVALID');return {raw,hash:await sha256(raw)}}
-async function parseAuthData(authData,rpID){const a=authData instanceof Uint8Array?authData:new Uint8Array(authData);if(a.length<37)throw Error('AUTH_DATA_SHORT');const expected=await sha256(rpID);if(!bytesEq(a.slice(0,32),expected))throw Error('RPID_HASH_MISMATCH');const flags=a[32],counter=(a[33]*2**24)+(a[34]<<16)+(a[35]<<8)+a[36];if(!(flags&0x04))throw Error('USER_VERIFICATION_REQUIRED');return {a,flags,counter}}
-async function verifyRegistration(req,env){const b=await body(req),rp=rpFrom(req),ch=await kvGet(env,'passkey_reg_challenge',null);if(!ch?.challenge||now()-ch.ts>120000)return {ok:false,error:'PASSKEY_CHALLENGE_EXPIRED'};try{await verifyClient(b.response.clientDataJSON,ch.challenge,rp.origin,'webauthn.create');const [att]=readCbor(fromB64u(b.response.attestationObject),0);const authData=att.get('authData');const parsed=await parseAuthData(authData,rp.rpID);if(!(parsed.flags&0x40))throw Error('ATTESTED_CREDENTIAL_MISSING');let o=37+16;const idLen=(parsed.a[o]<<8)|parsed.a[o+1];o+=2;const credId=b64u(parsed.a.slice(o,o+idLen));o+=idLen;const {jwk,alg}=coseToJwk(parsed.a.slice(o));if(credId!==b.id)throw Error('CREDENTIAL_ID_MISMATCH');await run(env,'INSERT OR REPLACE INTO passkeys(id,public_key,counter,transports,device_type,backed_up,created_at,last_used_at) VALUES(?,?,?,?,?,?,?,?)',credId,JSON.stringify({jwk,alg}),parsed.counter,JSON.stringify(b.response.transports||[]),b.authenticatorAttachment||'platform',1,now(),null);await kvSet(env,'passkey_reg_challenge',null);await log(env,'auth','Face ID / Passkey kaydedildi',{credential:credId.slice(0,10)});return {ok:true,verified:true}}catch(e){return {ok:false,error:e.message}}}
-async function authenticationOptions(req,env){const rp=rpFrom(req),keys=await passkeys(env);if(!keys.length)return {error:'NO_PASSKEY',status:404};const challenge=randB64u();await kvSet(env,'passkey_auth_challenge',{challenge,ts:now()});return {challenge,rpId:rp.rpID,timeout:60000,userVerification:'required',allowCredentials:keys.map(x=>({type:'public-key',id:x.id,transports:safeJsonParse(x.transports,[])}))}}
-function derToRawEcdsa(sig,size=32){const a=sig instanceof Uint8Array?sig:new Uint8Array(sig);if(a[0]!==0x30) return a;let o=1;let seq=a[o++];if(seq&0x80){const n=seq&0x7f;o+=n}if(a[o++]!==0x02)throw Error('ECDSA_DER_R');let rl=a[o++];let r=a.slice(o,o+rl);o+=rl;if(a[o++]!==0x02)throw Error('ECDSA_DER_S');let sl=a[o++];let ss=a.slice(o,o+sl);while(r.length>size&&r[0]===0)r=r.slice(1);while(ss.length>size&&ss[0]===0)ss=ss.slice(1);const out=new Uint8Array(size*2);out.set(r.slice(-size),size-r.slice(-size).length);out.set(ss.slice(-size),size*2-ss.slice(-size).length);return out}
-async function verifyAuthentication(req,env){const b=await body(req),rp=rpFrom(req),ch=await kvGet(env,'passkey_auth_challenge',null);if(!ch?.challenge||now()-ch.ts>120000)return {ok:false,error:'PASSKEY_CHALLENGE_EXPIRED'};const pk=await q1(env,'SELECT * FROM passkeys WHERE id=?',b.id);if(!pk)return {ok:false,error:'PASSKEY_NOT_FOUND'};try{const client=await verifyClient(b.response.clientDataJSON,ch.challenge,rp.origin,'webauthn.get'),authData=fromB64u(b.response.authenticatorData),parsed=await parseAuthData(authData,rp.rpID),sig=fromB64u(b.response.signature),stored=safeJsonParse(pk.public_key,{}),signed=new Uint8Array(authData.length+client.hash.length);signed.set(authData);signed.set(client.hash,authData.length);let key,ok;if(stored.jwk?.kty==='EC'){key=await crypto.subtle.importKey('jwk',stored.jwk,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},key,derToRawEcdsa(sig),signed)}else if(stored.jwk?.kty==='RSA'){key=await crypto.subtle.importKey('jwk',stored.jwk,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify']);ok=await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,sig,signed)}else throw Error('PASSKEY_KEY_UNSUPPORTED');if(!ok)throw Error('PASSKEY_SIGNATURE_INVALID');if(Number(pk.counter||0)>0&&parsed.counter>0&&parsed.counter<=Number(pk.counter))throw Error('PASSKEY_COUNTER_INVALID');await run(env,'UPDATE passkeys SET counter=?,last_used_at=? WHERE id=?',parsed.counter,now(),pk.id);await kvSet(env,'passkey_auth_challenge',null);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});await log(env,'auth','Face ID / Passkey ile giriş yapıldı');return {ok:true,verified:true,cookie:cookie(tok)}}catch(e){return {ok:false,error:e.message}}}
+import { isAuthed, cookie, passkeyCount, passkeys, rpFrom, registrationOptions, coseToJwk, verifyClient, parseAuthData, verifyRegistration, authenticationOptions, derToRawEcdsa, verifyAuthentication } from './lib/auth.js';
+import { credentialRows, credentialSecrets, testCredential, providerBase, providerModel } from './lib/credentials.js';
 
-async function credentialRows(env){return qall(env,"SELECT id,provider,label,kind,capabilities,endpoint,model,priority,enabled,meta,last_status,last_error,last_test_at,created_at,updated_at FROM credentials ORDER BY enabled DESC,priority ASC,created_at DESC")}
-async function credentialSecrets(env,capability=null){let rows=await qall(env,"SELECT * FROM credentials WHERE enabled=1 ORDER BY priority ASC,created_at ASC");if(capability)rows=rows.filter(r=>{try{const c=JSON.parse(r.capabilities||'[]');return !c.length||c.includes(capability)||c.includes('chat')}catch{return true}});const out=[];for(const r of rows){try{out.push({...r,secret:await decSecret(env,r.encrypted_secret),capabilities:JSON.parse(r.capabilities||'[]'),meta:JSON.parse(r.meta||'{}')})}catch(e){await run(env,'UPDATE credentials SET last_status=?,last_error=?,updated_at=? WHERE id=?','decrypt_error',e.message,now(),r.id)}}return out}
-async function testCredential(env,c){
-  const p=String(c.provider||'').toLowerCase(),sec=c.secret||await decSecret(env,c.encrypted_secret);
-  try{
-    if(!sec)throw Error('NO_API_KEY');
-    if(p==='gemini'){
-      const model=c.model||'gemini-2.5-flash';
-      const r=await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${encodeURIComponent(sec)}`);
-      if(!r.ok)throw Error('HTTP_'+r.status);
-    }else if(p==='google'){
-      if(!String(c.endpoint||'').includes('.apps.googleusercontent.com'))throw Error('GOOGLE_CLIENT_ID_INVALID');
-    }else if(p==='meta'){
-      const r=await fetchT('https://graph.facebook.com/v24.0/me?access_token='+encodeURIComponent(sec));if(!r.ok)throw Error('HTTP_'+r.status);
-    }else if(p==='github'){
-      const r=await fetchT('https://api.github.com/user',{headers:{authorization:'Bearer '+sec,accept:'application/vnd.github+json','user-agent':'JARVIS-SelfUpdate'}});if(!r.ok)throw Error('HTTP_'+r.status);
-    }else if(p==='anthropic'){
-      const r=await fetchT('https://api.anthropic.com/v1/models',{headers:{'x-api-key':sec,'anthropic-version':'2023-06-01'}});if(!r.ok)throw Error('HTTP_'+r.status);
-    }else{
-      const base=providerBase(p,c.endpoint);
-      if(!base)throw Error('NO_ENDPOINT');
-      const r=await fetchT(base+'/models',{headers:{authorization:'Bearer '+sec}});if(!r.ok&&r.status!==404)throw Error('HTTP_'+r.status);
-    }
-    await run(env,'UPDATE credentials SET last_status=?,last_error=NULL,last_test_at=?,updated_at=? WHERE id=?','ok',now(),now(),c.id);return {ok:true}
-  }catch(e){await run(env,'UPDATE credentials SET last_status=?,last_error=?,last_test_at=?,updated_at=? WHERE id=?','error',e.message,now(),now(),c.id);return {ok:false,error:e.message}}
-}
-function providerBase(p,endpoint=''){
-  const map={openai:'https://api.openai.com/v1',groq:'https://api.groq.com/openai/v1',openrouter:'https://openrouter.ai/api/v1',nvidia:'https://integrate.api.nvidia.com/v1',mistral:'https://api.mistral.ai/v1',deepseek:'https://api.deepseek.com/v1',together:'https://api.together.xyz/v1',cerebras:'https://api.cerebras.ai/v1',perplexity:'https://api.perplexity.ai',xai:'https://api.x.ai/v1'};
-  return (map[p]||String(endpoint||'')).replace(/\/$/,'');
-}
-function providerModel(p,model=''){
-  const map={openai:'gpt-4o-mini',groq:'llama-3.3-70b-versatile',openrouter:'openrouter/auto',nvidia:'nvidia/nemotron-3.5-lightning-30b-a3b',mistral:'mistral-small-latest',deepseek:'deepseek-chat',together:'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',cerebras:'llama3.1-8b',perplexity:'sonar-pro',xai:'grok-3-mini'};
-  return model||map[p]||'';
-}
 async function callVaultAI(env,c,messages,ms=9000){
   const p=String(c.provider||'').toLowerCase(),sec=c.secret;
   if(p==='gemini'){
