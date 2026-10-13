@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { createEcuBinaryInspector } from '../src/application/ecu/binary-inspector.js';
+import { createEcuBinaryInspector, inspectBinarySignatures } from '../src/application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from '../src/application/ecu/channels.js';
 import { createEmergencyChatFallback } from '../src/application/chat/emergency-fallback.js';
 import { callVaultProvider } from '../src/application/chat/smart-router.js';
@@ -144,6 +144,16 @@ test('device poll skips unsupported backlog and refuses unconfirmed write jobs',
   const approved = await (await call('jobs/next', undefined, token)).json();
   assert.equal(approved.job.id, pendingId);
   assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'claimed job cannot be redelivered');
+});
+
+test('read-only ECU file signature detection distinguishes common containers and firmware text', () => {
+  const bytes = values => Uint8Array.from(values);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x7f, 0x45, 0x4c, 0x46])), ['ELF executable/object']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x4d, 0x5a])), ['Windows PE/DOS header']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x50, 0x4b, 0x03, 0x04])), ['ZIP container']);
+  assert.deepEqual(inspectBinarySignatures(new TextEncoder().encode(':10010000214601360121470136007EFE09D2190140')), ['Intel HEX text']);
+  assert.deepEqual(inspectBinarySignatures(new TextEncoder().encode('S1130000285F245F2212226A000424290008237C2A')), ['Motorola S-record text']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x00, 0xff, 0x21])), []);
 });
 
 test('binary inspector calculates actual ORI/MOD differences including appended bytes', async () => {
