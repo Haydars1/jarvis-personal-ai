@@ -5,6 +5,8 @@ import { hmac, sign, verify, hashPassword, masterKey, b64u, fromB64u, encSecret,
 import { FILE_CHUNK, filePut, d1Bytes, fileGet, fileList, fileDelete } from './lib/file-storage.js';
 import { isAuthed, cookie, passkeyCount, passkeys, rpFrom, registrationOptions, coseToJwk, verifyClient, parseAuthData, verifyRegistration, authenticationOptions, derToRawEcdsa, verifyAuthentication } from './lib/auth.js';
 import { credentialRows, credentialSecrets, testCredential, providerBase, providerModel } from './lib/credentials.js';
+import { githubCredential, repoCfg, gh, b64Utf8, repoFile, SELF_EDIT_ALLOW, cleanAiJson } from './lib/github.js';
+import { googleCredential, googleStored, googleAccessToken, mailRaw, gmailList, gmailSend, driveFiles, metaCredential, metaFacebookPost, metaInstagramPost, pendingAction, executeAction } from './lib/integrations.js';
 
 async function callVaultAI(env,c,messages,ms=9000){
   const p=String(c.provider||'').toLowerCase(),sec=c.secret;
@@ -26,24 +28,6 @@ async function callVaultAI(env,c,messages,ms=9000){
   return (await r.json()).choices?.[0]?.message?.content||''
 }
 
-async function githubCredential(env){
-  const rows=await credentialSecrets(env,null);
-  return rows.find(c=>String(c.provider||'').toLowerCase()==='github' && c.enabled);
-}
-function repoCfg(c){
-  const repo=String(c?.endpoint||'').trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').replace(/^\/+|\/+$/g,'');
-  if(!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo))throw Error('GITHUB_REPO_REQUIRED: endpoint alanına owner/repo yaz');
-  return {repo,branch:String(c.model||'main').trim()||'main'};
-}
-async function gh(c,path,opts={}){
-  const r=await fetchT('https://api.github.com'+path,{...opts,headers:{accept:'application/vnd.github+json','x-github-api-version':'2022-11-28','user-agent':'JARVIS-SelfUpdate',authorization:'Bearer '+c.secret,...(opts.headers||{})}});
-  const text=await r.text();let data;try{data=text?JSON.parse(text):{}}catch{data={text}};
-  if(!r.ok)throw Error('GITHUB_'+r.status+':'+(data.message||text).slice(0,240));return data;
-}
-function b64Utf8(s){const bytes=te.encode(String(s));let x='';for(const b of bytes)x+=String.fromCharCode(b);return btoa(x)}
-async function repoFile(c,repo,path,ref){const d=await gh(c,`/repos/${repo}/contents/${encodeURIComponent(path).replaceAll('%2F','/')}?ref=${encodeURIComponent(ref)}`);return {sha:d.sha,content:td.decode(Uint8Array.from(atob((d.content||'').replace(/\n/g,'')),x=>x.charCodeAt(0)))}}
-const SELF_EDIT_ALLOW=new Set(['src/worker.js','public/app.js','public/index.html','public/app.css','schema.sql','README-v6.txt','ios/JARVIS/JarvisAPI.swift','ios/JARVIS/AppState.swift','ios/JARVIS/ContentView.swift','ios/JARVIS/SettingsView.swift','ios/project.yml','.github/workflows/deploy-cloudflare.yml','.github/workflows/ios-native-check.yml']);
-function cleanAiJson(t){t=String(t||'').trim();const m=t.match(/```(?:json)?\s*([\s\S]*?)```/i);if(m)t=m[1].trim();const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a)t=t.slice(a,b+1);return JSON.parse(t)}
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
   const {repo,branch}=repoCfg(c), files={};
@@ -79,18 +63,6 @@ async function selfHeal(env,force=false){
 }
 
 
-async function googleCredential(env){const rows=await credentialSecrets(env,null);return rows.find(c=>String(c.provider||'').toLowerCase()==='google'&&c.enabled)}
-async function metaCredential(env){const rows=await credentialSecrets(env,null);return rows.find(c=>String(c.provider||'').toLowerCase()==='meta'&&c.enabled)}
-async function googleStored(env){const x=await kvGet(env,'google_oauth',null);if(!x?.blob)return null;try{return {...x,tokens:JSON.parse(await decSecret(env,x.blob))}}catch{return null}}
-async function googleAccessToken(env){const c=await googleCredential(env),g=await googleStored(env);if(!c||!g)throw Error('GOOGLE_NOT_CONNECTED');let t=g.tokens;if(t.expires_at&&t.expires_at>now()+60000)return t.access_token;if(!t.refresh_token)throw Error('GOOGLE_REFRESH_TOKEN_MISSING');const form=new URLSearchParams({client_id:String(c.endpoint||''),client_secret:c.secret,refresh_token:t.refresh_token,grant_type:'refresh_token'});const r=await fetchT('https://oauth2.googleapis.com/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:form});if(!r.ok)throw Error('GOOGLE_REFRESH_'+r.status);const n=await r.json();t={...t,...n,expires_at:now()+Number(n.expires_in||3600)*1000};await kvSet(env,'google_oauth',{email:g.email,scope:g.scope,blob:await encSecret(env,JSON.stringify(t))});return t.access_token}
-function mailRaw({to,subject,body}){const raw=`To: ${to}\r\nSubject: ${subject||''}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body||''}`;const bytes=te.encode(raw);let bin='';for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
-async function gmailList(env,max=10){const token=await googleAccessToken(env),r=await fetchT(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${Math.min(max,20)}&q=${encodeURIComponent('newer_than:7d')}`,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw Error('GMAIL_LIST_'+r.status);const ids=(await r.json()).messages||[],out=[];for(const x of ids.slice(0,max)){const q=await fetchT(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${x.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,{headers:{authorization:'Bearer '+token}});if(q.ok){const d=await q.json(),h=Object.fromEntries((d.payload?.headers||[]).map(z=>[z.name.toLowerCase(),z.value]));out.push({id:x.id,subject:h.subject||'',from:h.from||'',date:h.date||'',snippet:d.snippet||''})}}return out}
-async function gmailSend(env,payload){const token=await googleAccessToken(env),r=await fetchT('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({raw:mailRaw(payload)})});if(!r.ok)throw Error('GMAIL_SEND_'+r.status);return r.json()}
-async function driveFiles(env){const token=await googleAccessToken(env),params=new URLSearchParams({pageSize:'30',fields:'files(id,name,mimeType,modifiedTime,webViewLink,size)',orderBy:'modifiedTime desc'}),r=await fetchT('https://www.googleapis.com/drive/v3/files?'+params,{headers:{authorization:'Bearer '+token}});if(!r.ok)throw Error('DRIVE_'+r.status);return r.json()}
-async function metaFacebookPost(env,p){const c=await metaCredential(env);if(!c)throw Error('META_NOT_CONNECTED');const page=String(c.endpoint||'').trim();if(!page)throw Error('META_PAGE_ID_REQUIRED');const form=new URLSearchParams({message:p.message||'',access_token:c.secret}),r=await fetchT(`https://graph.facebook.com/v24.0/${encodeURIComponent(page)}/feed`,{method:'POST',body:form});if(!r.ok)throw Error('FACEBOOK_'+r.status+':'+(await r.text()).slice(0,200));return r.json()}
-async function metaInstagramPost(env,p){const c=await metaCredential(env);if(!c)throw Error('META_NOT_CONNECTED');const ig=String(c.model||'').trim();if(!ig)throw Error('INSTAGRAM_BUSINESS_ID_REQUIRED');let form=new URLSearchParams({image_url:p.imageUrl||'',caption:p.caption||'',access_token:c.secret}),r=await fetchT(`https://graph.facebook.com/v24.0/${encodeURIComponent(ig)}/media`,{method:'POST',body:form});if(!r.ok)throw Error('INSTAGRAM_MEDIA_'+r.status+':'+(await r.text()).slice(0,200));const creation=(await r.json()).id;form=new URLSearchParams({creation_id:creation,access_token:c.secret});r=await fetchT(`https://graph.facebook.com/v24.0/${encodeURIComponent(ig)}/media_publish`,{method:'POST',body:form});if(!r.ok)throw Error('INSTAGRAM_PUBLISH_'+r.status+':'+(await r.text()).slice(0,200));return r.json()}
-async function pendingAction(env,type,payload,summary,risk='medium'){const x={id:id(),type,payload,summary,risk,status:'pending',created_at:now()};await run(env,'INSERT INTO actions(id,type,payload,summary,risk,status,created_at) VALUES(?,?,?,?,?,?,?)',x.id,type,JSON.stringify(payload),summary,risk,'pending',x.created_at);await log(env,'action','Onay bekliyor: '+summary,{type});return x}
-async function executeAction(env,a){const p=safeJsonParse(a.payload,{});if(a.type==='gmail_send')return gmailSend(env,p);if(a.type==='facebook_post')return metaFacebookPost(env,p);if(a.type==='instagram_post')return metaInstagramPost(env,p);throw Error('UNSUPPORTED_ACTION')}
 
 
 
