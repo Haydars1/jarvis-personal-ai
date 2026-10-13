@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { createEcuBinaryInspector, inspectBinarySignatures } from '../src/application/ecu/binary-inspector.js';
+import { createEcuBinaryInspector, inspectBinarySignatures, validateIntelHex } from '../src/application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from '../src/application/ecu/channels.js';
 import { createEmergencyChatFallback } from '../src/application/chat/emergency-fallback.js';
 import { callVaultProvider } from '../src/application/chat/smart-router.js';
@@ -144,6 +144,14 @@ test('device poll skips unsupported backlog and refuses unconfirmed write jobs',
   const approved = await (await call('jobs/next', undefined, token)).json();
   assert.equal(approved.job.id, pendingId);
   assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'claimed job cannot be redelivered');
+});
+
+test('Intel HEX validation rejects corrupt checksums and missing EOF', () => {
+  const good = ':10010000214601360121470136007EFE09D2190140\\n:00000001FF';
+  assert.equal(validateIntelHex(good).valid, true);
+  assert.equal(validateIntelHex(good.replace('0140', '0141')).error, 'INVALID_CHECKSUM');
+  assert.equal(validateIntelHex(':10010000214601360121470136007EFE09D2190140').error, 'MISSING_EOF');
+  assert.equal(validateIntelHex(':00000001FF\\n:00000001FF').error, 'DATA_AFTER_EOF');
 });
 
 test('read-only ECU file signature detection distinguishes common containers and firmware text', () => {
