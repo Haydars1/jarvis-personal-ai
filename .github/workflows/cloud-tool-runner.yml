@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/cloud-tool-runner.yml'
       - '.github/scripts/cloud-tool-runner.mjs'
+      - '.github/scripts/cloud-tool-runner-supervisor.mjs'
       - '.github/scripts/cloud-skill-summary.mjs'
       - '.github/scripts/code-graph-job.mjs'
       - 'src/application/capabilities/**'
@@ -66,8 +67,11 @@ jobs:
           JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
           JARVIS_CLOUD_MAX_JOBS: '8'
           JARVIS_CLOUD_MAX_BATCHES: '12'
+          JARVIS_CLOUD_RUNNER_RESTARTS: '3'
+          JARVIS_CLOUD_ATTEMPT_TIMEOUT_MS: '1200000'
+          JARVIS_CLOUD_RETRY_BASE_MS: '2000'
           PATH: /home/runner/.local/bin:/usr/local/bin:/usr/bin:/bin
-        run: node .github/scripts/cloud-tool-runner.mjs
+        run: node .github/scripts/cloud-tool-runner-supervisor.mjs
 
       - name: Report production skill execution summary
         env:
