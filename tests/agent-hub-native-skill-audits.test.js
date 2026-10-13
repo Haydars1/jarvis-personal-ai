@@ -35,7 +35,7 @@ function call(handler,env,path,body,{session=true}={}){
 }
 
 test('only explicitly reviewed skill references map to built-in read-only analyzers',()=>{
-  assert.equal(NATIVE_SKILL_AUDITS.length,4);
+  assert.equal(NATIVE_SKILL_AUDITS.length,5);
   for(const entry of NATIVE_SKILL_AUDITS){
     const input=nativeSkillAuditJobInput(entry.repo,entry.path);
     assert.equal(input.audit_profile,entry.profile);
@@ -64,11 +64,23 @@ test('native source-audit profiles produce separate real findings without evalua
   assert.throws(()=>reviewSourceFile('a.js',js,{profile:'untrusted'}),/SOURCE_AUDIT_PROFILE_NOT_ALLOWED/);
 });
 
+test('GitHub Actions hardening skill detects unpinned actions and unsafe deployment',()=>{
+ const workflow=['name: Unsafe','on:','  pull_request_target:','permissions: write-all','jobs:','  test:','    steps:','      - uses: actions/checkout@v4','      - run: gh pr merge --admin','      - run: npx wrangler deploy'].join('\n');
+ const findings=reviewSourceFile('.github/workflows/unsafe.yml',workflow,{profile:'github-actions'});
+ for(const rule of ['actions-unpinned','actions-privileged','actions-pr-target','actions-merge','actions-deploy']){
+   assert.ok(findings.some(f=>f.rule===rule),'Expected '+rule);
+ }
+ const pinned=reviewSourceFile('.github/workflows/safe.yaml',
+   'steps:\n  - uses: actions/checkout@'+'a'.repeat(40),{profile:'github-actions'});
+ assert.equal(pinned.filter(f=>f.rule==='actions-unpinned').length,0);
+ assert.equal(reviewSourceFile('src/worker.js','eval(userCode)',{profile:'github-actions'}).length,0);
+});
+
 test('authenticated owner can queue a native skill audit with actual D1-compatible schema',async t=>{
   const env=dbEnvironment(t),handler=app();
   assert.equal((await call(handler,env,'/api/tools/agent-hub/skill-executors',undefined,{session:false})).status,401);
   const list=await (await call(handler,env,'/api/tools/agent-hub/skill-executors')).json();
-  assert.equal(list.executors.length,4);
+  assert.equal(list.executors.length,5);
   assert.equal(list.third_party_instructions_executed,false);
   const skill=NATIVE_SKILL_AUDITS[1];
   const payload={skill_repo:skill.repo,skill_path:skill.path,target_repo:'Haydars1/jarvis-personal-ai'};
