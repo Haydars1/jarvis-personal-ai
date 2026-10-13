@@ -312,7 +312,7 @@ export function createEcuBinaryInspector(core) {
           `Boyut: ${bytes.length.toLocaleString('tr-TR')} byte`,
           `SHA256: ${digest}`,
           `Dosya imzası (tahmini): ${signatures.join(', ') || 'Bilinmeyen ham veri'}`,
-          ...(intelHex ? [\`Intel HEX kayıt doğrulaması: \${intelHex.valid ? 'Geçerli' : 'Hatalı'}\${intelHex.error ? ' (' + intelHex.error + ')' : ''}\`] : []),
+          ...(intelHex ? [`Intel HEX kayıt doğrulaması: ${intelHex.valid ? 'Geçerli' : 'Hatalı'}${intelHex.error ? ' (' + intelHex.error + ')' : ''}`] : []),
           `Entropy: ${s.entropy} bit/byte • 00 oranı: %${s.zeroPct} • FF oranı: %${s.ffPct}`,
           `İlk 32 byte: ${hex(bytes, 0, 32)}`,
           `ASCII önizleme: ${ascii(bytes, 0, 64)}`,
