@@ -92,6 +92,59 @@ export const RULEPACKS = [
     },
     firmwares: {},
     // DPF-specific detection: DAMOS labels + production binary patterns
+    egrDetection: {
+      damosLabels: [
+        { id: 'EGR_mDesCyl_C',        type: 'egr_valve',     desc: 'EGR valf hedef kütle akışı',       size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_rDesEGR_C',        type: 'egr_rate',      desc: 'EGR oranı hedef',                  size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_swtEGRActv_C',     type: 'egr_switch',    desc: 'EGR master enable switch',         size: 1, offValue: 0x00,   risk: 'low' },
+        { id: 'AGR_stSollPos_C',      type: 'egr_position',  desc: 'AGR valf hedef pozisyonu',         size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'AGR_rSollEGR_C',       type: 'egr_rate_de',   desc: 'AGR hedef oran (DE)',               size: 2, offValue: 0x0000, risk: 'low' },
+      ],
+      controlHeuristics: {
+        egrValve: {
+          desc: 'EGR valf kontrol byte',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'low',
+          scoring: {
+            wordAligned: 10,
+            valueIsOne: 25,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
+    adblueDetection: {
+      damosLabels: [
+        { id: 'SCR_swtSCRActv_C',     type: 'scr_switch',    desc: 'SCR sistem master enable',         size: 1, offValue: 0x00,   risk: 'high' },
+        { id: 'SCR_mDesNH3_C',        type: 'scr_dosing',    desc: 'SCR hedef NH3 doz miktarı',        size: 2, offValue: 0x0000, risk: 'high' },
+        { id: 'SCR_rDesConvNOx_C',    type: 'scr_nox_conv',  desc: 'SCR hedef NOx dönüşüm oranı',     size: 2, offValue: 0x0000, risk: 'high' },
+        { id: 'Urea_mDesUrea_C',      type: 'urea_dosing',   desc: 'Üre doz miktarı hedef',            size: 2, offValue: 0x0000, risk: 'high' },
+        { id: 'Urea_swtUrActv_C',     type: 'urea_switch',   desc: 'Üre sistemi master enable',        size: 1, offValue: 0x00,   risk: 'high' },
+        { id: 'SCR_tiDesHeat_C',      type: 'scr_heater',    desc: 'SCR ısıtıcı hedef süresi',         size: 2, offValue: 0x0000, risk: 'medium' },
+      ],
+      controlHeuristics: {
+        scrSwitch: {
+          desc: 'SCR/AdBlue sistem aktif/pasif bayrağı',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'high',
+          scoring: {
+            wordAligned: 10,
+            valueIsOne: 25,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
     dpfDetection: {
       // DAMOS identifier strings — present in engineering/development binaries
       // When found: high-confidence detection, search calibration area for the value
@@ -320,11 +373,27 @@ export function rulepackActions(matches) {
   return actions;
 }
 
-// DPF tespit konfigürasyonunu getir — eşleşen rulepack ailesi için
+// Sistem tespit konfigürasyonlarını getir — eşleşen rulepack ailesi için
 export function getDpfDetection(familyMatches) {
   for (const m of familyMatches || []) {
     const pack = RULEPACKS.find(r => r.family === m.family);
     if (pack?.dpfDetection) return pack.dpfDetection;
+  }
+  return null;
+}
+
+export function getEgrDetection(familyMatches) {
+  for (const m of familyMatches || []) {
+    const pack = RULEPACKS.find(r => r.family === m.family);
+    if (pack?.egrDetection) return pack.egrDetection;
+  }
+  return null;
+}
+
+export function getAdblueDetection(familyMatches) {
+  for (const m of familyMatches || []) {
+    const pack = RULEPACKS.find(r => r.family === m.family);
+    if (pack?.adblueDetection) return pack.adblueDetection;
   }
   return null;
 }

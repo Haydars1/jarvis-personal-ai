@@ -205,6 +205,51 @@ function findDpfControl(bytes, keywordOffset, keywordLen, dpfConfig) {
   };
 }
 
+// Genel switch-byte tarayıcı — EGR, AdBlue, vb. için findDpfControl ile aynı mantık
+function findSwitchControl(bytes, keywordOffset, keywordLen, detectionConfig) {
+  const radius = detectionConfig?.searchRadius || 512;
+  const start = Math.max(0, keywordOffset - radius);
+  const end = Math.min(bytes.length, keywordOffset + (keywordLen || 4) + radius);
+
+  // İlk heuristic key'i bul
+  const heuristics = detectionConfig?.controlHeuristics || {};
+  const hKey = Object.keys(heuristics)[0];
+  const scoring = hKey ? (heuristics[hKey].scoring || {}) : {};
+  const sw = {
+    wordAligned: scoring.wordAligned || 10,
+    valueIsOne: scoring.valueIsOne || 25,
+    nearbySmallScalars: scoring.nearbySmallScalars || 15,
+    closeToKeyword: scoring.closeToKeyword || 0.2,
+    notInAscii: scoring.notInAscii || 50,
+  };
+
+  let bestScore = -1;
+  let bestOfs = -1;
+  for (let i = start; i < end; i++) {
+    const v = bytes[i];
+    if (v !== 0x00 && v !== 0x01) continue;
+    if (isInsideAscii(bytes, i, 3)) continue;
+    let score = sw.notInAscii;
+    if (i % 2 === 0) score += sw.wordAligned;
+    if (v === 0x01) score += sw.valueIsOne;
+    if (i >= 2 && i < bytes.length - 2) {
+      const neighbors = [bytes[i - 2], bytes[i - 1], bytes[i + 1], bytes[i + 2]];
+      const smallCount = neighbors.filter(b => b <= 0x10).length;
+      if (smallCount >= 2) score += sw.nearbySmallScalars;
+    }
+    const dist = Math.abs(i - keywordOffset);
+    score -= dist * sw.closeToKeyword;
+    if (i % 4 === 0) score += 5;
+    if (score > bestScore) { bestScore = score; bestOfs = i; }
+  }
+
+  return bestOfs >= 0 ? {
+    offset: bestOfs, score: bestScore,
+    confidence: bestScore > 70 ? 'medium' : 'low',
+    method: 'kontekst-analiz'
+  } : null;
+}
+
 // DAMOS etiketlerini tüm binary'de tara — yüksek güvenilirlikli tespit
 function scanDamosLabels(bytes, damosLabels) {
   if (!damosLabels?.length) return [];
@@ -393,7 +438,7 @@ export function getSystemInfo(systemName) {
 }
 
 // Her sistem için yapılabilecek "disable" / "modify" aksiyon tarifi
-function buildActions(system, offset, bytes, dpfConfig) {
+function buildActions(system, offset, bytes, dpfConfig, egrConfig, adblueConfig) {
   const safe = ofs => ofs >= 0 && ofs + 1 < bytes.length;
   const flagOffset = offset + 16;
   const limitOffset = offset + 8;
@@ -402,17 +447,23 @@ function buildActions(system, offset, bytes, dpfConfig) {
   const icon = sysInfo?.icon || '⚙';
 
   switch (system) {
-    case 'EGR':
-      if (safe(flagOffset)) list.push({
+    case 'EGR': {
+      // Akıllı EGR kontrol byte taraması — blind offset+16 yerine
+      const egrCtrl = findSwitchControl(bytes, offset, 4, egrConfig);
+      const egrOfs = egrCtrl ? egrCtrl.offset : flagOffset;
+      if (safe(egrOfs)) list.push({
         id: 'egr_off_' + offset.toString(16),
         label: 'EGR Devre Dışı (OFF)',
-        detail: `Adres ${hexAddr(flagOffset)}: 0x${hexByte(bytes[flagOffset])} → 0x00`,
+        detail: `Adres ${hexAddr(egrOfs)}: 0x${hexByte(bytes[egrOfs])} → 0x00` + (egrCtrl ? ` [${egrCtrl.method}]` : ''),
         explain: 'EGR valfini kapatır. Egzoz gazı emişe geri gitmez → intake manifold temiz kalır, motor daha rahat nefes alır.',
         effect: 'Karbon birikimi durur, emme manifoldu temiz kalır',
         hpGain: '+5-15 HP',
-        offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'low'
+        offset: egrOfs, currentByte: bytes[egrOfs], newByte: 0, risk: 'low',
+        scanScore: egrCtrl?.score,
+        scanConfidence: egrCtrl?.confidence
       });
       break;
+    }
 
     case 'DPF': {
       // Akıllı DPF kontrol byte taraması — blind offset+16 yerine
@@ -450,17 +501,23 @@ function buildActions(system, offset, bytes, dpfConfig) {
       break;
     }
 
-    case 'AdBlue/SCR':
-      if (safe(flagOffset)) list.push({
+    case 'AdBlue/SCR': {
+      // Akıllı AdBlue/SCR kontrol byte taraması — blind offset+16 yerine
+      const scrCtrl = findSwitchControl(bytes, offset, 4, adblueConfig);
+      const scrOfs = scrCtrl ? scrCtrl.offset : flagOffset;
+      if (safe(scrOfs)) list.push({
         id: 'adblue_off_' + offset.toString(16),
         label: 'AdBlue Sistemi Kapat (OFF)',
-        detail: `Adres ${hexAddr(flagOffset)}: 0x${hexByte(bytes[flagOffset])} → 0x00`,
+        detail: `Adres ${hexAddr(scrOfs)}: 0x${hexByte(bytes[scrOfs])} → 0x00` + (scrCtrl ? ` [${scrCtrl.method}]` : ''),
         explain: 'SCR / AdBlue enjeksiyon sistemini tamamen devre dışı bırakır. Tank seviye uyarıları ve güç kısıtlaması (limp mode) ortadan kalkar.',
         effect: 'AdBlue tankı boşaltılabilir, limp mode riski yok, uyarı yok',
         hpGain: '0-5 HP',
-        offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'high'
+        offset: scrOfs, currentByte: bytes[scrOfs], newByte: 0, risk: 'high',
+        scanScore: scrCtrl?.score,
+        scanConfidence: scrCtrl?.confidence
       });
       break;
+    }
 
     case 'Lambda':
       if (safe(flagOffset)) list.push({
@@ -637,15 +694,27 @@ export async function scanRegions(bytes) {
     });
   }
 
-  // 1.5) DAMOS label taraması — yüksek güvenilirlik
+  // 1.5) DAMOS label taraması — yüksek güvenilirlik (DPF + EGR + AdBlue)
   let dpfConfig = null;
+  let egrConfig = null;
+  let adblueConfig = null;
   try {
-    const { getDpfDetection } = await import('./ecu-rulepacks.js');
+    const { getDpfDetection, getEgrDetection, getAdblueDetection } = await import('./ecu-rulepacks.js');
     dpfConfig = getDpfDetection(rulepackMatches);
+    egrConfig = getEgrDetection(rulepackMatches);
+    adblueConfig = getAdblueDetection(rulepackMatches);
   } catch (_e) { /* import hatasında devam */ }
 
-  if (dpfConfig?.damosLabels?.length) {
-    const damosHits = scanDamosLabels(bytes, dpfConfig.damosLabels);
+  // Tüm DAMOS label setlerini birleştirerek tara
+  const damosGroups = [
+    { config: dpfConfig, system: 'DPF', prefix: 'DPF' },
+    { config: egrConfig, system: 'EGR', prefix: 'EGR' },
+    { config: adblueConfig, system: 'AdBlue/SCR', prefix: 'AdBlue' },
+  ];
+
+  for (const { config: cfg, system: sysName, prefix } of damosGroups) {
+    if (!cfg?.damosLabels?.length) continue;
+    const damosHits = scanDamosLabels(bytes, cfg.damosLabels);
     for (const hit of damosHits) {
       const ofs = hit.labelOffset;
       const windowStart = Math.max(0, ofs - 8);
@@ -654,7 +723,7 @@ export async function scanRegions(bytes) {
 
       regions.push({
         id: 'damos_' + hit.type + '_' + ofs.toString(16),
-        system: 'DPF',
+        system: sysName,
         desc: `DAMOS label: ${hit.label} — ${hit.desc}`,
         foundString: hit.label,
         offset: ofs,
@@ -664,7 +733,7 @@ export async function scanRegions(bytes) {
         source: 'damos-label',
         actions: [{
           id: 'damos_' + hit.type + '_' + ofs.toString(16),
-          label: `DPF ${hit.desc} (DAMOS)`,
+          label: `${prefix} ${hit.desc} (DAMOS)`,
           detail: `DAMOS label ${hit.label} @ ${hexAddr(ofs)} — ${hit.size} byte → 0x${hit.offValue.toString(16).toUpperCase()}`,
           offset: ofs + hit.label.length + 1,
           currentByte: bytes[ofs + hit.label.length + 1],
@@ -694,7 +763,7 @@ export async function scanRegions(bytes) {
       const windowEnd = Math.min(bytes.length, s.offset + s.text.length + 24);
       const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-      const heuristicActions = buildActions(sys.system, s.offset, bytes, dpfConfig).map(a => ({
+      const heuristicActions = buildActions(sys.system, s.offset, bytes, dpfConfig, egrConfig, adblueConfig).map(a => ({
         ...a,
         confidence: 'low',
         source: 'scanner-heuristic',
@@ -766,7 +835,7 @@ export async function scanRegions(bytes) {
         const windowEnd = Math.min(bytes.length, bestOffset + foundKeyword.length + 24);
         const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-        const profileActions = buildActions(expectedSys, bestOffset, bytes, dpfConfig).map(a => ({
+        const profileActions = buildActions(expectedSys, bestOffset, bytes, dpfConfig, egrConfig, adblueConfig).map(a => ({
           ...a,
           id: 'profile_' + a.id,
           confidence: 'medium',
