@@ -166,6 +166,63 @@ try{
  assert.equal(finished.output.progress.jobs.length,5);
  assert.ok(Array.isArray(finished.output.progress.audit_findings),'Source audit findings missing from completed Workflow');
  console.log('REAL GitHub Actions OIDC runner → local Cloudflare Workflow → D1 → completion E2E passed:',plan.data.workflow_id);
+
+ // Real native skills pipeline: authenticated UI API -> D1 queue -> signed GitHub OIDC
+ // runner -> JARVIS's read-only source analyzer -> D1 completion -> owner result API.
+ const nativeList=await req('/api/tools/agent-hub/skill-executors');
+ assert.equal(nativeList.status,200,JSON.stringify(nativeList.data));
+ assert.equal(nativeList.data.executors.length,4);
+ assert.equal(nativeList.data.third_party_instructions_executed,false);
+ const nativeChecks=[
+   {repo:'openai/skills',path:'skills/.curated/security-best-practices/SKILL.md',profile:'security'},
+   {repo:'cloudflare/skills',path:'skills/workers-best-practices/SKILL.md',profile:'cloudflare'}
+ ];
+ for(const entry of nativeChecks){
+   const requestBody={skill_repo:entry.repo,skill_path:entry.path,target_repo:'Haydars1/jarvis-personal-ai'};
+   const enqueue=await req('/api/tools/agent-hub/skill-run','POST',requestBody);
+   assert.equal(enqueue.status,202,'Native skill job enqueue: '+JSON.stringify(enqueue.data));
+   assert.equal(enqueue.data.audit_profile,entry.profile);
+   assert.equal(enqueue.data.external_instructions_executed,false);
+   const jobId=enqueue.data.job.id;
+   let claimed=null;
+   for(let i=0;i<20;i++){
+     const result=await runnerPost('/api/tools/cloud/runner/claim',{});
+     if(result.job){claimed=result.job;break;}
+     await new Promise(r=>setTimeout(r,250));
+   }
+   assert.ok(claimed,'Native skill job was not claimable by OIDC runner');
+   assert.equal(claimed.id,jobId);
+   assert.equal(claimed.adapter_id,'source-audit');
+   assert.deepEqual(claimed.input.skill_reference,{repo:entry.repo,path:entry.path});
+   assert.equal(claimed.input.audit_profile,entry.profile);
+   let jobContext=null;
+   try{
+     jobContext=await cloneJob(claimed);
+     const report=await executeJob(claimed,jobContext,token);
+     assert.equal(report.engine,'jarvis-owned-static-source-audit');
+     assert.equal(report.audit_profile,entry.profile);
+     assert.equal(report.third_party_code_executed,false);
+     assert.equal(report.read_only,true);
+     assert.ok(report.scanned_files>0,'No repository files scanned');
+     assert.ok(Array.isArray(report.findings));
+     const callback=await runnerPost('/api/tools/cloud/runner/jobs/'+encodeURIComponent(jobId)+'/result',{ok:true,result:report});
+     assert.equal(callback.job.status,'completed');
+     const ownerStatus=await req('/api/tools/cloud/jobs/'+encodeURIComponent(jobId));
+     assert.equal(ownerStatus.status,200);
+     assert.equal(ownerStatus.data.job.status,'completed');
+     assert.equal(ownerStatus.data.job.result.audit_profile,entry.profile);
+     assert.equal(ownerStatus.data.job.result.total_findings,report.findings.length);
+     assert.equal(ownerStatus.data.job.result.third_party_code_executed,false);
+     console.log('Native GitHub skill audited by real OIDC runner, persisted and retrieved:',entry.repo,entry.profile,jobId);
+   }finally{if(jobContext?.root)await rmAsync(jobContext.root,{recursive:true,force:true});}
+ }
+ // Never treat an unreviewed community SKILL.md as a runnable plugin.
+ const rejected=await req('/api/tools/agent-hub/skill-run','POST',{
+   skill_repo:'random/unreviewed',skill_path:'skills/execute/SKILL.md',target_repo:'Haydars1/jarvis-personal-ai'
+ });
+ assert.equal(rejected.status,400);
+ assert.equal(rejected.data.error,'SKILL_NATIVE_ADAPTER_UNAVAILABLE');
+
 }finally{
  if(server&&server.exitCode===null){server.kill('SIGTERM');await new Promise(r=>setTimeout(r,500));if(server.exitCode===null)server.kill('SIGKILL');}
  rmSync(dir,{recursive:true,force:true});
