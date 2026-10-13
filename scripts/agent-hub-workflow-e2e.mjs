@@ -175,7 +175,8 @@ try{
  assert.equal(nativeList.data.third_party_instructions_executed,false);
  const nativeChecks=[
    {repo:'openai/skills',path:'skills/.curated/security-best-practices/SKILL.md',profile:'security'},
-   {repo:'cloudflare/skills',path:'skills/workers-best-practices/SKILL.md',profile:'cloudflare'}
+   {repo:'cloudflare/skills',path:'skills/workers-best-practices/SKILL.md',profile:'cloudflare'},
+   {repo:'github/awesome-copilot',path:'skills/github-actions-hardening/SKILL.md',profile:'github-actions'}
  ];
  for(const entry of nativeChecks){
    const requestBody={skill_repo:entry.repo,skill_path:entry.path,target_repo:'Haydars1/jarvis-personal-ai'};
