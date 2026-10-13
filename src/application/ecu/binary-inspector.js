@@ -112,6 +112,30 @@ export function inspectBinarySignatures(bytes) {
   return signatures.filter(sig => sig.magic ? sig.magic.every((b, i) => bytes[i] === b) : sig.text.test(prefix)).map(sig => sig.name);
 }
 
+// Intel HEX records carry an 8-bit two's-complement checksum.
+export function validateIntelHex(text) {
+  const lines = String(text).trim().split(/\r?\n/);
+  if (!lines.length || lines.length > 100000) return { valid: false, error: 'INVALID_LINE_COUNT' };
+  let records = 0, eof = false;
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
+    if (!/^:[0-9a-fA-F]+$/.test(line) || (line.length - 1) % 2 !== 0) return { valid: false, line: index + 1, error: 'INVALID_HEX_RECORD' };
+    const values = [];
+    for (let i = 1; i < line.length; i += 2) values.push(parseInt(line.slice(i, i + 2), 16));
+    if (values.length < 5 || values.length !== values[0] + 5) return { valid: false, line: index + 1, error: 'INVALID_RECORD_LENGTH' };
+    if ((values.reduce((sum, value) => sum + value, 0) & 255) !== 0) return { valid: false, line: index + 1, error: 'INVALID_CHECKSUM' };
+    const type = values[3];
+    if (![0, 1, 2, 3, 4, 5].includes(type)) return { valid: false, line: index + 1, error: 'UNKNOWN_RECORD_TYPE' };
+    if (eof) return { valid: false, line: index + 1, error: 'DATA_AFTER_EOF' };
+    if (type === 1) {
+      if (values[0] !== 0 || values[1] !== 0 || values[2] !== 0) return { valid: false, line: index + 1, error: 'INVALID_EOF' };
+      eof = true;
+    }
+    records++;
+  }
+  return { valid: eof, records, error: eof ? null : 'MISSING_EOF' };
+}
+
 function sampleRange(a, b, range) {
   const start = Math.max(0, range.start - 8);
   const len = Math.min(32, Math.max(a.length, b.length) - start);
@@ -281,12 +305,14 @@ export function createEcuBinaryInspector(core) {
         }
         const s = stats(bytes);
         const signatures = inspectBinarySignatures(bytes);
+        const intelHex = signatures.includes('Intel HEX text') ? validateIntelHex(new TextDecoder().decode(bytes)) : null;
         const reply = [
           'Dosyayı gerçekten açıp byte içeriğini okudum.',
           `Dosya: ${file.name}`,
           `Boyut: ${bytes.length.toLocaleString('tr-TR')} byte`,
           `SHA256: ${digest}`,
           `Dosya imzası (tahmini): ${signatures.join(', ') || 'Bilinmeyen ham veri'}`,
+          ...(intelHex ? [\`Intel HEX kayıt doğrulaması: \${intelHex.valid ? 'Geçerli' : 'Hatalı'}\${intelHex.error ? ' (' + intelHex.error + ')' : ''}\`] : []),
           `Entropy: ${s.entropy} bit/byte • 00 oranı: %${s.zeroPct} • FF oranı: %${s.ffPct}`,
           `İlk 32 byte: ${hex(bytes, 0, 32)}`,
           `ASCII önizleme: ${ascii(bytes, 0, 64)}`,
