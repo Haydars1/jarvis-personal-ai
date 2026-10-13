@@ -19,7 +19,7 @@
       "license": "Apache-2.0",
       "reasons": [],
       "stars": 2379,
-      "forks": 462,
+      "forks": 464,
       "language": "Python",
       "pushedAt": "2026-09-14T07:55:21Z",
       "topics": [
@@ -58,10 +58,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 5229,
-      "forks": 283,
+      "stars": 5247,
+      "forks": 287,
       "language": "Python",
-      "pushedAt": "2026-10-12T10:35:50Z",
+      "pushedAt": "2026-10-13T10:31:56Z",
       "topics": [
         "agent-orchestration",
         "agentic-ai",
@@ -80,7 +80,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -101,10 +101,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 83734,
-      "forks": 11652,
+      "stars": 83791,
+      "forks": 11665,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:00:55Z",
+      "pushedAt": "2026-10-13T07:50:45Z",
       "topics": [
         "agent",
         "agentic",
@@ -133,7 +133,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -154,10 +154,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6371,
-      "forks": 870,
+      "stars": 6424,
+      "forks": 875,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T00:48:45Z",
+      "pushedAt": "2026-10-13T04:55:44Z",
       "topics": [
         "ag-ui",
         "agent-governance",
@@ -175,7 +175,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -196,10 +196,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 59597,
-      "forks": 8700,
+      "stars": 59638,
+      "forks": 8711,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:51:10Z",
+      "pushedAt": "2026-10-13T09:40:50Z",
       "topics": [
         "agents",
         "ai",
@@ -215,7 +215,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -236,10 +236,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 147674,
-      "forks": 24764,
+      "stars": 147745,
+      "forks": 24779,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:10:32Z",
+      "pushedAt": "2026-10-13T09:00:20Z",
       "topics": [
         "agents",
         "ai",
@@ -270,7 +270,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -291,10 +291,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 43122,
-      "forks": 7329,
+      "stars": 43189,
+      "forks": 7340,
       "language": "Python",
-      "pushedAt": "2026-10-12T02:54:17Z",
+      "pushedAt": "2026-10-13T01:43:34Z",
       "topics": [
         "agents",
         "ai",
@@ -323,7 +323,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -344,10 +344,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 74394,
-      "forks": 8848,
+      "stars": 74486,
+      "forks": 8860,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T08:44:57Z",
+      "pushedAt": "2026-10-13T06:51:12Z",
       "topics": [
         "agentic-ai",
         "agentic-framework",
@@ -378,7 +378,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -399,10 +399,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 8829,
-      "forks": 1084,
+      "stars": 9041,
+      "forks": 1117,
       "language": "Python",
-      "pushedAt": "2026-10-12T08:40:44Z",
+      "pushedAt": "2026-10-13T09:30:57Z",
       "topics": [
         "agent",
         "agentic-ai",
@@ -420,7 +420,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -441,10 +441,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 4672,
-      "forks": 607,
+      "stars": 4718,
+      "forks": 620,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:39:00Z",
+      "pushedAt": "2026-10-13T10:44:09Z",
       "topics": [
         "automation",
         "chatgpt",
@@ -465,7 +465,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -486,7 +486,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 932,
+      "stars": 934,
       "forks": 153,
       "language": "Python",
       "pushedAt": "2026-10-02T06:27:38Z",
@@ -537,7 +537,7 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 506,
+      "stars": 517,
       "forks": 56,
       "language": "Python",
       "pushedAt": "2026-10-02T18:50:47Z",
@@ -567,7 +567,7 @@
       "score": 95,
       "license": "MIT",
       "reasons": [],
-      "stars": 689,
+      "stars": 690,
       "forks": 140,
       "language": "TypeScript",
       "pushedAt": "2026-06-30T20:58:13Z",
@@ -686,8 +686,8 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 25425,
-      "forks": 2245,
+      "stars": 25431,
+      "forks": 2244,
       "language": "Python",
       "pushedAt": "2025-07-29T13:44:13Z",
       "topics": [
@@ -703,7 +703,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -797,9 +797,9 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 237,
-      "forks": 26,
+      "forks": 28,
       "language": "Python",
-      "pushedAt": "2026-10-03T10:56:35Z",
+      "pushedAt": "2026-10-13T08:03:08Z",
       "topics": [
         "agent",
         "agent-environment",
@@ -847,7 +847,7 @@
       "score": 84,
       "license": "MIT",
       "reasons": [],
-      "stars": 221,
+      "stars": 222,
       "forks": 26,
       "language": "Shell",
       "pushedAt": "2026-03-13T14:54:09Z",
@@ -920,8 +920,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 61373,
-      "forks": 9280,
+      "stars": 61389,
+      "forks": 9276,
       "language": "Python",
       "pushedAt": "2026-04-15T11:59:09Z",
       "topics": [
@@ -944,7 +944,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -967,10 +967,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 187531,
-      "forks": 45943,
+      "stars": 187548,
+      "forks": 45941,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:03:40Z",
+      "pushedAt": "2026-10-13T10:42:23Z",
       "topics": [
         "agentic-ai",
         "agents",
@@ -992,7 +992,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1057,10 +1057,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 18713,
+      "stars": 18721,
       "forks": 2683,
       "language": "C++",
-      "pushedAt": "2026-10-12T09:37:30Z",
+      "pushedAt": "2026-10-13T09:33:49Z",
       "topics": [
         "audio",
         "cross-platform",
@@ -1076,7 +1076,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1097,10 +1097,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 37715,
-      "forks": 4244,
+      "stars": 37774,
+      "forks": 4256,
       "language": "Python",
-      "pushedAt": "2026-10-12T08:13:45Z",
+      "pushedAt": "2026-10-13T07:57:35Z",
       "topics": [
         "claude-code",
         "mcp",
@@ -1114,7 +1114,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1135,8 +1135,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 96182,
-      "forks": 17455,
+      "stars": 96263,
+      "forks": 17511,
       "language": null,
       "pushedAt": "2026-10-09T19:23:13Z",
       "topics": [
@@ -1151,7 +1151,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1193,7 +1193,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1214,10 +1214,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 84187,
-      "forks": 9353,
+      "stars": 85760,
+      "forks": 9531,
       "language": "Java",
-      "pushedAt": "2026-10-09T10:30:16Z",
+      "pushedAt": "2026-10-13T08:41:45Z",
       "topics": [
         "disassembler",
         "reverse-engineering",
@@ -1231,7 +1231,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1252,10 +1252,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6855,
-      "forks": 701,
+      "stars": 7213,
+      "forks": 756,
       "language": "Python",
-      "pushedAt": "2026-10-12T05:52:23Z",
+      "pushedAt": "2026-10-13T00:36:35Z",
       "topics": [
         "age-of-empires",
         "claude-code",
@@ -1276,7 +1276,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1297,8 +1297,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 14447,
-      "forks": 1842,
+      "stars": 14461,
+      "forks": 1844,
       "language": "Rust",
       "pushedAt": "2026-08-11T15:27:34Z",
       "topics": [],
@@ -1310,7 +1310,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1362,7 +1362,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1398,7 +1398,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1421,8 +1421,8 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 2465,
-      "forks": 266,
+      "stars": 2478,
+      "forks": 267,
       "language": "Zig",
       "pushedAt": "2026-10-12T08:49:17Z",
       "topics": [
@@ -1454,7 +1454,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1477,10 +1477,10 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 25000,
-      "forks": 3346,
+      "stars": 25013,
+      "forks": 3349,
       "language": "C",
-      "pushedAt": "2026-10-12T10:05:25Z",
+      "pushedAt": "2026-10-13T10:39:19Z",
       "topics": [
         "binary-analysis",
         "c",
@@ -1501,7 +1501,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1522,8 +1522,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 117711,
-      "forks": 13024,
+      "stars": 117820,
+      "forks": 13039,
       "language": "Python",
       "pushedAt": "2026-10-09T17:36:28Z",
       "topics": [
@@ -1543,7 +1543,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1564,10 +1564,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 25635,
-      "forks": 1754,
+      "stars": 25655,
+      "forks": 1755,
       "language": "TypeScript",
-      "pushedAt": "2026-10-10T17:38:53Z",
+      "pushedAt": "2026-10-13T00:25:57Z",
       "topics": [
         "agents",
         "ai",
@@ -1592,7 +1592,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1613,10 +1613,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 31980,
-      "forks": 4712,
+      "stars": 32006,
+      "forks": 4713,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T05:58:14Z",
+      "pushedAt": "2026-10-12T22:25:29Z",
       "topics": [
         "agent-skills",
         "agentic-ai",
@@ -1647,7 +1647,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "feder-cr/invisible_dots",
       "canonicalUrl": "https://github.com/feder-cr/invisible_dots"
     },
@@ -1668,10 +1668,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 2753,
+      "stars": 2764,
       "forks": 471,
       "language": "Python",
-      "pushedAt": "2026-10-12T05:12:00Z",
+      "pushedAt": "2026-10-12T22:26:12Z",
       "topics": [
         "ai-tools",
         "antidetect-browser",
@@ -1719,8 +1719,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 11545,
-      "forks": 1154,
+      "stars": 11556,
+      "forks": 1156,
       "language": "JavaScript",
       "pushedAt": "2026-10-07T03:38:45Z",
       "topics": [
@@ -1765,10 +1765,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 16853,
-      "forks": 412,
+      "stars": 17679,
+      "forks": 450,
       "language": "Rust",
-      "pushedAt": "2026-10-12T10:58:57Z",
+      "pushedAt": "2026-10-13T09:43:11Z",
       "topics": [
         "ai-agents",
         "ai-tools",
@@ -1793,7 +1793,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1814,10 +1814,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 97527,
-      "forks": 6589,
+      "stars": 97603,
+      "forks": 6597,
       "language": "TypeScript",
-      "pushedAt": "2026-10-11T22:43:51Z",
+      "pushedAt": "2026-10-12T23:49:59Z",
       "topics": [
         "automation",
         "chrome",
@@ -1843,7 +1843,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1864,8 +1864,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 38048,
-      "forks": 3237,
+      "stars": 38087,
+      "forks": 3243,
       "language": "TypeScript",
       "pushedAt": "2026-10-08T17:51:59Z",
       "topics": [
@@ -1880,7 +1880,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -1901,8 +1901,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 14073,
-      "forks": 1488,
+      "stars": 14081,
+      "forks": 1490,
       "language": "TypeScript",
       "pushedAt": "2026-10-02T14:46:19Z",
       "topics": [
@@ -1952,10 +1952,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 34538,
-      "forks": 8718,
+      "stars": 34542,
+      "forks": 8721,
       "language": "Java",
-      "pushedAt": "2026-10-12T00:25:18Z",
+      "pushedAt": "2026-10-13T01:08:21Z",
       "topics": [
         "dotnet",
         "java",
@@ -1974,7 +1974,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2042,7 +2042,7 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 417,
+      "stars": 418,
       "forks": 62,
       "language": "JavaScript",
       "pushedAt": "2026-09-22T07:22:04Z",
@@ -2093,7 +2093,7 @@
       "score": 96,
       "license": "MIT",
       "reasons": [],
-      "stars": 350,
+      "stars": 349,
       "forks": 43,
       "language": "Python",
       "pushedAt": "2026-10-01T14:32:08Z",
@@ -2134,8 +2134,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 9561,
-      "forks": 866,
+      "stars": 9562,
+      "forks": 865,
       "language": "TypeScript",
       "pushedAt": "2026-04-02T12:55:42Z",
       "topics": [
@@ -2171,7 +2171,7 @@
       "score": 92,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 4134,
+      "stars": 4133,
       "forks": 241,
       "language": "TypeScript",
       "pushedAt": "2026-02-08T20:51:06Z",
@@ -2214,8 +2214,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1181,
-      "forks": 193,
+      "stars": 1184,
+      "forks": 194,
       "language": "Python",
       "pushedAt": "2026-08-04T09:37:17Z",
       "topics": [
@@ -2305,7 +2305,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1596,
+      "stars": 1595,
       "forks": 209,
       "language": "TypeScript",
       "pushedAt": "2026-05-11T21:41:09Z",
@@ -2372,13 +2372,13 @@
         "local-cpu"
       ],
       "status": "accepted",
-      "score": 99,
+      "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 811,
-      "forks": 71,
+      "stars": 1366,
+      "forks": 131,
       "language": "Rust",
-      "pushedAt": "2026-10-12T03:17:36Z",
+      "pushedAt": "2026-10-13T10:45:04Z",
       "topics": [
         "3d-modeling",
         "brep",
@@ -2417,10 +2417,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 34194,
-      "forks": 6186,
+      "stars": 34230,
+      "forks": 6189,
       "language": "C++",
-      "pushedAt": "2026-10-12T07:53:30Z",
+      "pushedAt": "2026-10-13T10:15:20Z",
       "topics": [
         "3d",
         "3d-printing",
@@ -2447,7 +2447,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2556,7 +2556,7 @@
       "stars": 2,
       "forks": 2,
       "language": "Rust",
-      "pushedAt": "2026-10-12T07:17:18Z",
+      "pushedAt": "2026-10-13T10:22:01Z",
       "topics": [
         "3d-modeling",
         "ai-assisted",
@@ -2565,6 +2565,59 @@
         "parametric-modeling",
         "rust",
         "wgpu"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null
+    },
+    {
+      "repo": "Paraxdev/FundaCAD",
+      "name": "FundaCAD",
+      "url": "https://github.com/Paraxdev/FundaCAD",
+      "description": "Free, open source parametric CAD for 3D printing. Sketch, constrain, model and export STEP, STL or 3MF. Windows, macOS and Linux.",
+      "category": "cad-design",
+      "categories": [
+        "cad-design"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 74,
+      "license": "AGPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 15,
+      "forks": 0,
+      "language": "TypeScript",
+      "pushedAt": "2026-10-13T10:32:13Z",
+      "topics": [
+        "3d-modeling",
+        "3d-printing",
+        "3mf",
+        "cad",
+        "cad-software",
+        "cross-platform",
+        "desktop-app",
+        "freecad-alternative",
+        "fusion360-alternativ",
+        "linux",
+        "mcp",
+        "open-source",
+        "opencascade",
+        "parametric-cad",
+        "rust",
+        "step",
+        "stl",
+        "tauri",
+        "threejs",
+        "vue"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -2611,59 +2664,6 @@
         "threejs",
         "vite",
         "wasm"
-      ],
-      "source": "github-search",
-      "catalogSource": null,
-      "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": false,
-      "adapter": null
-    },
-    {
-      "repo": "Paraxdev/FundaCAD",
-      "name": "FundaCAD",
-      "url": "https://github.com/Paraxdev/FundaCAD",
-      "description": "Free, open source parametric CAD for 3D printing. Sketch, constrain, model and export STEP, STL or 3MF. Windows, macOS and Linux.",
-      "category": "cad-design",
-      "categories": [
-        "cad-design"
-      ],
-      "executionTarget": "local-cpu",
-      "executionTargets": [
-        "local-cpu"
-      ],
-      "status": "external-only",
-      "score": 72,
-      "license": "AGPL-3.0",
-      "reasons": [
-        "copyleft license requires external-service boundary"
-      ],
-      "stars": 6,
-      "forks": 0,
-      "language": "TypeScript",
-      "pushedAt": "2026-10-10T11:20:13Z",
-      "topics": [
-        "3d-modeling",
-        "3d-printing",
-        "3mf",
-        "cad",
-        "cad-software",
-        "cross-platform",
-        "desktop-ap",
-        "freecad-alternative",
-        "fusion360-alternativ",
-        "linux",
-        "mcp",
-        "open-source",
-        "opencascade",
-        "parametric-cad",
-        "rust",
-        "step",
-        "stl",
-        "tauri",
-        "threejs",
-        "vue"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -2767,7 +2767,7 @@
       "stars": 2,
       "forks": 0,
       "language": "C++",
-      "pushedAt": "2026-10-09T16:27:09Z",
+      "pushedAt": "2026-10-13T04:03:08Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -2833,12 +2833,12 @@
         "local-cpu"
       ],
       "status": "quarantine",
-      "score": 40,
+      "score": 41,
       "license": "NOASSERTION",
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 2,
+      "stars": 3,
       "forks": 0,
       "language": "Python",
       "pushedAt": "2026-04-06T16:32:55Z",
@@ -2888,6 +2888,40 @@
       "adapter": null
     },
     {
+      "repo": "collin80/SavvyCAN",
+      "name": "SavvyCAN",
+      "url": "https://github.com/collin80/SavvyCAN",
+      "description": "QT based cross platform canbus tool",
+      "category": "can-uds-obd",
+      "categories": [
+        "can-uds-obd"
+      ],
+      "executionTarget": "device",
+      "executionTargets": [
+        "device"
+      ],
+      "status": "accepted",
+      "score": 100,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 1869,
+      "forks": 487,
+      "language": "C++",
+      "pushedAt": "2026-10-13T02:18:03Z",
+      "topics": [],
+      "source": "curated",
+      "catalogSource": "uploaded-pdf-2026-09-30",
+      "guidePage": 11,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null,
+      "metadataAvailable": true,
+      "checkedAt": 1791888443984,
+      "canonicalRepo": null,
+      "canonicalUrl": null
+    },
+    {
       "repo": "pylessard/python-udsoncan",
       "name": "python-udsoncan",
       "url": "https://github.com/pylessard/python-udsoncan",
@@ -2904,7 +2938,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 736,
+      "stars": 735,
       "forks": 232,
       "language": "Python",
       "pushedAt": "2026-09-21T02:07:02Z",
@@ -2938,41 +2972,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
-      "canonicalRepo": null,
-      "canonicalUrl": null
-    },
-    {
-      "repo": "collin80/SavvyCAN",
-      "name": "SavvyCAN",
-      "url": "https://github.com/collin80/SavvyCAN",
-      "description": "QT based cross platform canbus tool",
-      "category": "can-uds-obd",
-      "categories": [
-        "can-uds-obd"
-      ],
-      "executionTarget": "device",
-      "executionTargets": [
-        "device"
-      ],
-      "status": "accepted",
-      "score": 98,
-      "license": "MIT",
-      "reasons": [],
-      "stars": 1867,
-      "forks": 487,
-      "language": "C++",
-      "pushedAt": "2026-05-15T01:09:49Z",
-      "topics": [],
-      "source": "curated",
-      "catalogSource": "uploaded-pdf-2026-09-30",
-      "guidePage": 11,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": false,
-      "adapter": null,
-      "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -2993,7 +2993,7 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 370,
+      "stars": 371,
       "forks": 131,
       "language": "C",
       "pushedAt": "2026-09-29T18:51:14Z",
@@ -3022,7 +3022,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3076,7 +3076,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3125,7 +3125,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3164,7 +3164,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3198,7 +3198,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3245,7 +3245,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "farzadnadiri/Peykan",
       "canonicalUrl": "https://github.com/farzadnadiri/Peykan"
     },
@@ -3293,7 +3293,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3327,7 +3327,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3367,7 +3367,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3391,7 +3391,7 @@
         "license missing, unknown or not allowlisted"
       ],
       "stars": 2934,
-      "forks": 794,
+      "forks": 793,
       "language": "C",
       "pushedAt": "2026-09-20T20:12:42Z",
       "topics": [
@@ -3408,7 +3408,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3444,7 +3444,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3465,10 +3465,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 90684,
-      "forks": 12007,
+      "stars": 90787,
+      "forks": 12029,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:42:38Z",
+      "pushedAt": "2026-10-13T10:42:28Z",
       "topics": [
         "agent",
         "artificial-intelligence",
@@ -3488,7 +3488,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "OpenHands/OpenHands",
       "canonicalUrl": "https://github.com/OpenHands/OpenHands"
     },
@@ -3509,8 +3509,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 9479,
-      "forks": 2206,
+      "stars": 9492,
+      "forks": 2209,
       "language": "TypeScript",
       "pushedAt": "2026-10-09T19:38:32Z",
       "topics": [],
@@ -3522,7 +3522,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3543,10 +3543,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 70204,
-      "forks": 7641,
+      "stars": 70267,
+      "forks": 7648,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:36:11Z",
+      "pushedAt": "2026-10-13T08:50:01Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -3556,7 +3556,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3577,10 +3577,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 36193,
-      "forks": 5462,
+      "stars": 36208,
+      "forks": 5465,
       "language": "TypeScript",
-      "pushedAt": "2026-10-09T21:22:45Z",
+      "pushedAt": "2026-10-12T21:40:01Z",
       "topics": [
         "agent",
         "ai",
@@ -3596,7 +3596,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3617,10 +3617,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 32576,
-      "forks": 3748,
+      "stars": 32605,
+      "forks": 3754,
       "language": "Python",
-      "pushedAt": "2026-10-12T04:35:14Z",
+      "pushedAt": "2026-10-13T03:20:02Z",
       "topics": [
         "anthropic",
         "anthropic-claude",
@@ -3635,7 +3635,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3656,10 +3656,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 107295,
-      "forks": 14699,
+      "stars": 107308,
+      "forks": 14706,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T01:29:53Z",
+      "pushedAt": "2026-10-13T01:36:44Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -3677,7 +3677,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3698,8 +3698,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 297958,
-      "forks": 26618,
+      "stars": 298424,
+      "forks": 26670,
       "language": "Shell",
       "pushedAt": "2026-10-10T03:03:30Z",
       "topics": [
@@ -3720,7 +3720,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3741,8 +3741,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 68558,
-      "forks": 5893,
+      "stars": 68566,
+      "forks": 5895,
       "language": "Rust",
       "pushedAt": "2026-10-11T00:56:06Z",
       "topics": [
@@ -3762,7 +3762,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "openinterpreter/openinterpreter",
       "canonicalUrl": "https://github.com/openinterpreter/openinterpreter"
     },
@@ -3783,8 +3783,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 27407,
-      "forks": 2270,
+      "stars": 27427,
+      "forks": 2269,
       "language": "Python",
       "pushedAt": "2026-10-12T08:07:36Z",
       "topics": [
@@ -3817,7 +3817,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3838,8 +3838,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 7292,
-      "forks": 682,
+      "stars": 7334,
+      "forks": 685,
       "language": "TypeScript",
       "pushedAt": "2026-10-01T05:19:24Z",
       "topics": [
@@ -3858,7 +3858,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3879,8 +3879,8 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 49488,
-      "forks": 5047,
+      "stars": 49522,
+      "forks": 5050,
       "language": "Python",
       "pushedAt": "2026-05-22T14:02:20Z",
       "topics": [
@@ -3906,7 +3906,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -3927,7 +3927,7 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 627,
+      "stars": 626,
       "forks": 60,
       "language": "Rust",
       "pushedAt": "2026-10-09T08:48:44Z",
@@ -3963,8 +3963,8 @@
       "score": 97,
       "license": "MIT",
       "reasons": [],
-      "stars": 3905,
-      "forks": 291,
+      "stars": 3918,
+      "forks": 292,
       "language": "JavaScript",
       "pushedAt": "2026-09-03T09:31:17Z",
       "topics": [
@@ -3984,7 +3984,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4028,7 +4028,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4062,9 +4062,47 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
+    },
+    {
+      "repo": "AVP-Dev/pair-mailbox",
+      "name": "pair-mailbox",
+      "url": "https://github.com/AVP-Dev/pair-mailbox",
+      "description": "Autonomous two-agent pair programming protocol for AI coding CLIs (Claude, Codex, OpenCode, Antigravity, Pi, OMP). One writes, one reviews — straight to a verified PR. Zero external dependencies.",
+      "category": "coding-agent",
+      "categories": [
+        "coding-agent"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 79,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 1,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2026-10-12T21:30:45Z",
+      "topics": [
+        "ai-agents",
+        "developer-tools",
+        "mcp",
+        "model-context-protocol",
+        "multi-agent",
+        "pair-programming",
+        "tmux"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null
     },
     {
       "repo": "Danush-Aries/agentcard",
@@ -4246,10 +4284,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 150319,
-      "forks": 26297,
+      "stars": 150538,
+      "forks": 26359,
       "language": "TypeScript",
-      "pushedAt": "2026-10-11T19:07:17Z",
+      "pushedAt": "2026-10-13T04:34:05Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -4259,7 +4297,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4282,8 +4320,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 180634,
-      "forks": 21408,
+      "stars": 180828,
+      "forks": 21426,
       "language": "Python",
       "pushedAt": "2026-10-09T18:45:52Z",
       "topics": [
@@ -4297,7 +4335,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4320,7 +4358,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 33910,
+      "stars": 33912,
       "forks": 1793,
       "language": "Rust",
       "pushedAt": "2026-06-30T20:38:02Z",
@@ -4343,7 +4381,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4476,7 +4514,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": false,
-      "checkedAt": 1791803080556
+      "checkedAt": 1791888443984
     },
     {
       "repo": "RooCodeInc/Roo-Code",
@@ -4497,8 +4535,8 @@
       "reasons": [
         "repository archived or disabled"
       ],
-      "stars": 24281,
-      "forks": 3425,
+      "stars": 24282,
+      "forks": 3424,
       "language": "TypeScript",
       "pushedAt": "2026-05-15T18:08:47Z",
       "topics": [],
@@ -4510,7 +4548,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4531,8 +4569,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 11405,
-      "forks": 1173,
+      "stars": 11469,
+      "forks": 1182,
       "language": "Python",
       "pushedAt": "2026-10-01T21:37:15Z",
       "topics": [
@@ -4550,7 +4588,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4571,7 +4609,7 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 1788,
+      "stars": 1789,
       "forks": 128,
       "language": "Rust",
       "pushedAt": "2026-10-06T19:54:33Z",
@@ -4616,8 +4654,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9035,
-      "forks": 813,
+      "stars": 9075,
+      "forks": 817,
       "language": "TypeScript",
       "pushedAt": "2026-10-12T10:32:20Z",
       "topics": [
@@ -4656,10 +4694,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 15917,
-      "forks": 1768,
+      "stars": 16046,
+      "forks": 1774,
       "language": "Rust",
-      "pushedAt": "2026-10-12T10:44:06Z",
+      "pushedAt": "2026-10-13T10:33:15Z",
       "topics": [],
       "source": "curated",
       "catalogSource": null,
@@ -4669,7 +4707,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4690,10 +4728,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3239,
-      "forks": 330,
+      "stars": 3253,
+      "forks": 331,
       "language": "Python",
-      "pushedAt": "2026-10-12T06:40:03Z",
+      "pushedAt": "2026-10-12T21:57:41Z",
       "topics": [
         "agent",
         "ai",
@@ -4710,7 +4748,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4731,10 +4769,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 29452,
-      "forks": 2097,
+      "stars": 29573,
+      "forks": 2106,
       "language": "Rust",
-      "pushedAt": "2026-10-12T10:43:45Z",
+      "pushedAt": "2026-10-13T10:42:30Z",
       "topics": [
         "agent",
         "ai-agent",
@@ -4763,7 +4801,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -4784,7 +4822,7 @@
       "score": 96,
       "license": "MIT",
       "reasons": [],
-      "stars": 322,
+      "stars": 325,
       "forks": 38,
       "language": "Rust",
       "pushedAt": "2026-10-11T04:30:24Z",
@@ -4865,7 +4903,7 @@
       "score": 90,
       "license": "MIT",
       "reasons": [],
-      "stars": 338,
+      "stars": 340,
       "forks": 24,
       "language": "Zig",
       "pushedAt": "2026-09-08T08:19:13Z",
@@ -4936,7 +4974,7 @@
       "stars": 22,
       "forks": 4,
       "language": "TypeScript",
-      "pushedAt": "2026-10-08T08:34:38Z",
+      "pushedAt": "2026-10-13T10:44:22Z",
       "topics": [
         "agent",
         "anthropic",
@@ -5014,10 +5052,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 1977,
-      "forks": 273,
+      "stars": 2057,
+      "forks": 285,
       "language": null,
-      "pushedAt": "2026-10-12T03:10:53Z",
+      "pushedAt": "2026-10-12T18:16:25Z",
       "topics": [
         "agentic-ai",
         "ai-agent",
@@ -5182,10 +5220,10 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 41,
+      "stars": 43,
       "forks": 14,
       "language": "Python",
-      "pushedAt": "2026-10-10T15:15:18Z",
+      "pushedAt": "2026-10-12T17:57:03Z",
       "topics": [
         "agentic",
         "automation",
@@ -5233,10 +5271,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 26122,
-      "forks": 1701,
+      "stars": 26133,
+      "forks": 1704,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:54:16Z",
+      "pushedAt": "2026-10-13T08:48:19Z",
       "topics": [
         "apify",
         "automation",
@@ -5281,10 +5319,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9584,
-      "forks": 810,
+      "stars": 9586,
+      "forks": 811,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:04:19Z",
+      "pushedAt": "2026-10-13T09:01:57Z",
       "topics": [
         "apify",
         "automation",
@@ -5329,10 +5367,10 @@
       "score": 100,
       "license": "BSD-3-Clause",
       "reasons": [],
-      "stars": 64751,
+      "stars": 64777,
       "forks": 12002,
       "language": "Python",
-      "pushedAt": "2026-10-10T19:54:42Z",
+      "pushedAt": "2026-10-13T10:48:09Z",
       "topics": [
         "crawler",
         "crawling",
@@ -5351,7 +5389,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5372,10 +5410,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 85349,
-      "forks": 8862,
+      "stars": 85429,
+      "forks": 8869,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:05:11Z",
+      "pushedAt": "2026-10-13T07:44:35Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -5401,7 +5439,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5424,10 +5462,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 190674,
-      "forks": 10125,
+      "stars": 191004,
+      "forks": 10140,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T06:38:32Z",
+      "pushedAt": "2026-10-13T04:48:27Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -5457,7 +5495,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5709,7 +5747,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 212,
+      "stars": 211,
       "forks": 30,
       "language": "C#",
       "pushedAt": "2026-10-12T07:42:34Z",
@@ -5810,7 +5848,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 5155,
+      "stars": 5153,
       "forks": 276,
       "language": "JavaScript",
       "pushedAt": "2026-07-27T20:32:07Z",
@@ -5943,10 +5981,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 22565,
-      "forks": 1884,
+      "stars": 22585,
+      "forks": 1888,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:05:47Z",
+      "pushedAt": "2026-10-13T08:04:28Z",
       "topics": [
         "board",
         "collaboration",
@@ -5976,7 +6014,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -5997,8 +6035,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 18122,
-      "forks": 1393,
+      "stars": 18155,
+      "forks": 1395,
       "language": "TypeScript",
       "pushedAt": "2026-10-09T23:44:45Z",
       "topics": [
@@ -6027,7 +6065,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6048,10 +6086,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 51545,
-      "forks": 3254,
+      "stars": 53314,
+      "forks": 3373,
       "language": "HTML",
-      "pushedAt": "2026-10-10T21:10:14Z",
+      "pushedAt": "2026-10-13T04:30:17Z",
       "topics": [
         "agent-skills",
         "claude-code",
@@ -6070,7 +6108,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6091,8 +6129,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 2621,
-      "forks": 191,
+      "stars": 2652,
+      "forks": 194,
       "language": "TypeScript",
       "pushedAt": "2026-10-12T08:39:00Z",
       "topics": [
@@ -6117,7 +6155,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6138,8 +6176,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 86004,
-      "forks": 7248,
+      "stars": 86124,
+      "forks": 7264,
       "language": "TypeScript",
       "pushedAt": "2026-10-12T10:24:59Z",
       "topics": [
@@ -6169,7 +6207,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6190,10 +6228,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 125702,
-      "forks": 12135,
+      "stars": 126019,
+      "forks": 12160,
       "language": "Python",
-      "pushedAt": "2026-10-11T20:42:00Z",
+      "pushedAt": "2026-10-13T10:43:52Z",
       "topics": [
         "ai-agents",
         "antigravity",
@@ -6224,7 +6262,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6245,10 +6283,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 111136,
-      "forks": 6436,
+      "stars": 111336,
+      "forks": 6453,
       "language": "Go",
-      "pushedAt": "2026-10-12T08:33:16Z",
+      "pushedAt": "2026-10-13T07:58:08Z",
       "topics": [
         "ai",
         "anthropic",
@@ -6269,7 +6307,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6290,10 +6328,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 193606,
-      "forks": 45236,
+      "stars": 193646,
+      "forks": 45285,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:59:00Z",
+      "pushedAt": "2026-10-13T10:41:41Z",
       "topics": [
         "editor",
         "electron",
@@ -6309,7 +6347,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6330,8 +6368,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3119,
-      "forks": 195,
+      "stars": 3149,
+      "forks": 196,
       "language": "Python",
       "pushedAt": "2026-10-09T15:16:26Z",
       "topics": [
@@ -6356,7 +6394,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6377,10 +6415,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 100669,
-      "forks": 11586,
+      "stars": 100865,
+      "forks": 11621,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T11:02:16Z",
+      "pushedAt": "2026-10-13T10:41:51Z",
       "topics": [
         "agent-skills",
         "ai-design",
@@ -6411,7 +6449,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6432,10 +6470,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 20009,
-      "forks": 1753,
+      "stars": 20100,
+      "forks": 1768,
       "language": "Python",
-      "pushedAt": "2026-10-10T15:13:26Z",
+      "pushedAt": "2026-10-13T09:07:51Z",
       "topics": [
         "agent-security",
         "agent-skills",
@@ -6457,7 +6495,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6478,10 +6516,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 80080,
-      "forks": 4767,
+      "stars": 80510,
+      "forks": 4810,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T11:02:32Z",
+      "pushedAt": "2026-10-12T20:24:10Z",
       "topics": [],
       "source": "curated",
       "catalogSource": null,
@@ -6491,7 +6529,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6512,10 +6550,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 8623,
-      "forks": 453,
+      "stars": 8631,
+      "forks": 456,
       "language": "Rust",
-      "pushedAt": "2026-10-12T09:51:35Z",
+      "pushedAt": "2026-10-13T10:18:54Z",
       "topics": [
         "python",
         "rust",
@@ -6530,7 +6568,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6551,10 +6589,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 33600,
-      "forks": 1883,
+      "stars": 33613,
+      "forks": 1885,
       "language": "Shell",
-      "pushedAt": "2026-10-11T13:53:42Z",
+      "pushedAt": "2026-10-12T12:38:52Z",
       "topics": [
         "editor",
         "floss",
@@ -6570,7 +6608,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6591,10 +6629,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3165,
-      "forks": 315,
+      "stars": 3170,
+      "forks": 321,
       "language": "Rust",
-      "pushedAt": "2026-10-12T05:02:11Z",
+      "pushedAt": "2026-10-13T00:57:06Z",
       "topics": [
         "ai",
         "claude-code",
@@ -6615,7 +6653,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6636,8 +6674,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 30503,
-      "forks": 2371,
+      "stars": 30573,
+      "forks": 2378,
       "language": "JavaScript",
       "pushedAt": "2026-06-23T20:08:19Z",
       "topics": [
@@ -6660,7 +6698,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -6833,9 +6871,9 @@
         "license missing, unknown or not allowlisted"
       ],
       "stars": 1209,
-      "forks": 202,
+      "forks": 203,
       "language": "Java",
-      "pushedAt": "2026-10-12T09:52:29Z",
+      "pushedAt": "2026-10-12T19:13:12Z",
       "topics": [
         "blockly",
         "code-generator",
@@ -7016,7 +7054,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": false,
-      "checkedAt": 1791803080556
+      "checkedAt": 1791888443984
     },
     {
       "repo": "tt-ali/archify",
@@ -7051,7 +7089,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": false,
-      "checkedAt": 1791803080556
+      "checkedAt": 1791888443984
     },
     {
       "repo": "2akouwu/reverify",
@@ -7072,8 +7110,8 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 1279,
-      "forks": 243,
+      "stars": 1284,
+      "forks": 245,
       "language": "Python",
       "pushedAt": "2026-10-01T11:31:02Z",
       "topics": [
@@ -7106,7 +7144,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7129,7 +7167,7 @@
       "reasons": [
         "risk metadata matched blocked abuse category"
       ],
-      "stars": 80,
+      "stars": 81,
       "forks": 23,
       "language": null,
       "pushedAt": "2021-07-24T11:30:02Z",
@@ -7161,7 +7199,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1012,
+      "stars": 1013,
       "forks": 106,
       "language": "Rust",
       "pushedAt": "2025-07-25T16:43:34Z",
@@ -7194,7 +7232,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7247,7 +7285,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7290,7 +7328,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7313,7 +7351,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 9,
+      "stars": 10,
       "forks": 1,
       "language": "C#",
       "pushedAt": "2026-05-07T00:34:25Z",
@@ -7326,7 +7364,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7367,7 +7405,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7411,7 +7449,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7447,7 +7485,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7483,7 +7521,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7519,7 +7557,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7540,7 +7578,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1030,
+      "stars": 1034,
       "forks": 70,
       "language": "Rust",
       "pushedAt": "2026-10-06T15:24:25Z",
@@ -7565,7 +7603,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7586,10 +7624,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 92350,
-      "forks": 8546,
+      "stars": 92397,
+      "forks": 8555,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T00:07:39Z",
+      "pushedAt": "2026-10-13T00:07:18Z",
       "topics": [
         "docker",
         "monitor",
@@ -7612,7 +7650,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7633,8 +7671,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1271,
-      "forks": 96,
+      "stars": 1278,
+      "forks": 95,
       "language": "TypeScript",
       "pushedAt": "2026-10-11T21:04:01Z",
       "topics": [
@@ -7667,7 +7705,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -7688,10 +7726,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9589,
-      "forks": 373,
+      "stars": 9594,
+      "forks": 375,
       "language": "Rust",
-      "pushedAt": "2026-10-11T09:30:24Z",
+      "pushedAt": "2026-10-13T09:22:57Z",
       "topics": [
         "ai",
         "ai-coding-assistant",
@@ -7717,7 +7755,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8295,8 +8333,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 2130,
-      "forks": 411,
+      "stars": 2133,
+      "forks": 410,
       "language": "Java",
       "pushedAt": "2026-10-10T22:51:55Z",
       "topics": [
@@ -8328,7 +8366,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8351,7 +8389,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1885,
+      "stars": 1889,
       "forks": 314,
       "language": "Python",
       "pushedAt": "2026-10-06T16:28:11Z",
@@ -8370,7 +8408,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8391,7 +8429,7 @@
       "score": 89,
       "license": "MIT",
       "reasons": [],
-      "stars": 54,
+      "stars": 55,
       "forks": 7,
       "language": "Python",
       "pushedAt": "2026-10-09T21:52:07Z",
@@ -8425,7 +8463,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8461,7 +8499,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8508,7 +8546,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8551,7 +8589,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8585,7 +8623,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8608,7 +8646,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 412,
+      "stars": 414,
       "forks": 35,
       "language": "Rust",
       "pushedAt": "2026-09-10T17:17:26Z",
@@ -8629,7 +8667,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8673,7 +8711,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8714,7 +8752,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8748,7 +8786,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8794,7 +8832,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8828,7 +8866,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8876,7 +8914,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8921,7 +8959,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -8969,7 +9007,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9005,7 +9043,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9039,7 +9077,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9063,7 +9101,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 22,
-      "forks": 2,
+      "forks": 1,
       "language": "C",
       "pushedAt": "2026-09-10T16:25:31Z",
       "topics": [
@@ -9090,7 +9128,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9132,7 +9170,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9166,7 +9204,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9207,7 +9245,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9243,7 +9281,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9266,8 +9304,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 133,
-      "forks": 21,
+      "stars": 134,
+      "forks": 22,
       "language": "Dart",
       "pushedAt": "2026-10-06T21:49:57Z",
       "topics": [
@@ -9295,7 +9333,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9331,7 +9369,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9367,7 +9405,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9391,7 +9429,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 494,
-      "forks": 93,
+      "forks": 94,
       "language": "C",
       "pushedAt": "2024-09-09T18:33:55Z",
       "topics": [],
@@ -9403,7 +9441,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9442,7 +9480,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9484,7 +9522,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9523,7 +9561,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9559,7 +9597,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9595,7 +9633,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9631,7 +9669,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9673,7 +9711,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9709,7 +9747,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9745,7 +9783,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9781,7 +9819,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9817,7 +9855,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9853,7 +9891,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9889,7 +9927,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9925,7 +9963,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9961,7 +9999,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -9997,7 +10035,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10033,7 +10071,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10070,7 +10108,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": false,
-      "checkedAt": 1791803080556
+      "checkedAt": 1791888443984
     },
     {
       "repo": "dmatej/java-cardiag",
@@ -10111,7 +10149,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10147,7 +10185,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10170,8 +10208,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 55065,
-      "forks": 2485,
+      "stars": 55117,
+      "forks": 2491,
       "language": "C++",
       "pushedAt": "2026-10-09T00:56:24Z",
       "topics": [
@@ -10204,7 +10242,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10225,7 +10263,7 @@
       "score": 88,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 109,
+      "stars": 110,
       "forks": 22,
       "language": "Kotlin",
       "pushedAt": "2026-08-01T19:15:17Z",
@@ -10238,7 +10276,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "TracqiTechnology/MxT",
       "canonicalUrl": "https://github.com/TracqiTechnology/MxT"
     },
@@ -10261,7 +10299,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 105,
+      "stars": 106,
       "forks": 27,
       "language": "C++",
       "pushedAt": "2026-10-05T08:06:16Z",
@@ -10274,7 +10312,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10310,7 +10348,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10333,7 +10371,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 373,
+      "stars": 372,
       "forks": 138,
       "language": "Java",
       "pushedAt": "2026-04-11T21:11:25Z",
@@ -10346,7 +10384,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10380,7 +10418,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10404,7 +10442,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 60,
-      "forks": 11,
+      "forks": 12,
       "language": "TypeScript",
       "pushedAt": "2026-08-22T09:10:18Z",
       "topics": [
@@ -10430,7 +10468,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10477,7 +10515,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10501,7 +10539,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 130,
-      "forks": 12,
+      "forks": 13,
       "language": "Shell",
       "pushedAt": "2023-09-05T06:48:21Z",
       "topics": [
@@ -10532,7 +10570,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10568,7 +10606,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10604,7 +10642,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10640,7 +10678,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10663,10 +10701,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 1809,
+      "stars": 1810,
       "forks": 657,
       "language": "C++",
-      "pushedAt": "2026-10-10T14:21:06Z",
+      "pushedAt": "2026-10-12T21:50:32Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-obd-pdfs-2026-09-30",
@@ -10676,7 +10714,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10721,7 +10759,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10747,7 +10785,7 @@
       "stars": 141,
       "forks": 68,
       "language": "C",
-      "pushedAt": "2026-10-12T03:49:43Z",
+      "pushedAt": "2026-10-13T05:00:35Z",
       "topics": [
         "fome"
       ],
@@ -10759,7 +10797,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10783,9 +10821,9 @@
         "license missing, unknown or not allowlisted"
       ],
       "stars": 1185,
-      "forks": 424,
+      "forks": 425,
       "language": "C",
-      "pushedAt": "2026-10-12T03:52:39Z",
+      "pushedAt": "2026-10-13T03:47:29Z",
       "topics": [
         "automotive",
         "c-plus-plus",
@@ -10805,7 +10843,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10841,7 +10879,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10862,10 +10900,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 12556,
-      "forks": 1453,
+      "stars": 12559,
+      "forks": 1454,
       "language": "Python",
-      "pushedAt": "2026-10-12T04:46:32Z",
+      "pushedAt": "2026-10-13T08:23:32Z",
       "topics": [
         "fine-tuning",
         "llm"
@@ -10878,7 +10916,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -10899,8 +10937,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 75424,
-      "forks": 9242,
+      "stars": 75442,
+      "forks": 9244,
       "language": "Python",
       "pushedAt": "2026-10-10T07:29:23Z",
       "topics": [
@@ -10933,7 +10971,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "hiyouga/LlamaFactory",
       "canonicalUrl": "https://github.com/hiyouga/LlamaFactory"
     },
@@ -10954,10 +10992,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 167557,
-      "forks": 34844,
+      "stars": 167632,
+      "forks": 34858,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:02:42Z",
+      "pushedAt": "2026-10-13T10:46:02Z",
       "topics": [
         "audio",
         "deep-learning",
@@ -10987,7 +11025,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11008,10 +11046,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 77843,
-      "forks": 7192,
+      "stars": 77921,
+      "forks": 7195,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:05:10Z",
+      "pushedAt": "2026-10-13T10:47:20Z",
       "topics": [
         "agent",
         "ai",
@@ -11042,7 +11080,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11064,7 +11102,7 @@
       "license": "MIT",
       "reasons": [],
       "stars": 280,
-      "forks": 15,
+      "forks": 14,
       "language": "Python",
       "pushedAt": "2026-06-28T19:17:44Z",
       "topics": [
@@ -11081,51 +11119,6 @@
         "sft",
         "transformer",
         "unsloth"
-      ],
-      "source": "github-search",
-      "catalogSource": null,
-      "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": true,
-      "adapter": null
-    },
-    {
-      "repo": "open-gitagent/shadowLM",
-      "name": "shadowLM",
-      "url": "https://github.com/open-gitagent/shadowLM",
-      "description": "A fine-tuning SDK — any open model, any harness, any method. 12 training methods behind one argument; pure-stdlib core.",
-      "category": "fine-tuning",
-      "categories": [
-        "fine-tuning"
-      ],
-      "executionTarget": "local-gpu",
-      "executionTargets": [
-        "local-gpu"
-      ],
-      "status": "accepted",
-      "score": 88,
-      "license": "MIT",
-      "reasons": [],
-      "stars": 24,
-      "forks": 10,
-      "language": "Python",
-      "pushedAt": "2026-10-11T02:40:50Z",
-      "topics": [
-        "agents",
-        "dpo",
-        "fine-tuning",
-        "grpo",
-        "llm",
-        "lora",
-        "machine-learning",
-        "mlx",
-        "peft",
-        "python",
-        "pytorch",
-        "qlora",
-        "rlhf",
-        "sdk"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -11451,10 +11444,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 104709,
-      "forks": 32187,
+      "stars": 104773,
+      "forks": 32237,
       "language": "Python",
-      "pushedAt": "2026-10-12T10:51:20Z",
+      "pushedAt": "2026-10-13T10:46:57Z",
       "topics": [
         "autograd",
         "deep-learning",
@@ -11473,7 +11466,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11499,7 +11492,7 @@
       "stars": 53,
       "forks": 0,
       "language": "HTML",
-      "pushedAt": "2026-10-12T06:44:40Z",
+      "pushedAt": "2026-10-13T09:39:21Z",
       "topics": [
         "accelerate",
         "ai",
@@ -11553,6 +11546,45 @@
       "adapter": null
     },
     {
+      "repo": "SuleynanAuir/WeiboPublics-SentimentBot-E2-FineTuning-Pipeline-of-Qwen3.5-0.6B-on-AutoDL-Cloud-Infrastrcture",
+      "name": "WeiboPublics-SentimentBot-E2-FineTuning-Pipeline-of-Qwen3.5-0.6B-on-AutoDL-Cloud-Infrastrcture",
+      "url": "https://github.com/SuleynanAuir/WeiboPublics-SentimentBot-E2-FineTuning-Pipeline-of-Qwen3.5-0.6B-on-AutoDL-Cloud-Infrastrcture",
+      "description": "Weibo SentimentBot is built Qwen3.5-0.6B Fine-Tuning Based. It is trained through a complete fine-tuning pipeline on the AutoDL cloud computing infrastructure. Demonstrating a complete LLMs-Alignment training pipeline: starting from Qwen3.5-0.6B, through stages: SFT-Training,  LoRA, and DPO preference optimization, the model gradually evolves fr",
+      "category": "fine-tuning",
+      "categories": [
+        "fine-tuning"
+      ],
+      "executionTarget": "local-gpu",
+      "executionTargets": [
+        "local-gpu"
+      ],
+      "status": "quarantine",
+      "score": 43,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 12,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2026-03-07T14:48:25Z",
+      "topics": [
+        "autodl",
+        "dpo",
+        "finetuning-llms",
+        "qwen",
+        "sentiment-polarity",
+        "sft"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": true,
+      "adapter": null
+    },
+    {
       "repo": "huggingface/diffusers",
       "name": "diffusers",
       "url": "https://github.com/huggingface/diffusers",
@@ -11569,10 +11601,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 34703,
-      "forks": 7387,
+      "stars": 34708,
+      "forks": 7389,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:09:49Z",
+      "pushedAt": "2026-10-13T03:14:37Z",
       "topics": [
         "deep-learning",
         "diffusion",
@@ -11598,7 +11630,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11619,10 +11651,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 28574,
-      "forks": 3028,
+      "stars": 28600,
+      "forks": 3036,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:23:32Z",
+      "pushedAt": "2026-10-13T08:47:49Z",
       "topics": [
         "ai-art",
         "artificial-intelligence",
@@ -11646,7 +11678,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11669,10 +11701,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 137051,
-      "forks": 16313,
+      "stars": 137262,
+      "forks": 16337,
       "language": "Python",
-      "pushedAt": "2026-10-12T08:20:31Z",
+      "pushedAt": "2026-10-13T09:31:17Z",
       "topics": [
         "ai",
         "comfy",
@@ -11689,7 +11721,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "Comfy-Org/ComfyUI",
       "canonicalUrl": "https://github.com/Comfy-Org/ComfyUI"
     },
@@ -11710,7 +11742,7 @@
       "score": 88,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 26006,
+      "stars": 26008,
       "forks": 1926,
       "language": "Python",
       "pushedAt": "2025-07-31T13:58:55Z",
@@ -11723,7 +11755,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11746,8 +11778,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 165038,
-      "forks": 33169,
+      "stars": 165036,
+      "forks": 33197,
       "language": "Python",
       "pushedAt": "2026-03-02T07:00:53Z",
       "topics": [
@@ -11776,7 +11808,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11799,8 +11831,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 53375,
-      "forks": 8638,
+      "stars": 53384,
+      "forks": 8641,
       "language": "Python",
       "pushedAt": "2025-12-01T19:17:07Z",
       "topics": [],
@@ -11812,7 +11844,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -11869,7 +11901,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 13058,
-      "forks": 1764,
+      "forks": 1765,
       "language": "Python",
       "pushedAt": "2025-07-31T01:33:17Z",
       "topics": [],
@@ -11881,7 +11913,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12062,10 +12094,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 55,
+      "stars": 58,
       "forks": 9,
       "language": "Kotlin",
-      "pushedAt": "2026-10-12T08:39:34Z",
+      "pushedAt": "2026-10-13T09:56:00Z",
       "topics": [
         "android",
         "comfyui",
@@ -12318,8 +12350,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 25040,
-      "forks": 2438,
+      "stars": 25053,
+      "forks": 2440,
       "language": "Python",
       "pushedAt": "2026-10-10T17:17:22Z",
       "topics": [
@@ -12335,9 +12367,47 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
+    },
+    {
+      "repo": "hiratsani/LENA-BG-Removal-Upscaler",
+      "name": "LENA-BG-Removal-Upscaler",
+      "url": "https://github.com/hiratsani/LENA-BG-Removal-Upscaler",
+      "description": "LENA — Free, open-source background removal and 2× / 4× image upscaling for Windows. Local processing, no account, no image uploads. MIT-licensed Python desktop app.",
+      "category": "image-processing",
+      "categories": [
+        "image-processing"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "accepted",
+      "score": 78,
+      "license": "MIT",
+      "reasons": [],
+      "stars": 0,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2026-10-13T04:33:38Z",
+      "topics": [
+        "background-removal",
+        "image-upscaling",
+        "mit-license",
+        "onnx",
+        "open-source",
+        "python",
+        "windows"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null
     },
     {
       "repo": "xinntao/Real-ESRGAN",
@@ -12356,8 +12426,8 @@
       "score": 68,
       "license": "BSD-3-Clause",
       "reasons": [],
-      "stars": 37068,
-      "forks": 4493,
+      "stars": 37080,
+      "forks": 4494,
       "language": "Python",
       "pushedAt": "2024-08-06T13:15:18Z",
       "topics": [
@@ -12378,7 +12448,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12401,8 +12471,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 11261,
-      "forks": 2645,
+      "stars": 11259,
+      "forks": 2646,
       "language": "C",
       "pushedAt": "2026-10-04T09:31:37Z",
       "topics": [
@@ -12424,7 +12494,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12509,8 +12579,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 53370,
-      "forks": 6427,
+      "stars": 53402,
+      "forks": 6431,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-10-10T09:24:55Z",
       "topics": [],
@@ -12522,7 +12592,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "anthropics/claude-cookbooks",
       "canonicalUrl": "https://github.com/anthropics/claude-cookbooks"
     },
@@ -12543,10 +12613,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 76972,
-      "forks": 25281,
+      "stars": 77046,
+      "forks": 25314,
       "language": "Jupyter Notebook",
-      "pushedAt": "2026-10-12T02:14:12Z",
+      "pushedAt": "2026-10-13T05:57:09Z",
       "topics": [
         "agentic-ai",
         "agentic-framework",
@@ -12568,7 +12638,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12589,8 +12659,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 121245,
-      "forks": 63893,
+      "stars": 121287,
+      "forks": 63917,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-10-12T02:16:31Z",
       "topics": [
@@ -12617,7 +12687,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12638,10 +12708,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 17432,
-      "forks": 5646,
+      "stars": 17438,
+      "forks": 5648,
       "language": "Jupyter Notebook",
-      "pushedAt": "2026-10-12T02:15:52Z",
+      "pushedAt": "2026-10-13T06:00:58Z",
       "topics": [
         "csharp",
         "java",
@@ -12666,7 +12736,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12687,8 +12757,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 91429,
-      "forks": 22595,
+      "stars": 91449,
+      "forks": 22605,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-09-15T05:29:39Z",
       "topics": [
@@ -12713,7 +12783,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12734,10 +12804,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 67782,
-      "forks": 11879,
+      "stars": 68359,
+      "forks": 11969,
       "language": "Python",
-      "pushedAt": "2026-10-11T05:56:30Z",
+      "pushedAt": "2026-10-13T09:14:14Z",
       "topics": [
         "agents",
         "ai",
@@ -12768,7 +12838,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12789,8 +12859,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 79068,
-      "forks": 8680,
+      "stars": 79114,
+      "forks": 8687,
       "language": "MDX",
       "pushedAt": "2026-03-11T20:09:13Z",
       "topics": [
@@ -12814,7 +12884,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12835,8 +12905,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 63730,
-      "forks": 10943,
+      "stars": 63768,
+      "forks": 10947,
       "language": "Python",
       "pushedAt": "2025-11-12T19:52:34Z",
       "topics": [],
@@ -12848,7 +12918,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12871,10 +12941,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 172679,
-      "forks": 22145,
+      "stars": 172801,
+      "forks": 22157,
       "language": "HTML",
-      "pushedAt": "2026-10-12T03:30:25Z",
+      "pushedAt": "2026-10-13T03:23:40Z",
       "topics": [
         "ai",
         "artificial-intelligence",
@@ -12903,7 +12973,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "f/prompts.chat",
       "canonicalUrl": "https://github.com/f/prompts.chat"
     },
@@ -12926,8 +12996,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 106406,
-      "forks": 16373,
+      "stars": 106463,
+      "forks": 16381,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-10-02T14:55:52Z",
       "topics": [
@@ -12959,7 +13029,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -12980,10 +13050,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 45565,
-      "forks": 9360,
+      "stars": 45618,
+      "forks": 9378,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:40:10Z",
+      "pushedAt": "2026-10-13T10:36:07Z",
       "topics": [
         "ai",
         "anthropic",
@@ -13014,7 +13084,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "LibreChat-AI/LibreChat",
       "canonicalUrl": "https://github.com/LibreChat-AI/LibreChat"
     },
@@ -13035,8 +13105,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 30654,
-      "forks": 5845,
+      "stars": 30715,
+      "forks": 5866,
       "language": "JavaScript",
       "pushedAt": "2026-10-08T12:49:04Z",
       "topics": [
@@ -13069,7 +13139,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13090,10 +13160,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 75494,
-      "forks": 10904,
+      "stars": 75917,
+      "forks": 10968,
       "language": "TypeScript",
-      "pushedAt": "2026-10-11T04:53:56Z",
+      "pushedAt": "2026-10-13T10:48:29Z",
       "topics": [
         "a2a",
         "ai-agents",
@@ -13124,7 +13194,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13145,10 +13215,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 143156,
-      "forks": 9526,
+      "stars": 143624,
+      "forks": 9548,
       "language": "Rust",
-      "pushedAt": "2026-10-12T09:43:06Z",
+      "pushedAt": "2026-10-13T08:28:48Z",
       "topics": [
         "ai-tools",
         "claude-code",
@@ -13179,7 +13249,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13200,10 +13270,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 130914,
-      "forks": 24329,
+      "stars": 131002,
+      "forks": 24355,
       "language": "C++",
-      "pushedAt": "2026-10-12T10:33:12Z",
+      "pushedAt": "2026-10-13T10:44:09Z",
       "topics": [
         "ggml"
       ],
@@ -13215,7 +13285,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13236,10 +13306,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 66964,
-      "forks": 7471,
+      "stars": 67014,
+      "forks": 7481,
       "language": "JavaScript",
-      "pushedAt": "2026-10-09T15:18:53Z",
+      "pushedAt": "2026-10-12T22:37:04Z",
       "topics": [
         "agent-computer",
         "agent-harness",
@@ -13265,7 +13335,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13286,10 +13356,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 49486,
+      "stars": 49509,
       "forks": 4494,
       "language": "Go",
-      "pushedAt": "2026-10-12T08:05:46Z",
+      "pushedAt": "2026-10-13T10:15:28Z",
       "topics": [
         "agents",
         "ai",
@@ -13318,7 +13388,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13339,10 +13409,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 182836,
-      "forks": 18224,
+      "stars": 182979,
+      "forks": 18245,
       "language": "Go",
-      "pushedAt": "2026-10-12T06:25:26Z",
+      "pushedAt": "2026-10-13T04:51:43Z",
       "topics": [
         "deepseek",
         "gemma",
@@ -13368,7 +13438,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13389,10 +13459,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54913,
-      "forks": 8386,
+      "stars": 55037,
+      "forks": 8415,
       "language": "Go",
-      "pushedAt": "2026-10-12T10:43:16Z",
+      "pushedAt": "2026-10-13T05:01:19Z",
       "topics": [
         "antigravity",
         "claude-code",
@@ -13411,7 +13481,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13432,10 +13502,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 93627,
-      "forks": 23276,
+      "stars": 93703,
+      "forks": 23318,
       "language": "Python",
-      "pushedAt": "2026-10-12T10:55:21Z",
+      "pushedAt": "2026-10-13T10:27:34Z",
       "topics": [
         "amd",
         "blackwell",
@@ -13466,7 +13536,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13487,10 +13557,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 10080,
-      "forks": 670,
+      "stars": 11115,
+      "forks": 739,
       "language": "Go",
-      "pushedAt": "2026-10-12T11:03:52Z",
+      "pushedAt": "2026-10-13T10:44:52Z",
       "topics": [
         "claude-code",
         "codex",
@@ -13507,7 +13577,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13530,10 +13600,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 11988,
+      "stars": 11989,
       "forks": 791,
       "language": "C++",
-      "pushedAt": "2026-10-12T10:52:51Z",
+      "pushedAt": "2026-10-12T15:24:52Z",
       "topics": [
         "gemma",
         "ggml",
@@ -13554,7 +13624,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13575,8 +13645,8 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 77364,
-      "forks": 8261,
+      "stars": 77369,
+      "forks": 8260,
       "language": "C++",
       "pushedAt": "2025-05-27T20:05:19Z",
       "topics": [
@@ -13591,7 +13661,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -13615,7 +13685,7 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 47728,
-      "forks": 5984,
+      "forks": 5987,
       "language": "Python",
       "pushedAt": "2026-08-17T17:38:16Z",
       "topics": [],
@@ -13627,7 +13697,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "oobabooga/textgen",
       "canonicalUrl": "https://github.com/oobabooga/textgen"
     },
@@ -13689,7 +13759,7 @@
       "stars": 20,
       "forks": 0,
       "language": "Rust",
-      "pushedAt": "2026-10-12T08:38:43Z",
+      "pushedAt": "2026-10-13T07:53:50Z",
       "topics": [
         "ai",
         "apple-silicon",
@@ -13810,6 +13880,59 @@
       "adapter": null
     },
     {
+      "repo": "L-Forster/open-jet",
+      "name": "open-jet",
+      "url": "https://github.com/L-Forster/open-jet",
+      "description": "An offline coding agent for local models. One command sets up the best model your GPU can run, and on 24 GB+ RTX 30/40/50-series cards Qwen3.8-27B runs up to 1.9x faster than llama.cpp.",
+      "category": "local-llm",
+      "categories": [
+        "local-llm"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "external-only",
+      "score": 81,
+      "license": "AGPL-3.0",
+      "reasons": [
+        "copyleft license requires external-service boundary"
+      ],
+      "stars": 88,
+      "forks": 11,
+      "language": "Python",
+      "pushedAt": "2026-10-12T18:39:15Z",
+      "topics": [
+        "agent",
+        "ai",
+        "ai-agents",
+        "claude-code",
+        "codex",
+        "coding-agent",
+        "cuda",
+        "inference",
+        "inference-engine",
+        "llama-cpp",
+        "llm",
+        "llm-inference",
+        "local-first",
+        "local-llm",
+        "offline-ai",
+        "ollama",
+        "open-jet",
+        "openai",
+        "openjet",
+        "self-hosted"
+      ],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": true,
+      "adapter": null
+    },
+    {
       "repo": "maziyarpanahi/localarena",
       "name": "localarena",
       "url": "https://github.com/maziyarpanahi/localarena",
@@ -13826,7 +13949,7 @@
       "score": 77,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 7,
+      "stars": 8,
       "forks": 0,
       "language": "Python",
       "pushedAt": "2026-07-27T13:27:31Z",
@@ -13869,53 +13992,6 @@
         "llm-tools",
         "model-deployment",
         "opensource"
-      ],
-      "source": "github-search",
-      "catalogSource": null,
-      "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": true,
-      "adapter": null
-    },
-    {
-      "repo": "jiawei686/tiny-llm-gateway",
-      "name": "tiny-llm-gateway",
-      "url": "https://github.com/jiawei686/tiny-llm-gateway",
-      "description": "A tiny (<=5 MB), single-binary, OpenAI-compatible LLM inference gateway in Rust on llama.cpp. Drop-in Ollama replacement for local LLM inference, RAG, agents, and edge deployment.",
-      "category": "local-llm",
-      "categories": [
-        "local-llm"
-      ],
-      "executionTarget": "local-cpu",
-      "executionTargets": [
-        "local-cpu"
-      ],
-      "status": "accepted",
-      "score": 75,
-      "license": "MIT",
-      "reasons": [],
-      "stars": 1,
-      "forks": 1,
-      "language": "Rust",
-      "pushedAt": "2026-08-01T10:54:52Z",
-      "topics": [
-        "ai",
-        "edge-ai",
-        "gateway",
-        "gguf",
-        "inference",
-        "inference-server",
-        "llama-cpp",
-        "llm",
-        "local-llm",
-        "machine-learning",
-        "ollama",
-        "ollama-alternative",
-        "openai-api",
-        "openai-compatible",
-        "rag",
-        "rust"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -14058,10 +14134,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 44903,
-      "forks": 3086,
+      "stars": 44929,
+      "forks": 3091,
       "language": "Rust",
-      "pushedAt": "2026-10-12T11:04:25Z",
+      "pushedAt": "2026-10-13T10:23:22Z",
       "topics": [
         "chatgpt",
         "gpt",
@@ -14080,7 +14156,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14103,10 +14179,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 154385,
-      "forks": 22609,
+      "stars": 155504,
+      "forks": 22668,
       "language": "Python",
-      "pushedAt": "2026-10-12T07:57:31Z",
+      "pushedAt": "2026-10-12T22:13:08Z",
       "topics": [
         "ai",
         "llm",
@@ -14132,7 +14208,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14236,7 +14312,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6475,
+      "stars": 6476,
       "forks": 323,
       "language": "TypeScript",
       "pushedAt": "2026-10-09T03:47:28Z",
@@ -14274,8 +14350,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6287,
-      "forks": 949,
+      "stars": 6293,
+      "forks": 950,
       "language": "Python",
       "pushedAt": "2026-10-06T23:29:30Z",
       "topics": [],
@@ -14304,10 +14380,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 24549,
-      "forks": 4030,
+      "stars": 24560,
+      "forks": 4034,
       "language": "Python",
-      "pushedAt": "2026-10-11T14:58:13Z",
+      "pushedAt": "2026-10-13T10:21:52Z",
       "topics": [
         "mcp",
         "mcp-client",
@@ -14339,8 +14415,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3801,
-      "forks": 497,
+      "stars": 3817,
+      "forks": 501,
       "language": "TypeScript",
       "pushedAt": "2026-10-09T19:00:41Z",
       "topics": [
@@ -14355,7 +14431,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14376,8 +14452,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 4356,
-      "forks": 2119,
+      "stars": 4358,
+      "forks": 2125,
       "language": null,
       "pushedAt": "2026-07-13T12:44:30Z",
       "topics": [],
@@ -14406,8 +14482,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 5664,
-      "forks": 538,
+      "stars": 5665,
+      "forks": 539,
       "language": "TypeScript",
       "pushedAt": "2025-12-13T04:28:38Z",
       "topics": [],
@@ -14436,8 +14512,8 @@
       "score": 93,
       "license": "MIT",
       "reasons": [],
-      "stars": 12483,
-      "forks": 1146,
+      "stars": 12488,
+      "forks": 1147,
       "language": "TypeScript",
       "pushedAt": "2026-01-06T13:05:39Z",
       "topics": [],
@@ -14468,10 +14544,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 4576,
-      "forks": 821,
+      "stars": 4578,
+      "forks": 823,
       "language": "C#",
-      "pushedAt": "2026-10-05T16:55:41Z",
+      "pushedAt": "2026-10-12T18:12:52Z",
       "topics": [
         "csharp",
         "dotnet",
@@ -14507,10 +14583,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 5205,
-      "forks": 584,
+      "stars": 5209,
+      "forks": 589,
       "language": "Go",
-      "pushedAt": "2026-10-12T07:59:51Z",
+      "pushedAt": "2026-10-13T07:58:49Z",
       "topics": [
         "go",
         "mcp"
@@ -14542,8 +14618,8 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 7341,
-      "forks": 1027,
+      "stars": 7347,
+      "forks": 1030,
       "language": "Go",
       "pushedAt": "2026-10-11T20:20:46Z",
       "topics": [
@@ -14577,10 +14653,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 91166,
-      "forks": 11781,
+      "stars": 91198,
+      "forks": 11786,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T05:33:37Z",
+      "pushedAt": "2026-10-13T05:54:47Z",
       "topics": [],
       "source": "curated",
       "catalogSource": null,
@@ -14590,7 +14666,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14613,10 +14689,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 13557,
-      "forks": 2278,
+      "stars": 13565,
+      "forks": 2280,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:55:46Z",
+      "pushedAt": "2026-10-13T08:17:15Z",
       "topics": [
         "mcp",
         "mcp-client",
@@ -14686,10 +14762,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 28739,
-      "forks": 1613,
+      "stars": 28751,
+      "forks": 1615,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:05:29Z",
+      "pushedAt": "2026-10-13T10:36:04Z",
       "topics": [
         "archivebox",
         "backups",
@@ -14720,7 +14796,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14741,8 +14817,8 @@
       "score": 100,
       "license": "Unlicense",
       "reasons": [],
-      "stars": 197086,
-      "forks": 17170,
+      "stars": 197328,
+      "forks": 17194,
       "language": "Python",
       "pushedAt": "2026-10-10T21:15:52Z",
       "topics": [
@@ -14762,7 +14838,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -14783,7 +14859,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 5890,
+      "stars": 5893,
       "forks": 974,
       "language": "Python",
       "pushedAt": "2026-10-11T13:25:10Z",
@@ -14821,7 +14897,7 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1854,
+      "stars": 1855,
       "forks": 164,
       "language": "Go",
       "pushedAt": "2026-10-08T10:35:08Z",
@@ -14896,8 +14972,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 6254,
-      "forks": 357,
+      "stars": 6251,
+      "forks": 356,
       "language": "TypeScript",
       "pushedAt": "2026-10-08T12:13:06Z",
       "topics": [
@@ -15020,10 +15096,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 41766,
-      "forks": 3046,
+      "stars": 41823,
+      "forks": 3056,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:04:53Z",
+      "pushedAt": "2026-10-12T15:13:20Z",
       "topics": [
         "agent",
         "ai",
@@ -15070,7 +15146,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 29520,
+      "stars": 29522,
       "forks": 6162,
       "language": "Python",
       "pushedAt": "2026-10-11T05:56:32Z",
@@ -15148,7 +15224,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 3258,
+      "stars": 3261,
       "forks": 293,
       "language": "HTML",
       "pushedAt": "2026-02-05T07:59:11Z",
@@ -15201,7 +15277,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 2039,
+      "stars": 2042,
       "forks": 153,
       "language": null,
       "pushedAt": "2025-10-04T07:56:18Z",
@@ -15242,7 +15318,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 4635,
+      "stars": 4633,
       "forks": 524,
       "language": "Go",
       "pushedAt": "2026-06-16T23:24:31Z",
@@ -15272,10 +15348,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 68737,
-      "forks": 5054,
+      "stars": 68799,
+      "forks": 5064,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:11:45Z",
+      "pushedAt": "2026-10-13T10:36:23Z",
       "topics": [
         "ai",
         "convert",
@@ -15301,7 +15377,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15322,8 +15398,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 189710,
-      "forks": 14117,
+      "stars": 189900,
+      "forks": 14124,
       "language": "Python",
       "pushedAt": "2026-10-04T03:59:52Z",
       "topics": [
@@ -15343,7 +15419,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15364,8 +15440,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 90957,
-      "forks": 11472,
+      "stars": 91020,
+      "forks": 11475,
       "language": "Python",
       "pushedAt": "2026-09-16T03:31:50Z",
       "topics": [
@@ -15391,7 +15467,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15412,8 +15488,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 76922,
-      "forks": 10827,
+      "stars": 76963,
+      "forks": 10831,
       "language": "C++",
       "pushedAt": "2026-10-10T06:01:54Z",
       "topics": [
@@ -15433,7 +15509,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15454,8 +15530,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 15559,
-      "forks": 1350,
+      "stars": 15561,
+      "forks": 1349,
       "language": "HTML",
       "pushedAt": "2026-10-10T01:17:59Z",
       "topics": [
@@ -15488,7 +15564,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15511,8 +15587,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 34999,
-      "forks": 2424,
+      "stars": 35009,
+      "forks": 2425,
       "language": "Python",
       "pushedAt": "2026-10-12T07:50:51Z",
       "topics": [
@@ -15530,7 +15606,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15553,10 +15629,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 46541,
-      "forks": 3223,
+      "stars": 46602,
+      "forks": 3224,
       "language": "Python",
-      "pushedAt": "2026-10-12T01:06:29Z",
+      "pushedAt": "2026-10-12T22:46:11Z",
       "topics": [
         "ai",
         "angular",
@@ -15579,7 +15655,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -15716,10 +15792,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 94042,
-      "forks": 11137,
+      "stars": 94096,
+      "forks": 11187,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:55:30Z",
+      "pushedAt": "2026-10-13T10:42:12Z",
       "topics": [
         "docker",
         "hacktoberfest",
@@ -15743,7 +15819,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16082,10 +16158,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1824,
-      "forks": 163,
+      "stars": 1827,
+      "forks": 165,
       "language": "Go",
-      "pushedAt": "2026-10-12T04:23:03Z",
+      "pushedAt": "2026-10-12T20:45:15Z",
       "topics": [
         "agent-ai-cli",
         "agent-harnesses",
@@ -16116,7 +16192,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16137,10 +16213,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 29484,
+      "stars": 29493,
       "forks": 2561,
       "language": "Rust",
-      "pushedAt": "2026-10-12T05:00:51Z",
+      "pushedAt": "2026-10-13T06:35:01Z",
       "topics": [
         "agents",
         "ai",
@@ -16157,7 +16233,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16178,10 +16254,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 27820,
+      "stars": 27837,
       "forks": 1883,
       "language": "Go",
-      "pushedAt": "2026-10-12T10:46:24Z",
+      "pushedAt": "2026-10-13T10:28:56Z",
       "topics": [
         "agents",
         "claude-code",
@@ -16195,7 +16271,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16216,10 +16292,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 75105,
-      "forks": 5824,
+      "stars": 75177,
+      "forks": 5834,
       "language": "Python",
-      "pushedAt": "2026-10-11T03:16:58Z",
+      "pushedAt": "2026-10-13T02:36:25Z",
       "topics": [
         "agent",
         "ai",
@@ -16250,7 +16326,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16271,10 +16347,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 92049,
-      "forks": 10959,
+      "stars": 92133,
+      "forks": 10978,
       "language": "Go",
-      "pushedAt": "2026-10-12T11:04:09Z",
+      "pushedAt": "2026-10-13T09:56:22Z",
       "topics": [
         "agent-harness",
         "agentic-ai",
@@ -16300,7 +16376,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16321,10 +16397,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 67033,
-      "forks": 7881,
+      "stars": 67100,
+      "forks": 7888,
       "language": "Python",
-      "pushedAt": "2026-10-09T06:17:43Z",
+      "pushedAt": "2026-10-12T16:28:49Z",
       "topics": [
         "agentic-memory",
         "agentic-memory-system",
@@ -16349,7 +16425,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16370,10 +16446,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 59520,
-      "forks": 7561,
+      "stars": 59539,
+      "forks": 7559,
       "language": "Python",
-      "pushedAt": "2026-10-10T22:43:52Z",
+      "pushedAt": "2026-10-13T07:55:00Z",
       "topics": [
         "ai",
         "chromadb",
@@ -16390,7 +16466,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16411,10 +16487,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 35044,
-      "forks": 2734,
+      "stars": 35055,
+      "forks": 2739,
       "language": "Rust",
-      "pushedAt": "2026-10-12T11:01:24Z",
+      "pushedAt": "2026-10-13T10:33:33Z",
       "topics": [
         "ai-search",
         "ai-search-engine",
@@ -16445,7 +16521,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16466,10 +16542,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 52471,
-      "forks": 8323,
+      "stars": 52473,
+      "forks": 8333,
       "language": "Python",
-      "pushedAt": "2026-10-08T20:45:50Z",
+      "pushedAt": "2026-10-12T19:28:17Z",
       "topics": [
         "agents",
         "application",
@@ -16490,7 +16566,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16511,10 +16587,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3402,
-      "forks": 144,
+      "stars": 3404,
+      "forks": 147,
       "language": "Python",
-      "pushedAt": "2026-10-12T10:33:31Z",
+      "pushedAt": "2026-10-12T16:28:24Z",
       "topics": [
         "agent-memory",
         "ai-agents",
@@ -16537,7 +16613,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16558,8 +16634,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1040,
-      "forks": 167,
+      "stars": 1057,
+      "forks": 171,
       "language": "HTML",
       "pushedAt": "2026-10-09T22:08:03Z",
       "topics": [
@@ -16585,7 +16661,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16606,10 +16682,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 39069,
-      "forks": 3389,
+      "stars": 39103,
+      "forks": 3394,
       "language": "Python",
-      "pushedAt": "2026-10-12T06:59:04Z",
+      "pushedAt": "2026-10-12T22:37:54Z",
       "topics": [
         "agentic-ai",
         "agents",
@@ -16632,7 +16708,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16653,10 +16729,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 48638,
-      "forks": 6010,
+      "stars": 49016,
+      "forks": 6017,
       "language": "Python",
-      "pushedAt": "2026-10-12T11:03:50Z",
+      "pushedAt": "2026-10-12T15:59:57Z",
       "topics": [
         "agentic-ai",
         "agents",
@@ -16671,7 +16747,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16692,8 +16768,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 2470,
-      "forks": 201,
+      "stars": 2487,
+      "forks": 204,
       "language": "Python",
       "pushedAt": "2026-09-14T06:01:08Z",
       "topics": [
@@ -16719,7 +16795,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16740,10 +16816,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 57568,
-      "forks": 7620,
+      "stars": 57573,
+      "forks": 7618,
       "language": "Python",
-      "pushedAt": "2026-10-09T13:17:19Z",
+      "pushedAt": "2026-10-13T08:46:57Z",
       "topics": [
         "ai",
         "ai-tools",
@@ -16757,7 +16833,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -16872,7 +16948,7 @@
       "stars": 2,
       "forks": 0,
       "language": "Rust",
-      "pushedAt": "2026-10-09T15:59:36Z",
+      "pushedAt": "2026-10-13T09:44:01Z",
       "topics": [
         "ai",
         "ai-agents",
@@ -17078,10 +17154,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 227,
+      "stars": 228,
       "forks": 20,
       "language": "Rust",
-      "pushedAt": "2026-10-12T10:58:52Z",
+      "pushedAt": "2026-10-12T19:59:34Z",
       "topics": [
         "agent-memory",
         "ai-agents",
@@ -17102,59 +17178,6 @@
         "sql",
         "timeseries",
         "vector"
-      ],
-      "source": "github-search",
-      "catalogSource": null,
-      "guidePage": null,
-      "autoExecute": true,
-      "restriction": null,
-      "requiresModelLicenseCheck": false,
-      "adapter": null
-    },
-    {
-      "repo": "Veloresearch/VLS-32M-Context-Local-LLM",
-      "name": "VLS-32M-Context-Local-LLM",
-      "url": "https://github.com/Veloresearch/VLS-32M-Context-Local-LLM",
-      "description": "Give Claude Code, Codex and opencode a 32M-token memory that never leaves your machine. Local LLM server (MCP + OpenAI API) that runs any GGUF model with a context far larger than its window - no cloud, no retraining, no vector database. Windows and Linux, one command.",
-      "category": "rag-vector-memory",
-      "categories": [
-        "rag-vector-memory"
-      ],
-      "executionTarget": "local-cpu",
-      "executionTargets": [
-        "local-cpu"
-      ],
-      "status": "quarantine",
-      "score": 51,
-      "license": "NOASSERTION",
-      "reasons": [
-        "license missing, unknown or not allowlisted"
-      ],
-      "stars": 5,
-      "forks": 0,
-      "language": null,
-      "pushedAt": "2026-10-12T07:47:03Z",
-      "topics": [
-        "ai",
-        "ai-agents",
-        "claude-code",
-        "gguf",
-        "inference-server",
-        "linux",
-        "llama-cpp",
-        "llm",
-        "local-llm",
-        "long-context",
-        "mcp",
-        "mcp-server",
-        "offline",
-        "openai-api",
-        "privacy",
-        "rag",
-        "rust",
-        "self-hosted",
-        "vector-database",
-        "windows"
       ],
       "source": "github-search",
       "catalogSource": null,
@@ -17261,6 +17284,38 @@
       "adapter": null
     },
     {
+      "repo": "Saumya-bhardwaj04/VeloRAG",
+      "name": "VeloRAG",
+      "url": "https://github.com/Saumya-bhardwaj04/VeloRAG",
+      "description": "A pure Python, in-memory Vector Database and RAG pipeline visualizer. Features custom HNSW/KD-Tree search algorithms, 2D PCA vector mapping, and local AI integration via Ollama.",
+      "category": "rag-vector-memory",
+      "categories": [
+        "rag-vector-memory"
+      ],
+      "executionTarget": "local-cpu",
+      "executionTargets": [
+        "local-cpu"
+      ],
+      "status": "quarantine",
+      "score": 43,
+      "license": null,
+      "reasons": [
+        "license missing, unknown or not allowlisted"
+      ],
+      "stars": 0,
+      "forks": 0,
+      "language": "Python",
+      "pushedAt": "2026-06-25T06:43:18Z",
+      "topics": [],
+      "source": "github-search",
+      "catalogSource": null,
+      "guidePage": null,
+      "autoExecute": true,
+      "restriction": null,
+      "requiresModelLicenseCheck": false,
+      "adapter": null
+    },
+    {
       "repo": "assafelovic/gpt-researcher",
       "name": "gpt-researcher",
       "url": "https://github.com/assafelovic/gpt-researcher",
@@ -17277,8 +17332,8 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 30035,
-      "forks": 4103,
+      "stars": 30065,
+      "forks": 4105,
       "language": "Python",
       "pushedAt": "2026-10-10T22:03:53Z",
       "topics": [
@@ -17302,7 +17357,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17323,10 +17378,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 74122,
-      "forks": 13902,
+      "stars": 74237,
+      "forks": 13920,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T10:32:05Z",
+      "pushedAt": "2026-10-13T09:52:24Z",
       "topics": [
         "agent-skills",
         "ai-agent",
@@ -17357,7 +17412,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17378,8 +17433,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 23196,
-      "forks": 3047,
+      "stars": 23396,
+      "forks": 3084,
       "language": "TypeScript",
       "pushedAt": "2026-10-08T23:02:21Z",
       "topics": [
@@ -17403,7 +17458,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17424,10 +17479,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 3972,
+      "stars": 3980,
       "forks": 526,
       "language": "TypeScript",
-      "pushedAt": "2026-10-10T12:26:51Z",
+      "pushedAt": "2026-10-13T03:08:20Z",
       "topics": [
         "agent",
         "ai",
@@ -17455,7 +17510,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17476,10 +17531,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 62922,
-      "forks": 3068,
+      "stars": 62970,
+      "forks": 3075,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:43:35Z",
+      "pushedAt": "2026-10-13T10:15:03Z",
       "topics": [
         "llm",
         "mcp",
@@ -17494,7 +17549,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17515,8 +17570,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 17316,
-      "forks": 1455,
+      "stars": 17389,
+      "forks": 1459,
       "language": "Python",
       "pushedAt": "2026-10-07T07:46:15Z",
       "topics": [
@@ -17549,7 +17604,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17570,8 +17625,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 37264,
-      "forks": 4148,
+      "stars": 37289,
+      "forks": 4149,
       "language": "TypeScript",
       "pushedAt": "2026-09-01T14:12:12Z",
       "topics": [
@@ -17598,7 +17653,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "ItzCrazyKns/Vane",
       "canonicalUrl": "https://github.com/ItzCrazyKns/Vane"
     },
@@ -17622,7 +17677,7 @@
       "stars": 544,
       "forks": 27,
       "language": "Shell",
-      "pushedAt": "2026-10-12T09:00:48Z",
+      "pushedAt": "2026-10-12T11:23:57Z",
       "topics": [
         "ai-agents",
         "code-patterns",
@@ -17659,10 +17714,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 38260,
-      "forks": 3497,
+      "stars": 38326,
+      "forks": 3498,
       "language": "Python",
-      "pushedAt": "2026-10-11T15:55:50Z",
+      "pushedAt": "2026-10-13T10:17:53Z",
       "topics": [
         "bing",
         "brave",
@@ -17688,7 +17743,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17743,7 +17798,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -17767,7 +17822,7 @@
       "stars": 1,
       "forks": 0,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T01:33:31Z",
+      "pushedAt": "2026-10-13T01:28:35Z",
       "topics": [
         "ai-search",
         "answer-engine",
@@ -18069,7 +18124,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": false,
-      "checkedAt": 1791803080556
+      "checkedAt": 1791888443984
     },
     {
       "repo": "home-assistant/core",
@@ -18088,10 +18143,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 91403,
-      "forks": 38881,
+      "stars": 91440,
+      "forks": 38899,
       "language": "Python",
-      "pushedAt": "2026-10-12T10:57:53Z",
+      "pushedAt": "2026-10-13T10:46:31Z",
       "topics": [
         "asyncio",
         "hacktoberfest",
@@ -18110,7 +18165,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -18133,7 +18188,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 15712,
+      "stars": 15717,
       "forks": 2017,
       "language": "TypeScript",
       "pushedAt": "2026-10-10T12:38:11Z",
@@ -18148,7 +18203,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -18257,9 +18312,9 @@
         "copyleft license requires external-service boundary"
       ],
       "stars": 43,
-      "forks": 7,
+      "forks": 8,
       "language": "Python",
-      "pushedAt": "2026-10-10T14:41:38Z",
+      "pushedAt": "2026-10-13T07:24:49Z",
       "topics": [
         "ai",
         "ai-assistant",
@@ -18422,10 +18477,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 11818,
-      "forks": 5699,
+      "stars": 11856,
+      "forks": 5696,
       "language": "C++",
-      "pushedAt": "2026-10-12T09:44:02Z",
+      "pushedAt": "2026-10-13T08:43:02Z",
       "topics": [
         "esp32",
         "esp8266",
@@ -18446,7 +18501,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -18561,7 +18616,7 @@
       "stars": 1,
       "forks": 0,
       "language": "JavaScript",
-      "pushedAt": "2026-10-10T15:12:07Z",
+      "pushedAt": "2026-10-13T07:32:09Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -18684,8 +18739,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 1889,
-      "forks": 267,
+      "stars": 1981,
+      "forks": 288,
       "language": "Python",
       "pushedAt": "2026-09-17T11:27:52Z",
       "topics": [
@@ -18705,7 +18760,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -18728,10 +18783,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 37068,
-      "forks": 7185,
+      "stars": 37123,
+      "forks": 7199,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T06:15:32Z",
+      "pushedAt": "2026-10-13T02:46:14Z",
       "topics": [
         "nextjs",
         "open-source",
@@ -18752,7 +18807,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -18770,13 +18825,13 @@
         "external-service"
       ],
       "status": "accepted",
-      "score": 87,
+      "score": 92,
       "license": "MIT",
       "reasons": [],
       "stars": 96,
       "forks": 26,
       "language": "JavaScript",
-      "pushedAt": "2026-08-24T10:56:01Z",
+      "pushedAt": "2026-10-12T14:41:21Z",
       "topics": [
         "agentic-ai",
         "ai-agent",
@@ -19213,8 +19268,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54309,
-      "forks": 6235,
+      "stars": 54341,
+      "forks": 6245,
       "language": "C++",
       "pushedAt": "2026-10-12T05:01:56Z",
       "topics": [
@@ -19233,7 +19288,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": "ggml-org/whisper.cpp",
       "canonicalUrl": "https://github.com/ggml-org/whisper.cpp"
     },
@@ -19254,8 +19309,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 54309,
-      "forks": 6235,
+      "stars": 54341,
+      "forks": 6245,
       "language": "C++",
       "pushedAt": "2026-10-12T05:01:56Z",
       "topics": [
@@ -19274,7 +19329,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19295,8 +19350,8 @@
       "score": 100,
       "license": "BSD-2-Clause",
       "reasons": [],
-      "stars": 24489,
-      "forks": 2475,
+      "stars": 24520,
+      "forks": 2477,
       "language": "Python",
       "pushedAt": "2026-09-26T20:53:59Z",
       "topics": [
@@ -19314,7 +19369,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19335,10 +19390,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 25817,
-      "forks": 2123,
+      "stars": 25833,
+      "forks": 2127,
       "language": "Python",
-      "pushedAt": "2026-10-12T03:45:38Z",
+      "pushedAt": "2026-10-13T07:02:49Z",
       "topics": [
         "deep-learning",
         "inference",
@@ -19357,7 +19412,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19378,10 +19433,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 688,
+      "stars": 689,
       "forks": 131,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:54:17Z",
+      "pushedAt": "2026-10-13T10:42:09Z",
       "topics": [
         "ai-sdk",
         "decentralized-ai",
@@ -19429,8 +19484,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 110366,
-      "forks": 13369,
+      "stars": 110411,
+      "forks": 13377,
       "language": "Python",
       "pushedAt": "2026-08-31T17:19:19Z",
       "topics": [],
@@ -19442,7 +19497,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19696,7 +19751,7 @@
       "stars": 0,
       "forks": 0,
       "language": "Python",
-      "pushedAt": "2026-10-11T15:13:09Z",
+      "pushedAt": "2026-10-13T04:13:43Z",
       "topics": [],
       "source": "github-search",
       "catalogSource": null,
@@ -19871,8 +19926,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 38699,
-      "forks": 5299,
+      "stars": 38715,
+      "forks": 5302,
       "language": "Python",
       "pushedAt": "2026-08-04T07:47:32Z",
       "topics": [
@@ -19901,7 +19956,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19922,8 +19977,8 @@
       "score": 88,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 9268,
-      "forks": 1023,
+      "stars": 9289,
+      "forks": 1025,
       "language": "JavaScript",
       "pushedAt": "2025-08-06T22:28:53Z",
       "topics": [],
@@ -19935,7 +19990,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19956,8 +20011,8 @@
       "score": 88,
       "license": "MIT",
       "reasons": [],
-      "stars": 37845,
-      "forks": 4253,
+      "stars": 37862,
+      "forks": 4257,
       "language": "Python",
       "pushedAt": "2025-04-19T16:00:00Z",
       "topics": [
@@ -19974,7 +20029,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -19997,7 +20052,7 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 2337,
+      "stars": 2336,
       "forks": 295,
       "language": "Python",
       "pushedAt": "2026-10-02T14:22:56Z",
@@ -20010,7 +20065,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20180,8 +20235,8 @@
       "score": 68,
       "license": "MIT",
       "reasons": [],
-      "stars": 39264,
-      "forks": 4665,
+      "stars": 39266,
+      "forks": 4666,
       "language": "Jupyter Notebook",
       "pushedAt": "2024-08-19T07:45:36Z",
       "topics": [],
@@ -20193,7 +20248,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20276,8 +20331,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 46108,
-      "forks": 6168,
+      "stars": 46111,
+      "forks": 6166,
       "language": "Python",
       "pushedAt": "2024-08-16T12:07:14Z",
       "topics": [
@@ -20309,7 +20364,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20551,10 +20606,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 3479,
-      "forks": 2310,
+      "stars": 3481,
+      "forks": 2313,
       "language": "Python",
-      "pushedAt": "2026-10-11T17:47:24Z",
+      "pushedAt": "2026-10-13T01:19:27Z",
       "topics": [
         "automotive",
         "can",
@@ -20569,7 +20624,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20616,7 +20671,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20642,7 +20697,7 @@
       "stars": 5,
       "forks": 0,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T10:58:20Z",
+      "pushedAt": "2026-10-13T10:34:54Z",
       "topics": [
         "automotive",
         "cc0",
@@ -20663,7 +20718,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20699,7 +20754,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20720,10 +20775,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 63880,
-      "forks": 11299,
+      "stars": 63889,
+      "forks": 11306,
       "language": "Python",
-      "pushedAt": "2026-10-12T09:23:17Z",
+      "pushedAt": "2026-10-13T09:15:49Z",
       "topics": [
         "advanced-driver-assistance-systems",
         "driver-assistance-systems",
@@ -20737,7 +20792,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20760,8 +20815,8 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 77361,
-      "forks": 10600,
+      "stars": 77418,
+      "forks": 10614,
       "language": "C",
       "pushedAt": "2026-10-10T01:13:10Z",
       "topics": [
@@ -20785,7 +20840,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20838,10 +20893,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 41456,
-      "forks": 3180,
+      "stars": 41487,
+      "forks": 3186,
       "language": "Python",
-      "pushedAt": "2026-10-10T20:14:58Z",
+      "pushedAt": "2026-10-12T22:20:45Z",
       "topics": [
         "animations",
         "hacktoberfest",
@@ -20857,7 +20912,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20878,10 +20933,10 @@
       "score": 100,
       "license": "Unlicense",
       "reasons": [],
-      "stars": 5485,
-      "forks": 685,
+      "stars": 5497,
+      "forks": 687,
       "language": "Nim",
-      "pushedAt": "2026-10-12T05:00:41Z",
+      "pushedAt": "2026-10-12T14:21:24Z",
       "topics": [
         "audio",
         "audio-editing",
@@ -20900,7 +20955,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20921,8 +20976,8 @@
       "score": 98,
       "license": "MIT",
       "reasons": [],
-      "stars": 14974,
-      "forks": 2117,
+      "stars": 14975,
+      "forks": 2118,
       "language": "Python",
       "pushedAt": "2026-08-26T06:17:08Z",
       "topics": [
@@ -20942,7 +20997,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -20965,10 +21020,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 5838,
+      "stars": 5846,
       "forks": 530,
       "language": "C++",
-      "pushedAt": "2026-10-12T10:57:39Z",
+      "pushedAt": "2026-10-13T09:53:13Z",
       "topics": [],
       "source": "curated",
       "catalogSource": "uploaded-pdf-2026-09-30",
@@ -20978,7 +21033,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21001,10 +21056,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 44486,
-      "forks": 2211,
+      "stars": 44520,
+      "forks": 2214,
       "language": "TypeScript",
-      "pushedAt": "2026-09-30T22:09:42Z",
+      "pushedAt": "2026-10-13T07:15:14Z",
       "topics": [
         "codec",
         "cut",
@@ -21025,7 +21080,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21048,10 +21103,10 @@
       "reasons": [
         "copyleft license requires external-service boundary"
       ],
-      "stars": 15407,
-      "forks": 1531,
+      "stars": 15413,
+      "forks": 1533,
       "language": "C++",
-      "pushedAt": "2026-10-11T17:51:56Z",
+      "pushedAt": "2026-10-12T18:26:54Z",
       "topics": [
         "cross-platform",
         "gplv3",
@@ -21067,7 +21122,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21179,10 +21234,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 20843,
-      "forks": 3354,
+      "stars": 20864,
+      "forks": 3361,
       "language": "C++",
-      "pushedAt": "2026-10-12T10:26:50Z",
+      "pushedAt": "2026-10-13T10:36:49Z",
       "topics": [
         "3d",
         "animation",
@@ -21199,7 +21254,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21222,10 +21277,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 65022,
-      "forks": 14343,
+      "stars": 65083,
+      "forks": 14346,
       "language": "C",
-      "pushedAt": "2026-10-12T09:20:53Z",
+      "pushedAt": "2026-10-13T02:30:33Z",
       "topics": [
         "audio",
         "c",
@@ -21251,7 +21306,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21274,10 +21329,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 24640,
-      "forks": 1721,
+      "stars": 24654,
+      "forks": 1723,
       "language": "C",
-      "pushedAt": "2026-10-11T21:35:25Z",
+      "pushedAt": "2026-10-13T07:18:59Z",
       "topics": [
         "gplv2",
         "multi-platform",
@@ -21291,7 +21346,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21314,10 +21369,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 6621,
+      "stars": 6626,
       "forks": 818,
       "language": "Python",
-      "pushedAt": "2026-10-10T23:53:43Z",
+      "pushedAt": "2026-10-13T04:36:04Z",
       "topics": [
         "c-plus-plus",
         "ffmpeg",
@@ -21337,7 +21392,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21360,10 +21415,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 63447,
-      "forks": 4997,
+      "stars": 63751,
+      "forks": 5023,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:29:51Z",
+      "pushedAt": "2026-10-13T10:14:14Z",
       "topics": [
         "javascript",
         "react",
@@ -21377,7 +21432,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21398,10 +21453,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 130065,
-      "forks": 20381,
+      "stars": 130428,
+      "forks": 20455,
       "language": "Python",
-      "pushedAt": "2026-10-12T03:10:07Z",
+      "pushedAt": "2026-10-13T09:32:54Z",
       "topics": [
         "ai-video-generator",
         "content-creation",
@@ -21426,7 +21481,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21447,10 +21502,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 12736,
-      "forks": 1322,
+      "stars": 12865,
+      "forks": 1360,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T03:49:21Z",
+      "pushedAt": "2026-10-13T09:45:23Z",
       "topics": [
         "agent-skills",
         "codex-cli",
@@ -21473,7 +21528,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21494,8 +21549,8 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 11076,
-      "forks": 1174,
+      "stars": 11082,
+      "forks": 1177,
       "language": "Python",
       "pushedAt": "2026-01-05T22:37:07Z",
       "topics": [
@@ -21514,7 +21569,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21535,8 +21590,8 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 17158,
-      "forks": 3759,
+      "stars": 17165,
+      "forks": 3766,
       "language": "Python",
       "pushedAt": "2026-03-05T09:38:07Z",
       "topics": [
@@ -21551,7 +21606,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21737,7 +21792,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 12615,
+      "stars": 12618,
       "forks": 1349,
       "language": "Python",
       "pushedAt": "2026-10-08T08:57:37Z",
@@ -21754,7 +21809,7 @@
       "requiresModelLicenseCheck": true,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21807,10 +21862,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 17568,
+      "stars": 17575,
       "forks": 1474,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T09:11:03Z",
+      "pushedAt": "2026-10-12T12:24:33Z",
       "topics": [
         "ai",
         "ai-agent",
@@ -21841,7 +21896,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21862,8 +21917,8 @@
       "score": 98,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 15171,
-      "forks": 1766,
+      "stars": 15173,
+      "forks": 1767,
       "language": "Jupyter Notebook",
       "pushedAt": "2026-08-09T13:35:47Z",
       "topics": [
@@ -21896,7 +21951,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21917,7 +21972,7 @@
       "score": 93,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 2837,
+      "stars": 2840,
       "forks": 351,
       "language": "Jupyter Notebook",
       "pushedAt": "2025-12-30T16:47:27Z",
@@ -21930,7 +21985,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -21968,7 +22023,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22337,7 +22392,7 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 15,
+      "stars": 16,
       "forks": 9,
       "language": "Python",
       "pushedAt": "2026-03-01T17:14:36Z",
@@ -22439,8 +22494,8 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 50046,
-      "forks": 4306,
+      "stars": 50052,
+      "forks": 4307,
       "language": "Ruby",
       "pushedAt": "2026-10-10T19:21:46Z",
       "topics": [
@@ -22465,7 +22520,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22486,10 +22541,10 @@
       "score": 100,
       "license": "MIT",
       "reasons": [],
-      "stars": 155531,
-      "forks": 10236,
+      "stars": 155591,
+      "forks": 10244,
       "language": "Python",
-      "pushedAt": "2026-10-12T06:37:15Z",
+      "pushedAt": "2026-10-13T02:43:44Z",
       "topics": [
         "agents",
         "chatgpt",
@@ -22506,7 +22561,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22527,10 +22582,10 @@
       "score": 100,
       "license": "Apache-2.0",
       "reasons": [],
-      "stars": 23735,
+      "stars": 23739,
       "forks": 3901,
       "language": "JavaScript",
-      "pushedAt": "2026-10-12T10:39:38Z",
+      "pushedAt": "2026-10-13T10:39:22Z",
       "topics": [
         "flow-based-programming",
         "javascript",
@@ -22547,7 +22602,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22658,10 +22713,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 25020,
-      "forks": 4326,
+      "stars": 25030,
+      "forks": 4331,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T11:04:36Z",
+      "pushedAt": "2026-10-13T10:37:07Z",
       "topics": [
         "ai-agent",
         "ai-agent-tools",
@@ -22685,7 +22740,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22708,10 +22763,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 158230,
-      "forks": 25009,
+      "stars": 158346,
+      "forks": 25026,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T10:31:33Z",
+      "pushedAt": "2026-10-13T10:43:30Z",
       "topics": [
         "agent",
         "agentic-ai",
@@ -22741,7 +22796,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22764,10 +22819,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 207069,
-      "forks": 61091,
+      "stars": 207192,
+      "forks": 61109,
       "language": "TypeScript",
-      "pushedAt": "2026-10-12T11:04:16Z",
+      "pushedAt": "2026-10-13T10:47:41Z",
       "topics": [
         "ai",
         "apis",
@@ -22798,7 +22853,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22821,10 +22876,10 @@
       "reasons": [
         "license missing, unknown or not allowlisted"
       ],
-      "stars": 18161,
+      "stars": 18174,
       "forks": 1115,
       "language": "Rust",
-      "pushedAt": "2026-10-12T10:31:04Z",
+      "pushedAt": "2026-10-13T10:45:32Z",
       "topics": [
         "low-code",
         "open-source",
@@ -22842,7 +22897,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22865,8 +22920,8 @@
       "reasons": [
         "repository archived or disabled"
       ],
-      "stars": 55496,
-      "forks": 25057,
+      "stars": 55499,
+      "forks": 25051,
       "language": "TypeScript",
       "pushedAt": "2026-08-13T12:38:19Z",
       "topics": [
@@ -22896,7 +22951,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     },
@@ -22932,7 +22987,7 @@
       "requiresModelLicenseCheck": false,
       "adapter": null,
       "metadataAvailable": true,
-      "checkedAt": 1791803080556,
+      "checkedAt": 1791888443984,
       "canonicalRepo": null,
       "canonicalUrl": null
     }
