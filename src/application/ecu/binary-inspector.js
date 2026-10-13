@@ -99,6 +99,19 @@ function compare(a, b) {
   };
 }
 
+// Read-only signature scan; no executable content is run.
+export function inspectBinarySignatures(bytes) {
+  const signatures = [
+    { name: 'ELF executable/object', magic: [0x7f, 0x45, 0x4c, 0x46] },
+    { name: 'Windows PE/DOS header', magic: [0x4d, 0x5a] },
+    { name: 'ZIP container', magic: [0x50, 0x4b, 0x03, 0x04] },
+    { name: 'Intel HEX text', text: /^:[0-9A-Fa-f]{10,}/ },
+    { name: 'Motorola S-record text', text: /^S[0-9][0-9A-Fa-f]{8,}/ }
+  ];
+  const prefix = String.fromCharCode(...bytes.slice(0, 80));
+  return signatures.filter(sig => sig.magic ? sig.magic.every((b, i) => bytes[i] === b) : sig.text.test(prefix)).map(sig => sig.name);
+}
+
 function sampleRange(a, b, range) {
   const start = Math.max(0, range.start - 8);
   const len = Math.min(32, Math.max(a.length, b.length) - start);
@@ -267,11 +280,13 @@ export function createEcuBinaryInspector(core) {
           ]));
         }
         const s = stats(bytes);
+        const signatures = inspectBinarySignatures(bytes);
         const reply = [
           'Dosyayı gerçekten açıp byte içeriğini okudum.',
           `Dosya: ${file.name}`,
           `Boyut: ${bytes.length.toLocaleString('tr-TR')} byte`,
           `SHA256: ${digest}`,
+          `Dosya imzası (tahmini): ${signatures.join(', ') || 'Bilinmeyen ham veri'}`,
           `Entropy: ${s.entropy} bit/byte • 00 oranı: %${s.zeroPct} • FF oranı: %${s.ffPct}`,
           `İlk 32 byte: ${hex(bytes, 0, 32)}`,
           `ASCII önizleme: ${ascii(bytes, 0, 64)}`,
