@@ -1,77 +1,10 @@
-const te=new TextEncoder(), td=new TextDecoder();
-const nativeFetch=fetch;
-async function fetchT(input,init={},ms=12000){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);try{return await nativeFetch(input,{...init,signal:init.signal||c.signal})}finally{clearTimeout(t)}}
-async function withTimeout(promise,ms,label='TIMEOUT'){let t;try{return await Promise.race([promise,new Promise((_,reject)=>{t=setTimeout(()=>reject(Error(label)),ms)})])}finally{clearTimeout(t)}}
-const now=()=>Date.now(), id=()=>crypto.randomUUID();
-const j=(obj,status=200,headers={})=>new Response(JSON.stringify(obj),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
-const txt=(s,status=200)=>new Response(s,{status,headers:{'content-type':'text/plain; charset=utf-8'}});
-const parseCookies=req=>Object.fromEntries((req.headers.get('cookie')||'').split(';').filter(Boolean).map(x=>{const [k,...v]=x.trim().split('=');return[k,decodeURIComponent(v.join('='))]}));
-async function hmac(secret,data){const k=await crypto.subtle.importKey('raw',te.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC',k,te.encode(data))))).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
-async function sign(secret,p){const b=btoa(JSON.stringify(p)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','');return `${b}.${await hmac(secret,b)}`}
-async function verify(secret,t){try{const [b,s]=String(t||'').split('.');if(!b||!s||await hmac(secret,b)!==s)return null;const p=JSON.parse(atob(b.replaceAll('-','+').replaceAll('_','/')));return p.exp>now()?p:null}catch{return null}}
-async function hashPassword(p,s){const key=await crypto.subtle.importKey('raw',te.encode(p),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:te.encode(s),iterations:100000},key,256);return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,'0')).join('')}
-async function q1(env,sql,...bind){return env.DB.prepare(sql).bind(...bind).first()}
-async function qall(env,sql,...bind){return (await env.DB.prepare(sql).bind(...bind).all()).results||[]}
-async function run(env,sql,...bind){return env.DB.prepare(sql).bind(...bind).run()}
-async function kvGet(env,key,fb=null){const r=await q1(env,'SELECT value FROM kv WHERE key=?',key);if(!r)return fb;try{return JSON.parse(r.value)}catch{return r.value}}
-async function kvSet(env,key,val){await run(env,'INSERT INTO kv(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at',key,JSON.stringify(val),now())}
-// --- D1-backed file storage (replaces R2) — auto-chunks files >1.5MB ---
-const FILE_CHUNK=1536*1024; // 1.5MB per chunk (D1 row limit ~2MB)
-async function filePut(env,key,data,opts={}){
-  const ct=opts?.httpMetadata?.contentType||opts?.contentType||'application/octet-stream';
-  const buf=data instanceof ArrayBuffer?new Uint8Array(data):data instanceof Uint8Array?data:typeof data==='string'?te.encode(data):new Uint8Array(await new Response(data).arrayBuffer());
-  if(buf.byteLength<=FILE_CHUNK){
-    await run(env,'DELETE FROM file_chunks WHERE key=?',key);
-    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,?,?,?,0) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,total_chunks=0,created_at=CURRENT_TIMESTAMP',key,buf,ct,buf.byteLength);
-  } else {
-    const chunks=Math.ceil(buf.byteLength/FILE_CHUNK);
-    await run(env,'DELETE FROM file_chunks WHERE key=?',key);
-    for(let i=0;i<chunks;i++){const slice=buf.slice(i*FILE_CHUNK,Math.min((i+1)*FILE_CHUNK,buf.byteLength));await run(env,'INSERT INTO file_chunks(key,chunk_index,data) VALUES(?,?,?) ON CONFLICT(key,chunk_index) DO UPDATE SET data=excluded.data',key,i,slice);}
-    await run(env,'INSERT INTO files(key,data,content_type,size,total_chunks) VALUES(?,?,?,?,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,content_type=excluded.content_type,size=excluded.size,total_chunks=excluded.total_chunks,created_at=CURRENT_TIMESTAMP',key,new Uint8Array(0),ct,buf.byteLength,chunks);
-  }
-}
-function d1Bytes(v){return v instanceof ArrayBuffer?new Uint8Array(v):v instanceof Uint8Array?v:typeof v==='string'?Uint8Array.from(atob(v),c=>c.charCodeAt(0)):new Uint8Array(0)}
-async function fileGet(env,key){
-  const r=await q1(env,'SELECT data,content_type,size,total_chunks,created_at FROM files WHERE key=?',key);
-  if(!r)return null;
-  let bytes;
-  if(!r.total_chunks||r.total_chunks===0){bytes=d1Bytes(r.data);}
-  else{const rows=await qall(env,'SELECT data FROM file_chunks WHERE key=? ORDER BY chunk_index',key);const parts=rows.map(r=>d1Bytes(r.data));const total=parts.reduce((s,p)=>s+p.byteLength,0);bytes=new Uint8Array(total);let off=0;for(const p of parts){bytes.set(p,off);off+=p.byteLength;}}
-  return {body:new ReadableStream({start(c){c.enqueue(bytes);c.close()}}),httpMetadata:{contentType:r.content_type},size:r.size,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)};
-}
-async function fileList(env,opts={}){
-  const limit=Math.min(opts.limit||100,500);
-  const rows=await qall(env,'SELECT key,content_type,size,created_at FROM files ORDER BY created_at DESC LIMIT ?',limit);
-  return {objects:rows.map(r=>({key:r.key,size:r.size,uploaded:r.created_at}))};
-}
-async function fileDelete(env,key){await run(env,'DELETE FROM file_chunks WHERE key=?',key);await run(env,'DELETE FROM files WHERE key=?',key)}
-
-async function log(env,kind,text,meta={}){await run(env,'INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)',id(),now(),kind,text,JSON.stringify(meta));await run(env,'DELETE FROM logs WHERE id IN (SELECT id FROM logs ORDER BY ts DESC LIMIT -1 OFFSET 1000)')}
+// --- Module imports (extracted from monolith) ---
+import { te, td, nativeFetch, fetchT, withTimeout, now, id, j, txt, parseCookies, safeJsonParse, body, privateHost } from './lib/core.js';
+import { q1, qall, run, kvGet, kvSet, log } from './lib/d1.js';
+import { hmac, sign, verify, hashPassword, masterKey, b64u, fromB64u, encSecret, decSecret, randB64u, bytesEq, sha256, readCbor } from './lib/crypto.js';
+import { FILE_CHUNK, filePut, d1Bytes, fileGet, fileList, fileDelete } from './lib/file-storage.js';
 async function isAuthed(req,env){const c=parseCookies(req);return !!(await verify(env.JARVIS_SECRET||'CHANGE_ME',c.jarvis_session))}
 function cookie(v,max=2592000){return `jarvis_session=${encodeURIComponent(v)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${max}`}
-async function body(req){try{return await req.json()}catch{return{}}}
-async function masterKey(env){
-  const raw=String(env.CREDENTIAL_MASTER_KEY||'').trim();
-  if(raw.length<24) throw Error('CREDENTIAL_MASTER_KEY_NOT_SET');
-  let keyBytes=null;
-  // New installs store a 32-byte random key as base64. Older installs may
-  // contain a 48-byte/64-char value; normalize those deterministically.
-  try{
-    const decoded=Uint8Array.from(atob(raw.replace(/\s+/g,'')),c=>c.charCodeAt(0));
-    if(decoded.length===16||decoded.length===24||decoded.length===32) keyBytes=decoded;
-  }catch{}
-  if(!keyBytes) keyBytes=new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode(raw)));
-  return crypto.subtle.importKey('raw',keyBytes,{name:'AES-GCM'},false,['encrypt','decrypt']);
-}
-function b64u(bytes){return btoa(String.fromCharCode(...bytes)).replaceAll('+','-').replaceAll('/','_').replaceAll('=','')}
-function fromB64u(s){s=s.replaceAll('-','+').replaceAll('_','/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
-async function encSecret(env,plain){const iv=crypto.getRandomValues(new Uint8Array(12)),k=await masterKey(env),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},k,te.encode(String(plain))));return b64u(iv)+'.'+b64u(ct)}
-async function decSecret(env,blob){const [a,b]=String(blob||'').split('.');if(!a||!b)throw Error('INVALID_CREDENTIAL_BLOB');const k=await masterKey(env),pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:fromB64u(a)},k,fromB64u(b));return td.decode(pt)}
-
-function randB64u(n=32){return b64u(crypto.getRandomValues(new Uint8Array(n)))}
-function bytesEq(a,b){a=new Uint8Array(a);b=new Uint8Array(b);if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a[i]^b[i];return x===0}
-function readCbor(data,off=0){const a=data instanceof Uint8Array?data:new Uint8Array(data);const h=a[off++],major=h>>5,add=h&31;let len;if(add<24)len=add;else if(add===24)len=a[off++];else if(add===25){len=(a[off]<<8)|a[off+1];off+=2}else if(add===26){len=(a[off]*2**24)+(a[off+1]<<16)+(a[off+2]<<8)+a[off+3];off+=4}else throw Error('CBOR_UNSUPPORTED');if(major===0)return [len,off];if(major===1)return [-1-len,off];if(major===2){const v=a.slice(off,off+len);return[v,off+len]}if(major===3){const v=td.decode(a.slice(off,off+len));return[v,off+len]}if(major===4){const arr=[];for(let i=0;i<len;i++){const [v,n]=readCbor(a,off);arr.push(v);off=n}return[arr,off]}if(major===5){const m=new Map();for(let i=0;i<len;i++){let k,v;[k,off]=readCbor(a,off);[v,off]=readCbor(a,off);m.set(k,v)}return[m,off]}if(major===7&&len===20)return[false,off];if(major===7&&len===21)return[true,off];if(major===7&&len===22)return[null,off];throw Error('CBOR_TYPE_UNSUPPORTED')}
-async function sha256(x){return new Uint8Array(await crypto.subtle.digest('SHA-256',x instanceof Uint8Array?x:te.encode(String(x))))}
 async function passkeyCount(env){const r=await q1(env,'SELECT COUNT(*) n FROM passkeys');return Number(r?.n||0)}
 async function passkeys(env){return qall(env,'SELECT id,counter,transports,device_type,backed_up,created_at,last_used_at FROM passkeys ORDER BY created_at DESC')}
 function rpFrom(req){const u=new URL(req.url);return {rpID:u.hostname,origin:u.origin,rpName:'JARVIS Personal AI'}}
@@ -138,7 +71,6 @@ async function callVaultAI(env,c,messages,ms=9000){
   return (await r.json()).choices?.[0]?.message?.content||''
 }
 
-function safeJsonParse(s,fb=null){try{return JSON.parse(s)}catch{return fb}}
 async function githubCredential(env){
   const rows=await credentialSecrets(env,null);
   return rows.find(c=>String(c.provider||'').toLowerCase()==='github' && c.enabled);
@@ -204,7 +136,7 @@ async function metaFacebookPost(env,p){const c=await metaCredential(env);if(!c)t
 async function metaInstagramPost(env,p){const c=await metaCredential(env);if(!c)throw Error('META_NOT_CONNECTED');const ig=String(c.model||'').trim();if(!ig)throw Error('INSTAGRAM_BUSINESS_ID_REQUIRED');let form=new URLSearchParams({image_url:p.imageUrl||'',caption:p.caption||'',access_token:c.secret}),r=await fetchT(`https://graph.facebook.com/v24.0/${encodeURIComponent(ig)}/media`,{method:'POST',body:form});if(!r.ok)throw Error('INSTAGRAM_MEDIA_'+r.status+':'+(await r.text()).slice(0,200));const creation=(await r.json()).id;form=new URLSearchParams({creation_id:creation,access_token:c.secret});r=await fetchT(`https://graph.facebook.com/v24.0/${encodeURIComponent(ig)}/media_publish`,{method:'POST',body:form});if(!r.ok)throw Error('INSTAGRAM_PUBLISH_'+r.status+':'+(await r.text()).slice(0,200));return r.json()}
 async function pendingAction(env,type,payload,summary,risk='medium'){const x={id:id(),type,payload,summary,risk,status:'pending',created_at:now()};await run(env,'INSERT INTO actions(id,type,payload,summary,risk,status,created_at) VALUES(?,?,?,?,?,?,?)',x.id,type,JSON.stringify(payload),summary,risk,'pending',x.created_at);await log(env,'action','Onay bekliyor: '+summary,{type});return x}
 async function executeAction(env,a){const p=safeJsonParse(a.payload,{});if(a.type==='gmail_send')return gmailSend(env,p);if(a.type==='facebook_post')return metaFacebookPost(env,p);if(a.type==='instagram_post')return metaInstagramPost(env,p);throw Error('UNSUPPORTED_ACTION')}
-function privateHost(host){host=host.toLowerCase();return host==='localhost'||host==='127.0.0.1'||host==='::1'||host.endsWith('.local')||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host)}
+
 
 
 async function addChat(env,role,content,provider=null){
