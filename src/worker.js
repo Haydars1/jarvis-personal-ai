@@ -566,8 +566,22 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    // Build comparison data for auto-diff
    const comparison={totalBytes:original.length,changedBytes:result.applied.length,changes:result.applied.map(a=>({offset:a.offset,offsetHex:a.offsetHex,before:a.before,after:a.after,label:a.label||'',id:a.id||''})),bySystem:{}};
    for(const a of toApply){const sys=a.system||'Diğer';if(!comparison.bySystem[sys])comparison.bySystem[sys]={count:0,changes:[]};comparison.bySystem[sys].count++;comparison.bySystem[sys].changes.push({offset:a.offset,label:a.label||''})}
-   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied,comparison});
+   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied,comparison,checksum:result.checksum||null});
  }catch(e){return j({error:e.message||'GENERATE_FAILED'},500)}}
+
+ if(p==='/api/ecu/checksum'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   const result=mod.validateChecksums(bytes);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message||'CHECKSUM_FAILED'},500)}}
 
  if(p.startsWith('/api/ecu/download')){try{
    const u=new URL(req.url);

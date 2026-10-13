@@ -1,6 +1,10 @@
 // ECU Tuning Engine v2 — strings-based bölge tespiti + action önerileri
 // Gerçek adres haritası yok, ama dosyada EGR/DPF/AdBlue/Boost/... stringlerini bulup
 // her birini bir action'a bağlar (bayrak byte'ını sıfırla, limit'i aç, vb.)
+//
+// Checksum correction: After applying actions, Bosch MED17/EDC17 checksums
+// (ADD32/ADD16) are recalculated and corrected automatically.
+import { fixChecksums, findBoschBlocks, validateAllChecksums } from './ecu-checksum.js';
 
 const te = new TextEncoder();
 const td = new TextDecoder('utf-8', { fatal: false });
@@ -97,6 +101,139 @@ function extractStrings(bytes, minLen = 3, maxLen = 80) {
     }
   }
   if (current.length >= minLen) results.push({ offset: start, text: current });
+  return results;
+}
+
+// ---------- DPF akıllı tarama yardımcıları ----------
+
+// Bir byte pozisyonunun ASCII string içinde olup olmadığını kontrol et
+function isInsideAscii(bytes, pos, runLen) {
+  runLen = runLen || 3;
+  let count = 0;
+  // Geriye bak
+  for (let i = pos; i >= Math.max(0, pos - runLen); i--) {
+    if (bytes[i] >= 0x20 && bytes[i] <= 0x7E) count++;
+    else break;
+  }
+  if (count >= runLen) return true;
+  // İleriye bak
+  count = 0;
+  for (let i = pos; i < Math.min(bytes.length, pos + runLen); i++) {
+    if (bytes[i] >= 0x20 && bytes[i] <= 0x7E) count++;
+    else break;
+  }
+  return count >= runLen;
+}
+
+// DPF kontrol byte'larını akıllı şekilde bul — blind offset+16 yerine
+function findDpfControl(bytes, keywordOffset, keywordLen, dpfConfig) {
+  const radius = dpfConfig?.searchRadius || 512;
+  const start = Math.max(0, keywordOffset - radius);
+  const end = Math.min(bytes.length, keywordOffset + (keywordLen || 4) + radius);
+  const scoring = dpfConfig?.controlHeuristics?.regenSwitch?.scoring || {
+    wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15,
+    closeToKeyword: 0.2, notInAscii: 50
+  };
+
+  // --- Regen switch aday taraması ---
+  let bestSwitchScore = -1;
+  let bestSwitchOfs = -1;
+
+  for (let i = start; i < end; i++) {
+    const v = bytes[i];
+    if (v !== 0x00 && v !== 0x01) continue;          // switch sadece 0 veya 1
+    if (isInsideAscii(bytes, i, 3)) continue;          // ASCII string içinde değil
+
+    let score = scoring.notInAscii;                    // base: ASCII değil
+    if (i % 2 === 0) score += scoring.wordAligned;     // word-aligned bonus
+    if (v === 0x01) score += scoring.valueIsOne;        // 0x01 = enabled, daha olası
+
+    // Yakın çevrede küçük skaler değerler (kalibrasyon bölgesi göstergesi)
+    if (i >= 2 && i < bytes.length - 2) {
+      const neighbors = [bytes[i - 2], bytes[i - 1], bytes[i + 1], bytes[i + 2]];
+      const smallCount = neighbors.filter(b => b <= 0x10).length;
+      if (smallCount >= 2) score += scoring.nearbySmallScalars;
+    }
+
+    // Keyword'e yakınlık bonusu
+    const dist = Math.abs(i - keywordOffset);
+    score -= dist * scoring.closeToKeyword;
+
+    // Dword-aligned ekstra bonus (kalibrasyon skaler değerleri genellikle 4-byte hizalı)
+    if (i % 4 === 0) score += 5;
+
+    if (score > bestSwitchScore) {
+      bestSwitchScore = score;
+      bestSwitchOfs = i;
+    }
+  }
+
+  // --- Diferansiyel basınç eşiği aday taraması ---
+  const pressRange = dpfConfig?.controlHeuristics?.diffPressure?.plausibleRange || [30, 3000];
+  let bestPressScore = -1;
+  let bestPressOfs = -1;
+
+  for (let i = start; i < end - 1; i += 2) {
+    if (isInsideAscii(bytes, i, 3)) continue;
+    const val16 = bytes[i] | (bytes[i + 1] << 8);     // little-endian
+    if (val16 < pressRange[0] || val16 > pressRange[1]) continue;
+
+    let score = 50;
+    const dist = Math.abs(i - keywordOffset);
+    score -= dist * 0.15;
+    if (i % 4 === 0) score += 10;                     // dword-aligned bonus
+
+    if (score > bestPressScore) {
+      bestPressScore = score;
+      bestPressOfs = i;
+    }
+  }
+
+  return {
+    regenSwitch: bestSwitchOfs >= 0 ? {
+      offset: bestSwitchOfs,
+      score: bestSwitchScore,
+      confidence: bestSwitchScore > 70 ? 'medium' : 'low',
+      method: 'kontekst-analiz'
+    } : null,
+    pressureLimit: bestPressOfs >= 0 ? {
+      offset: bestPressOfs,
+      score: bestPressScore,
+      confidence: 'low',
+      method: 'kontekst-analiz'
+    } : null
+  };
+}
+
+// DAMOS etiketlerini tüm binary'de tara — yüksek güvenilirlikli tespit
+function scanDamosLabels(bytes, damosLabels) {
+  if (!damosLabels?.length) return [];
+  const results = [];
+
+  for (const damos of damosLabels) {
+    const pat = te.encode(damos.id);
+    for (let i = 0; i <= bytes.length - pat.length; i++) {
+      let match = true;
+      for (let j = 0; j < pat.length; j++) {
+        if (bytes[i + j] !== pat[j]) { match = false; break; }
+      }
+      if (!match) continue;
+
+      // DAMOS etiketi bulundu — etiket konumu
+      results.push({
+        type: damos.type,
+        labelOffset: i,
+        label: damos.id,
+        desc: damos.desc,
+        size: damos.size,
+        offValue: damos.offValue,
+        risk: damos.risk || 'medium',
+        confidence: 'high',
+        source: 'damos-label'
+      });
+      break; // Her etiket bir kez yeter
+    }
+  }
   return results;
 }
 
@@ -256,7 +393,7 @@ export function getSystemInfo(systemName) {
 }
 
 // Her sistem için yapılabilecek "disable" / "modify" aksiyon tarifi
-function buildActions(system, offset, bytes) {
+function buildActions(system, offset, bytes, dpfConfig) {
   const safe = ofs => ofs >= 0 && ofs + 1 < bytes.length;
   const flagOffset = offset + 16;
   const limitOffset = offset + 8;
@@ -277,26 +414,41 @@ function buildActions(system, offset, bytes) {
       });
       break;
 
-    case 'DPF':
-      if (safe(flagOffset)) list.push({
-        id: 'dpf_regen_off_' + offset.toString(16),
-        label: 'DPF Rejenerasyon Kapat (OFF)',
-        detail: `Adres ${hexAddr(flagOffset)}: 0x${hexByte(bytes[flagOffset])} → 0x00`,
-        explain: 'DPF rejenerasyon döngüsünü devre dışı bırakır. Rejenerasyon sırasında harcanan ek yakıt ortadan kalkar.',
-        effect: 'Yakıt tasarrufu, contra basınç düşer, DPF fiziksel olarak da çıkarılmalı',
-        hpGain: '+10-20 HP',
-        offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'medium'
-      });
-      if (safe(limitOffset)) list.push({
-        id: 'dpf_diff_press_max_' + offset.toString(16),
-        label: 'DPF Diferansiyel Basınç Limiti Yükselt',
-        detail: `Adres ${hexAddr(limitOffset)}: 0x${hexByte(bytes[limitOffset])} → 0xFF`,
-        explain: 'DPF basınç farkı sensörünün uyarı eşiğini maksimuma çeker → DPF dolu uyarısı tetiklenmez.',
-        effect: 'DPF uyarı lambası yanmaz, rejenerasyon talep edilmez',
-        hpGain: '',
-        offset: limitOffset, currentByte: bytes[limitOffset], newByte: 0xFF, risk: 'medium'
-      });
+    case 'DPF': {
+      // Akıllı DPF kontrol byte taraması — blind offset+16 yerine
+      const dpfCtrl = findDpfControl(bytes, offset, 4, dpfConfig);
+
+      if (dpfCtrl.regenSwitch && safe(dpfCtrl.regenSwitch.offset)) {
+        const rs = dpfCtrl.regenSwitch;
+        list.push({
+          id: 'dpf_regen_off_' + rs.offset.toString(16),
+          label: 'DPF Rejenerasyon Kapat (OFF)',
+          detail: `Adres ${hexAddr(rs.offset)}: 0x${hexByte(bytes[rs.offset])} → 0x00 [${rs.method}]`,
+          explain: 'DPF rejenerasyon döngüsünü devre dışı bırakır. Rejenerasyon sırasında harcanan ek yakıt ortadan kalkar.',
+          effect: 'Yakıt tasarrufu, contra basınç düşer, DPF fiziksel olarak da çıkarılmalı',
+          hpGain: '+10-20 HP',
+          offset: rs.offset, currentByte: bytes[rs.offset], newByte: 0, risk: 'medium',
+          scanScore: rs.score,
+          scanConfidence: rs.confidence
+        });
+      }
+
+      if (dpfCtrl.pressureLimit && safe(dpfCtrl.pressureLimit.offset)) {
+        const dp = dpfCtrl.pressureLimit;
+        list.push({
+          id: 'dpf_diff_press_max_' + dp.offset.toString(16),
+          label: 'DPF Diferansiyel Basınç Limiti Yükselt',
+          detail: `Adres ${hexAddr(dp.offset)}: 0x${hexByte(bytes[dp.offset])} → 0xFF [${dp.method}]`,
+          explain: 'DPF basınç farkı sensörünün uyarı eşiğini maksimuma çeker → DPF dolu uyarısı tetiklenmez.',
+          effect: 'DPF uyarı lambası yanmaz, rejenerasyon talep edilmez',
+          hpGain: '',
+          offset: dp.offset, currentByte: bytes[dp.offset], newByte: 0xFF, risk: 'medium',
+          scanScore: dp.score,
+          scanConfidence: dp.confidence
+        });
+      }
       break;
+    }
 
     case 'AdBlue/SCR':
       if (safe(flagOffset)) list.push({
@@ -485,6 +637,47 @@ export async function scanRegions(bytes) {
     });
   }
 
+  // 1.5) DAMOS label taraması — yüksek güvenilirlik
+  let dpfConfig = null;
+  try {
+    const { getDpfDetection } = await import('./ecu-rulepacks.js');
+    dpfConfig = getDpfDetection(rulepackMatches);
+  } catch (_e) { /* import hatasında devam */ }
+
+  if (dpfConfig?.damosLabels?.length) {
+    const damosHits = scanDamosLabels(bytes, dpfConfig.damosLabels);
+    for (const hit of damosHits) {
+      const ofs = hit.labelOffset;
+      const windowStart = Math.max(0, ofs - 8);
+      const windowEnd = Math.min(bytes.length, ofs + hit.label.length + 24);
+      const windowBytes = bytes.subarray(windowStart, windowEnd);
+
+      regions.push({
+        id: 'damos_' + hit.type + '_' + ofs.toString(16),
+        system: 'DPF',
+        desc: `DAMOS label: ${hit.label} — ${hit.desc}`,
+        foundString: hit.label,
+        offset: ofs,
+        offsetHex: hexAddr(ofs),
+        windowHex: hexDump(windowBytes),
+        windowStart,
+        source: 'damos-label',
+        actions: [{
+          id: 'damos_' + hit.type + '_' + ofs.toString(16),
+          label: `DPF ${hit.desc} (DAMOS)`,
+          detail: `DAMOS label ${hit.label} @ ${hexAddr(ofs)} — ${hit.size} byte → 0x${hit.offValue.toString(16).toUpperCase()}`,
+          offset: ofs + hit.label.length + 1,
+          currentByte: bytes[ofs + hit.label.length + 1],
+          newByte: hit.offValue & 0xFF,
+          risk: hit.risk,
+          confidence: 'high',
+          source: 'damos-label',
+          scanConfidence: 'high'
+        }]
+      });
+    }
+  }
+
   // 2) Scanner heuristiği — string tabanlı
   for (const s of strings) {
     for (const sys of SYSTEMS) {
@@ -501,7 +694,7 @@ export async function scanRegions(bytes) {
       const windowEnd = Math.min(bytes.length, s.offset + s.text.length + 24);
       const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-      const heuristicActions = buildActions(sys.system, s.offset, bytes).map(a => ({
+      const heuristicActions = buildActions(sys.system, s.offset, bytes, dpfConfig).map(a => ({
         ...a,
         confidence: 'low',
         source: 'scanner-heuristic',
@@ -573,7 +766,7 @@ export async function scanRegions(bytes) {
         const windowEnd = Math.min(bytes.length, bestOffset + foundKeyword.length + 24);
         const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-        const profileActions = buildActions(expectedSys, bestOffset, bytes).map(a => ({
+        const profileActions = buildActions(expectedSys, bestOffset, bytes, dpfConfig).map(a => ({
           ...a,
           id: 'profile_' + a.id,
           confidence: 'medium',
@@ -658,12 +851,46 @@ export async function applyActions(originalBytes, selectedActions) {
     });
   }
 
+  // Checksum correction — Bosch MED17/EDC17 TriCore blocks
+  let checksumResult = null;
+  try {
+    const csResult = fixChecksums(tuned);
+    if (csResult.blocks > 0) {
+      // Copy corrected bytes back into tuned
+      tuned.set(csResult.modified);
+      checksumResult = {
+        blocks: csResult.blocks,
+        variant: csResult.variant,
+        corrected: csResult.corrected,
+        crc32Valid: csResult.crc32Valid,
+        crc32Invalid: csResult.crc32Invalid,
+        skipped: csResult.skipped,
+        log: csResult.log,
+      };
+    }
+  } catch (csErr) {
+    checksumResult = { error: csErr.message };
+  }
+
   return {
     tuned,
     applied,
     hash: await sha256Hex(tuned),
-    size: tuned.length
+    size: tuned.length,
+    checksum: checksumResult,
   };
+}
+
+/**
+ * Validate checksums of an ECU binary without modifying it.
+ * Returns block info and per-structure validation status.
+ */
+export function validateChecksums(bytes) {
+  const data = new Uint8Array(bytes);
+  const blocks = findBoschBlocks(data);
+  if (!blocks.length) return { blocks: 0, structures: [] };
+  const results = validateAllChecksums(data, blocks);
+  return { blocks: blocks.length, results };
 }
 
 // Legacy exports (eski kod kırılmasın diye no-op)

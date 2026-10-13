@@ -91,6 +91,50 @@ export const RULEPACKS = [
       strings: [/EDC17/i, /0281\d{6}/, /03L906018/, /03L906019/, /03L906021/]
     },
     firmwares: {},
+    // DPF-specific detection: DAMOS labels + production binary patterns
+    dpfDetection: {
+      // DAMOS identifier strings — present in engineering/development binaries
+      // When found: high-confidence detection, search calibration area for the value
+      damosLabels: [
+        { id: 'EGT_swtEGTActv_C',      type: 'regen_switch',   desc: 'DPF regen master enable switch', size: 1, offValue: 0x00, risk: 'medium' },
+        { id: 'EGT_tiRegenMaxDrv_C',    type: 'regen_duration', desc: 'Max regen süresi',               size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_mSootMax_C',         type: 'soot_threshold', desc: 'Kurum kütle eşiği',              size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_dpDifMax_C',         type: 'diff_pressure',  desc: 'Diferansiyel basınç maksimum',   size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_tiRegenIntv_C',      type: 'regen_interval', desc: 'Rejenerasyon aralığı',           size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_stRegenReq_C',       type: 'regen_request',  desc: 'Rejenerasyon talep durumu',      size: 1, offValue: 0x00, risk: 'medium' },
+        { id: 'EngPrt_facTempPreTrbn',   type: 'exhaust_temp',   desc: 'Türbin öncesi sıcaklık faktörü', size: 2, offValue: 0xFFFF, risk: 'high' },
+      ],
+      // Production binary heuristics — no DAMOS labels present
+      // Used by tuning engine for context-aware scanning instead of blind offset+16
+      controlHeuristics: {
+        // DPF regen switch: typically single byte, 0x01=enabled 0x00=disabled
+        regenSwitch: {
+          desc: 'Rejenerasyon aktif/pasif bayrağı',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'medium',
+          // Scoring weights for candidate selection
+          scoring: {
+            wordAligned: 10,          // prefer word-aligned addresses
+            valueIsOne: 25,           // 0x01 more likely to be enable flag
+            nearbySmallScalars: 15,   // surrounded by other calibration scalars
+            closeToKeyword: 0.2,      // per-byte distance penalty (lower=closer)
+            notInAscii: 50,           // must not be inside ASCII string
+          }
+        },
+        // DPF differential pressure threshold
+        diffPressure: {
+          desc: 'Diferansiyel basınç eşiği',
+          offValue: 0xFFFF,
+          size: 2,
+          risk: 'medium',
+          plausibleRange: [30, 3000],  // raw sensor units — typical range for DPF dp threshold
+        }
+      },
+      // Search window radius (bytes) around keyword hit
+      searchRadius: 512,
+    },
     familyMaps: [
       { name: 'IQ Base',         desc: 'Temel enjeksiyon miktarı' },
       { name: 'IQ Limit MAF',    desc: 'MAF tabanlı IQ sınırı' },
@@ -274,6 +318,15 @@ export function rulepackActions(matches) {
     }
   }
   return actions;
+}
+
+// DPF tespit konfigürasyonunu getir — eşleşen rulepack ailesi için
+export function getDpfDetection(familyMatches) {
+  for (const m of familyMatches || []) {
+    const pack = RULEPACKS.find(r => r.family === m.family);
+    if (pack?.dpfDetection) return pack.dpfDetection;
+  }
+  return null;
 }
 
 // Tüm rulepack kaynaklarını listele (UI için)
