@@ -20,6 +20,11 @@ export const NATIVE_SKILL_AUDITS=Object.freeze([
     repo:'cloudflare/skills',path:'skills/workers-best-practices/SKILL.md',
     name:'Cloudflare Workers uyumluluk incelemesi',profile:'cloudflare',
     adapter_id:'source-audit',runtime:'github-oidc-read-only',risk:'low'
+  }),
+  Object.freeze({
+    repo:'github/awesome-copilot',path:'skills/github-actions-hardening/SKILL.md',
+    name:'GitHub Actions güvenlik denetimi',profile:'github-actions',
+    adapter_id:'source-audit',runtime:'github-oidc-read-only',risk:'low'
   })
 ]);
 
