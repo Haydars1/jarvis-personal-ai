@@ -827,19 +827,21 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    // Try aiFallback first, then direct Cloudflare AI as fallback
    try{
      const a=await withTimeout(aiFallback(env,[{role:'system',content:sys},{role:'user',content:userMsg}],{userText:userMsg,mode:'strong'}),25000,'AI_SUGGEST_TIMEOUT');
-     rawText=a?.text||'';provider=a?.provider||'unknown';
+     rawText=typeof a?.text==='string'?a.text:a?.text?JSON.stringify(a.text):'';provider=a?.provider||'unknown';
    }catch(e1){
      // aiFallback failed — try env.AI directly (Cloudflare AI free tier)
      if(env.AI){try{
        const cfModels=['@cf/meta/llama-3.3-70b-instruct-fp8-fast','@cf/google/gemma-3-12b-it','@cf/meta/llama-3.1-8b-instruct-fp8'];
        for(const cfm of cfModels){try{
          const r=await withTimeout(env.AI.run(cfm,{messages:[{role:'system',content:sys},{role:'user',content:userMsg}],temperature:0.3,max_tokens:1500}),18000,'CF_AI_TIMEOUT');
-         rawText=typeof r==='string'?r:(r?.response||r?.result||'');
+         const rr=typeof r==='string'?r:(r?.response||r?.result||'');
+         rawText=typeof rr==='string'?rr:rr?JSON.stringify(rr):'';
          if(rawText){provider='Cloudflare AI ('+cfm.split('/').pop()+')';break}
        }catch{continue}}
      }catch{}}
      if(!rawText)return j({ok:false,error:'AI_UNAVAILABLE',detail:e1.message,suggestions:[]},200);
    }
+   if(typeof rawText!=='string')rawText=rawText?JSON.stringify(rawText):'';
    const jsonMatch=rawText.match(/\[[\s\S]*\]/);
    if(jsonMatch){try{aiSuggestions=JSON.parse(jsonMatch[0])}catch(err){aiSuggestions=[{system:'AI',action:'JSON parse hatası',result:rawText.slice(0,400),risk:'unknown'}]}}
    else if(rawText){aiSuggestions=[{system:'AI',action:'Genel öneri',result:rawText.slice(0,600),risk:'info'}]}
@@ -848,6 +850,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
 
  if(p==='/api/ecu/generate'&&m==='POST'){try{
    const b=await body(req);
+   if(!b.uploadId&&!b.upload_id)return j({error:'BODY_PARSE_FAILED',detail:'uploadId eksik — istek gövdesi okunamadı',keys:Object.keys(b)},400);
    const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId||b.upload_id);
    if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
    const obj=await fileGet(env,upload.binary_data);
@@ -858,16 +861,16 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    let toApply=[];
    const sentActions=Array.isArray(b.actions)?b.actions:[];
    if(sentActions.length){
-     toApply=sentActions.filter(a=>a.offset!=null&&a.offset>=0&&a.offset<original.length&&a.newByte!=null).map(a=>({id:a.id||'action',label:a.label||'',offset:Number(a.offset),currentByte:Number(a.currentByte||0),newByte:Number(a.newByte),risk:a.risk||'medium',system:a.system||''}));
+     toApply=sentActions.filter(a=>{const o=Number(a.offset);const nb=Number(a.newByte);return isFinite(o)&&o>=0&&o<original.length&&isFinite(nb)}).map(a=>({id:a.id||'action',label:a.label||'',offset:Number(a.offset),currentByte:Number(a.currentByte||0),newByte:Number(a.newByte),risk:a.risk||'medium',system:a.system||''}));
    }
    // Fallback: re-scan and match by ID (legacy compatibility)
    if(!toApply.length){
      const regions=await mod.scanRegions(original);
      const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
      const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
-     toApply=allActions.filter(a=>selectedIds.includes(a.id));
+     if(selectedIds.length)toApply=allActions.filter(a=>selectedIds.includes(a.id));
    }
-   if(!toApply.length)return j({error:'NO_ACTIONS_SELECTED'},400);
+   if(!toApply.length)return j({error:'NO_ACTIONS_SELECTED',debug:{sentCount:sentActions.length,bodyKeys:Object.keys(b),fileLen:original.length,sentSample:sentActions.slice(0,2).map(a=>({id:a.id,offset:a.offset,offsetType:typeof a.offset,newByte:a.newByte,newByteType:typeof a.newByte}))}},400);
    const result=await mod.applyActions(original,toApply);
    const tuned_id=id();
    const outKey='ecu/'+tuned_id+'/tuned-'+String(upload.filename||'file.bin').replace(/[\\/]/g,'_');
