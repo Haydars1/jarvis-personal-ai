@@ -16,6 +16,9 @@ const ACTIONS=Object.freeze({
   dpf_service_regen:{label:'DPF servis rejenerasyonu',write:true,hazard:'high'}
 });
 
+// Claim and bridge exclusion share one atomic SQLite statement.
+export const ECU_DEVICE_CLAIM_SQL="UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending' AND (requires_confirmation=0 OR confirmed_at IS NOT NULL) AND NOT EXISTS (SELECT 1 FROM ecu_device_jobs AS active WHERE active.bridge_id=? AND active.status='running')";
+
 async function sha256(value=''){
   const bytes=new TextEncoder().encode(String(value));
   const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -169,7 +172,7 @@ export function createEcuDeviceBridge(core){
         for(const job of pending){
           const ts=now();
           // A competing poller may claim the first candidate; then try the next one.
-          const claimed=await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending' AND (requires_confirmation=0 OR confirmed_at IS NOT NULL)",ts,ts,job.id,bridge.id);
+          const claimed=await execute(env,ECU_DEVICE_CLAIM_SQL,ts,ts,job.id,bridge.id,bridge.id);
           if(Number(claimed.meta?.changes??claimed.changes??claimed.rowsAffected)!==1)continue;
           return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
         }
