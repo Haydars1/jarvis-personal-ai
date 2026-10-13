@@ -171,7 +171,7 @@ try{
  // runner -> JARVIS's read-only source analyzer -> D1 completion -> owner result API.
  const nativeList=await req('/api/tools/agent-hub/skill-executors');
  assert.equal(nativeList.status,200,JSON.stringify(nativeList.data));
- assert.equal(nativeList.data.executors.length,4);
+ assert.equal(nativeList.data.executors.length,5);
  assert.equal(nativeList.data.third_party_instructions_executed,false);
  const nativeChecks=[
    {repo:'openai/skills',path:'skills/.curated/security-best-practices/SKILL.md',profile:'security'},
