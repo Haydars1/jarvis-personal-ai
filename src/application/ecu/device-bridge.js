@@ -16,6 +16,9 @@ const ACTIONS=Object.freeze({
   dpf_service_regen:{label:'DPF servis rejenerasyonu',write:true,hazard:'high'}
 });
 
+// Claim and bridge exclusion share one atomic SQLite statement.
+export const ECU_DEVICE_CLAIM_SQL="UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='pending' AND (requires_confirmation=0 OR confirmed_at IS NOT NULL) AND NOT EXISTS (SELECT 1 FROM ecu_device_jobs AS active WHERE active.bridge_id=? AND active.status='running')";
+
 async function sha256(value=''){
   const bytes=new TextEncoder().encode(String(value));
   const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -160,13 +163,20 @@ export function createEcuDeviceBridge(core){
       if(path==='/api/ecu/device/jobs/next'&&method==='GET'){
         const bridge=await bridgeAuth(req,env);
         if(!bridge)return jsonResponse({error:'BRIDGE_AUTH_REQUIRED'},401);
-        const caps=parseJson(bridge.capabilities,[]);
-        const pending=await queryAll(env,"SELECT * FROM ecu_device_jobs WHERE bridge_id=? AND status='pending' ORDER BY created_at ASC LIMIT 20",bridge.id);
-        const job=pending.find(row=>bridgeSupportsAction(caps,row.action));
-        if(!job)return jsonResponse({job:null});
-        const ts=now();
-        await execute(env,"UPDATE ecu_device_jobs SET status='running',claimed_at=?,updated_at=? WHERE id=? AND status='pending'",ts,ts,job.id);
-        return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
+        const announced=parseJson(bridge.capabilities,[]);
+        const caps=Array.isArray(announced)?[...new Set(announced.filter(action=>typeof action==='string'&&Object.prototype.hasOwnProperty.call(ACTIONS,action)))]:[];
+        if(!caps.length)return jsonResponse({job:null});
+        // Filter before LIMIT so unsupported/unconfirmed work cannot starve ready jobs.
+        const placeholders=caps.map(()=>'?').join(',');
+        const pending=await queryAll(env,`SELECT * FROM ecu_device_jobs WHERE bridge_id=? AND status='pending' AND action IN (${placeholders}) AND (requires_confirmation=0 OR confirmed_at IS NOT NULL) ORDER BY created_at ASC LIMIT 100`,bridge.id,...caps);
+        for(const job of pending){
+          const ts=now();
+          // A competing poller may claim the first candidate; then try the next one.
+          const claimed=await execute(env,ECU_DEVICE_CLAIM_SQL,ts,ts,job.id,bridge.id,bridge.id);
+          if(Number(claimed.meta?.changes??claimed.changes??claimed.rowsAffected)!==1)continue;
+          return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',job.id))});
+        }
+        return jsonResponse({job:null});
       }
 
       const resultMatch=path.match(/^\/api\/ecu\/device\/jobs\/([^/]+)\/result$/);
@@ -175,9 +185,11 @@ export function createEcuDeviceBridge(core){
         if(!bridge)return jsonResponse({error:'BRIDGE_AUTH_REQUIRED'},401);
         const id=decodeURIComponent(resultMatch[1]),job=await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',id);
         if(!job||job.bridge_id!==bridge.id)return jsonResponse({error:'JOB_NOT_FOUND'},404);
+        if(job.status!=='running')return jsonResponse({error:'JOB_NOT_RUNNING',status:job.status},409);
         const body=await readJson(req),ok=body.ok===true,ts=now();
-        await execute(env,'UPDATE ecu_device_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=?',
-          ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'DEVICE_JOB_FAILED'),ts,ts,id);
+        const settled=await execute(env,"UPDATE ecu_device_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=? AND bridge_id=? AND status='running'",
+          ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'DEVICE_JOB_FAILED'),ts,ts,id,bridge.id);
+        if(Number(settled.meta?.changes??settled.changes??settled.rowsAffected)!==1)return jsonResponse({error:'JOB_NOT_RUNNING'},409);
         return jsonResponse({ok:true,job:publicJob(await queryOne(env,'SELECT * FROM ecu_device_jobs WHERE id=?',id))});
       }
 

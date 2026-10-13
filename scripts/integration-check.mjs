@@ -79,6 +79,16 @@ try {
   assert.equal(result.job.status, 'completed');
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
+  const hubDashboard = await (await call('/api/tools/agent-hub', 200)).json();
+  assert.equal(hubDashboard.ok,true);
+  assert.ok(hubDashboard.capabilities.curated_repositories>0);
+  const hubCatalog = await (await call('/api/tools/agent-hub/catalog', 200)).json();
+  assert.ok(hubCatalog.repositories.includes('haydars1/jarvis-personal-ai'));
+  assert.ok(hubCatalog.repositories.includes('haydars1/6006coding-site'));
+  const hubProviders = await (await call('/api/tools/agent-hub/providers', 200)).json();
+  assert.deepEqual(hubProviders.providers.map(p => p.id), ['openhands','n8n','skills','freellmapi','ollama']);
+  assert.ok(hubProviders.providers.every(p => p.available === false));
+
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
@@ -107,41 +117,46 @@ try {
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
+      await page.locator('[data-page="chat"]:visible').first().click({ timeout: 10000 });
       await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
-      await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
-      await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
-      await page.locator('#thinkdiagConnect').waitFor({ state: 'visible' });
-      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'jarvis://obd');
-      assert.match(await page.locator('#thinkdiagConnectionStatus').innerText(), /web ekranı cihazı bağlamaz/);
-      await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
-      assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);
-      await page.locator('#thinkdiagPdf').setInputFiles({ name: 'diagnostic.pdf', mimeType: 'application/pdf', buffer: Buffer.from(readFileSync('tests/fixtures/thinkdiag-report.pdf.base64', 'utf8'), 'base64') });
-      await page.locator('#thinkdiagStatus').filter({ hasText: '4 farklı arıza kodu · rapor metni okundu' }).waitFor();
-      const definition = { version: 1, original_sha256: createHash('sha256').update(Buffer.from([1,2,3,4])).digest('hex'), maps: [{ id: 'test', name: 'Test Map', address: 0, rows: 1, columns: 4, type: 'u8', endian: 'le', factor: 1, offset: 0, min: 0, max: 10 }] };
-      await page.locator('#calibrationDefinition').setInputFiles({ name: 'test.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(definition)) });
-      await page.locator('#calibrationStatus').filter({ hasText: '1 map · ORI SHA-256 eşleşti' }).waitFor();
-      await page.getByLabel('Test Map 1,1', { exact: true }).fill('5');
-      await page.getByLabel('Test Map 1,1', { exact: true }).press('Tab');
-      await page.locator('#calibrationStatus').filter({ hasText: 'Map hücresi güncellendi' }).waitFor();
-      await page.locator('#calibrationMod').setInputFiles({ name: 'test.mod', mimeType: 'application/octet-stream', buffer: Buffer.from([1,2,3,5]) });
-      await page.locator('#calibrationStatus').filter({ hasText: 'MOD yüklendi' }).waitFor();
+      await page.locator('#ecuDrop').filter({ hasText: 'browser-fixture.bin' }).waitFor();
+      await page.locator('#ecuDrop .ecuDropIcon').filter({ hasText: '✓' }).waitFor({ timeout: 30000 });
+      await page.locator('#step2').waitFor({ state: 'visible' });
+      // Current ECU screen: verify file analysis and device controls.
+      // TC/PDF diagnostic imports are covered by authenticated API tests above.
+      assert.match(await page.locator('#step2 .stepHead').innerText(), /Tuning Seçenekleri/);
+      await page.locator('#ecuDeviceBtn').click();
+      await page.locator('#ecuDevicePanel').waitFor({ state: 'visible' });
+      await page.locator('#ecuDeviceClose').click();
+      await page.locator('#ecuDevicePanel').waitFor({ state: 'hidden' });
       mkdirSync('.wrangler/browser-report', { recursive: true });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-desktop.png', fullPage: true });
       await page.setViewportSize({ width: 390, height: 844 });
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
-      await page.locator('[data-page="tools"]:visible').first().click();
-      await page.locator('#repositoryRefresh').click();
-      await page.locator('#repositoryStatus').filter({ hasText: `${expectedRepositoryTotal} repo` }).waitFor();
-      assert.equal(await page.locator('#repositoryRows article').count(), expectedRepositoryTotal);
-      await page.locator('#repositorySearch').fill('thinkcar-tc-reader');
-      assert.equal(await page.locator('#repositoryRows article').count(), 1);
-      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/pdf-repositories.png', fullPage: true });
+      // Tools is no longer a navigation page: Agent Hub is mounted under settings.
+      await page.locator('[data-page="settings"]:visible').first().click();
+      await page.locator('#jarvisAgentHub').waitFor({ state:'visible' });
+      const hubResponse = await page.evaluate(async()=>{
+        const res=await fetch('/api/tools/agent-hub',{credentials:'same-origin'});
+        return {status:res.status,body:await res.text()};
+      });
+      console.log('Browser Agent Hub API',hubResponse.status,hubResponse.body.slice(0,400));
+      console.log('Browser Agent Hub panel',await page.locator('#agentHubStats').innerText(),
+        await page.locator('#agentHubMessage').innerText());
+      assert.equal(hubResponse.status,200,'Agent Hub must be available to authenticated browser session');
+      await page.locator('#agentHubStats').filter({ hasText:'Katalog:' }).waitFor({ timeout:10000 });
+      await page.locator('#hubAutoRepo').fill('Haydars1/jarvis-personal-ai');
+      await page.locator('#hubAutoTask').fill('ECU dosya yükleme sorunu');
+      assert.equal(await page.locator('#hubAutoRepo').inputValue(),'Haydars1/jarvis-personal-ai');
+      await page.locator('#hubSkillSource').selectOption('anthropics/skills');
+      await page.screenshot({ animations:'disabled',timeout:10000,path:'.wrangler/browser-report/agent-hub-settings.png',fullPage:true });
+      // Repository counts are checked through the authenticated HTTP API above.
       assert.deepEqual(errors, [], 'Browser runtime errors');
-      console.log(`Browser checks passed: sign-in, real TC import, calibration edit, ORI/MOD comparison, ${expectedRepositoryTotal}-repo catalog, desktop/mobile rendering.`);
+      console.log(`Browser checks passed: sign-in, ECU upload, analysis options, device panel, Agent Hub settings, desktop/mobile rendering. TC/PDF diagnostic API checks passed separately.`);
     } finally { await browser.close(); }
   }
   console.log(`Full Worker HTTP integration checks passed (${count}). No paid API or physical device was used.`);

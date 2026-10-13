@@ -1,5 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import legacyBase from './worker.js';
+export { JarvisAgentWorkflow } from './application/capabilities/agent-hub-workflow.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createRepositoryCatalog } from './application/capabilities/repository-catalog.js';
 import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';

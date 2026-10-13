@@ -28,5 +28,12 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  "workflows": [
+    {
+      "name": "jarvis-agent-hub",
+      "binding": "AGENT_HUB_WORKFLOW",
+      "class_name": "JarvisAgentWorkflow"
+    }
+  ]
 }

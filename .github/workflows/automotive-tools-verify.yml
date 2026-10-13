@@ -1,0 +1,58 @@
+name: Automotive Tool Installation Verification
+on:
+  pull_request:
+    paths:
+      - 'local-bridge/automotive-*'
+      - 'local-bridge/install-automotive-tools.mjs'
+      - 'tests/agent-hub-automotive-*'
+      - '.github/workflows/automotive-tools-verify.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  setup-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify complete 12-source manifest
+        run: node --test tests/agent-hub-automotive-*.test.js
+      - name: Fetch all 12 trusted projects into isolated runner
+        run: node local-bridge/install-automotive-tools.mjs --apply
+      - name: Verify every source checkout and record revisions
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          with open('local-bridge/automotive-install-manifest.json',encoding='utf-8') as f: manifest=json.load(f)
+          root='local-tools/automotive'
+          results=[]
+          for entry in manifest['entries']:
+              directory=os.path.join(root,entry['id'])
+              try:
+                  revision=subprocess.check_output(['git','-C',directory,'rev-parse','HEAD'],text=True,timeout=20).strip()
+                  results.append({'repo':entry['repo'],'status':'source-installed','revision':revision,'runtime_installed':False})
+                  print(entry['repo'],revision)
+              except Exception as exc:
+                  results.append({'repo':entry['repo'],'status':'failed','error':type(exc).__name__,'runtime_installed':False})
+          with open('automotive-install-status.json','w',encoding='utf-8') as f: json.dump(results,f,indent=2)
+          if any(x['status']=='failed' for x in results): raise SystemExit('One or more source checkouts failed')
+          PY
+      - name: Install Python OBD and UDS libraries in isolated environment
+        run: |
+          python -m venv .automotive-python
+          .automotive-python/bin/python -m pip install --disable-pip-version-check --no-input --no-cache-dir obd udsoncan
+          .automotive-python/bin/python -c "import obd, udsoncan; print('Python OBD and UDS imports: OK')"
+      - name: Upload installation report without publishing executables
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automotive-installation-status
+          path: automotive-install-status.json
+          if-no-files-found: ignore
+          retention-days: 7

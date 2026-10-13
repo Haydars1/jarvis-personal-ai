@@ -1,6 +1,6 @@
 (() => {
   const loadScript=(src)=>{const s=document.createElement('script');s.src=src;s.defer=true;document.head.appendChild(s)};
-  loadScript('/provider-catalog.js?v=20260912-2');
+  loadScript('/provider-catalog.js?v=20261012-freellmapi');
   loadScript('/navigation-state.js?v=20260912-1');
   loadScript('/google-search-ui.js?v=20260912-1');
   loadScript('/chat-enhancements.js?v=20260912-1');

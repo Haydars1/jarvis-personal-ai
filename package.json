@@ -18,7 +18,9 @@
     "graph:build:graphify": "node scripts/code-graph/graphify-build.mjs",
     "graph:check": "node scripts/code-graph/query.mjs status",
     "graph:query": "node scripts/code-graph/query.mjs",
-    "graph:compare": "node scripts/code-graph/compare.mjs"
+    "graph:compare": "node scripts/code-graph/compare.mjs",
+    "automotive:status": "node local-bridge/install-automotive-tools.mjs --status",
+    "automotive:install": "node local-bridge/install-automotive-tools.mjs --apply"
   },
   "devDependencies": {
     "@babel/parser": "7.29.9",

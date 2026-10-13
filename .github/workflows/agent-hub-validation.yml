@@ -1,0 +1,56 @@
+name: Agent Hub validation
+on:
+  pull_request:
+    paths:
+      - 'src/lib/agent-hub-*'
+      - 'src/lib/freellmapi-gateway.js'
+      - 'src/application/chat/smart-router.js'
+      - 'src/lib/orchestration.js'
+      - 'src/worker.js'
+      - 'public/provider-catalog.js'
+      - 'tests/freellmapi-gateway.test.js'
+      - 'src/application/capabilities/cloud-execution.js'
+      - 'src/application/capabilities/agent-hub-workflow.js'
+      - 'src/app-entry.js'
+      - 'wrangler.jsonc'
+      - 'src/lib/user-curated-capability-seeds.js'
+      - 'public/agent-hub-ui.js'
+      - 'tests/agent-hub-*'
+      - 'scripts/agent-hub-workflow-e2e.mjs'
+      - '.github/scripts/cloud-tool-runner.mjs'
+      - '.github/workflows/agent-hub-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check src/lib/agent-hub-providers.js
+          node --check src/lib/freellmapi-gateway.js
+          node --check src/application/chat/smart-router.js
+          node --check public/provider-catalog.js
+          node --check src/lib/agent-hub-skill-directory.js
+          node --check src/lib/agent-hub-workflow.js
+          node --check src/lib/agent-hub-durable-report.js
+          node --check src/application/capabilities/agent-hub-workflow.js
+          node --check src/application/capabilities/cloud-execution.js
+          node --check public/agent-hub-ui.js
+      - name: Unit tests
+        run: node --test tests/agent-hub-*.test.js tests/freellmapi-gateway.test.js
+      - name: Cloudflare integration dry-run
+        run: |
+          npm install --no-audit --no-fund
+          npx wrangler deploy --dry-run --outdir .wrangler-agent-hub
+      - name: Cloudflare Workflow and D1 isolated E2E
+        run: node scripts/agent-hub-workflow-e2e.mjs
+        env:
+          JARVIS_CLOUD_MAX_JOBS: '3'

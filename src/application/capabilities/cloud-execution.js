@@ -1,3 +1,13 @@
+import { APPROVED_SKILL_REPOS, discoverSkillManifests, discoverAllSkillManifests, previewSkillManifest } from '../../lib/agent-hub-skill-directory.js';
+import { discoverSkillRepositories } from '../../lib/agent-hub-skill-repository-search.js';
+import { NATIVE_SKILL_AUDITS, nativeSkillAuditJobInput } from '../../lib/agent-hub-native-skill-audits.js';
+import { suggestSkillsForTask } from '../../lib/agent-hub-skill-matcher.js';
+import { recommendAutomotiveTools } from '../../lib/agent-hub-automotive-tools.js';
+import { decodeVehicleVin } from '../../lib/agent-hub-vin-decoder.js';
+import { inspectEcuBinary } from '../../lib/agent-hub-ecu-binary.js';
+import { compareEcuFiles } from '../../lib/agent-hub-ecu-file-tools.js';
+import { hubProviderStatus } from '../../lib/agent-hub-providers.js';
+import { validateHubSteps, nextHubStep, createAgentPlan } from '../../lib/agent-hub-workflow.js';
 import { execute, jsonResponse, queryAll, queryOne, readJson } from '../../lib/runtime.js';
 import { CURATED_CAPABILITY_SEEDS } from '../../lib/open-source-capabilities.js';
 import { OBD_PDF_SEEDS } from '../../lib/obd-pdf-seeds.js';
@@ -21,6 +31,8 @@ const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':{label:'Repository inspect',mode:'read-only'},
   'source-search':{label:'Source search',mode:'read-only'},
   'source-read':{label:'Source file read',mode:'read-only'},
+  'source-audit':{label:'Website source audit',mode:'read-only'},
+  'ecu-bin-inspect':{label:'ECU firmware binary inspection',mode:'read-only'},
   'skill-analyze':{label:'Learn repository skill',mode:'read-only'},
   'youtube-teaching':{label:'YouTube teaching',mode:'read-only-learning'}
 });
@@ -57,7 +69,18 @@ async function verifyGithubOidc(token,audience,workflowRefs){
 async function verifyRunnerJwt(token){return verifyGithubOidc(token,OIDC_AUDIENCE,TRUSTED_WORKFLOW);}
 async function verifySkillBuilderJwt(token){return verifyGithubOidc(token,SKILL_BUILDER_AUDIENCE,SKILL_BUILDER_WORKFLOWS);}
 function bearer(req){const m=String(req.headers.get('authorization')||'').match(/^Bearer\s+(.+)$/i);return m?m[1].trim():'';}
-async function runnerAuth(req){try{return await verifyRunnerJwt(bearer(req));}catch{return null;}}
+async function runnerAuth(req,env){
+  try{
+    const url=new URL(req.url);
+    // Isolated CI only: the normal production URL and trusted workflow are unchanged.
+    // Still verifies GitHub's real signed OIDC token, repository and hosted runner.
+    const ref=String(env?.AGENT_HUB_E2E_WORKFLOW_REF||'');
+    const isolated=url.hostname==='127.0.0.1'&&env?.AGENT_HUB_E2E_LOCAL==='true'&&
+      /^Haydars1\/jarvis-personal-ai\/\.github\/workflows\/agent-hub-validation\.yml@refs\/pull\/121\/merge$/.test(ref);
+    const workflows=isolated?[TRUSTED_WORKFLOW,ref]:TRUSTED_WORKFLOW;
+    return await verifyGithubOidc(bearer(req),OIDC_AUDIENCE,workflows);
+  }catch{return null;}
+}
 async function skillBuilderAuth(req){try{return await verifySkillBuilderJwt(bearer(req));}catch{return null;}}
 async function appAuthed(core,req,env,ctx){
   const response=await core.fetch(new Request(new URL('/api/auth/status',req.url),{headers:req.headers}),env,ctx);
@@ -216,6 +239,118 @@ export function createCloudCapabilityExecution(core){
     async fetch(req,env,ctx){
       const url=new URL(req.url),path=url.pathname,method=req.method;
       // Agent Hub: unified cloud dashboard + safe skill routing without enabling arbitrary execution.
+      if(path==='/api/tools/agent-hub/catalog'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        return jsonResponse({repositories:CURATED_REPO_LIST,skill_sources:APPROVED_SKILL_REPOS,execution:'read-only'});
+      }
+      if(path==='/api/tools/agent-hub/ecu-compare'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!String(req.headers.get('content-type')||'').toLowerCase().startsWith('multipart/form-data;'))return jsonResponse({error:'FORM_DATA_REQUIRED'},415);
+        const length=Number(req.headers.get('content-length')||0);
+        if(length>2*4*1024*1024+65536)return jsonResponse({error:'ECU_COMPARE_TOO_LARGE'},413);
+        let form;
+        try{form=await req.formData();}catch{return jsonResponse({error:'INVALID_MULTIPART'},400);}
+        const original=form.get('original'),modified=form.get('modified');
+        if(!original||!modified||typeof original.arrayBuffer!=='function'||typeof modified.arrayBuffer!=='function')return jsonResponse({error:'TWO_ECU_FILES_REQUIRED'},400);
+        const aName=String(original.name||'original.bin').slice(0,120),bName=String(modified.name||'modified.bin').slice(0,120);
+        if(!/\.(bin|hex|rom|ori)$/i.test(aName)||!/\.(bin|hex|rom|ori)$/i.test(bName))return jsonResponse({error:'ECU_EXTENSION_NOT_ALLOWED'},400);
+        if(!original.size||!modified.size||original.size>4*1024*1024||modified.size>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
+        try{
+          const [a,b]=await Promise.all([original.arrayBuffer(),modified.arrayBuffer()]);
+          const [digestA,digestB]=await Promise.all([crypto.subtle.digest('SHA-256',a),crypto.subtle.digest('SHA-256',b)]);
+          const toHex=digest=>Array.from(new Uint8Array(digest),byte=>byte.toString(16).padStart(2,'0')).join('');
+          const comparison=compareEcuFiles(new Uint8Array(a),new Uint8Array(b),aName,bName);
+          comparison.original.sha256=toHex(digestA);
+          comparison.modified.sha256=toHex(digestB);
+          comparison.hash_algorithm='SHA-256';
+          comparison.file_fingerprints_only=true;
+          return jsonResponse({ok:true,comparison});
+        }catch(error){return jsonResponse({error:String(error.message||'ECU_COMPARE_FAILED').slice(0,120)},400);}
+      }
+      if(path==='/api/tools/agent-hub/ecu-file-inspect'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const length=Number(req.headers.get('content-length')||0);
+        if(length>4*1024*1024)return jsonResponse({error:'ECU_FILE_TOO_LARGE'},413);
+        const name=String(req.headers.get('x-ecu-filename')||'uploaded.bin').slice(0,120);
+        if(!/\.(bin|hex|rom|ori)$/i.test(name))return jsonResponse({error:'ECU_EXTENSION_NOT_ALLOWED'},400);
+        const bytes=new Uint8Array(await req.arrayBuffer());
+        if(!bytes.length||bytes.length>4*1024*1024)return jsonResponse({error:'ECU_FILE_SIZE_UNSUPPORTED'},413);
+        try{return jsonResponse({ok:true,analysis:inspectEcuBinary(bytes,name),third_party_executed:false,persisted:false});}
+        catch(error){return jsonResponse({error:String(error?.message||'ECU_FILE_INVALID').slice(0,120)},400);}
+      }
+      if(path==='/api/tools/agent-hub/vin-decode'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const data=await readJson(req);
+        try{return jsonResponse({ok:true,vehicle:await decodeVehicleVin(data.vin)});}
+        catch(error){const message=String(error?.message||'VIN_DECODE_FAILED');
+          return jsonResponse({error:message},message.startsWith('INVALID_VIN')?400:502);}
+      }
+      if(path==='/api/tools/agent-hub/automotive-tools'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const task=String(url.searchParams.get('task')||'').slice(0,1000);
+        if(!task.trim())return jsonResponse({error:'TASK_REQUIRED'},400);
+        return jsonResponse({ok:true,task,tools:recommendAutomotiveTools(task),mode:'catalog-only',device_bridge_available:false,auto_install:false});
+      }
+      if(path==='/api/tools/agent-hub/skill-suggest'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const task=String(url.searchParams.get('task')||'').slice(0,1000);
+        if(!task.trim())return jsonResponse({error:'TASK_REQUIRED'},400);
+        return jsonResponse({ok:true,task,skills:suggestSkillsForTask(task),execution:'preview-only',auto_install:false});
+      }
+      if(path==='/api/tools/agent-hub/skills-directory'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const repo=String(url.searchParams.get('repo')||APPROVED_SKILL_REPOS[0]);
+        const query=String(url.searchParams.get('query')||'');
+        const offset=Number(url.searchParams.get('offset')||0);
+        const limit=Number(url.searchParams.get('limit')||150);
+        try{return jsonResponse(repo==='all'?await discoverAllSkillManifests(fetch,{query,offset,limit}):await discoverSkillManifests(repo,fetch,{query,offset,limit}));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
+      if(path==='/api/tools/agent-hub/skill-repository-search'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const query=String(url.searchParams.get('query')||'');
+        const page=Number(url.searchParams.get('page')||1);
+        try{return jsonResponse(await discoverSkillRepositories(query,fetch,{page,limit:20}));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
+      // Selected public skills may be used through audited, JARVIS-owned adapters only.
+      if(path==='/api/tools/agent-hub/skill-executors'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        return jsonResponse({executors:NATIVE_SKILL_AUDITS,mode:'jarvis-owned-read-only',
+          third_party_instructions_executed:false,auto_install:false});
+      }
+      if(path==='/api/tools/agent-hub/skill-run'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        const targetRepo=String(body.target_repo||'').trim();
+        if(!validRepo(targetRepo))return jsonResponse({error:'REPOSITORY_NOT_CURATED'},400);
+        let input;
+        try{input=nativeSkillAuditJobInput(body.skill_repo,body.skill_path);}
+        catch(error){return jsonResponse({error:error.message},400);}
+        const commit=String(body.commit||'');
+        if(commit&&!/^[0-9a-f]{40}$/i.test(commit))return jsonResponse({error:'INVALID_COMMIT'},400);
+        const active=await queryOne(env,"SELECT COUNT(*) AS count FROM cloud_tool_jobs WHERE adapter_id='source-audit' AND status IN ('queued','running') AND created_at>?",now()-3600000);
+        if(Number(active?.count||0)>=12)return jsonResponse({error:'SKILL_RUNNER_BUSY'},429);
+        const job=await queueCloudJob(env,{adapterId:'source-audit',repo:targetRepo,commit:commit||null,input});
+        return jsonResponse({job,skill:input.skill_reference,audit_profile:input.audit_profile,
+          status:'queued',runner:'github-oidc-read-only',external_instructions_executed:false},202);
+      }
+      if(path==='/api/tools/agent-hub/skill-preview'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const repo=String(url.searchParams.get('repo')||''),file=String(url.searchParams.get('path')||'');
+        try{return jsonResponse(await previewSkillManifest(repo,file));}
+        catch(error){return jsonResponse({error:error.message},400);}
+      }
+      if(path==='/api/tools/agent-hub/providers'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const providers=hubProviderStatus(env);
+        const gateway=await queryOne(env,"SELECT last_status,enabled FROM credentials WHERE provider='freellmapi' ORDER BY created_at DESC LIMIT 1").catch(()=>null);
+        return jsonResponse({providers:providers.map(item=>item.id==='freellmapi'?{
+          ...item,
+          state:gateway?(Number(gateway.enabled)===1&&gateway.last_status==='ok'?'connected':'configured-unverified'):item.state,
+          available:!!gateway&&Number(gateway.enabled)===1&&gateway.last_status==='ok'
+        }:item),mode:'Cloudflare Workers',installation:'external services required'});
+      }
       if(path==='/api/tools/agent-hub'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
         const skills=(await queryAll(env,'SELECT * FROM repo_skills ORDER BY updated_at DESC LIMIT 300')).map(publicSkill);
@@ -240,6 +375,59 @@ export function createCloudCapabilityExecution(core){
         return jsonResponse({ok:true,task,language:'tr',recommended_skills:matches,
           next_step:matches.length?'SELECT_APPROVED_SKILL':'NO_VERIFIED_SKILL',
           automatic_execution:false,reason:'GitHub araclari guvenlik onayi olmadan calistirilmaz'});
+      }
+      // Durable, Cloudflare-native execution. The existing GitHub OIDC runner performs the read-only jobs.
+      if(path==='/api/tools/agent-hub/durable'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!env.AGENT_HUB_WORKFLOW)return jsonResponse({error:'WORKFLOW_BINDING_NOT_AVAILABLE'},503);
+        const body=await readJson(req);
+        let plan;
+        try{plan=createAgentPlan(body,CURATED_REPOS);}catch(error){return jsonResponse({error:error.message},400);}
+        const recent=await queryOne(env,"SELECT COUNT(*) AS total FROM cloud_tool_jobs WHERE status IN ('queued','running') AND input_json LIKE '%__agent_hub%' AND created_at>?",now()-3600000);
+        if(Number(recent?.total||0)>=12)return jsonResponse({error:'AGENT_HUB_BUSY'},429);
+        const workflow_id=uid();
+        try{
+          const instance=await env.AGENT_HUB_WORKFLOW.create({
+            id:workflow_id,
+            params:{workflow_id,task:plan.goal,repo:plan.repo,steps:plan.steps}
+          });
+          return jsonResponse({ok:true,workflow_id:instance.id,engine:'cloudflare-workflows',plan,status:'queued',requires_pc:false},202);
+        }catch(error){return jsonResponse({error:'WORKFLOW_CREATE_FAILED',detail:String(error.message||'').slice(0,180)},503);}
+      }
+      const durableMatch=path.match(/^\/api\/tools\/agent-hub\/durable\/([a-zA-Z0-9-]+)$/);
+      if(durableMatch&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        if(!env.AGENT_HUB_WORKFLOW)return jsonResponse({error:'WORKFLOW_BINDING_NOT_AVAILABLE'},503);
+        try{
+          const instance=await env.AGENT_HUB_WORKFLOW.get(durableMatch[1]);
+          const state=await instance.status();
+          return jsonResponse({ok:true,workflow_id:instance.id,...state});
+        }catch{return jsonResponse({error:'WORKFLOW_NOT_FOUND'},404);}
+      }
+      if(path==='/api/tools/agent-hub/agent'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        let plan;
+        try{plan=createAgentPlan(body,CURATED_REPOS);}catch(error){return jsonResponse({error:error.message},400);}
+        const workflow_id=uid();
+        const first=plan.steps[0];
+        const job=await queueCloudJob(env,{adapterId:first.adapter_id,repo:first.repo,input:{...first.input,__agent_hub:{workflow_id,position:0,attempts:0,steps:plan.steps}}});
+        return jsonResponse({ok:true,workflow_id,plan,job,execution:'queued',requires_pc:false},202);
+      }
+      if(path==='/api/tools/agent-hub/workflows'&&method==='POST'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const body=await readJson(req);
+        let steps;
+        try{steps=validateHubSteps(body.steps,CURATED_REPOS);}catch(e){return jsonResponse({error:e.message},400);}
+        const workflow_id=uid();
+        const input={...steps[0].input,__agent_hub:{workflow_id,position:0,attempts:0,steps}};
+        const job=await queueCloudJob(env,{adapterId:steps[0].adapter_id,repo:steps[0].repo,input});
+        return jsonResponse({ok:true,workflow_id,job,steps:steps.length},202);
+      }
+      if(path==='/api/tools/agent-hub/workflows'&&method==='GET'){
+        if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
+        const rows=await queryAll(env,"SELECT * FROM cloud_tool_jobs WHERE input_json LIKE '%__agent_hub%' ORDER BY created_at DESC LIMIT 100");
+        return jsonResponse({jobs:rows.map(publicJob)});
       }
       if(path==='/api/tools/cloud/adapters'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
@@ -298,21 +486,50 @@ export function createCloudCapabilityExecution(core){
         return jsonResponse({job:publicJob(row),answer:cloudJobAnswer(row)});
       }
       if(path==='/api/tools/cloud/runner/claim'&&method==='POST'){
-        const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
-        const row=await queryOne(env,"SELECT * FROM cloud_tool_jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1");
-        if(!row)return jsonResponse({job:null});
-        const ts=now(),claimedBy=`github:${claims.run_id||'unknown'}`;
-        await execute(env,"UPDATE cloud_tool_jobs SET status='running',claimed_by=?,claimed_at=?,updated_at=? WHERE id=? AND status='queued'",claimedBy,ts,ts,row.id);
-        return jsonResponse({job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',row.id))});
+        const claims=await runnerAuth(req,env);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
+        const claimedBy=`github:${claims.run_id||'unknown'}`;
+        for(let attempt=0;attempt<3;attempt++){
+          const row=await queryOne(env,"SELECT id FROM cloud_tool_jobs WHERE status='queued' ORDER BY created_at ASC LIMIT 1");
+          if(!row)return jsonResponse({job:null});
+          const ts=now();
+          const claim=await execute(env,"UPDATE cloud_tool_jobs SET status='running',claimed_by=?,claimed_at=?,updated_at=? WHERE id=? AND status='queued'",claimedBy,ts,ts,row.id);
+          if(Number(claim?.meta?.changes||0)!==1)continue;
+          const assigned=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',row.id);
+          if(assigned?.status==='running'&&assigned?.claimed_by===claimedBy)return jsonResponse({job:publicJob(assigned)});
+        }
+        return jsonResponse({job:null,reason:'CLAIM_RACE_RETRY'});
       }
       const resultMatch=path.match(/^\/api\/tools\/cloud\/runner\/jobs\/([^/]+)\/result$/);
       if(resultMatch&&method==='POST'){
-        const claims=await runnerAuth(req);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
+        const claims=await runnerAuth(req,env);if(!claims)return jsonResponse({error:'RUNNER_AUTH_REQUIRED'},401);
         const id=decodeURIComponent(resultMatch[1]),body=await readJson(req),ts=now(),ok=body.ok===true;
         const row=await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id);if(!row)return jsonResponse({error:'JOB_NOT_FOUND'},404);
+        // Never leak another runner's result, including completed jobs.
+        if(row.claimed_by!==`github:${claims.run_id||'unknown'}`)return jsonResponse({error:'RUNNER_CLAIM_MISMATCH'},403);
+        if(row.status!=='running')return jsonResponse({ok:true,already_processed:true,job:publicJob(row)});
+        // Compare-and-swap guarantees at most one successful result processing.
+        const result=await execute(env,"UPDATE cloud_tool_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=? AND status='running' AND claimed_by=?",
+          ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'CLOUD_TOOL_FAILED'),ts,ts,id,row.claimed_by);
+        if(Number(result?.meta?.changes||0)!==1)return jsonResponse({ok:true,already_processed:true,job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id))});
         let persistedSkill=null;
-        if(ok&&row.adapter_id==='skill-analyze')persistedSkill=await upsertRepositorySkill(env,body.result,ts);
-        await execute(env,'UPDATE cloud_tool_jobs SET status=?,result_json=?,error=?,finished_at=?,updated_at=? WHERE id=?',ok?'completed':'failed',JSON.stringify(body.result??null),ok?null:String(body.error||'CLOUD_TOOL_FAILED'),ts,ts,id);
+        if(ok&&row.adapter_id==='skill-analyze'){
+          try{persistedSkill=await upsertRepositorySkill(env,body.result,ts);}
+          catch(error){console.warn('Agent Hub skill persistence failed:',String(error?.message||error).slice(0,160));}
+        }
+        // Every completed step queues exactly one successor; failed steps retry once.
+        const input=parse(row.input_json,{});
+        const next=nextHubStep(input.__agent_hub,ok);
+        if(next)await queueCloudJob(env,{adapterId:next.adapter_id,repo:next.repo,input:{...next.input,__agent_hub:next.meta}});
+        if(env.AGENT_HUB_WORKFLOW&&input.__agent_hub?.workflow_id){
+          try{
+            const instance=await env.AGENT_HUB_WORKFLOW.get(input.__agent_hub.workflow_id);
+            await instance.sendEvent({type:'job-finished',payload:{job_id:id,ok}});
+          }catch(error){
+            // The durable Workflow also polls D1 on event timeout, so a notification
+            // failure must never make the runner retry an already completed job.
+            console.warn('Agent Hub completion event unavailable:',String(error?.message||error).slice(0,160));
+          }
+        }
         return jsonResponse({ok:true,skill:persistedSkill,job:publicJob(await queryOne(env,'SELECT * FROM cloud_tool_jobs WHERE id=?',id))});
       }
       return core.fetch(req,env,ctx);

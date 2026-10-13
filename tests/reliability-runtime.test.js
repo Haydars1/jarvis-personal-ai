@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import { createEcuBinaryInspector } from '../src/application/ecu/binary-inspector.js';
+import { createEcuBinaryInspector, inspectBinarySignatures, validateIntelHex } from '../src/application/ecu/binary-inspector.js';
 import { createEcuChannelStore } from '../src/application/ecu/channels.js';
 import { createEmergencyChatFallback } from '../src/application/chat/emergency-fallback.js';
 import { callVaultProvider } from '../src/application/chat/smart-router.js';
@@ -109,6 +109,59 @@ test('device job completes registration, token heartbeat, claim and simulated re
   }
   assert.equal((await (await call('jobs/next', undefined, registered.token)).json()).job, null);
   assert.equal((await call('jobs', { action: 'clear_dtc' })).status, 409);
+});
+
+test('device poll skips unsupported backlog and refuses unconfirmed write jobs', async t => {
+  const env = database(t);
+  const bridge = createEcuDeviceBridge({ fetch: async () => new Response('{"authenticated":true}') });
+  const call = async (path, body, token) => bridge.fetch(new Request(`https://jarvis.test/api/ecu/device/${path}`, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) })
+  }), env, {});
+  const registered = await (await call('bridges/register', { label: 'Queue safety fixture' })).json();
+  const token = registered.token, bridgeId = registered.bridge.id;
+  await call('heartbeat', { capabilities: ['read_dtc'] }, token);
+  for (let i = 0; i < 25; i++) {
+    const response = await call('jobs', { action: 'read_live_data', bridge_id: bridgeId });
+    assert.equal(response.status, 201);
+  }
+  const ready = await (await call('jobs', { action: 'read_dtc', bridge_id: bridgeId })).json();
+  const claimed = await (await call('jobs/next', undefined, token)).json();
+  assert.equal(claimed.job.id, ready.job.id, 'eligible work must not starve behind 25 unsupported jobs');
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null);
+
+  await call('heartbeat', { capabilities: ['read_dtc', 'clear_dtc'] }, token);
+  const pendingId = crypto.randomUUID();
+  const ts = Date.now();
+  env.db.prepare("INSERT INTO ecu_device_jobs(id,bridge_id,action,module,request_json,status,requires_confirmation,confirmed_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)")
+    .run(pendingId, bridgeId, 'clear_dtc', '', '{}', 'pending', 1, null, ts, ts);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'write action requires confirmation');
+  env.db.prepare('UPDATE ecu_device_jobs SET confirmed_at=? WHERE id=?').run(ts, pendingId);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'confirmed job waits for active bridge job');
+  const finished = await (await call(`jobs/${ready.job.id}/result`, { ok: true, result: { simulated: true } }, token)).json();
+  assert.equal(finished.job.status, 'completed');
+  const approved = await (await call('jobs/next', undefined, token)).json();
+  assert.equal(approved.job.id, pendingId);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'claimed job cannot be redelivered');
+});
+
+test('Intel HEX validation rejects corrupt checksums and missing EOF', () => {
+  const good = ':10010000214601360121470136007EFE09D2190140\\n:00000001FF';
+  assert.equal(validateIntelHex(good).valid, true);
+  assert.equal(validateIntelHex(good.replace('0140', '0141')).error, 'INVALID_CHECKSUM');
+  assert.equal(validateIntelHex(':10010000214601360121470136007EFE09D2190140').error, 'MISSING_EOF');
+  assert.equal(validateIntelHex(':00000001FF\\n:00000001FF').error, 'DATA_AFTER_EOF');
+});
+
+test('read-only ECU file signature detection distinguishes common containers and firmware text', () => {
+  const bytes = values => Uint8Array.from(values);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x7f, 0x45, 0x4c, 0x46])), ['ELF executable/object']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x4d, 0x5a])), ['Windows PE/DOS header']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x50, 0x4b, 0x03, 0x04])), ['ZIP container']);
+  assert.deepEqual(inspectBinarySignatures(new TextEncoder().encode(':10010000214601360121470136007EFE09D2190140')), ['Intel HEX text']);
+  assert.deepEqual(inspectBinarySignatures(new TextEncoder().encode('S1130000285F245F2212226A000424290008237C2A')), ['Motorola S-record text']);
+  assert.deepEqual(inspectBinarySignatures(bytes([0x00, 0xff, 0x21])), []);
 });
 
 test('binary inspector calculates actual ORI/MOD differences including appended bytes', async () => {

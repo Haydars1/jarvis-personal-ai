@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "mode": "source-only-with-opt-in-local-setup",
+  "install_root": "local-tools/automotive",
+  "entries": [
+    {"repo":"brendan-w/python-OBD","id":"python-obd","kind":"python-library","requires_device":true,"supported_host":"Windows/Linux/macOS","status":"not-installed"},
+    {"repo":"tronikos/elm327_obdii","id":"elm327-obdii","kind":"device-adapter-source","requires_device":true,"supported_host":"host-with-BLE","status":"not-installed"},
+    {"repo":"OBDb/OBDb","id":"obdb","kind":"reference-data-source","requires_device":false,"supported_host":"any","status":"not-installed"},
+    {"repo":"commaai/opendbc","id":"opendbc","kind":"reference-data-source","requires_device":false,"supported_host":"any","status":"not-installed"},
+    {"repo":"NationalSecurityAgency/ghidra","id":"ghidra","kind":"desktop-application-source","requires_device":false,"supported_host":"desktop-with-JDK","status":"not-installed"},
+    {"repo":"davidpeckham/vpic-api","id":"vpic-api","kind":"reference-client-source","requires_device":false,"supported_host":"any","status":"not-installed"},
+    {"repo":"laferil/vpic","id":"vpic-offline","kind":"self-hosted-service-source","requires_device":false,"supported_host":"Docker-host","status":"not-installed"},
+    {"repo":"mapforger/mapforge","id":"mapforge","kind":"desktop-application-source","requires_device":false,"supported_host":"desktop-host","status":"not-installed"},
+    {"repo":"LeZed97/ZedSuite","id":"zedsuite","kind":"desktop-application-source","requires_device":false,"supported_host":"Windows-desktop","status":"not-installed"},
+    {"repo":"CAATZ/bimmerstein-bin-analyzer","id":"bimmerstein","kind":"desktop-application-source","requires_device":false,"supported_host":"Windows-desktop","status":"not-installed"},
+    {"repo":"pylessard/python-udsoncan","id":"python-udsoncan","kind":"python-library","requires_device":true,"supported_host":"Python-host-with-CAN","status":"not-installed"},
+    {"repo":"Aider-AI/aider","id":"aider","kind":"coding-agent-source","requires_device":false,"supported_host":"host-with-model","status":"not-installed"}
+  ]
+}

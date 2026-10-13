@@ -5,11 +5,16 @@ import { spawn } from 'node:child_process';
 import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
 import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex, fuseYouTubeLearning } from '../../src/lib/youtube-teaching-runtime.js';
 import { executeCodeGraphJob } from './code-graph-job.mjs';
+import { reviewSourceFile } from '../../src/lib/agent-hub-source-audit.js';
+import { resolveNativeSkillAudit } from '../../src/lib/agent-hub-native-skill-audits.js';
+import { inspectEcuBinary } from '../../src/lib/agent-hub-ecu-binary.js';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':true,
   'source-search':true,
   'source-read':true,
+  'source-audit':true,
+  'ecu-bin-inspect':true,
   'skill-analyze':true,
   'youtube-teaching':true,
   'code-graph-query':true
@@ -72,7 +77,7 @@ function safeRelative(value){
   const p=String(value||'').replace(/\\/g,'/');
   if(!p||p.startsWith('/')||p.includes('../')||p==='..')throw new Error('INVALID_PATH');return p;
 }
-async function cloneJob(job){
+export async function cloneJob(job){
   const repo=safeRepo(job.repo),root=await mkdtemp(path.join(tmpdir(),'jarvis-cloud-tool-')),dest=path.join(root,'repo');
   await run('git',['clone','--depth','1','--filter=blob:none','--single-branch','--no-tags',`https://github.com/${repo}.git`,dest],{quiet:false});
   if(job.commit){
@@ -112,6 +117,38 @@ async function sourceSearch(job,ctx){
     const lines=text.split(/\r?\n/);for(let i=0;i<lines.length&&matches.length<50;i++){if(lines[i].toLowerCase().includes(lower))matches.push({file,line:i+1,text:lines[i].slice(0,500)});}
   }
   return {repo:job.repo,commit:ctx.commit,term,matches};
+}
+async function sourceAudit(job,ctx){
+ const ref=job.input?.skill_reference;
+ const native=ref?resolveNativeSkillAudit(ref.repo,ref.path):null;
+ if(ref&&!native)throw new Error('SKILL_NATIVE_ADAPTER_UNAVAILABLE');
+ if(job.input?.audit_profile && job.input.audit_profile!==native?.profile)throw new Error('SOURCE_AUDIT_PROFILE_NOT_ALLOWED');
+ const profile=native?.profile||'all';
+ const files=(await trackedFiles(ctx.dest)).filter(file=>profile==='github-actions'?/^\.github\/workflows\/[^/]+\.ya?ml$/i.test(file):/\.(html|jsx|tsx|js|ts)$/i.test(file)).slice(0,600);
+ const findings=[];let scanned=0;
+ for(const file of files){
+  if(findings.length>=80)break;
+  const full=path.join(ctx.dest,file);
+  let info;try{info=await stat(full);}catch{continue;}
+  if(info.size>250000)continue;
+  try{
+   const content=await readFile(full,'utf8');
+   scanned++;findings.push(...reviewSourceFile(file,content,{limit:Math.min(20,80-findings.length),profile}));
+  }catch{}
+ }
+ return {repo:job.repo,commit:ctx.commit,skill_references:Array.isArray(job.input?.skill_references)?job.input.skill_references.slice(0,5):[],skill_reference:native?{repo:native.repo,path:native.path}:null,audit_profile:profile,engine:'jarvis-owned-static-source-audit',third_party_code_executed:false,scanned_files:scanned,findings,total_findings:findings.length,limited:findings.length>=80,read_only:true};
+}
+async function ecuBinInspect(job,ctx){
+ const matches=(await trackedFiles(ctx.dest)).filter(f=>/\.(bin|hex|rom|ori)$/i.test(f)).slice(0,30);
+ const results=[];
+ for(const file of matches){
+  const full=path.join(ctx.dest,file);
+  const info=await stat(full).catch(()=>null);
+  if(!info||info.size===0||info.size>4*1024*1024)continue;
+  const buffer=await readFile(full);
+  results.push(inspectEcuBinary(buffer,file));
+ }
+ return {repo:job.repo,commit:ctx.commit,files:results,scanned_files:results.length,read_only:true,third_party_code_executed:false};
 }
 async function sourceRead(job,ctx){
   const file=safeRelative(job.input?.path),files=await trackedFiles(ctx.dest);if(!files.includes(file))throw new Error('FILE_NOT_TRACKED');
@@ -235,13 +272,15 @@ async function youtubeTeaching(job,token){
     audio_chunks:Number(media?.audioChunks?.length||0)
   };
 }
-async function executeJob(job,ctx,token){
+export async function executeJob(job,ctx,token){
   const adapter=String(job.adapter_id||'');if(!ALLOWED_ADAPTERS[adapter])throw new Error('ADAPTER_NOT_ALLOWED');
   if(adapter==='youtube-teaching')return youtubeTeaching(job,token);
   if(adapter==='code-graph-query')return executeCodeGraphJob(job,ctx);
   if(adapter==='repo-inspect')return repoInspect(job,ctx);
   if(adapter==='source-search')return sourceSearch(job,ctx);
   if(adapter==='source-read')return sourceRead(job,ctx);
+  if(adapter==='source-audit')return sourceAudit(job,ctx);
+  if(adapter==='ecu-bin-inspect')return ecuBinInspect(job,ctx);
   if(adapter==='skill-analyze')return skillAnalyze(job,ctx);
   throw new Error('ADAPTER_NOT_IMPLEMENTED');
 }
