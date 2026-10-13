@@ -124,7 +124,7 @@ async function sourceAudit(job,ctx){
  if(ref&&!native)throw new Error('SKILL_NATIVE_ADAPTER_UNAVAILABLE');
  if(job.input?.audit_profile && job.input.audit_profile!==native?.profile)throw new Error('SOURCE_AUDIT_PROFILE_NOT_ALLOWED');
  const profile=native?.profile||'all';
- const files=(await trackedFiles(ctx.dest)).filter(file=>/\.(html|jsx|tsx|js|ts)$/i.test(file)).slice(0,600);
+ const files=(await trackedFiles(ctx.dest)).filter(file=>profile==='github-actions'?/^\.github\/workflows\/[^/]+\.ya?ml$/i.test(file):/\.(html|jsx|tsx|js|ts)$/i.test(file)).slice(0,600);
  const findings=[];let scanned=0;
  for(const file of files){
   if(findings.length>=80)break;
