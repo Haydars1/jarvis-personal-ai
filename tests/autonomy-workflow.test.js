@@ -43,9 +43,9 @@ test('agent never pushes its work back to the stale learning branch',()=>{
   assert.match(source,/git push origin "HEAD:\$BRANCH"/);
 });
 
-test('scheduled Codex fallback explicitly trusts only the GitHub Actions bot actor',()=>{
+test('scheduled Codex fallback explicitly trusts the exact GitHub Actions scheduled actor only',()=>{
   assert.match(source,/allow-bots:\s*true/);
-  assert.match(source,/allow-bot-users:\s*["']?github-actions\[bot\]["']?/);
+  assert.match(source,/allow-users:\s*["']?github-actions["']?/);
   assert.doesNotMatch(source,/allow-users:\s*["']?\*["']?/);
 });
 
@@ -55,7 +55,7 @@ test('autonomous workflow tries keyless local coding before paid Codex fallback'
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
   assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
-  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v4-\$\{\{ runner\.os \}\}-bartowski-qwen2\.5-coder-1\.5b-q4/);
+  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v5-\$\{\{ runner\.os \}\}-qwen3-4b-instruct-2507-q4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*uses:\s*actions\/cache\/save@v4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*if:\s*\$\{\{ always\(\)/);
 });
@@ -68,16 +68,17 @@ test('autonomous workflow falls back to a keyless local coding model after hoste
   assert.match(source,/actions\/cache\/save@v4/);
 });
 
-test('keyless local coder uses the llama.cpp tool-bench Qwen2.5 Coder build and probes tool calling',()=>{
+test('keyless local coder uses Qwen3 4B Instruct with llama.cpp native tool parsing and probes tool calling',()=>{
   const scriptUrl=new URL('../.github/scripts/run-local-coder-fallback.sh',import.meta.url);
   assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
   const script=readFileSync(scriptUrl,'utf8');
-  assert.match(script,/bartowski\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF:Q4_K_M/);
-  assert.doesNotMatch(script,/MODEL_REPO="Qwen\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF/);
+  assert.match(script,/bartowski\/Qwen_Qwen3-4B-Instruct-2507-GGUF:Q4_K_M/);
+  assert.doesNotMatch(script,/Qwen2\.5-Coder-1\.5B/);
   assert.match(script,/"context": 8192/);
   assert.match(script,/"output": 2048/);
   assert.match(script,/--ctx-size 8192/);
   assert.match(script,/--temp 0/);
+  assert.match(script,/--jinja/);
   assert.match(script,/\/v1\/chat\/completions/);
   assert.match(script,/"tool_choice":"required"/);
   assert.match(script,/tool_calls/);
