@@ -138,6 +138,9 @@ test('device poll skips unsupported backlog and refuses unconfirmed write jobs',
     .run(pendingId, bridgeId, 'clear_dtc', '', '{}', 'pending', 1, null, ts, ts);
   assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'write action requires confirmation');
   env.db.prepare('UPDATE ecu_device_jobs SET confirmed_at=? WHERE id=?').run(ts, pendingId);
+  assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'confirmed job waits for active bridge job');
+  const finished = await (await call(`jobs/${ready.job.id}/result`, { ok: true, result: { simulated: true } }, token)).json();
+  assert.equal(finished.job.status, 'completed');
   const approved = await (await call('jobs/next', undefined, token)).json();
   assert.equal(approved.job.id, pendingId);
   assert.equal((await (await call('jobs/next', undefined, token)).json()).job, null, 'claimed job cannot be redelivered');
