@@ -766,107 +766,327 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,totalDefs:defs.length,matchedCount:matched.length,regionCount:regions.length,matched:matched.slice(0,200),regions});
  }catch(e){return j({error:e.message||'MATCH_FAILED'},500)}}
 
- // === ECU ANALYZE — five-tier scan with cached results ===
+ // === ECU ANALYZE — five-tier scan, ECU profil, sistem bilgisi, cached ===
  if(p==='/api/ecu/analyze'&&m==='POST'){try{
    const b=await body(req);
    const uploadId=b.uploadId||b.upload_id;
+   const forceRescan=b.force||b.rescan||false;
    if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   // Cache kontrolü — force yoksa ve analysis_json varsa cached döndür
+   if(!forceRescan&&upload.analysis_json&&upload.analyzed_at){try{
+     const cachedRegions=JSON.parse(upload.analysis_json);
+     const mod=await import('./lib/tuning-engine.js');
+     const systemMap=new Map();
+     for(const r of cachedRegions){if(!systemMap.has(r.system))systemMap.set(r.system,{system:r.system,regionCount:0,actionCount:0,confidence:0,info:mod.getSystemInfo(r.system)});const s=systemMap.get(r.system);s.regionCount++;if(r.actions)s.actionCount+=r.actions.length;if(r.confidence>s.confidence)s.confidence=r.confidence}
+     return j({ok:true,cached:true,analyzedAt:upload.analyzed_at,uploadId,format:upload.format,fileSize:upload.file_size,systems:[...systemMap.values()],totalRegions:cachedRegions.length,regions:cachedRegions.slice(0,60),stage1Package:mod.buildStage1Package([...systemMap.keys()])});
+   }catch(_){}}
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   // Tier 0: upload'a bağlı tanım seti
+   let definitions=null;let defSource='none';
+   try{
+     const defRows=await qall(env,`SELECT d.name,d.description,d.display_id,d.address,d.raw_address,d.datatype,d.data_size,d.type,d.system,d.unit,d.math,d.lower_limit,d.upper_limit,d.axes,d.element_count,d.total_bytes FROM ecu_definitions d JOIN ecu_definition_sets s ON s.id=d.def_set_id WHERE s.upload_id=? ORDER BY d.address`,uploadId);
+     if(defRows.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(defRows);defSource='upload-linked ('+defRows.length+' defs)'}
+   }catch(_){}
+   // Genel tanımlar fallback
+   if(!definitions){try{
+     const allDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+     if(allDefs.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(allDefs);defSource='global ('+allDefs.length+' defs)'}
+   }catch(_){}}
+   const mod=await import('./lib/tuning-engine.js');
+   const fmt=mod.detectFileFormat(bytes);
+   const regions=await mod.scanRegions(bytes,definitions);
+   const stats=mod.fileStats(bytes);
+   const summary=mod.summarizeForAI(bytes,regions);
+   const checksumResult=mod.validateChecksums(bytes);
+   // Tier dağılımı
+   const tierCounts={0:0,1:0,2:0,3:0};
+   for(const r of regions){const t=r.tier||(r.id?.startsWith('def_')?0:r.id?.startsWith('rp_')?1:2);tierCounts[t]=(tierCounts[t]||0)+1}
+   // Sistem haritası + getSystemInfo ile zenginleştir
+   const systemMap=new Map();
+   for(const r of regions){
+     if(!systemMap.has(r.system)){const info=mod.getSystemInfo(r.system);systemMap.set(r.system,{system:r.system,regionCount:0,actionCount:0,mapCount:0,confidence:0,info:info||null})}
+     const s=systemMap.get(r.system);s.regionCount++;
+     if(r.actions){s.actionCount+=r.actions.length;for(const a of r.actions)if(a.mapAction)s.mapCount++}
+     if(r.confidence>s.confidence)s.confidence=r.confidence
+   }
+   const detectedSystems=[...systemMap.keys()];
+   const stage1=mod.buildStage1Package(detectedSystems);
+   // Araç bilgisi
+   let vehicleInfo=null;try{vehicleInfo=JSON.parse(upload.vehicle_type||'{}')}catch(_){vehicleInfo={raw:upload.vehicle_type}}
+   // ECU profil eşleşme
+   let ecuProfile=null;
+   if(fmt.format){const fmtUp=fmt.format.toUpperCase();const profiles=['EDC17','EDC16','EDC15','MED17','ME7','SID','PCR'];for(const pn of profiles)if(fmtUp.includes(pn)){ecuProfile=pn;break}}
+   // Tuning history kaydı
+   await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,upload.vehicle_type||'unknown','analysis','ok',now());
+   // Analysis cache
+   try{await run(env,'UPDATE ecu_uploads SET analysis_json=?,analyzed_at=? WHERE id=?',JSON.stringify(regions),now(),uploadId)}catch(_){}
+   // Tanım seti sayısı
+   let defSetCount=0;try{const dc=await q1(env,'SELECT COUNT(*) as c FROM ecu_definition_sets WHERE upload_id=?',uploadId);defSetCount=dc?.c||0}catch(_){}
+   return j({ok:true,cached:false,uploadId,filename:upload.filename,format:fmt,fileSize:bytes.length,fileHash:upload.file_hash,vehicle:vehicleInfo,ecuProfile,stats:{entropy:stats.entropy,zeroPct:stats.zeroPct,ffPct:stats.ffPct,mapCandidates:stats.mapCandidates||0},checksums:checksumResult,definitionSource:defSource,definitionSetsLinked:defSetCount,tierBreakdown:tierCounts,systems:[...systemMap.values()],totalRegions:regions.length,regions:regions.slice(0,80).map(r=>({id:r.id,system:r.system,desc:r.desc,offsetHex:r.offsetHex,offset:r.offset,length:r.length||0,confidence:r.confidence,tier:r.tier||(r.id?.startsWith('rp_')?1:r.id?.startsWith('def_')?0:2),foundString:r.foundString?.slice(0,80),damosLabel:r.damosLabel||null,actions:(r.actions||[]).map(a=>({id:a.id,label:a.label,offset:a.offset,dataSize:a.dataSize,newValue:a.newValue,mapAction:a.mapAction||null,effect:a.effect||null,system:a.system,desc:a.desc||a.label}))})),stage1Package:stage1,aiSummary:summary});
+ }catch(e){return j({error:e.message||'ANALYZE_FAILED'},500)}}
+
+ // === ECU RE-ANALYZE — tanım yüklendikten sonra tekrar analiz ===
+ if(p==='/api/ecu/re-analyze'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   // analysis cache temizle ve force rescan yap
+   try{await run(env,'UPDATE ecu_uploads SET analysis_json=NULL,analyzed_at=NULL WHERE id=?',uploadId)}catch(_){}
+   // Aynı analyze handler'a yönlendir — force: true
+   const fakeReq=new Request(req.url,{method:'POST',headers:req.headers,body:JSON.stringify({uploadId,force:true})});
+   // Inline re-call analyze
    const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
    if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
    const obj=await fileGet(env,upload.binary_data);
    if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const bytes=new Uint8Array(await obj.arrayBuffer());
-   // Tier 0: upload'a bağlı tanım seti
    let definitions=null;
-   try{
-     const defRows=await qall(env,`SELECT d.name,d.description,d.display_id,d.address,d.raw_address,d.datatype,d.data_size,d.type,d.system,d.unit,d.math,d.lower_limit,d.upper_limit,d.axes,d.element_count,d.total_bytes FROM ecu_definitions d JOIN ecu_definition_sets s ON s.id=d.def_set_id WHERE s.upload_id=? ORDER BY d.address`,uploadId);
+   try{const defRows=await qall(env,`SELECT d.* FROM ecu_definitions d JOIN ecu_definition_sets s ON s.id=d.def_set_id WHERE s.upload_id=? ORDER BY d.address`,uploadId);
      if(defRows.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(defRows)}
    }catch(_){}
-   // Genel tanımlar fallback
-   if(!definitions){try{
-     const allDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
-     if(allDefs.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(allDefs)}
-   }catch(_){}}
+   if(!definitions){try{const allDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+     if(allDefs.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(allDefs)}}catch(_){}}
    const mod=await import('./lib/tuning-engine.js');
    const regions=await mod.scanRegions(bytes,definitions);
-   const stats=mod.fileStats(bytes);
-   const summary=mod.summarizeForAI(bytes,regions);
-   const checksumResult=mod.validateChecksums(bytes);
-   // Sistem haritası
-   const systemMap=new Map();
-   for(const r of regions){if(!systemMap.has(r.system))systemMap.set(r.system,{system:r.system,regionCount:0,actionCount:0,confidence:0});const s=systemMap.get(r.system);s.regionCount++;if(r.actions)s.actionCount+=r.actions.length;if(r.confidence>s.confidence)s.confidence=r.confidence}
-   const detectedSystems=[...systemMap.keys()];
-   const stage1=mod.buildStage1Package(detectedSystems);
-   // Tuning history kaydı
-   await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,upload.vehicle_type||'unknown','analysis','ok',now());
-   // Analysis cache
    try{await run(env,'UPDATE ecu_uploads SET analysis_json=?,analyzed_at=? WHERE id=?',JSON.stringify(regions),now(),uploadId)}catch(_){}
-   return j({ok:true,uploadId,format:upload.format,fileSize:bytes.length,stats:{entropy:stats.entropy,zeroPct:stats.zeroPct,ffPct:stats.ffPct},checksums:checksumResult,systems:[...systemMap.values()],totalRegions:regions.length,regions:regions.slice(0,60).map(r=>({id:r.id,system:r.system,desc:r.desc,offsetHex:r.offsetHex,offset:r.offset,confidence:r.confidence,tier:r.tier||(r.id?.startsWith('rp_')?1:r.id?.startsWith('def_')?0:2),foundString:r.foundString?.slice(0,60),actions:(r.actions||[]).map(a=>({id:a.id,label:a.label,offset:a.offset,dataSize:a.dataSize,newValue:a.newValue,mapAction:a.mapAction||null,effect:a.effect||null,system:a.system}))})),stage1Package:stage1,aiSummary:summary});
- }catch(e){return j({error:e.message||'ANALYZE_FAILED'},500)}}
+   await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,upload.vehicle_type||'unknown','re-analysis','ok',now());
+   return j({ok:true,uploadId,regionsFound:regions.length,definitionsUsed:definitions?.length||0,message:'Re-analysis complete with latest definitions'});
+ }catch(e){return j({error:e.message||'RE_ANALYZE_FAILED'},500)}}
 
- // === ECU DEFINITION UPLOAD — A2L/XDF dosyası import ===
+ // === ECU DEFINITION UPLOAD — A2L/XDF dosyası import + auto re-analyze ===
  if(p==='/api/ecu/definition'&&m==='POST'){try{
    const formData=await req.formData();
    const uploadId=formData.get('uploadId');
    const defFile=formData.get('file');
+   const autoAnalyze=formData.get('autoAnalyze')!=='false'; // default true
    if(!uploadId||!defFile)return j({error:'MISSING_UPLOAD_ID_OR_FILE'},400);
-   const upload=await q1(env,'SELECT id FROM ecu_uploads WHERE id=?',uploadId);
+   const upload=await q1(env,'SELECT id,filename,vehicle_type FROM ecu_uploads WHERE id=?',uploadId);
    if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
    const text=await defFile.text();
    const filename=defFile.name||'';
    const isXdf=/\.xdf$/i.test(filename);
+   const isOdx=/\.odx$/i.test(filename);
    const {parseA2L,parseXDF}=await import('./lib/ecu-definition-parser.js');
-   const parsed=isXdf?parseXDF(text):parseA2L(text);
+   let parsed;
+   if(isXdf)parsed=parseXDF(text);
+   else parsed=parseA2L(text); // A2L ve ODX aynı parser ile
    const defs=parsed.definitions||[];
-   if(!defs.length)return j({error:'NO_DEFINITIONS_FOUND'},400);
-   const ts=now();const fmt=isXdf?'xdf':'a2l';
-   const defSetId=id();
-   await run(env,'INSERT INTO ecu_definition_sets(id,user_id,upload_id,filename,format,ecu_family,base_offset,definition_count,meta,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',defSetId,'system',uploadId,filename,fmt,parsed.meta?.ecuFamily||null,parsed.baseOffset??0,defs.length,JSON.stringify(parsed.meta||{}),ts,ts);
+   if(!defs.length)return j({error:'NO_DEFINITIONS_FOUND',hint:'Dosya geçerli bir A2L/XDF formatında değil veya tanım içermiyor'},400);
+   const ts=now();const fmt=isXdf?'xdf':isOdx?'odx':'a2l';
+   // Mevcut tanım seti var mı kontrol — aynı dosya adı varsa güncelle
+   const existingSet=await q1(env,'SELECT id FROM ecu_definition_sets WHERE upload_id=? AND filename=?',uploadId,filename);
+   const defSetId=existingSet?.id||id();
+   if(existingSet){
+     // Mevcut tanımları sil, yeni yükle
+     await run(env,'DELETE FROM ecu_definitions WHERE def_set_id=?',defSetId);
+     await run(env,'UPDATE ecu_definition_sets SET definition_count=?,base_offset=?,meta=?,updated_at=? WHERE id=?',defs.length,parsed.baseOffset??0,JSON.stringify(parsed.meta||{}),ts,defSetId);
+   }else{
+     await run(env,'INSERT INTO ecu_definition_sets(id,user_id,upload_id,filename,format,ecu_family,base_offset,definition_count,meta,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',defSetId,'system',uploadId,filename,fmt,parsed.meta?.ecuFamily||null,parsed.baseOffset??0,defs.length,JSON.stringify(parsed.meta||{}),ts,ts);
+   }
    // Batch insert — D1 batch limit 100
    const BATCH=80;let inserted=0;
+   const systemCounts=new Map();
    for(let i=0;i<defs.length;i+=BATCH){
      const chunk=defs.slice(i,i+BATCH);
-     const stmts=chunk.map(d=>env.DB.prepare('INSERT OR REPLACE INTO ecu_definitions(id,def_set_id,name,description,display_id,address,raw_address,datatype,data_size,type,system,unit,math,lower_limit,upper_limit,axes,element_count,total_bytes,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id(),defSetId,d.name,d.description||d.name,d.displayId||'',d.address??d.offset??0,d.rawAddress??d.address??0,d.datatype||'UWORD',d.dataSize||2,d.type||'scalar',d.system||null,d.unit||'',d.math||'X',d.lowerLimit??d.min??null,d.upperLimit??d.max??null,JSON.stringify(d.axes||[]),d.elementCount||1,d.totalBytes||d.dataSize||2,fmt,ts,ts));
+     const stmts=chunk.map(d=>{
+       const sys=d.system||'unknown';systemCounts.set(sys,(systemCounts.get(sys)||0)+1);
+       return env.DB.prepare('INSERT OR REPLACE INTO ecu_definitions(id,def_set_id,name,description,display_id,address,raw_address,datatype,data_size,type,system,unit,math,lower_limit,upper_limit,axes,element_count,total_bytes,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id(),defSetId,d.name,d.description||d.name,d.displayId||'',d.address??d.offset??0,d.rawAddress??d.address??0,d.datatype||'UWORD',d.dataSize||2,d.type||'scalar',sys,d.unit||'',d.math||'X',d.lowerLimit??d.min??null,d.upperLimit??d.max??null,JSON.stringify(d.axes||[]),d.elementCount||1,d.totalBytes||d.dataSize||2,fmt,ts,ts)
+     });
      await env.DB.batch(stmts);inserted+=chunk.length;
    }
    await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,'definition','definition_upload','ok',ts);
-   return j({ok:true,uploadId,defSetId,definitionFile:filename,format:fmt.toUpperCase(),definitionsImported:inserted,baseOffset:parsed.baseOffset??0,meta:parsed.meta||{}});
+   // Auto re-analyze: tanım yüklendikten sonra cache temizle
+   if(autoAnalyze){try{await run(env,'UPDATE ecu_uploads SET analysis_json=NULL,analyzed_at=NULL WHERE id=?',uploadId)}catch(_){}}
+   // Tanım tipi dağılımı
+   const typeCounts={scalar:0,map:0,curve:0,axis:0,other:0};
+   for(const d of defs){const t=d.type||'scalar';typeCounts[t]=(typeCounts[t]||0)+1}
+   return j({ok:true,updated:!!existingSet,uploadId,defSetId,definitionFile:filename,format:fmt.toUpperCase(),definitionsImported:inserted,baseOffset:parsed.baseOffset??0,ecuFamily:parsed.meta?.ecuFamily||null,meta:parsed.meta||{},typeBreakdown:typeCounts,systemBreakdown:Object.fromEntries(systemCounts),autoAnalyzeTriggered:autoAnalyze,hint:autoAnalyze?'Cache temizlendi — /api/ecu/analyze ile yeniden tarayın':null});
  }catch(e){return j({error:e.message||'DEFINITION_UPLOAD_FAILED'},500)}}
 
- // === ECU COMPARE — original vs tuned byte diff ===
+ // === ECU DEFINITIONS LIST — upload'a bağlı tanım setlerini listele ===
+ if(p==='/api/ecu/definitions/list'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   if(uploadId){
+     const sets=await qall(env,'SELECT s.*,COUNT(d.id) as actual_count FROM ecu_definition_sets s LEFT JOIN ecu_definitions d ON d.def_set_id=s.id WHERE s.upload_id=? GROUP BY s.id ORDER BY s.created_at DESC',uploadId);
+     const defs=await qall(env,`SELECT d.name,d.type,d.system,d.address,d.unit,d.datatype,d.data_size,d.element_count FROM ecu_definitions d JOIN ecu_definition_sets s ON s.id=d.def_set_id WHERE s.upload_id=? ORDER BY d.address LIMIT 500`,uploadId);
+     return j({ok:true,uploadId,sets,definitions:defs,totalDefinitions:defs.length});
+   }
+   // Tüm tanım setleri
+   const limit=Math.min(parseInt(u.searchParams.get('limit')||'50'),200);
+   const sets=await qall(env,'SELECT s.*,COUNT(d.id) as actual_count FROM ecu_definition_sets s LEFT JOIN ecu_definitions d ON d.def_set_id=s.id GROUP BY s.id ORDER BY s.created_at DESC LIMIT ?',limit);
+   return j({ok:true,sets,total:sets.length});
+ }catch(e){return j({error:e.message||'DEFINITIONS_LIST_FAILED'},500)}}
+
+ // === ECU COMPARE — annotated byte diff with system matching ===
  if(p==='/api/ecu/compare'&&m==='GET'){try{
    const u=new URL(req.url);
    const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
    const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
    if(!uploadId||!tunedId)return j({error:'MISSING_IDS'},400);
-   const upload=await q1(env,'SELECT binary_data,file_size FROM ecu_uploads WHERE id=?',uploadId);
+   const upload=await q1(env,'SELECT binary_data,file_size,analysis_json FROM ecu_uploads WHERE id=?',uploadId);
    const tuned=await q1(env,'SELECT tuned_binary_data,tuned_file_size,proposals_applied FROM ecu_tuned_outputs WHERE id=?',tunedId);
    if(!upload||!tuned)return j({error:'NOT_FOUND'},404);
-   // fileGet ile binary çek
    const origObj=await fileGet(env,upload.binary_data);
    if(!origObj)return j({error:'ORIGINAL_FILE_NOT_FOUND'},404);
    const orig=new Uint8Array(await origObj.arrayBuffer());
    const tunedObj=await fileGet(env,tuned.tuned_binary_data);
    if(!tunedObj)return j({error:'TUNED_FILE_NOT_FOUND'},404);
    const modBytes=new Uint8Array(await tunedObj.arrayBuffer());
-   // Byte diff
-   const diffs=[];let i=0;
-   while(i<orig.length&&i<modBytes.length){
-     if(orig[i]!==modBytes[i]){const start=i;while(i<orig.length&&i<modBytes.length&&orig[i]!==modBytes[i]&&(i-start)<4096)i++;
-       diffs.push({offset:start,offsetHex:'0x'+start.toString(16).toUpperCase(),length:i-start,originalBytes:Array.from(orig.subarray(start,Math.min(start+32,i))).map(b=>b.toString(16).padStart(2,'0')).join(' '),tunedBytes:Array.from(modBytes.subarray(start,Math.min(start+32,i))).map(b=>b.toString(16).padStart(2,'0')).join(' '),truncated:(i-start)>32});
-     }else{i++}
+   // Analiz verisi — diff'leri sisteme eşle
+   let analysisRegions=[];
+   try{if(upload.analysis_json)analysisRegions=JSON.parse(upload.analysis_json)}catch(_){}
+   // Byte diff — daha detaylı
+   const diffs=[];let idx=0;let totalChanged=0;
+   while(idx<orig.length&&idx<modBytes.length){
+     if(orig[idx]!==modBytes[idx]){
+       const start=idx;while(idx<orig.length&&idx<modBytes.length&&orig[idx]!==modBytes[idx]&&(idx-start)<4096)idx++;
+       const len=idx-start;totalChanged+=len;
+       // Bu offset hangi sisteme ait?
+       let matchedSystem=null;let matchedRegion=null;
+       for(const r of analysisRegions){
+         const rOff=r.offset||0;const rLen=r.length||r.totalBytes||0;
+         if(start>=rOff&&start<rOff+rLen){matchedSystem=r.system;matchedRegion=r.desc||r.id;break}
+       }
+       diffs.push({offset:start,offsetHex:'0x'+start.toString(16).toUpperCase(),length:len,system:matchedSystem,regionDesc:matchedRegion,originalBytes:Array.from(orig.subarray(start,Math.min(start+48,idx))).map(b=>b.toString(16).padStart(2,'0')).join(' '),tunedBytes:Array.from(modBytes.subarray(start,Math.min(start+48,idx))).map(b=>b.toString(16).padStart(2,'0')).join(' '),truncated:len>48});
+     }else{idx++}
    }
+   // Ek boyut bilgisi
+   const sizeDiff=modBytes.length-orig.length;
    let applied=[];try{applied=JSON.parse(tuned.proposals_applied||'[]')}catch(_){}
-   return j({ok:true,uploadId,tunedId,originalSize:orig.length,tunedSize:modBytes.length,changedRegions:diffs.length,totalChangedBytes:diffs.reduce((s,d)=>s+d.length,0),diffs:diffs.slice(0,100),appliedActions:applied.map(a=>({id:a.id,system:a.system,offset:a.offset,effectType:a.effectType||a.mapAction||'byte'}))});
+   // Sistem bazlı değişiklik özeti
+   const systemChanges=new Map();
+   for(const d of diffs){const sys=d.system||'unknown';if(!systemChanges.has(sys))systemChanges.set(sys,{system:sys,regions:0,bytesChanged:0});const sc=systemChanges.get(sys);sc.regions++;sc.bytesChanged+=d.length}
+   // Checksum doğrulama — tuned dosyada
+   const mod=await import('./lib/tuning-engine.js');
+   const tunedChecksums=mod.validateChecksums(modBytes);
+   return j({ok:true,uploadId,tunedId,originalSize:orig.length,tunedSize:modBytes.length,sizeDifference:sizeDiff,changedRegions:diffs.length,totalChangedBytes:totalChanged,changePercentage:orig.length?(totalChanged/orig.length*100).toFixed(3)+'%':'N/A',systemSummary:[...systemChanges.values()],tunedChecksums,diffs:diffs.slice(0,150),appliedActions:applied.map(a=>({id:a.id,label:a.label,system:a.system,offset:a.offset,effectType:a.effectType||a.mapAction||'byte'}))});
  }catch(e){return j({error:e.message||'COMPARE_FAILED'},500)}}
 
- // === ECU HISTORY — tuning geçmişi ===
+ // === ECU VALIDATE — tuned dosya checksum + integrity kontrolü ===
+ if(p==='/api/ecu/validate'&&m==='POST'){try{
+   const b=await body(req);
+   const tunedId=b.tunedId||b.tuned_id;
+   const uploadId=b.uploadId||b.upload_id;
+   if(!tunedId)return j({error:'MISSING_TUNED_ID'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   const tunedObj=await fileGet(env,tuned.tuned_binary_data);
+   if(!tunedObj)return j({error:'TUNED_FILE_NOT_FOUND'},404);
+   const tunedBytes=new Uint8Array(await tunedObj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   // Checksum kontrolü
+   const checksums=mod.validateChecksums(tunedBytes);
+   // Boyut kontrolü
+   const sizeOk=tunedBytes.length===tuned.tuned_file_size;
+   // Hash kontrolü
+   const currentHash=await mod.sha256Hex(tunedBytes);
+   const hashOk=currentHash===tuned.tuned_file_hash;
+   // Orijinal ile karşılaştır
+   let sizeMatch=true;
+   if(uploadId){const upload=await q1(env,'SELECT file_size FROM ecu_uploads WHERE id=?',uploadId);if(upload)sizeMatch=tunedBytes.length===upload.file_size}
+   // File stats
+   const stats=mod.fileStats(tunedBytes);
+   const valid=sizeOk&&hashOk&&sizeMatch;
+   return j({ok:true,tunedId,valid,checks:{sizeOk,hashOk,sizeMatch,checksums},fileSize:tunedBytes.length,hash:currentHash,expectedHash:tuned.tuned_file_hash,stats:{entropy:stats.entropy,zeroPct:stats.zeroPct,ffPct:stats.ffPct},verdict:valid?'SAFE_TO_FLASH':'CHECK_WARNINGS',warnings:(!sizeOk?['Dosya boyutu DB kaydıyla uyuşmuyor']:[] ).concat(!hashOk?['Hash uyuşmuyor — dosya bozulmuş olabilir']:[]).concat(!sizeMatch?['Tuned boyut orijinalden farklı — ECU kabul etmeyebilir']:[])});
+ }catch(e){return j({error:e.message||'VALIDATE_FAILED'},500)}}
+
+ // === ECU STATS — genel dashboard istatistikleri ===
+ if(p==='/api/ecu/stats'&&m==='GET'){try{
+   const [uploads,tuned,history,defSets]=await Promise.all([
+     q1(env,'SELECT COUNT(*) as total, SUM(file_size) as totalSize FROM ecu_uploads'),
+     q1(env,'SELECT COUNT(*) as total FROM ecu_tuned_outputs'),
+     qall(env,'SELECT tuning_type, status, COUNT(*) as count FROM ecu_tuning_history GROUP BY tuning_type, status'),
+     q1(env,'SELECT COUNT(*) as total, SUM(definition_count) as totalDefs FROM ecu_definition_sets')
+   ]);
+   // Son 7 gün aktivite
+   const weekAgo=now()-7*86400;
+   const recentUploads=await q1(env,'SELECT COUNT(*) as c FROM ecu_uploads WHERE created_at>?',weekAgo);
+   const recentTunes=await q1(env,'SELECT COUNT(*) as c FROM ecu_tuned_outputs WHERE created_at>?',weekAgo);
+   // Araç dağılımı
+   const vehicles=await qall(env,'SELECT vehicle_type, COUNT(*) as count FROM ecu_uploads WHERE vehicle_type IS NOT NULL GROUP BY vehicle_type ORDER BY count DESC LIMIT 20');
+   // Format dağılımı
+   const formats=await qall(env,'SELECT format, COUNT(*) as count FROM ecu_uploads GROUP BY format ORDER BY count DESC');
+   // History türleri
+   const historyByType={};for(const h of history){if(!historyByType[h.tuning_type])historyByType[h.tuning_type]={total:0,ok:0,error:0};historyByType[h.tuning_type].total+=h.count;if(h.status==='ok')historyByType[h.tuning_type].ok+=h.count;else historyByType[h.tuning_type].error+=h.count}
+   return j({ok:true,uploads:{total:uploads?.total||0,totalSizeMB:((uploads?.totalSize||0)/1024/1024).toFixed(2)},tuned:{total:tuned?.total||0},definitions:{sets:defSets?.total||0,totalDefinitions:defSets?.totalDefs||0},activity:{last7days:{uploads:recentUploads?.c||0,tunes:recentTunes?.c||0}},historyByType,vehicles:vehicles.map(v=>{let parsed=v.vehicle_type;try{parsed=JSON.parse(v.vehicle_type)}catch(_){};return{vehicle:parsed,count:v.count}}),formats});
+ }catch(e){return j({error:e.message||'STATS_FAILED'},500)}}
+
+ // === ECU HISTORY — zenginleştirilmiş tuning geçmişi (filtreleme + istatistik) ===
  if(p==='/api/ecu/history'&&m==='GET'){try{
    const u=new URL(req.url);
    const limit=Math.min(parseInt(u.searchParams.get('limit')||'20'),100);
-   const rows=await qall(env,`SELECT h.id,h.upload_id,h.vehicle_type,h.tuning_type,h.status,h.error_msg,h.created_at,u.filename,u.format,u.file_size FROM ecu_tuning_history h LEFT JOIN ecu_uploads u ON u.id=h.upload_id ORDER BY h.created_at DESC LIMIT ?`,limit);
-   return j({ok:true,history:rows});
+   const offset=parseInt(u.searchParams.get('offset')||'0');
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   const tuningType=u.searchParams.get('type')||u.searchParams.get('tuning_type');
+   const status=u.searchParams.get('status');
+   // Dinamik WHERE
+   let where='1=1';const params=[];
+   if(uploadId){where+=' AND h.upload_id=?';params.push(uploadId)}
+   if(tuningType){where+=' AND h.tuning_type=?';params.push(tuningType)}
+   if(status){where+=' AND h.status=?';params.push(status)}
+   params.push(limit,offset);
+   const rows=await qall(env,`SELECT h.id,h.upload_id,h.vehicle_type,h.tuning_type,h.status,h.error_msg,h.created_at,u.filename,u.format,u.file_size FROM ecu_tuning_history h LEFT JOIN ecu_uploads u ON u.id=h.upload_id WHERE ${where} ORDER BY h.created_at DESC LIMIT ? OFFSET ?`,...params);
+   // Toplam sayı
+   const countParams=params.slice(0,-2);
+   const total=await q1(env,`SELECT COUNT(*) as c FROM ecu_tuning_history h WHERE ${where}`,...countParams);
+   return j({ok:true,history:rows,total:total?.c||0,limit,offset,hasMore:(offset+limit)<(total?.c||0)});
  }catch(e){return j({error:e.message||'HISTORY_FAILED'},500)}}
+
+ // === ECU UPLOADS LIST — yüklenen dosyaları listele ===
+ if(p==='/api/ecu/uploads'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const limit=Math.min(parseInt(u.searchParams.get('limit')||'20'),100);
+   const offset=parseInt(u.searchParams.get('offset')||'0');
+   const rows=await qall(env,'SELECT id,filename,format,vehicle_type,file_hash,file_size,uploaded_at,created_at,analyzed_at FROM ecu_uploads ORDER BY created_at DESC LIMIT ? OFFSET ?',limit,offset);
+   const total=await q1(env,'SELECT COUNT(*) as c FROM ecu_uploads');
+   return j({ok:true,uploads:rows.map(r=>{let vehicle=r.vehicle_type;try{vehicle=JSON.parse(r.vehicle_type)}catch(_){};return{...r,vehicle_type:vehicle,hasAnalysis:!!r.analyzed_at}}),total:total?.c||0,limit,offset});
+ }catch(e){return j({error:e.message||'UPLOADS_LIST_FAILED'},500)}}
+
+ // === ECU UPLOAD DETAIL — tek upload detayı + ilişkili tune/tanım ===
+ if(p.startsWith('/api/ecu/uploads/')&&m==='GET'){try{
+   const uploadId=p.split('/api/ecu/uploads/')[1];
+   if(!uploadId)return j({error:'MISSING_ID'},400);
+   const upload=await q1(env,'SELECT id,filename,format,vehicle_type,file_hash,file_size,uploaded_at,created_at,analyzed_at FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   let vehicle=upload.vehicle_type;try{vehicle=JSON.parse(upload.vehicle_type)}catch(_){}
+   // İlişkili tune çıktıları
+   const tunes=await qall(env,'SELECT id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,created_at FROM ecu_tuned_outputs WHERE upload_id=? ORDER BY created_at DESC',uploadId);
+   // İlişkili tanım setleri
+   const defSets=await qall(env,'SELECT id,filename,format,ecu_family,definition_count,created_at FROM ecu_definition_sets WHERE upload_id=? ORDER BY created_at DESC',uploadId);
+   // İlişkili history
+   const hist=await qall(env,'SELECT id,tuning_type,status,error_msg,created_at FROM ecu_tuning_history WHERE upload_id=? ORDER BY created_at DESC LIMIT 20',uploadId);
+   return j({ok:true,upload:{...upload,vehicle_type:vehicle,hasAnalysis:!!upload.analyzed_at},tunedOutputs:tunes.map(t=>{let ap=[];try{ap=JSON.parse(t.proposals_applied||'[]')}catch(_){};return{...t,appliedCount:ap.length,systems:[...new Set(ap.map(a=>a.system).filter(Boolean))]}}),definitionSets:defSets,history:hist});
+ }catch(e){return j({error:e.message||'UPLOAD_DETAIL_FAILED'},500)}}
+
+ // === ECU TUNED OUTPUTS LIST — tüm tune edilmiş dosyalar ===
+ if(p==='/api/ecu/tuned'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const limit=Math.min(parseInt(u.searchParams.get('limit')||'20'),100);
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   let rows;
+   if(uploadId){
+     rows=await qall(env,'SELECT t.id,t.upload_id,t.vehicle_id,t.proposals_applied,t.tuned_file_hash,t.tuned_file_size,t.created_at,u.filename,u.format FROM ecu_tuned_outputs t LEFT JOIN ecu_uploads u ON u.id=t.upload_id WHERE t.upload_id=? ORDER BY t.created_at DESC LIMIT ?',uploadId,limit);
+   }else{
+     rows=await qall(env,'SELECT t.id,t.upload_id,t.vehicle_id,t.proposals_applied,t.tuned_file_hash,t.tuned_file_size,t.created_at,u.filename,u.format FROM ecu_tuned_outputs t LEFT JOIN ecu_uploads u ON u.id=t.upload_id ORDER BY t.created_at DESC LIMIT ?',limit);
+   }
+   return j({ok:true,tunedOutputs:rows.map(r=>{let ap=[];try{ap=JSON.parse(r.proposals_applied||'[]')}catch(_){};return{...r,appliedCount:ap.length,systems:[...new Set(ap.map(a=>a.system).filter(Boolean))]}})});
+ }catch(e){return j({error:e.message||'TUNED_LIST_FAILED'},500)}}
+
+ // === ECU SYSTEM INFO — belirli bir sistem hakkında detaylı bilgi ===
+ if(p==='/api/ecu/system-info'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const system=u.searchParams.get('system');
+   if(!system)return j({error:'MISSING_SYSTEM'},400);
+   const mod=await import('./lib/tuning-engine.js');
+   const info=mod.getSystemInfo(system);
+   if(!info)return j({error:'SYSTEM_NOT_FOUND',available:['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC','Pop&Bang','Start/Stop','Flap/Swirl','Cruise Control']},404);
+   return j({ok:true,...info});
+ }catch(e){return j({error:e.message||'SYSTEM_INFO_FAILED'},500)}}
 
  // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
  if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
