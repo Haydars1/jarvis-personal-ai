@@ -766,6 +766,108 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    return j({ok:true,totalDefs:defs.length,matchedCount:matched.length,regionCount:regions.length,matched:matched.slice(0,200),regions});
  }catch(e){return j({error:e.message||'MATCH_FAILED'},500)}}
 
+ // === ECU ANALYZE — five-tier scan with cached results ===
+ if(p==='/api/ecu/analyze'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   // Tier 0: upload'a bağlı tanım seti
+   let definitions=null;
+   try{
+     const defRows=await qall(env,`SELECT d.name,d.description,d.display_id,d.address,d.raw_address,d.datatype,d.data_size,d.type,d.system,d.unit,d.math,d.lower_limit,d.upper_limit,d.axes,d.element_count,d.total_bytes FROM ecu_definitions d JOIN ecu_definition_sets s ON s.id=d.def_set_id WHERE s.upload_id=? ORDER BY d.address`,uploadId);
+     if(defRows.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(defRows)}
+   }catch(_){}
+   // Genel tanımlar fallback
+   if(!definitions){try{
+     const allDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+     if(allDefs.length){const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');definitions=normalizeD1Definitions(allDefs)}
+   }catch(_){}}
+   const mod=await import('./lib/tuning-engine.js');
+   const regions=await mod.scanRegions(bytes,definitions);
+   const stats=mod.fileStats(bytes);
+   const summary=mod.summarizeForAI(bytes,regions);
+   const checksumResult=mod.validateChecksums(bytes);
+   // Sistem haritası
+   const systemMap=new Map();
+   for(const r of regions){if(!systemMap.has(r.system))systemMap.set(r.system,{system:r.system,regionCount:0,actionCount:0,confidence:0});const s=systemMap.get(r.system);s.regionCount++;if(r.actions)s.actionCount+=r.actions.length;if(r.confidence>s.confidence)s.confidence=r.confidence}
+   const detectedSystems=[...systemMap.keys()];
+   const stage1=mod.buildStage1Package(detectedSystems);
+   // Tuning history kaydı
+   await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,upload.vehicle_type||'unknown','analysis','ok',now());
+   // Analysis cache
+   try{await run(env,'UPDATE ecu_uploads SET analysis_json=?,analyzed_at=? WHERE id=?',JSON.stringify(regions),now(),uploadId)}catch(_){}
+   return j({ok:true,uploadId,format:upload.format,fileSize:bytes.length,stats:{entropy:stats.entropy,zeroPct:stats.zeroPct,ffPct:stats.ffPct},checksums:checksumResult,systems:[...systemMap.values()],totalRegions:regions.length,regions:regions.slice(0,60).map(r=>({id:r.id,system:r.system,desc:r.desc,offsetHex:r.offsetHex,offset:r.offset,confidence:r.confidence,tier:r.tier||(r.id?.startsWith('rp_')?1:r.id?.startsWith('def_')?0:2),foundString:r.foundString?.slice(0,60),actions:(r.actions||[]).map(a=>({id:a.id,label:a.label,offset:a.offset,dataSize:a.dataSize,newValue:a.newValue,mapAction:a.mapAction||null,effect:a.effect||null,system:a.system}))})),stage1Package:stage1,aiSummary:summary});
+ }catch(e){return j({error:e.message||'ANALYZE_FAILED'},500)}}
+
+ // === ECU DEFINITION UPLOAD — A2L/XDF dosyası import ===
+ if(p==='/api/ecu/definition'&&m==='POST'){try{
+   const formData=await req.formData();
+   const uploadId=formData.get('uploadId');
+   const defFile=formData.get('file');
+   if(!uploadId||!defFile)return j({error:'MISSING_UPLOAD_ID_OR_FILE'},400);
+   const upload=await q1(env,'SELECT id FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const text=await defFile.text();
+   const filename=defFile.name||'';
+   const isXdf=/\.xdf$/i.test(filename);
+   const {parseA2L,parseXDF}=await import('./lib/ecu-definition-parser.js');
+   const parsed=isXdf?parseXDF(text):parseA2L(text);
+   const defs=parsed.definitions||[];
+   if(!defs.length)return j({error:'NO_DEFINITIONS_FOUND'},400);
+   const ts=now();const fmt=isXdf?'xdf':'a2l';
+   const defSetId=id();
+   await run(env,'INSERT INTO ecu_definition_sets(id,user_id,upload_id,filename,format,ecu_family,base_offset,definition_count,meta,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',defSetId,'system',uploadId,filename,fmt,parsed.meta?.ecuFamily||null,parsed.baseOffset??0,defs.length,JSON.stringify(parsed.meta||{}),ts,ts);
+   // Batch insert — D1 batch limit 100
+   const BATCH=80;let inserted=0;
+   for(let i=0;i<defs.length;i+=BATCH){
+     const chunk=defs.slice(i,i+BATCH);
+     const stmts=chunk.map(d=>env.DB.prepare('INSERT OR REPLACE INTO ecu_definitions(id,def_set_id,name,description,display_id,address,raw_address,datatype,data_size,type,system,unit,math,lower_limit,upper_limit,axes,element_count,total_bytes,source,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(id(),defSetId,d.name,d.description||d.name,d.displayId||'',d.address??d.offset??0,d.rawAddress??d.address??0,d.datatype||'UWORD',d.dataSize||2,d.type||'scalar',d.system||null,d.unit||'',d.math||'X',d.lowerLimit??d.min??null,d.upperLimit??d.max??null,JSON.stringify(d.axes||[]),d.elementCount||1,d.totalBytes||d.dataSize||2,fmt,ts,ts));
+     await env.DB.batch(stmts);inserted+=chunk.length;
+   }
+   await run(env,'INSERT INTO ecu_tuning_history(id,upload_id,vehicle_type,tuning_type,status,created_at) VALUES(?,?,?,?,?,?)',id(),uploadId,'definition','definition_upload','ok',ts);
+   return j({ok:true,uploadId,defSetId,definitionFile:filename,format:fmt.toUpperCase(),definitionsImported:inserted,baseOffset:parsed.baseOffset??0,meta:parsed.meta||{}});
+ }catch(e){return j({error:e.message||'DEFINITION_UPLOAD_FAILED'},500)}}
+
+ // === ECU COMPARE — original vs tuned byte diff ===
+ if(p==='/api/ecu/compare'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
+   if(!uploadId||!tunedId)return j({error:'MISSING_IDS'},400);
+   const upload=await q1(env,'SELECT binary_data,file_size FROM ecu_uploads WHERE id=?',uploadId);
+   const tuned=await q1(env,'SELECT tuned_binary_data,tuned_file_size,proposals_applied FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!upload||!tuned)return j({error:'NOT_FOUND'},404);
+   // fileGet ile binary çek
+   const origObj=await fileGet(env,upload.binary_data);
+   if(!origObj)return j({error:'ORIGINAL_FILE_NOT_FOUND'},404);
+   const orig=new Uint8Array(await origObj.arrayBuffer());
+   const tunedObj=await fileGet(env,tuned.tuned_binary_data);
+   if(!tunedObj)return j({error:'TUNED_FILE_NOT_FOUND'},404);
+   const modBytes=new Uint8Array(await tunedObj.arrayBuffer());
+   // Byte diff
+   const diffs=[];let i=0;
+   while(i<orig.length&&i<modBytes.length){
+     if(orig[i]!==modBytes[i]){const start=i;while(i<orig.length&&i<modBytes.length&&orig[i]!==modBytes[i]&&(i-start)<4096)i++;
+       diffs.push({offset:start,offsetHex:'0x'+start.toString(16).toUpperCase(),length:i-start,originalBytes:Array.from(orig.subarray(start,Math.min(start+32,i))).map(b=>b.toString(16).padStart(2,'0')).join(' '),tunedBytes:Array.from(modBytes.subarray(start,Math.min(start+32,i))).map(b=>b.toString(16).padStart(2,'0')).join(' '),truncated:(i-start)>32});
+     }else{i++}
+   }
+   let applied=[];try{applied=JSON.parse(tuned.proposals_applied||'[]')}catch(_){}
+   return j({ok:true,uploadId,tunedId,originalSize:orig.length,tunedSize:modBytes.length,changedRegions:diffs.length,totalChangedBytes:diffs.reduce((s,d)=>s+d.length,0),diffs:diffs.slice(0,100),appliedActions:applied.map(a=>({id:a.id,system:a.system,offset:a.offset,effectType:a.effectType||a.mapAction||'byte'}))});
+ }catch(e){return j({error:e.message||'COMPARE_FAILED'},500)}}
+
+ // === ECU HISTORY — tuning geçmişi ===
+ if(p==='/api/ecu/history'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const limit=Math.min(parseInt(u.searchParams.get('limit')||'20'),100);
+   const rows=await qall(env,`SELECT h.id,h.upload_id,h.vehicle_type,h.tuning_type,h.status,h.error_msg,h.created_at,u.filename,u.format,u.file_size FROM ecu_tuning_history h LEFT JOIN ecu_uploads u ON u.id=h.upload_id ORDER BY h.created_at DESC LIMIT ?`,limit);
+   return j({ok:true,history:rows});
+ }catch(e){return j({error:e.message||'HISTORY_FAILED'},500)}}
+
  // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
  if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
 
