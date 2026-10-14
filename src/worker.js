@@ -518,7 +518,13 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const summary=mod.summarizeForAI(bytes,regions);
    const vehicleCtx=upload.vehicle_type?JSON.parse(upload.vehicle_type):{};
    const vehicleStr=vehicleCtx.make?`Araç: ${vehicleCtx.make} ${vehicleCtx.model||''} ${vehicleCtx.year||''} ECU: ${vehicleCtx.ecuType||'bilinmiyor'}. `:'';
-   const sys=`Sen bir ECU tuning uzmanısın. ${vehicleStr}Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. Her öneri için açıklama da ekle. SADECE JSON array döndür, başka metin yok. Format: [{"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı, karbon birikimi durur","explain":"EGR valfı kapatılınca egzoz gazı emişe geri dönmez","risk":"low","hpGain":"+5-15 HP"}]. En fazla 8 öneri.`;
+   const sys=`Sen bir ECU tuning uzmanısın. ${vehicleStr}Verilen dosya özetine bakarak her sistem için SOMUT bir öneri yaz. Her öneri için açıklama da ekle. SADECE JSON array döndür, başka metin yok.
+İki format desteklenir:
+1) Tek-byte: {"system":"EGR","offset":"0x4A20","currentByte":"0x01","newByte":"0x00","action":"EGR bayrağını sıfırla","result":"EGR devre dışı","explain":"...","risk":"low","hpGain":"+5 HP"}
+2) Harita: {"system":"DPF","offset":"0x8000","dataSize":512,"mapAction":"zero","action":"DPF haritasını sıfırla","result":"DPF filtre basınç haritası devre dışı","explain":"...","risk":"high","hpGain":"+10 HP"}
+   mapAction değerleri: "zero" (tüm byte sıfır), "scale" (scaleFactor ile çarp, ör 1.15), "fill" (fillValue ile doldur, ör 65535)
+   scale için scaleFactor, fill için fillValue ekle. elementSize (1/2/4) ve elementCount gereklidir.
+Özetdeki 'definitionMeta' ve 'mapAction' bilgilerini dikkate al. En fazla 8 öneri.`;
    const userMsg='DOSYA ÖZETİ:\n'+JSON.stringify(summary,null,2);
    let aiSuggestions=[],provider='unknown',rawText='';
    // Try aiFallback first, then direct Cloudflare AI as fallback
@@ -558,7 +564,27 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    let toApply=[];
    const sentActions=Array.isArray(b.actions)?b.actions:[];
    if(sentActions.length){
-     toApply=sentActions.filter(a=>{const o=Number(a.offset);const nb=Number(a.newByte);return isFinite(o)&&o>=0&&o<original.length&&isFinite(nb)}).map(a=>({id:a.id||'action',label:a.label||'',offset:Number(a.offset),currentByte:Number(a.currentByte||0),newByte:Number(a.newByte),risk:a.risk||'medium',system:a.system||''}));
+     toApply=sentActions.filter(a=>{
+       const o=Number(a.offset);
+       if(!isFinite(o)||o<0||o>=original.length) return false;
+       // Map aksiyonları newByte gerektirmez — mapAction varsa kabul et
+       if(a.mapAction) return true;
+       // Multi-byte aksiyonları newValue ile çalışır
+       if(a.newValue!=null&&isFinite(Number(a.newValue))) return true;
+       // Tek-byte legacy
+       return isFinite(Number(a.newByte));
+     }).map(a=>{
+       const base={id:a.id||'action',label:a.label||'',offset:Number(a.offset),risk:a.risk||'medium',system:a.system||''};
+       if(a.mapAction){
+         return {...base,dataSize:Number(a.dataSize)||1,mapAction:a.mapAction,
+           fillByte:a.fillByte,fillValue:a.fillValue!=null?Number(a.fillValue):null,
+           scaleFactor:a.scaleFactor!=null?Number(a.scaleFactor):null,
+           elementSize:Number(a.elementSize)||1,elementCount:Number(a.elementCount)||1,
+           datatype:a.datatype||null};
+       }
+       if(a.newValue!=null) return {...base,dataSize:Number(a.dataSize)||2,datatype:a.datatype||null,newValue:Number(a.newValue)};
+       return {...base,dataSize:1,currentByte:Number(a.currentByte||0),newByte:Number(a.newByte)};
+     });
    }
    // Fallback: re-scan and match by ID (legacy compatibility)
    if(!toApply.length){

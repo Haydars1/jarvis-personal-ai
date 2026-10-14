@@ -828,6 +828,131 @@ export async function scanRegions(bytes, definitions = null) {
     }
   }
 
+  // 1.5) DAMOS map label taraması — Bosch kalibrasyon harita isimleri
+  const DAMOS_MAP_LABELS = [
+    // DPF / Exhaust
+    { re: /^KF_DPFPC/i, system: 'DPF', desc: 'DPF diferansiyel basınç haritası', mapAction: 'zero' },
+    { re: /^KF_DPF/i, system: 'DPF', desc: 'DPF kontrol haritası', mapAction: 'zero' },
+    { re: /^KF_EGAS/i, system: 'Pedal', desc: 'E-gaz pedalı haritası', mapAction: 'scale' },
+    // EGR
+    { re: /^KF_AGR/i, system: 'EGR', desc: 'EGR kontrol haritası', mapAction: 'zero' },
+    { re: /^KF_EGRV/i, system: 'EGR', desc: 'EGR valf haritası', mapAction: 'zero' },
+    // AdBlue / SCR
+    { re: /^KF_SCR/i, system: 'AdBlue/SCR', desc: 'SCR dozaj haritası', mapAction: 'zero' },
+    { re: /^KF_ADBLUE/i, system: 'AdBlue/SCR', desc: 'AdBlue enjeksiyon haritası', mapAction: 'zero' },
+    // Torque / Power
+    { re: /^KF_MDMXAS/i, system: 'Torque', desc: 'Maksimum tork sınır haritası', mapAction: 'scale' },
+    { re: /^KF_MDSOL/i, system: 'Torque', desc: 'Hedef tork haritası', mapAction: 'scale' },
+    { re: /^KF_MDRED/i, system: 'Torque', desc: 'Tork azaltma haritası', mapAction: 'zero' },
+    // Boost
+    { re: /^KF_LD/i, system: 'Boost', desc: 'Turbo basınç haritası', mapAction: 'scale' },
+    { re: /^KFLDIMX/i, system: 'Boost', desc: 'Maksimum boost basınç haritası', mapAction: 'scale' },
+    { re: /^KFLDRX/i, system: 'Boost', desc: 'Boost düzenleyici haritası', mapAction: 'scale' },
+    // Injection
+    { re: /^KF_EINSP/i, system: 'Injection', desc: 'Enjeksiyon zamanlama haritası', mapAction: 'scale' },
+    { re: /^KF_MMEN/i, system: 'Injection', desc: 'Enjeksiyon miktar haritası', mapAction: 'scale' },
+    // Vmax / Speed
+    { re: /^KL_NMAX/i, system: 'RPM', desc: 'Maksimum devir sınır eğrisi', mapAction: 'fill' },
+    { re: /^KL_VMAX/i, system: 'Vmax', desc: 'Maksimum hız sınır eğrisi', mapAction: 'fill' },
+    { re: /^KF_VMAX/i, system: 'Vmax', desc: 'Hız sınır haritası', mapAction: 'fill' },
+    // Lambda
+    { re: /^KF_LAM/i, system: 'Lambda', desc: 'Lambda hedef haritası', mapAction: 'zero' },
+    { re: /^KF_LSHK/i, system: 'Lambda', desc: 'Lambda sonda ısıtma haritası', mapAction: 'zero' },
+    // Knock
+    { re: /^KF_KLS/i, system: 'Knock', desc: 'Vuruntu koruma haritası', mapAction: 'scale' },
+  ];
+
+  for (const s of strings) {
+    for (const damos of DAMOS_MAP_LABELS) {
+      if (!damos.re.test(s.text)) continue;
+      const key = 'damos_map_' + s.text + ':' + s.offset;
+      if (perSystem.has(key)) continue;
+      perSystem.set(key, true);
+
+      const ofs = s.offset;
+      const windowStart = Math.max(0, ofs - 8);
+      const windowEnd = Math.min(bytes.length, ofs + s.text.length + 32);
+      const windowBytes = bytes.subarray(windowStart, windowEnd);
+
+      // DAMOS label'ın hemen ardından gelen veri bölgesinin boyutunu tahmin et
+      // Tipik: label string + padding → axis refs → data block
+      // Heuristik: label sonrası 64 byte'lık bölgede sıfır olmayan veri ara
+      const dataStart = ofs + s.text.length + 1;
+      let estSize = 0;
+      if (dataStart < bytes.length) {
+        // İlk 2 byte genellikle row×col veya element count ipucu verir
+        const b0 = bytes[dataStart] || 0;
+        const b1 = (dataStart + 1 < bytes.length) ? bytes[dataStart + 1] : 0;
+        // Varsayılan: 2-byte elemanlarla küçük harita (16×16 max)
+        const guessElements = Math.max(b0, 1) * Math.max(b1 || 1, 1);
+        estSize = Math.min(guessElements * 2, 1024); // Max 1KB
+      }
+      if (estSize < 4) estSize = 64; // Minimum tahmini boyut
+
+      const actions = [];
+      if (damos.mapAction === 'zero') {
+        actions.push({
+          id: `damos_map_${s.text}_zero`,
+          label: `${damos.desc} — sıfırla (${s.text})`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte → 0x00`,
+          offset: dataStart,
+          dataSize: estSize,
+          fillByte: 0x00,
+          mapAction: 'zero',
+          risk: 'high',
+          confidence: 'medium',
+          source: 'damos-map-label'
+        });
+      } else if (damos.mapAction === 'scale') {
+        actions.push({
+          id: `damos_map_${s.text}_scale`,
+          label: `${damos.desc} — ölçekle (${s.text})`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte, 2-byte LE elemanlar`,
+          offset: dataStart,
+          dataSize: estSize,
+          elementSize: 2,
+          elementCount: Math.floor(estSize / 2),
+          mapAction: 'scale',
+          scaleFactor: null, // Kullanıcı veya AI belirler
+          risk: 'high',
+          confidence: 'medium',
+          source: 'damos-map-label'
+        });
+      } else if (damos.mapAction === 'fill') {
+        actions.push({
+          id: `damos_map_${s.text}_fill`,
+          label: `${damos.desc} — limiti kaldır (${s.text})`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — 2-byte elemanlar → max`,
+          offset: dataStart,
+          dataSize: estSize,
+          elementSize: 2,
+          elementCount: Math.floor(estSize / 2),
+          mapAction: 'fill',
+          fillValue: 0xFFFF,
+          risk: 'high',
+          confidence: 'medium',
+          source: 'damos-map-label'
+        });
+      }
+
+      if (actions.length) {
+        regions.push({
+          id: `damos_map_${s.text}_${ofs.toString(16)}`,
+          system: damos.system,
+          desc: `DAMOS harita: ${s.text} — ${damos.desc}`,
+          foundString: s.text,
+          offset: ofs,
+          offsetHex: hexAddr(ofs),
+          windowHex: hexDump(windowBytes),
+          windowStart,
+          source: 'damos-map-label',
+          actions
+        });
+      }
+      break; // Bir DAMOS label sadece bir sisteme eşleşir
+    }
+  }
+
   // 2) Scanner heuristiği — string tabanlı
   for (const s of strings) {
     for (const sys of SYSTEMS) {
@@ -966,12 +1091,26 @@ export async function scanRegions(bytes, definitions = null) {
 // ---------- Dosya özetini LLM'e göndermeye hazırla ----------
 export function summarizeForAI(bytes, regions, limit = 6000) {
   const stats = fileStats(bytes);
-  const topRegions = regions.slice(0, 40).map(r => ({
-    system: r.system,
-    offset: r.offsetHex,
-    string: r.foundString.slice(0, 40),
-    bytes: r.windowHex.slice(0, 80)
-  }));
+  const topRegions = regions.slice(0, 40).map(r => {
+    const entry = {
+      system: r.system,
+      offset: r.offsetHex,
+      string: r.foundString.slice(0, 40),
+      bytes: r.windowHex.slice(0, 80)
+    };
+    // Harita meta verileri — AI'ın map aksiyonu üretebilmesi için
+    if (r.definitionMeta) {
+      entry.defType = r.definitionMeta.type;
+      if (r.definitionMeta.elementCount > 1) entry.elements = r.definitionMeta.elementCount;
+      if (r.definitionMeta.totalBytes) entry.totalBytes = r.definitionMeta.totalBytes;
+      if (r.definitionMeta.datatype) entry.datatype = r.definitionMeta.datatype;
+      if (r.definitionMeta.unit) entry.unit = r.definitionMeta.unit;
+    }
+    // Mevcut map aksiyonları varsa listele
+    const mapActions = (r.actions || []).filter(a => a.mapAction);
+    if (mapActions.length) entry.mapActions = mapActions.map(a => a.mapAction);
+    return entry;
+  });
   return {
     sizeBytes: stats.size,
     entropy: stats.entropy,
