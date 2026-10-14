@@ -750,6 +750,70 @@ export function definitionsToRegions(matchedDefs) {
       }
     }
 
+    // Map/Curve tabloları — toplu sıfırlama ve ölçekleme aksiyonları
+    if ((def.type === 'map' || def.type === 'curve') && def.elementCount > 1 && def.totalBytes > 0) {
+      const tb = def.totalBytes;
+      const elSize = def.dataSize || 1;
+      const sysLow = (def.system || '').toLowerCase();
+
+      // Devre dışı bırakma sistemleri için sıfırla aksiyonu (DPF, EGR, AdBlue, Lambda, DTC)
+      if (/^(dpf|egr|adblue|scr|lambda|dtc)$/i.test(def.system)) {
+        actions.push({
+          id: `def_${def.name}_zero`,
+          label: `${def.displayId} — Haritayı sıfırla (${def.elementCount} hücre)`,
+          detail: `${def.description} — ${tb} byte tamamen 0x00 yap (${def.source.toUpperCase()})`,
+          offset: def.address,
+          dataSize: tb,
+          fillByte: 0x00,
+          mapAction: 'zero',
+          elementCount: def.elementCount,
+          risk: 'high',
+          confidence: 'high',
+          source: `imported-${def.source}`
+        });
+      }
+
+      // Performans haritaları için ölçekleme aksiyonları (Boost, Torque, Injection)
+      if (/^(boost|torque|injection)$/i.test(def.system)) {
+        actions.push({
+          id: `def_${def.name}_scale`,
+          label: `${def.displayId} — Harita ölçekle (${def.elementCount} hücre)`,
+          detail: `${def.description} — ${elSize}-byte hücreler, ${def.unit || 'bilinmeyen birim'} (${def.source.toUpperCase()})`,
+          offset: def.address,
+          dataSize: tb,
+          elementSize: elSize,
+          datatype: def.datatype,
+          mapAction: 'scale',
+          scaleFactor: null, // Kullanıcı veya AI belirler
+          elementCount: def.elementCount,
+          currentValue: def.currentValue,
+          risk: 'high',
+          confidence: 'high',
+          source: `imported-${def.source}`
+        });
+      }
+
+      // Vmax / RPM limiter haritaları için max değer aksiyonu
+      if (/^(vmax|rpm)$/i.test(def.system)) {
+        const maxVal = def.upperLimit != null ? def.upperLimit : (elSize === 2 ? 0xFFFF : elSize === 4 ? 0x7FFFFFFF : 0xFF);
+        actions.push({
+          id: `def_${def.name}_maxout`,
+          label: `${def.displayId} — Limiti kaldır (${def.elementCount} hücre → max)`,
+          detail: `${def.description} — tüm hücreleri ${maxVal} ${def.unit || ''} yap (${def.source.toUpperCase()})`,
+          offset: def.address,
+          dataSize: tb,
+          elementSize: elSize,
+          datatype: def.datatype,
+          mapAction: 'fill',
+          fillValue: maxVal,
+          elementCount: def.elementCount,
+          risk: 'high',
+          confidence: 'high',
+          source: `imported-${def.source}`
+        });
+      }
+    }
+
     regions.push({
       id: `def_${def.name}_${def.address.toString(16)}`,
       system: def.system,
@@ -768,10 +832,44 @@ export function definitionsToRegions(matchedDefs) {
         unit: def.unit,
         math: def.math,
         axes: def.axes,
-        elementCount: def.elementCount
+        elementCount: def.elementCount,
+        totalBytes: def.totalBytes
       }
     });
   }
 
   return regions;
+}
+
+// ─── D1 satırlarından tanım nesnelerine normalize et (shared helper) ───
+
+/**
+ * D1 ecu_definitions satırlarını matchDefinitions/scanRegions'ın beklediği
+ * normalize tanım dizisine çevirir. Upload ve ai-suggest endpointleri aynı
+ * dönüşümü kullanır.
+ *
+ * @param {Array} rows — D1 SELECT * FROM ecu_definitions sonucu
+ * @returns {Array} — normalize edilmiş tanım dizisi
+ */
+export function normalizeD1Definitions(rows) {
+  if (!rows || !rows.length) return null;
+  return rows.map(d => ({
+    name: d.name,
+    description: d.description,
+    displayId: d.display_id,
+    address: d.address,
+    rawAddress: d.raw_address,
+    datatype: d.datatype,
+    dataSize: d.data_size,
+    type: d.type,
+    system: d.system,
+    unit: d.unit,
+    math: d.math,
+    lowerLimit: d.lower_limit,
+    upperLimit: d.upper_limit,
+    axes: JSON.parse(d.axes || '[]'),
+    elementCount: d.element_count,
+    totalBytes: d.total_bytes,
+    source: d.source
+  }));
 }

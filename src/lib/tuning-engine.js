@@ -996,6 +996,69 @@ export async function applyActions(originalBytes, selectedActions) {
     // Sınır kontrolü — yazılacak byte sayısı dosya sonunu aşmamalı
     if (a.offset + ds > tuned.length) continue;
 
+    // ---- Harita aksiyonları (zero / scale / fill) ----
+    if (a.mapAction) {
+      const beforeBytes = [];
+      for (let i = 0; i < ds; i++) beforeBytes.push(tuned[a.offset + i]);
+
+      if (a.mapAction === 'zero') {
+        // Tüm byte'ları sıfırla — DPF/EGR/AdBlue/Lambda/DTC haritaları
+        for (let i = 0; i < ds; i++) tuned[a.offset + i] = a.fillByte ?? 0x00;
+
+      } else if (a.mapAction === 'scale' && a.scaleFactor != null) {
+        // Her hücreyi scaleFactor ile çarp — Boost/Torque/Injection haritaları
+        const elSz = a.elementSize || 1;
+        const count = a.elementCount || Math.floor(ds / elSz);
+        for (let e = 0; e < count; e++) {
+          const pos = a.offset + e * elSz;
+          if (pos + elSz > tuned.length) break;
+          let val;
+          if (elSz === 1) val = tuned[pos];
+          else if (elSz === 2) val = dv.getUint16(pos, true);
+          else if (elSz === 4 && a.datatype === 'FLOAT32_IEEE') val = dv.getFloat32(pos, true);
+          else if (elSz === 4) val = dv.getUint32(pos, true);
+          else continue;
+
+          let scaled = val * a.scaleFactor;
+          if (a.datatype === 'FLOAT32_IEEE') {
+            dv.setFloat32(pos, scaled, true);
+          } else {
+            scaled = Math.round(scaled);
+            const maxVal = elSz === 1 ? 0xFF : elSz === 2 ? 0xFFFF : 0xFFFFFFFF;
+            scaled = Math.max(0, Math.min(maxVal, scaled));
+            if (elSz === 1) tuned[pos] = scaled;
+            else if (elSz === 2) dv.setUint16(pos, scaled, true);
+            else if (elSz === 4) dv.setUint32(pos, scaled >>> 0, true);
+          }
+        }
+
+      } else if (a.mapAction === 'fill' && a.fillValue != null) {
+        // Tüm hücreleri sabit değerle doldur — Vmax/RPM limiter
+        const elSz = a.elementSize || 1;
+        const count = a.elementCount || Math.floor(ds / elSz);
+        for (let e = 0; e < count; e++) {
+          const pos = a.offset + e * elSz;
+          if (pos + elSz > tuned.length) break;
+          if (elSz === 1) tuned[pos] = a.fillValue & 0xFF;
+          else if (elSz === 2) dv.setUint16(pos, a.fillValue & 0xFFFF, true);
+          else if (elSz === 4 && a.datatype === 'FLOAT32_IEEE') dv.setFloat32(pos, a.fillValue, true);
+          else if (elSz === 4) dv.setUint32(pos, a.fillValue >>> 0, true);
+        }
+      }
+
+      const afterBytes = [];
+      for (let i = 0; i < ds; i++) afterBytes.push(tuned[a.offset + i]);
+
+      applied.push({
+        id: a.id, label: a.label, offset: a.offset,
+        offsetHex: hexAddr(a.offset), dataSize: ds,
+        mapAction: a.mapAction,
+        beforeBytes, afterBytes,
+        before: beforeBytes[0], after: afterBytes[0]
+      });
+      continue;
+    }
+
     // ---- Multi-byte yazma ----
     if (ds >= 2 && a.newValue != null) {
       const beforeBytes = [];

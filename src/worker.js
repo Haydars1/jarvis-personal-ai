@@ -452,9 +452,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    let normalized=null;
    try{
      const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
-     if(importedDefs&&importedDefs.length){
-       normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
-     }
+     const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');
+     normalized=normalizeD1Definitions(importedDefs);
    }catch(_defErr){/* tanım yükleme hatası taramayı durdurmamalı */}
    const regions=await mod.scanRegions(fileData, normalized);
    const upload_id=id();
@@ -512,9 +511,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    let normalized=null;
    try{
      const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
-     if(importedDefs&&importedDefs.length){
-       normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
-     }
+     const {normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');
+     normalized=normalizeD1Definitions(importedDefs);
    }catch(_defErr){/* tanım yükleme hatası taramayı durdurmamalı */}
    const regions=await mod.scanRegions(bytes, normalized);
    const summary=mod.summarizeForAI(bytes,regions);
