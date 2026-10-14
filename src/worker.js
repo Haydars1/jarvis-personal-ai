@@ -9,6 +9,7 @@ import { githubCredential, repoCfg, gh, b64Utf8, repoFile, SELF_EDIT_ALLOW, clea
 import { googleCredential, googleStored, googleAccessToken, mailRaw, gmailList, gmailSend, driveFiles, metaCredential, metaFacebookPost, metaInstagramPost, pendingAction, executeAction } from './lib/integrations.js';
 import { addChat, chatHistory, rememberExplicit } from './lib/chat.js';
 import { aiFallback, aiRouterStatus, aiDiagnostics, aiRouterMark } from './lib/ai-router.js';
+import { obdBridgeRouter } from './lib/obd-bridge.js';
 
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
@@ -736,6 +737,9 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const regions=definitionsToRegions(matched);
    return j({ok:true,totalDefs:defs.length,matchedCount:matched.length,regionCount:regions.length,matched:matched.slice(0,200),regions});
  }catch(e){return j({error:e.message||'MATCH_FAILED'},500)}}
+
+ // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
+ if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
 
  // === GÖRSEL ÜRETME (Cloudflare AI — ücretsiz) ===
  if(p==='/api/ai/image'&&m==='POST'){try{

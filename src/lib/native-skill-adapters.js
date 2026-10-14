@@ -16,6 +16,14 @@ const ADAPTERS=Object.freeze([
     notes:'Physical vehicle work remains confirmation-gated and requires a compatible local diagnostic interface.'
   },
   {
+    id:'obd-bridge',
+    capabilities:['obd-ii','elm327','live-data','dtc-decode'],
+    lane:'worker',
+    risk:'low',
+    route:'/api/obd/live',
+    notes:'ELM327 OBD-II bridge — PID decode, DTC parse, live session logging via WebSocket or REST. Client-side serial/BT connection to adapter.'
+  },
+  {
     id:'social-growth',
     capabilities:['social-automation'],
     lane:'worker',
