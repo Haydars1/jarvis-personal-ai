@@ -250,6 +250,171 @@ function findSwitchControl(bytes, keywordOffset, keywordLen, detectionConfig) {
   } : null;
 }
 
+// ---------- Binary limiter-value scanner ----------
+// Keyword bulunamadığında uint16 tekrarlarını tarayarak speed/RPM limiter konumunu bul
+function scanLimiterValues(bytes, limiterDef) {
+  if (!limiterDef || !limiterDef.values) return null;
+
+  const minRepeats = limiterDef.minRepeats || 3;
+  const multipliers = limiterDef.multipliers || [1];
+
+  let bestResult = null;
+  let bestScore = 0;
+
+  for (const entry of limiterDef.values) {
+    for (const mul of multipliers) {
+      const targetVal = entry.u16 * mul;
+      if (targetVal > 0xFFFF) continue;  // uint16 taşması
+
+      const lo = targetVal & 0xFF;
+      const hi = (targetVal >> 8) & 0xFF;
+
+      // Little-endian tarama
+      const leHits = scanRepeatedU16(bytes, lo, hi, minRepeats);
+      if (leHits && leHits.score > bestScore) {
+        bestScore = leHits.score;
+        bestResult = {
+          offset: leHits.offset,
+          count: leHits.count,
+          span: leHits.span,
+          value: targetVal,
+          label: entry.label + (mul > 1 ? ` (×${mul} skala)` : ''),
+          endian: 'LE',
+          score: leHits.score,
+          confidence: leHits.score > 120 ? 'medium' : 'low',
+        };
+      }
+
+      // Big-endian tarama (hi, lo sırası)
+      if (lo !== hi) {
+        const beHits = scanRepeatedU16(bytes, hi, lo, minRepeats);
+        if (beHits && beHits.score > bestScore) {
+          bestScore = beHits.score;
+          bestResult = {
+            offset: beHits.offset,
+            count: beHits.count,
+            span: beHits.span,
+            value: targetVal,
+            label: entry.label + (mul > 1 ? ` (×${mul} skala)` : ''),
+            endian: 'BE',
+            score: beHits.score,
+            confidence: beHits.score > 120 ? 'medium' : 'low',
+          };
+        }
+      }
+    }
+  }
+
+  return bestResult;
+}
+
+// Belirli bir uint16 değerinin tekrarlandığı bölgeleri bul
+function scanRepeatedU16(bytes, b0, b1, minRepeats) {
+  // Kalibrasyon bölgesini tahmin et — dosyanın son %60'ı genellikle kalibrasyon alanı
+  const calStart = Math.floor(bytes.length * 0.4);
+  let bestOffset = -1;
+  let bestCount = 0;
+  let bestSpan = 0;
+
+  for (let i = calStart; i < bytes.length - 1; i += 2) {
+    if (bytes[i] !== b0 || bytes[i + 1] !== b1) continue;
+
+    // Bu konumdan itibaren kaç ardışık tekrar var?
+    let count = 1;
+    let j = i + 2;
+    while (j < bytes.length - 1 && bytes[j] === b0 && bytes[j + 1] === b1) {
+      count++;
+      j += 2;
+    }
+
+    if (count >= minRepeats && count > bestCount) {
+      // ASCII string içinde olmadığından emin ol
+      if (isInsideAscii(bytes, i, 4)) continue;
+
+      bestCount = count;
+      bestOffset = i;
+      bestSpan = count * 2;
+    }
+  }
+
+  if (bestCount < minRepeats) return null;
+
+  // Skor hesapla
+  let score = 50;                                   // temel skor
+  score += bestCount * 15;                          // tekrar sayısı bonusu
+  if (bestOffset % 4 === 0) score += 20;            // dword-aligned bonus
+  if (bestCount >= 8) score += 30;                  // güçlü tekrar bonusu (map satırı)
+  // Yakınlarında farklı kalibrasyon verisi varsa bonus
+  if (bestOffset >= 4 && bestOffset + bestSpan + 4 < bytes.length) {
+    const before16 = bytes[bestOffset - 2] | (bytes[bestOffset - 1] << 8);
+    const after16 = bytes[bestOffset + bestSpan] | (bytes[bestOffset + bestSpan + 1] << 8);
+    // Yakın değerler benzer büyüklükteyse → kalibrasyon bölgesi göstergesi
+    const val16 = b0 | (b1 << 8);
+    if (Math.abs(before16 - val16) < val16 * 0.5) score += 15;
+    if (Math.abs(after16 - val16) < val16 * 0.5) score += 15;
+  }
+
+  return { offset: bestOffset, count: bestCount, span: bestSpan, score };
+}
+
+// ---------- Kalibrasyon bölgesi map-yapı dedektörü ----------
+// Bir keyword konumunun yakınında map table header yapısı ara
+// Monoton artan axis değerleri → yüksek güvenilirlikli map konumu
+function findNearbyMapStructure(bytes, keywordOffset, searchRadius) {
+  const radius = searchRadius || 2048;
+  const start = Math.max(0, keywordOffset - radius);
+  const end = Math.min(bytes.length - 16, keywordOffset + radius);
+
+  let bestResult = null;
+  let bestScore = 0;
+
+  for (let i = start; i < end; i += 2) {
+    // Map table header adayı: 1-2 byte axis boyutu + monoton artan uint16 axis
+    // Tipik yapı: [axisSize] [v0 LE16] [v1 LE16] ... [vN LE16] monoton artan
+    const axisLen = bytes[i];
+    if (axisLen < 4 || axisLen > 32) continue;      // mantıklı axis boyutu
+
+    // Bu pozisyondan sonra axisLen adet monoton artan uint16 var mı?
+    if (i + 1 + axisLen * 2 >= bytes.length) continue;
+
+    let monotonic = true;
+    let prevVal = 0;
+    let allZero = true;
+    for (let k = 0; k < axisLen; k++) {
+      const ofs = i + 1 + k * 2;
+      const val = bytes[ofs] | (bytes[ofs + 1] << 8);
+      if (val !== 0) allZero = false;
+      if (val < prevVal) { monotonic = false; break; }
+      prevVal = val;
+    }
+
+    if (!monotonic || allZero) continue;
+    if (isInsideAscii(bytes, i, 4)) continue;
+
+    // Skor: keyword'e yakınlık + axis uzunluğu
+    let score = 60;
+    const dist = Math.abs(i - keywordOffset);
+    score -= dist * 0.05;                            // uzaklık cezası
+    score += axisLen * 3;                            // uzun axis = daha güvenilir
+    if (i % 4 === 0) score += 10;                    // alignment bonus
+    if (prevVal > 100 && prevVal < 50000) score += 20; // mantıklı değer aralığı
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestResult = {
+        offset: i,
+        axisLen,
+        lastAxisVal: prevVal,
+        score,
+        mapDataStart: i + 1 + axisLen * 2,
+        confidence: score > 80 ? 'medium' : 'low',
+      };
+    }
+  }
+
+  return bestResult;
+}
+
 // DAMOS etiketlerini tüm binary'de tara — yüksek güvenilirlikli tespit
 function scanDamosLabels(bytes, damosLabels) {
   if (!damosLabels?.length) return [];
@@ -385,26 +550,94 @@ export const VEHICLE_DB = {
 
 // ---------- ECU-tip profilleri (benzinli vs dizel, beklenen sistemler) ----------
 const ECU_PROFILES = {
-  // Dizel ECU'lar
-  'EDC17': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'EDC16': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'EDC15': { fuel: 'diesel', systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum'] },
-  'SID': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'PCR': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'DCM': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  // Benzinli ECU'lar
-  'MED17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  'MED9': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
-  'ME7': { fuel: 'gasoline', systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  'MEVD17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  'SIMOS': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  'MG1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'MD1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'MEVD': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  // Denso / Japon benzinli
-  'DENSO': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
-  'SH7058': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
-  'SH7059': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
+  // Dizel ECU'lar — Bosch DAMOS kalibrasyon label beklentileri
+  'EDC17': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'EDC16': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'EDC15': {
+    fuel: 'diesel',
+    systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_MDMXAS','KF_MDSOL','KF_LD','KFLDIMX','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX']
+  },
+  'SID': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_DPF','KF_MDMXAS','KF_MDSOL','KF_LD','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX','KL_VMAX']
+  },
+  'PCR': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'DCM': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX','KL_VMAX']
+  },
+  // Benzinli ECU'lar — Bosch DAMOS label beklentileri (EGR/DPF/SCR yok)
+  'MED17': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'MED9': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_LD','KF_EINSP','KF_MMEN','KF_LAM','KF_KLS','KL_NMAX','KL_VMAX']
+  },
+  'ME7': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_EINSP','KF_MMEN','KF_LAM','KF_KLS','KL_NMAX','KL_VMAX']
+  },
+  'MEVD17': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'SIMOS': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'MG1': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'MD1': {
+    fuel: 'diesel',
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  'MEVD': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
+  },
+  // Denso / Japon benzinli — farklı kalibrasyon isimlendirmesi, Bosch DAMOS label'ları beklenmez
+  'DENSO': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    damosLabels: []
+  },
+  'SH7058': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    damosLabels: []
+  },
+  'SH7059': {
+    fuel: 'gasoline',
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    damosLabels: []
+  },
 };
 
 function detectEcuType(strings) {
@@ -772,6 +1005,102 @@ export async function scanRegions(bytes, definitions = null) {
     });
   }
 
+  // 1b) Rulepack familyMaps — harita isimlerini binary string'lerde ara, map action üret
+  for (const rpm of rulepackMatches) {
+    if (!rpm.familyMaps?.length) continue;
+    for (const fm of rpm.familyMaps) {
+      if (!fm.mapAction) continue; // eski formatta metadata yoksa atla
+      // String listesinde harita ismini ara
+      for (const s of strings) {
+        if (!s.text.toUpperCase().includes(fm.name.toUpperCase())) continue;
+        const key = 'rpmap_' + fm.name + ':' + s.offset;
+        if (perSystem.has(key)) continue;
+        perSystem.set(key, true);
+
+        const ofs = s.offset;
+        const dataStart = ofs + s.text.length + 1;
+        const windowStart = Math.max(0, ofs - 8);
+        const windowEnd = Math.min(bytes.length, ofs + s.text.length + 32);
+        const windowBytes = bytes.subarray(windowStart, windowEnd);
+
+        // Tahmini veri boyutu — harita elemanları
+        const elemSize = fm.elementSize || 2;
+        let estSize = 64;
+        if (dataStart + 2 < bytes.length) {
+          const b0 = bytes[dataStart] || 1;
+          const b1 = bytes[dataStart + 1] || 1;
+          const guess = Math.max(b0, 1) * Math.max(b1, 1);
+          estSize = Math.min(guess * elemSize, 2048);
+          if (estSize < 4) estSize = 64;
+        }
+
+        const actions = [];
+        if (fm.mapAction === 'zero') {
+          actions.push({
+            id: `rpmap_${rpm.family}_${fm.name.replace(/\s+/g, '_')}_zero`,
+            label: `${fm.desc} — sıfırla (${fm.name})`,
+            detail: `Rulepack ${rpm.familyName}: ${fm.name} @ ${hexAddr(dataStart)} — ${estSize} byte → 0x00`,
+            offset: dataStart,
+            dataSize: estSize,
+            fillByte: 0x00,
+            mapAction: 'zero',
+            risk: 'medium',
+            confidence: 'high',
+            source: 'rulepack-map:' + rpm.family
+          });
+        } else if (fm.mapAction === 'scale') {
+          actions.push({
+            id: `rpmap_${rpm.family}_${fm.name.replace(/\s+/g, '_')}_scale`,
+            label: `${fm.desc} — ölçekle ×${fm.scaleFactor} (${fm.name})`,
+            detail: `Rulepack ${rpm.familyName}: ${fm.name} @ ${hexAddr(dataStart)} — ${elemSize}-byte LE × ${Math.floor(estSize / elemSize)} eleman`,
+            offset: dataStart,
+            dataSize: estSize,
+            elementSize: elemSize,
+            elementCount: Math.floor(estSize / elemSize),
+            mapAction: 'scale',
+            scaleFactor: fm.scaleFactor,
+            risk: 'medium',
+            confidence: 'high',
+            source: 'rulepack-map:' + rpm.family
+          });
+        } else if (fm.mapAction === 'fill') {
+          const fv = fm.fillValue ?? 0xFFFF;
+          actions.push({
+            id: `rpmap_${rpm.family}_${fm.name.replace(/\s+/g, '_')}_fill`,
+            label: `${fm.desc} — limiti kaldır (${fm.name})`,
+            detail: `Rulepack ${rpm.familyName}: ${fm.name} @ ${hexAddr(dataStart)} — ${elemSize}-byte → 0x${fv.toString(16).toUpperCase()}`,
+            offset: dataStart,
+            dataSize: estSize,
+            elementSize: elemSize,
+            elementCount: Math.floor(estSize / elemSize),
+            mapAction: 'fill',
+            fillValue: fv,
+            risk: 'medium',
+            confidence: 'high',
+            source: 'rulepack-map:' + rpm.family
+          });
+        }
+
+        if (actions.length) {
+          regions.push({
+            id: `rpmap_${rpm.family}_${fm.name.replace(/\s+/g, '_')}_${ofs.toString(16)}`,
+            system: fm.system || rpm.familyName,
+            desc: `Rulepack harita: ${fm.name} — ${fm.desc}`,
+            foundString: s.text,
+            offset: ofs,
+            offsetHex: hexAddr(ofs),
+            windowHex: hexDump(windowBytes),
+            windowStart,
+            source: 'rulepack-map:' + rpm.family,
+            sourceUrl: rpm.sources?.[0]?.url,
+            actions
+          });
+        }
+        break; // Bir string sadece bir kere eşleşsin
+      }
+    }
+  }
+
   // 1.5) DAMOS label taraması — yüksek güvenilirlik (DPF + EGR + AdBlue)
   let dpfConfig = null;
   let egrConfig = null;
@@ -828,6 +1157,10 @@ export async function scanRegions(bytes, definitions = null) {
     }
   }
 
+  // ECU tip profili — DAMOS map scanner'dan önce çıkar (confidence boost için)
+  const ecuProfile = detectEcuType(strings);
+  const ecuDamosSet = new Set(ecuProfile.damosLabels || []);
+
   // 1.5) DAMOS map label taraması — Bosch kalibrasyon harita isimleri
   const DAMOS_MAP_LABELS = [
     // DPF / Exhaust
@@ -875,62 +1208,65 @@ export async function scanRegions(bytes, definitions = null) {
       const windowBytes = bytes.subarray(windowStart, windowEnd);
 
       // DAMOS label'ın hemen ardından gelen veri bölgesinin boyutunu tahmin et
-      // Tipik: label string + padding → axis refs → data block
-      // Heuristik: label sonrası 64 byte'lık bölgede sıfır olmayan veri ara
       const dataStart = ofs + s.text.length + 1;
       let estSize = 0;
       if (dataStart < bytes.length) {
-        // İlk 2 byte genellikle row×col veya element count ipucu verir
         const b0 = bytes[dataStart] || 0;
         const b1 = (dataStart + 1 < bytes.length) ? bytes[dataStart + 1] : 0;
-        // Varsayılan: 2-byte elemanlarla küçük harita (16×16 max)
         const guessElements = Math.max(b0, 1) * Math.max(b1 || 1, 1);
-        estSize = Math.min(guessElements * 2, 1024); // Max 1KB
+        estSize = Math.min(guessElements * 2, 1024);
       }
-      if (estSize < 4) estSize = 64; // Minimum tahmini boyut
+      if (estSize < 4) estSize = 64;
+
+      // ECU profili ile DAMOS label eşleşirse confidence yükselt
+      // Label prefix'i ECU_PROFILES.damosLabels içindeyse → 'high', değilse → 'medium'
+      const labelPrefix = s.text.replace(/[^A-Z_]/gi, '').split('_').slice(0, 2).join('_');
+      const fullLabelKey = s.text.match(/^[A-Z_]+/i)?.[0] || s.text;
+      const ecuConfirmed = ecuDamosSet.has(fullLabelKey) || ecuDamosSet.has(labelPrefix);
+      const mapConfidence = ecuConfirmed ? 'high' : 'medium';
 
       const actions = [];
       if (damos.mapAction === 'zero') {
         actions.push({
           id: `damos_map_${s.text}_zero`,
           label: `${damos.desc} — sıfırla (${s.text})`,
-          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte → 0x00`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte → 0x00${ecuConfirmed ? ' [ECU profil onaylı]' : ''}`,
           offset: dataStart,
           dataSize: estSize,
           fillByte: 0x00,
           mapAction: 'zero',
-          risk: 'high',
-          confidence: 'medium',
+          risk: ecuConfirmed ? 'medium' : 'high',
+          confidence: mapConfidence,
           source: 'damos-map-label'
         });
       } else if (damos.mapAction === 'scale') {
         actions.push({
           id: `damos_map_${s.text}_scale`,
           label: `${damos.desc} — ölçekle (${s.text})`,
-          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte, 2-byte LE elemanlar`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — tahmini ${estSize} byte, 2-byte LE elemanlar${ecuConfirmed ? ' [ECU profil onaylı]' : ''}`,
           offset: dataStart,
           dataSize: estSize,
           elementSize: 2,
           elementCount: Math.floor(estSize / 2),
           mapAction: 'scale',
-          scaleFactor: null, // Kullanıcı veya AI belirler
-          risk: 'high',
-          confidence: 'medium',
+          scaleFactor: null,
+          risk: ecuConfirmed ? 'medium' : 'high',
+          confidence: mapConfidence,
           source: 'damos-map-label'
         });
       } else if (damos.mapAction === 'fill') {
         actions.push({
           id: `damos_map_${s.text}_fill`,
           label: `${damos.desc} — limiti kaldır (${s.text})`,
-          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — 2-byte elemanlar → max`,
+          detail: `DAMOS harita ${s.text} @ ${hexAddr(dataStart)} — 2-byte elemanlar → max${ecuConfirmed ? ' [ECU profil onaylı]' : ''}`,
           offset: dataStart,
           dataSize: estSize,
           elementSize: 2,
           elementCount: Math.floor(estSize / 2),
           mapAction: 'fill',
           fillValue: 0xFFFF,
-          risk: 'high',
-          confidence: 'medium',
+          risk: ecuConfirmed ? 'medium' : 'high',
+          confidence: mapConfidence,
           source: 'damos-map-label'
         });
       }
@@ -995,24 +1331,154 @@ export async function scanRegions(bytes, definitions = null) {
 
   // 3) ECU-tip profil çıkarımı — string'lerden bulunamayan sistemleri ekle
   //    Raw byte-scan ile keyword arayarak gerçek offset bulmaya çalış
-  const ecuProfile = detectEcuType(strings);
+  //    (ecuProfile zaten DAMOS map scanner öncesi hesaplandı — tekrar çağırmıyoruz)
   const foundSystems = new Set(regions.map(r => r.system));
 
-  // Her sistem için raw byte-scan keyword'leri
+  // Her sistem için raw byte-scan keyword'leri (genişletilmiş endüstri terimleri)
   const SYSTEM_KEYWORDS = {
-    'EGR': ['EGR','AGR','ExhGas','EGR_V','AGR_V','EGR_Rate'],
-    'DPF': ['DPF','FAP','Regen','Soot','PartFilter','RussMen','DiffPres'],
-    'AdBlue/SCR': ['AdBlue','SCR','Urea','Harnstoff','DeNOx','BlueTec'],
-    'Lambda': ['Lambda','O2S','LSU','Sonde','HEGO','KatDiag','Vorkat'],
-    'Boost': ['Boost','LDR','Ladedruck','P2Soll','Turbo','VTG','Wastegate','LadeDr'],
-    'Torque': ['Torque','Drehmoment','M_Soll','MomentLim','MomFahr'],
-    'Injection': ['Inj_Q','QNFLM','Einspritz','RailDr','InjVol','MengSoll'],
-    'Hız sınırı': ['Vmax','V_Max','SpeedLim','GeschBeg'],
-    'RPM sınırı': ['RPM','Drehzahl','nLim','N_Lim','nMax'],
-    'Pedal': ['Pedal','FahrPed','APP_','Gaspedal','AccPedal'],
-    'Immobilizer': ['Immo','IMMO','WFS','Wegfahr'],
-    'DTC': ['DTC','FehlerSp','DiagErr','CEL_','MIL_'],
-    'Pop&Bang': ['Overrun','SchubAb','SA_Ovr','OvrFuel','DecFuel','Ueberlauf','BurstF','ALS_','Crackle']
+    'EGR': [
+      'EGR','AGR','ExhGas','EGR_V','AGR_V','EGR_Rate',
+      'EGR_Pos','EgrVal','AGR_St','EGR_Duty','EGR_Cmd',
+      'EGRCool','AGR_Kl','EGR_Temp','AGRMas','EGR_Ctl',
+      'EGR_Des','Abgasru','EgrMod','AGRReg','ExhRecir'
+    ],
+    'DPF': [
+      'DPF','FAP','Regen','Soot','PartFilter','RussMen','DiffPres',
+      'DPF_T','DPF_Reg','DPF_Load','DPF_Diff','DPF_Pre',
+      'PartikelF','DPFTemp','SootLoad','RegenReq','RegenAct',
+      'Ash_Load','DPF_DS','DPFSens','dpf_ctl','Filt_DP',
+      'PM_Filt','FilterDP','DPF_Inj','SootMass','ExhFilt'
+    ],
+    'AdBlue/SCR': [
+      'AdBlue','SCR','Urea','Harnstoff','DeNOx','BlueTec',
+      'SCR_Cat','SCR_Eff','SCR_Dos','SCR_Temp','UreaInj',
+      'NOxSens','NOxCat','SCR_Ctl','AdBlInj','DEFTank',
+      'DEFLvl','DEF_Dos','SCRConv','HWL_Dos','NH3_Slip',
+      'NOx_DS','NOxRed','UreaQty','SCR_Pump','NOx_Ctl'
+    ],
+    'Lambda': [
+      'Lambda','O2S','LSU','Sonde','HEGO','KatDiag','Vorkat',
+      'Lambda_','O2_Sen','LSU_4','LambdaC','OxySens',
+      'LamdaSo','CatConv','LamCtl','O2Heater','OxyCat',
+      'KatTemp','WBSens','NachKat','VorKatS','LambdaR',
+      'FuelTrim','LTFT','STFT','BankTrim','AFRatio'
+    ],
+    'Boost': [
+      'Boost','LDR','Ladedruck','P2Soll','Turbo','VTG','Wastegate','LadeDr',
+      'BoostPr','LDR_Sol','VTG_Pos','WG_Duty','TurboP',
+      'LadeDrS','BoostCt','VTG_Ctl','ChargeP','P2_Soll',
+      'P2_Ist','LDRReg','TurboCt','WG_Pos','BoostLim',
+      'CompOut','TurboRPM','MAP_Sol','IntManP','BoostErr'
+    ],
+    'Torque': [
+      'Torque','Drehmoment','M_Soll','MomentLim','MomFahr',
+      'Md_Soll','MomReq','TqReq','TqLim','Md_Fahr',
+      'DriverTq','TqCtl','Md_Max','MaxTorq','TqDes',
+      'MomDes','DrMom','FahrMom','TqRedu','MomBeg',
+      'TqGov','MdGov','TqSmoke','MdRauch','EngTorq'
+    ],
+    'Injection': [
+      'Inj_Q','QNFLM','Einspritz','RailDr','InjVol','MengSoll',
+      'InjQty','RailPr','InjTime','InjDur','InjPul',
+      'FuelQty','CmnRail','CRI_','CRIP','InjAngl',
+      'PilotInj','MainInj','PostInj','FuelPrs','InjMap',
+      'Meng_So','Q_Soll','QStart','InjCtl','FuelDel'
+    ],
+    'Hız sınırı': [
+      'Vmax','V_Max','SpeedLim','GeschBeg',
+      'VehSpd','SpdLim','GeschMax','Vmax_',
+      'TopSpeed','MaxSpd','GeschBgr','V_Begr',
+      'VSollMax','SpeedCut','VLimiter','MaxVel'
+    ],
+    'RPM sınırı': [
+      'RPM','Drehzahl','nLim','N_Lim','nMax',
+      'RevLim','N_Max','RPMLim','DrehzBeg',
+      'DrehzMax','EngSpd','N_Begr','NmaxFuel',
+      'RevCut','N_Abr','OverRev','nBegr','RPMCut'
+    ],
+    'Pedal': [
+      'Pedal','FahrPed','APP_','Gaspedal','AccPedal',
+      'PedalPos','APP_Sen','PedalMap','FPed_',
+      'ThrotPed','PedlReq','KickDown','PedalVal',
+      'AccelPed','PedSens','FPedPos','GasPed'
+    ],
+    'Immobilizer': [
+      'Immo','IMMO','WFS','Wegfahr',
+      'ImmoKey','WFS_','ImmoCod','CAS_',
+      'Transp','SecKey','AntiTh','ImmoSta',
+      'Wegfahrs','CrypKey','ImmoAuth'
+    ],
+    'DTC': [
+      'DTC','FehlerSp','DiagErr','CEL_','MIL_',
+      'FaultCd','ErrCode','DiagTrb','OBD_DT',
+      'TroublCd','P0','P1','P2','C0','B0','U0',
+      'FreezFr','ErrMem','DiagMem','FaultMem'
+    ],
+    'Pop&Bang': [
+      'Overrun','SchubAb','SA_Ovr','OvrFuel','DecFuel','Ueberlauf','BurstF','ALS_','Crackle',
+      'OverrunF','SA_Over','BangMap','PopBang','SA_Fuel',
+      'DecOvr','AntiLag','MisFire','OvrIgn','SchubKr',
+      'SA_Ign','CrackleM','Backfire','OvrInj','ExhFlam'
+    ],
+    'MAF/MAP': [
+      'MAF','MAP','HFM','LMM','AirMass',
+      'LuftMas','AirFlow','MAF_Sen','IntakeP',
+      'MasAirF','MAP_Sen','BaroPrs','LMM_',
+      'AirMeter','HFM_','LuftMeng','InlPres'
+    ],
+    'Vuruntu': [
+      'Knock','Klopf','KS_','KnockSen','KlopfReg',
+      'KnockCtl','KS_Cyl','KnockWin','KlopfSig',
+      'Detonat','KnkAdv','KlopfEr','AntiKnck'
+    ],
+    'Soğuk marş': [
+      'ColdSt','KaltSt','WarmUp','StartEn',
+      'CranFuel','StartQty','InjStart','GlowPl',
+      'PreGlow','StartAid','WarmLf','KaltAnr'
+    ],
+    'Checksum': [
+      'CRC','Checksum','CKS_','ChkSum',
+      'CS_Area','CRC32','IntgChk','FlashCS'
+    ]
+  };
+
+  // Limiter değer aralıkları — keyword bulunamadığında uint16 binary tarama için
+  const LIMITER_VALUE_RANGES = {
+    'Hız sınırı': {
+      // Hız sınırı değerleri (km/h) — uint16 LE veya BE olarak taranır
+      values: [
+        { kmh: 250, u16: 0x00FA, label: '250 km/h' },
+        { kmh: 240, u16: 0x00F0, label: '240 km/h' },
+        { kmh: 230, u16: 0x00E6, label: '230 km/h' },
+        { kmh: 220, u16: 0x00DC, label: '220 km/h' },
+        { kmh: 210, u16: 0x00D2, label: '210 km/h' },
+        { kmh: 200, u16: 0x00C8, label: '200 km/h' },
+        { kmh: 190, u16: 0x00BE, label: '190 km/h' },
+        { kmh: 180, u16: 0x00B4, label: '180 km/h' },
+      ],
+      // Eşleşme için en az 3 tekrarlı uint16 değeri gerekli (map axis veya limiter repeat)
+      minRepeats: 3,
+      // Olası çarpan — bazı ECU'lar 10x veya 100x skalalı değer tutar
+      multipliers: [1, 10, 100],
+    },
+    'RPM sınırı': {
+      // RPM sınırı değerleri — uint16 LE veya BE
+      values: [
+        { rpm: 7500, u16: 0x1D4C, label: '7500 RPM' },
+        { rpm: 7000, u16: 0x1B58, label: '7000 RPM' },
+        { rpm: 6800, u16: 0x1A90, label: '6800 RPM' },
+        { rpm: 6500, u16: 0x1964, label: '6500 RPM' },
+        { rpm: 6200, u16: 0x1838, label: '6200 RPM' },
+        { rpm: 6000, u16: 0x1770, label: '6000 RPM' },
+        { rpm: 5500, u16: 0x157C, label: '5500 RPM' },
+        { rpm: 5000, u16: 0x1388, label: '5000 RPM' },
+        { rpm: 4800, u16: 0x12C0, label: '4800 RPM' },
+        { rpm: 4500, u16: 0x1194, label: '4500 RPM' },
+        { rpm: 4200, u16: 0x1068, label: '4200 RPM' },
+      ],
+      minRepeats: 3,
+      multipliers: [1, 4],  // bazı ECU'lar RPM/4 olarak tutar
+    },
   };
 
   for (const expectedSys of ecuProfile.systems) {
@@ -1020,7 +1486,7 @@ export async function scanRegions(bytes, definitions = null) {
       const sysInfo = SYSTEMS.find(s => s.system === expectedSys);
       if (!sysInfo) continue;
 
-      // Raw byte-scan: keyword'leri doğrudan binary'de ara
+      // Pass 1: Raw byte-scan — keyword'leri doğrudan binary'de ara
       let bestOffset = -1;
       let foundKeyword = '';
       const keywords = SYSTEM_KEYWORDS[expectedSys] || [expectedSys];
@@ -1037,45 +1503,121 @@ export async function scanRegions(bytes, definitions = null) {
       }
 
       if (bestOffset >= 0) {
-        // Keyword bulundu — gerçek offset ile aksiyon oluştur
+        // Keyword bulundu — map yapı tespiti ile offset doğruluğunu artır
+        const mapInfo = findNearbyMapStructure(bytes, bestOffset, 2048);
+        const effectiveOffset = mapInfo ? mapInfo.mapDataStart : bestOffset;
+
         const windowStart = Math.max(0, bestOffset - 8);
         const windowEnd = Math.min(bytes.length, bestOffset + foundKeyword.length + 24);
         const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-        const profileActions = buildActions(expectedSys, bestOffset, bytes, dpfConfig, egrConfig, adblueConfig).map(a => ({
+        const profileActions = buildActions(expectedSys, effectiveOffset, bytes, dpfConfig, egrConfig, adblueConfig).map(a => ({
           ...a,
           id: 'profile_' + a.id,
-          confidence: 'medium',
+          confidence: mapInfo ? 'medium' : 'medium',
           source: 'ecu-profile-bytescan',
-          detail: a.detail + ' (profil byte-tarama)'
+          detail: a.detail + (mapInfo
+            ? ` (profil byte-tarama + map yapı tespiti, axis=${mapInfo.axisLen})`
+            : ' (profil byte-tarama)')
         }));
+
+        const descSuffix = mapInfo
+          ? ` — "${foundKeyword}" + map yapı (axis ${mapInfo.axisLen} nokta)`
+          : ` — "${foundKeyword}" bulundu`;
 
         regions.push({
           id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_') + '_' + bestOffset.toString(16),
           system: expectedSys,
-          desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil — "${foundKeyword}" bulundu)`,
+          desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil${descSuffix})`,
           foundString: foundKeyword,
           offset: bestOffset,
           offsetHex: hexAddr(bestOffset),
           windowHex: hexDump(windowBytes),
           windowStart,
           source: 'ecu-profile-bytescan',
+          mapStructure: mapInfo || undefined,
           actions: profileActions
         });
       } else {
-        // Hiç bulunamadı — yine de region olarak göster, ama aksiyonsuz
-        regions.push({
-          id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
-          system: expectedSys,
-          desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil tahmini — konum bulunamadı)`,
-          foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
-          offset: 0,
-          offsetHex: '0x000000',
-          windowHex: '',
-          windowStart: 0,
-          source: 'ecu-profile',
-          actions: []
-        });
+        // Pass 2: Binary limiter-value tarama — keyword yoksa uint16 tekrar deseni ara
+        const limiterDef = LIMITER_VALUE_RANGES[expectedSys];
+        const limiterHit = limiterDef ? scanLimiterValues(bytes, limiterDef) : null;
+
+        if (limiterHit) {
+          // Limiter değer deseni bulundu — aksiyon oluştur
+          const limOfs = limiterHit.offset;
+          const windowStart = Math.max(0, limOfs - 4);
+          const windowEnd = Math.min(bytes.length, limOfs + limiterHit.span + 4);
+          const windowBytes = bytes.subarray(windowStart, windowEnd);
+
+          // Limiter map aksiyonları — fill ile yeni değer yazma
+          const limiterActions = [];
+          if (expectedSys === 'Hız sınırı') {
+            const newSpeed = 300;  // hedef: sınır kaldırma
+            const newVal = newSpeed * (limiterHit.value > 1000 ? 10 : limiterHit.value > 30000 ? 100 : 1);
+            limiterActions.push({
+              id: `profile_speed_lim_fill_${limOfs.toString(16)}`,
+              label: `Hız sınırı kaldır (${limiterHit.label} → ${newSpeed} km/h)`,
+              detail: `${limiterHit.count}× tekrarlanan ${limiterHit.label} ${limiterHit.endian} değeri bulundu @ 0x${limOfs.toString(16)} — ${newSpeed} km/h ile değiştir (binary limiter tarama)`,
+              explain: `ECU firmware'inde ${limiterHit.count} adet ardışık ${limiterHit.label} uint16 değeri tespit edildi. Bu değerler hız sınırlama haritası olarak yorumlanır ve ${newSpeed} km/h ile değiştirilir.`,
+              effect: { type: 'fill', elementType: 'uint16', endian: limiterHit.endian },
+              offset: limOfs,
+              length: limiterHit.span,
+              currentValue: limiterHit.value,
+              newValue: Math.min(newVal, 0xFFFF),
+              confidence: limiterHit.confidence,
+              source: 'ecu-profile-limiter-scan',
+              risk: 'medium',
+              scanScore: limiterHit.score,
+            });
+          } else if (expectedSys === 'RPM sınırı') {
+            const newRpm = 8000;
+            const mul = limiterHit.value > 10000 ? 1 : 4;
+            limiterActions.push({
+              id: `profile_rpm_lim_fill_${limOfs.toString(16)}`,
+              label: `Devir sınırı yükselt (${limiterHit.label} → ${newRpm} RPM)`,
+              detail: `${limiterHit.count}× tekrarlanan ${limiterHit.label} ${limiterHit.endian} değeri bulundu @ 0x${limOfs.toString(16)} — ${newRpm} RPM ile değiştir (binary limiter tarama)`,
+              explain: `ECU firmware'inde ${limiterHit.count} adet ardışık ${limiterHit.label} uint16 değeri tespit edildi. Bu değerler devir sınırlama haritası olarak yorumlanır ve ${newRpm} RPM ile değiştirilir.`,
+              effect: { type: 'fill', elementType: 'uint16', endian: limiterHit.endian },
+              offset: limOfs,
+              length: limiterHit.span,
+              currentValue: limiterHit.value,
+              newValue: Math.min(newRpm * mul, 0xFFFF),
+              confidence: limiterHit.confidence,
+              source: 'ecu-profile-limiter-scan',
+              risk: 'medium',
+              scanScore: limiterHit.score,
+            });
+          }
+
+          regions.push({
+            id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_') + '_lim_' + limOfs.toString(16),
+            system: expectedSys,
+            desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil — binary limiter ${limiterHit.label} tespit)`,
+            foundString: `Binary limiter: ${limiterHit.count}× ${limiterHit.label} ${limiterHit.endian}`,
+            offset: limOfs,
+            offsetHex: hexAddr(limOfs),
+            windowHex: hexDump(windowBytes),
+            windowStart,
+            source: 'ecu-profile-limiter-scan',
+            limiterInfo: limiterHit,
+            actions: limiterActions
+          });
+        } else {
+          // Hiçbir yöntemle bulunamadı — region olarak göster, aksiyonsuz
+          regions.push({
+            id: 'profile_' + expectedSys.toLowerCase().replace(/[^a-z]/g, '_'),
+            system: expectedSys,
+            desc: sysInfo.desc + ` (${ecuProfile.ecuType} profil tahmini — konum bulunamadı)`,
+            foundString: `ECU tipi: ${ecuProfile.ecuType} (${ecuProfile.fuel})`,
+            offset: 0,
+            offsetHex: '0x000000',
+            windowHex: '',
+            windowStart: 0,
+            source: 'ecu-profile',
+            actions: []
+          });
+        }
       }
     }
   }

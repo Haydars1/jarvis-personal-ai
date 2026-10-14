@@ -39,12 +39,14 @@ export const RULEPACKS = [
     },
     // Aile çapında yardımcı aramalar — ZedSuite tarzı
     familyMaps: [
-      { name: 'KFMIRL',  desc: 'İstek torku → yük (torque→load) haritası — Stage 1\'in kalbi' },
-      { name: 'KFMIOP',  desc: 'Optimal yük haritası — torque çıkış sınırı' },
-      { name: 'KFZWOP',  desc: 'Optimal ateşleme avansı haritası' },
-      { name: 'LDRXN',   desc: 'Boost soll (hedef türbin basıncı)' },
-      { name: 'KFLDHBN', desc: 'Boost oran karakteristiği' },
-      { name: 'MLHFM',   desc: 'MAF (HFM) kalibrasyon tablosu' }
+      { name: 'KFMIRL',  desc: 'İstek torku → yük (torque→load) haritası — Stage 1\'in kalbi', system: 'Torque',     mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'KFMIOP',  desc: 'Optimal yük haritası — torque çıkış sınırı',                   system: 'Torque',     mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'KFZWOP',  desc: 'Optimal ateşleme avansı haritası',                             system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'LDRXN',   desc: 'Boost soll (hedef türbin basıncı)',                            system: 'Boost',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'KFLDHBN', desc: 'Boost oran karakteristiği',                                    system: 'Boost',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'MLHFM',   desc: 'MAF (HFM) kalibrasyon tablosu',                                system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Speed Limiter', desc: 'Hız sınırı haritası',                                    system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'Rev Limiter',   desc: 'Devir sınırlama haritası',                               system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     popBangDetection: {
       damosLabels: [
@@ -89,13 +91,17 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'Driver Wish',    desc: 'Pedal → istek torku' },
-      { name: 'Turbo Boost',    desc: 'Soll boost basıncı (bar)' },
-      { name: 'N75 Duty Cycle', desc: 'Wastegate solenoid görev döngüsü' },
-      { name: 'SOI',            desc: 'Start of Injection — enjeksiyon avansı' },
-      { name: 'Torque Limiter', desc: 'Tork sınırlama tabloları (gear/vmax tabanlı)' },
-      { name: 'Smoke Limiter',  desc: 'Duman sınırı (MAF/pedal)' },
-      { name: 'IQ Limiter',     desc: 'Enjeksiyon miktarı limit (mg/stroke)' }
+      { name: 'Driver Wish',    desc: 'Pedal → istek torku',                       system: 'Torque',     mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'Turbo Boost',    desc: 'Soll boost basıncı (bar)',                  system: 'Boost',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'N75 Duty Cycle', desc: 'Wastegate solenoid görev döngüsü',          system: 'Boost',      mapAction: 'scale', elementSize: 1, scaleFactor: 1.10 },
+      { name: 'SOI',            desc: 'Start of Injection — enjeksiyon avansı',    system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Torque Limiter', desc: 'Tork sınırlama tabloları (gear/vmax tabanlı)', system: 'Torque',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'Smoke Limiter',  desc: 'Duman sınırı (MAF/pedal)',                  system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.30 },
+      { name: 'IQ Limiter',     desc: 'Enjeksiyon miktarı limit (mg/stroke)',      system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'EGR Map',        desc: 'EGR valf pozisyon haritası',                system: 'EGR',        mapAction: 'zero',  elementSize: 2 },
+      { name: 'EGR Rate',       desc: 'EGR oranı hedef haritası',                  system: 'EGR',        mapAction: 'zero',  elementSize: 2 },
+      { name: 'Speed Limiter',  desc: 'Hız sınırlama haritası',                    system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'RPM Limiter',    desc: 'Devir sınırlama haritası',                  system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     egrDetection: {
       damosLabels: [
@@ -270,15 +276,17 @@ export const RULEPACKS = [
       searchRadius: 512,
     },
     familyMaps: [
-      { name: 'IQ Base',         desc: 'Temel enjeksiyon miktarı' },
-      { name: 'IQ Limit MAF',    desc: 'MAF tabanlı IQ sınırı' },
-      { name: 'Rail Pressure',   desc: 'Rail basınç haritası' },
-      { name: 'Boost Soll',      desc: 'Boost hedef' },
-      { name: 'Boost IST Limit', desc: 'Boost üst sınır' },
-      { name: 'Torque Limit',    desc: 'Tork sınırı (gear/rpm)' },
-      { name: 'DPF Regen',       desc: 'DPF rejenerasyon tetikleri' },
-      { name: 'EGR Flow',        desc: 'EGR akış haritası' },
-      { name: 'SCR Dosing',      desc: 'AdBlue doz haritası' }
+      { name: 'IQ Base',         desc: 'Temel enjeksiyon miktarı',                 system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'IQ Limit MAF',    desc: 'MAF tabanlı IQ sınırı',                    system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Rail Pressure',   desc: 'Rail basınç haritası',                     system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Boost Soll',      desc: 'Boost hedef',                              system: 'Boost',        mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Boost IST Limit', desc: 'Boost üst sınır',                          system: 'Boost',        mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'Torque Limit',    desc: 'Tork sınırı (gear/rpm)',                   system: 'Torque',       mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'DPF Regen',       desc: 'DPF rejenerasyon tetikleri',               system: 'DPF',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'EGR Flow',        desc: 'EGR akış haritası',                        system: 'EGR',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'SCR Dosing',      desc: 'AdBlue doz haritası',                      system: 'AdBlue/SCR',   mapAction: 'zero',  elementSize: 2 },
+      { name: 'Speed Limiter',   desc: 'Hız sınırlama haritası',                   system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'RPM Limiter',     desc: 'Devir sınırlama haritası',                 system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     notes: 'EDC17 TriCore işlemcili — modifikasyondan SONRA mutlaka checksum düzelt. medc17-checksum-tool bunu yapar. KT200 ile oku, map düzenle, checksum düzelt, geri yaz.'
   },
@@ -297,10 +305,12 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'Boost Soll',       desc: 'Hedef boost (soll)' },
-      { name: 'Torque Request',   desc: 'Pedal → istek tork' },
-      { name: 'Lambda Target',    desc: 'Hedef lambda (yakıt zenginliği)' },
-      { name: 'Ignition Timing',  desc: 'Ateşleme avansı' }
+      { name: 'Boost Soll',       desc: 'Hedef boost (soll)',                       system: 'Boost',       mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Torque Request',   desc: 'Pedal → istek tork',                      system: 'Torque',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'Lambda Target',    desc: 'Hedef lambda (yakıt zenginliği)',          system: 'Lambda',      mapAction: 'scale', elementSize: 2, scaleFactor: 0.95 },
+      { name: 'Ignition Timing',  desc: 'Ateşleme avansı',                         system: 'Injection',   mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Speed Limiter',    desc: 'Hız sınırlama haritası',                   system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'RPM Limiter',      desc: 'Devir sınırlama haritası',                 system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     popBangDetection: {
       damosLabels: [
@@ -346,10 +356,12 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'Boost Target',     desc: 'Hedef boost' },
-      { name: 'Lambda Target',    desc: 'Hedef lambda' },
-      { name: 'Ignition Timing',  desc: 'Ateşleme avansı' },
-      { name: 'Torque Limiters',  desc: 'Tork sınırları (çok katmanlı)' }
+      { name: 'Boost Target',     desc: 'Hedef boost',                              system: 'Boost',       mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Lambda Target',    desc: 'Hedef lambda',                             system: 'Lambda',      mapAction: 'scale', elementSize: 2, scaleFactor: 0.95 },
+      { name: 'Ignition Timing',  desc: 'Ateşleme avansı',                         system: 'Injection',   mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Torque Limiters',  desc: 'Tork sınırları (çok katmanlı)',            system: 'Torque',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'Speed Limiter',    desc: 'Hız sınırlama haritası',                   system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'RPM Limiter',      desc: 'Devir sınırlama haritası',                 system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     popBangDetection: {
       damosLabels: [
@@ -394,12 +406,12 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'MLHFM/MAF',        desc: 'Hava akış kalibrasyonu' },
-      { name: 'Fuel Injection',   desc: 'Enjeksiyon süresi' },
-      { name: 'Ignition Timing',  desc: 'Ateşleme avansı' },
-      { name: 'VANOS',            desc: 'Variable valve timing' },
-      { name: 'Rev Limiter',      desc: 'Devir sınırı' },
-      { name: 'VMax Limiter',     desc: 'Hız sınırı' }
+      { name: 'MLHFM/MAF',        desc: 'Hava akış kalibrasyonu',                  system: 'MAF/MAP',     mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Fuel Injection',   desc: 'Enjeksiyon süresi',                       system: 'Injection',   mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Ignition Timing',  desc: 'Ateşleme avansı',                         system: 'Injection',   mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'VANOS',            desc: 'Variable valve timing',                    system: 'Injection',   mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Rev Limiter',      desc: 'Devir sınırı',                             system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'VMax Limiter',     desc: 'Hız sınırı',                               system: 'Torque',      mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     popBangDetection: {
       damosLabels: [
@@ -443,13 +455,14 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'IQ Pilot / Driver Demand', desc: 'Sürücü talebi → enjeksiyon miktarı haritası' },
-      { name: 'Smoke Limiter',            desc: 'Duman sınır haritası (Air/Fuel sınırı)' },
-      { name: 'Rail Pressure',            desc: 'Common-rail basınç hedefi' },
-      { name: 'Boost Pressure',           desc: 'Turbo basınç hedefi' },
-      { name: 'Torque Limiters',          desc: 'Tork sınır haritaları (çok katmanlı)' },
-      { name: 'EGR Map',                  desc: 'EGR valf pozisyon haritası' },
-      { name: 'Speed Limiter',            desc: 'Hız sınırı' },
+      { name: 'IQ Pilot / Driver Demand', desc: 'Sürücü talebi → enjeksiyon miktarı haritası', system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'Smoke Limiter',            desc: 'Duman sınır haritası (Air/Fuel sınırı)',       system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.30 },
+      { name: 'Rail Pressure',            desc: 'Common-rail basınç hedefi',                   system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Boost Pressure',           desc: 'Turbo basınç hedefi',                         system: 'Boost',      mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Torque Limiters',          desc: 'Tork sınır haritaları (çok katmanlı)',         system: 'Torque',     mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'EGR Map',                  desc: 'EGR valf pozisyon haritası',                  system: 'EGR',        mapAction: 'zero',  elementSize: 2 },
+      { name: 'Speed Limiter',            desc: 'Hız sınırı',                                  system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'DPF Regen',               desc: 'DPF rejenerasyon haritası',                   system: 'DPF',        mapAction: 'zero',  elementSize: 2 },
     ],
     dpfDetection: {
       damosLabels: [
@@ -506,14 +519,16 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'IQ Driver Demand',   desc: 'Sürücü talebi → enjeksiyon miktarı' },
-      { name: 'IQ Smoke Limiter',   desc: 'Duman sınır haritası' },
-      { name: 'Rail Pressure Map',  desc: 'Common-rail basınç hedef haritası' },
-      { name: 'Boost Target Map',   desc: 'Turbo basınç hedefi (VTG/WG)' },
-      { name: 'Torque Limiter',     desc: 'Tork sınırı (multi-layer)' },
-      { name: 'EGR Rate Target',    desc: 'EGR oran hedef haritası' },
-      { name: 'Injection Timing',   desc: 'Enjeksiyon zamanlaması' },
-      { name: 'Speed Limiter',      desc: 'Hız sınırı' },
+      { name: 'IQ Driver Demand',   desc: 'Sürücü talebi → enjeksiyon miktarı',    system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'IQ Smoke Limiter',   desc: 'Duman sınır haritası',                   system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.30 },
+      { name: 'Rail Pressure Map',  desc: 'Common-rail basınç hedef haritası',      system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Boost Target Map',   desc: 'Turbo basınç hedefi (VTG/WG)',           system: 'Boost',        mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Torque Limiter',     desc: 'Tork sınırı (multi-layer)',              system: 'Torque',       mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'EGR Rate Target',    desc: 'EGR oran hedef haritası',                system: 'EGR',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'Injection Timing',   desc: 'Enjeksiyon zamanlaması',                 system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Speed Limiter',      desc: 'Hız sınırı',                             system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'DPF Regen',          desc: 'DPF rejenerasyon haritası',              system: 'DPF',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'SCR Dosing',         desc: 'AdBlue dozaj haritası',                  system: 'AdBlue/SCR',   mapAction: 'zero',  elementSize: 2 },
     ],
     dpfDetection: {
       damosLabels: [
@@ -589,13 +604,16 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'IQ Driver Demand',  desc: 'Sürücü talebi → enjeksiyon miktarı' },
-      { name: 'Smoke Limiter',     desc: 'Duman sınır haritası (AFR limiter)' },
-      { name: 'Rail Pressure',     desc: 'Common-rail basınç hedefi' },
-      { name: 'Boost Target',      desc: 'Turbo basınç hedefi' },
-      { name: 'Torque Limit',      desc: 'Tork sınırı' },
-      { name: 'EGR Map',           desc: 'EGR pozisyon hedefi' },
-      { name: 'Injection Timing',  desc: 'Ana enjeksiyon zamanlaması' },
+      { name: 'IQ Driver Demand',  desc: 'Sürücü talebi → enjeksiyon miktarı',     system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.15 },
+      { name: 'Smoke Limiter',     desc: 'Duman sınır haritası (AFR limiter)',       system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.30 },
+      { name: 'Rail Pressure',     desc: 'Common-rail basınç hedefi',               system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Boost Target',      desc: 'Turbo basınç hedefi',                     system: 'Boost',        mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Torque Limit',      desc: 'Tork sınırı',                             system: 'Torque',       mapAction: 'scale', elementSize: 2, scaleFactor: 1.25 },
+      { name: 'EGR Map',           desc: 'EGR pozisyon hedefi',                     system: 'EGR',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'Injection Timing',  desc: 'Ana enjeksiyon zamanlaması',              system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'DPF Regen',         desc: 'DPF rejenerasyon haritası',               system: 'DPF',          mapAction: 'zero',  elementSize: 2 },
+      { name: 'Speed Limiter',     desc: 'Hız sınırı haritası',                     system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'RPM Limiter',       desc: 'Devir sınırlama haritası',                system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     dpfDetection: {
       damosLabels: [
@@ -651,14 +669,14 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'Fuel Map A/B',          desc: 'Yakıt haritası (dual-map A/B)' },
-      { name: 'Ignition Timing A/B',   desc: 'Ateşleme avansı (dual-map A/B)' },
-      { name: 'Boost Target',          desc: 'Turbo basınç hedefi (WRX/STI)' },
-      { name: 'Wastegate Duty',        desc: 'Wastegate görev döngüsü' },
-      { name: 'MAF Scaling',           desc: 'MAF kalibrasyon ölçekleme' },
-      { name: 'Rev Limiter',           desc: 'Devir sınırı (flat-foot shift)' },
-      { name: 'Speed Limiter',         desc: 'Hız sınırı' },
-      { name: 'Launch Control',        desc: 'Launch control RPM eşiği' },
+      { name: 'Fuel Map A/B',          desc: 'Yakıt haritası (dual-map A/B)',           system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Ignition Timing A/B',   desc: 'Ateşleme avansı (dual-map A/B)',          system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Boost Target',          desc: 'Turbo basınç hedefi (WRX/STI)',            system: 'Boost',        mapAction: 'scale', elementSize: 2, scaleFactor: 1.20 },
+      { name: 'Wastegate Duty',        desc: 'Wastegate görev döngüsü',                 system: 'Boost',        mapAction: 'scale', elementSize: 1, scaleFactor: 1.10 },
+      { name: 'MAF Scaling',           desc: 'MAF kalibrasyon ölçekleme',                system: 'Injection',    mapAction: 'scale', elementSize: 2, scaleFactor: 1.10 },
+      { name: 'Rev Limiter',           desc: 'Devir sınırı (flat-foot shift)',           system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'Speed Limiter',         desc: 'Hız sınırı',                              system: 'Torque',       mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
+      { name: 'Launch Control',        desc: 'Launch control RPM eşiği',                system: 'Torque',       mapAction: 'scale', elementSize: 2, scaleFactor: 0.85 },
     ],
     popBangDetection: {
       damosLabels: [
@@ -696,9 +714,9 @@ export const RULEPACKS = [
     },
     firmwares: {},
     familyMaps: [
-      { name: 'A/F Target',    desc: 'Hava/yakıt oranı hedefi' },
-      { name: 'Ignition Map',  desc: 'Ateşleme haritası' },
-      { name: 'Rev Limit',     desc: 'Devir sınırı' }
+      { name: 'A/F Target',    desc: 'Hava/yakıt oranı hedefi',    system: 'Lambda',     mapAction: 'scale', elementSize: 2, scaleFactor: 0.95 },
+      { name: 'Ignition Map',  desc: 'Ateşleme haritası',          system: 'Injection',  mapAction: 'scale', elementSize: 2, scaleFactor: 1.05 },
+      { name: 'Rev Limit',     desc: 'Devir sınırı',               system: 'Torque',     mapAction: 'fill',  elementSize: 2, fillValue: 0xFFFF },
     ],
     notes: 'Motosiklet için örnek — rulepack sisteminin motor dışı araçlara da genişleyebildiğini gösterir.'
   }
