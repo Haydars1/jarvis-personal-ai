@@ -710,10 +710,22 @@ function buildActions(system, offset, bytes, dpfConfig, egrConfig, adblueConfig,
 }
 
 // ---------- Ana tarama ----------
-export async function scanRegions(bytes) {
+export async function scanRegions(bytes, definitions = null) {
   const strings = extractStrings(bytes, 3, 48);
   const regions = [];
   const perSystem = new Map();
+
+  // Tier 0: Import edilmiş A2L/XDF tanımlarını binary ile eşleştir (en yüksek güven)
+  if (definitions && definitions.length > 0) {
+    try {
+      const { matchDefinitions, definitionsToRegions } = await import('./ecu-definition-parser.js');
+      const matched = matchDefinitions(bytes, definitions);
+      if (matched.length) {
+        const defRegions = definitionsToRegions(matched);
+        regions.push(...defRegions);
+      }
+    } catch (_t0err) { /* Tier 0 hatası taramayı durdurmamalı */ }
+  }
 
   // 1) Önce rulepack araması — biliniyor mu bu dosya?
   let rulepackMatches = [];
@@ -971,20 +983,64 @@ export function summarizeForAI(bytes, regions, limit = 6000) {
   };
 }
 
-// ---------- Uygulama ----------
+// ---------- Uygulama (multi-byte destekli) ----------
 export async function applyActions(originalBytes, selectedActions) {
   const tuned = new Uint8Array(originalBytes);
+  const dv = new DataView(tuned.buffer, tuned.byteOffset, tuned.byteLength);
   const applied = [];
 
   for (const a of selectedActions) {
     if (a.offset == null || a.offset < 0 || a.offset >= tuned.length) continue;
+    const ds = a.dataSize || 1;
+
+    // Sınır kontrolü — yazılacak byte sayısı dosya sonunu aşmamalı
+    if (a.offset + ds > tuned.length) continue;
+
+    // ---- Multi-byte yazma ----
+    if (ds >= 2 && a.newValue != null) {
+      const beforeBytes = [];
+      for (let i = 0; i < ds; i++) beforeBytes.push(tuned[a.offset + i]);
+
+      if (ds === 2) {
+        dv.setUint16(a.offset, a.newValue & 0xFFFF, true); // Little-endian
+      } else if (ds === 4 && a.datatype === 'FLOAT32_IEEE') {
+        dv.setFloat32(a.offset, a.newValue, true);
+      } else if (ds === 4) {
+        dv.setUint32(a.offset, a.newValue >>> 0, true);
+      } else {
+        // Genel: byte dizisi olarak yaz (büyük tablolar için)
+        const val = BigInt(a.newValue);
+        for (let i = 0; i < ds; i++) {
+          tuned[a.offset + i] = Number((val >> BigInt(8 * i)) & 0xFFn);
+        }
+      }
+
+      const afterBytes = [];
+      for (let i = 0; i < ds; i++) afterBytes.push(tuned[a.offset + i]);
+
+      applied.push({
+        id: a.id,
+        label: a.label,
+        offset: a.offset,
+        offsetHex: hexAddr(a.offset),
+        dataSize: ds,
+        beforeBytes,
+        afterBytes,
+        before: beforeBytes[0],
+        after: afterBytes[0]
+      });
+      continue;
+    }
+
+    // ---- Tek-byte yazma (eski uyumluluk) ----
     const before = tuned[a.offset];
-    tuned[a.offset] = a.newByte & 0xFF;
+    tuned[a.offset] = (a.newByte ?? 0) & 0xFF;
     applied.push({
       id: a.id,
       label: a.label,
       offset: a.offset,
       offsetHex: hexAddr(a.offset),
+      dataSize: 1,
       before,
       after: tuned[a.offset]
     });

@@ -448,20 +448,15 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const mod=await import('./lib/tuning-engine.js');
    const fmt=mod.detectFileFormat(fileData);
    const stats=mod.fileStats(fileData);
-   const regions=await mod.scanRegions(fileData);
-   // --- Tier 0.5: Import edilmiş A2L/XDF tanımlarını D1'den çek ve binary ile eşleştir ---
+   // Tier 0: Import edilmiş A2L/XDF tanımlarını D1'den çek ve scanRegions'a aktar
+   let normalized=null;
    try{
      const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
      if(importedDefs&&importedDefs.length){
-       const {matchDefinitions,definitionsToRegions}=await import('./lib/ecu-definition-parser.js');
-       const normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
-       const matched=matchDefinitions(fileData,normalized);
-       if(matched.length){
-         const importedRegions=definitionsToRegions(matched);
-         regions.unshift(...importedRegions);
-       }
+       normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
      }
-   }catch(t05err){/* tier 0.5 hatası upload'ı durdurmamalı */}
+   }catch(_defErr){/* tanım yükleme hatası taramayı durdurmamalı */}
+   const regions=await mod.scanRegions(fileData, normalized);
    const upload_id=id();
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
@@ -513,7 +508,15 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const bytes=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
-   const regions=await mod.scanRegions(bytes);
+   // Tier 0: D1'den tanımları yükle ve scanRegions'a aktar
+   let normalized=null;
+   try{
+     const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+     if(importedDefs&&importedDefs.length){
+       normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
+     }
+   }catch(_defErr){/* tanım yükleme hatası taramayı durdurmamalı */}
+   const regions=await mod.scanRegions(bytes, normalized);
    const summary=mod.summarizeForAI(bytes,regions);
    const vehicleCtx=upload.vehicle_type?JSON.parse(upload.vehicle_type):{};
    const vehicleStr=vehicleCtx.make?`Araç: ${vehicleCtx.make} ${vehicleCtx.model||''} ${vehicleCtx.year||''} ECU: ${vehicleCtx.ecuType||'bilinmiyor'}. `:'';

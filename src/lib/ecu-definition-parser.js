@@ -719,6 +719,7 @@ export function definitionsToRegions(matchedDefs) {
           label: `${def.displayId} — ${isEnabled ? 'Devre dışı bırak' : 'Etkinleştir'}`,
           detail: `${def.description} (${def.source.toUpperCase()} tanımlı, adres: ${def.offsetHex})`,
           offset: def.address,
+          dataSize: 1,
           expectedByte: def.currentValue,
           newByte: isEnabled ? 0x00 : 0x01,
           risk: 'medium',
@@ -728,16 +729,20 @@ export function definitionsToRegions(matchedDefs) {
       }
     }
 
-    // Limit değer tespiti — 2-byte değer, limit artırma/azaltma
-    if (def.type === 'scalar' && def.dataSize === 2 && def.currentValue != null) {
+    // Limit değer tespiti — 2-byte ve 4-byte değerler, limit artırma/azaltma
+    if (def.type === 'scalar' && def.dataSize >= 2 && def.currentValue != null) {
       if (/limit|grenze|max|min|soll/i.test(def.name + ' ' + def.description)) {
         actions.push({
           id: `def_${def.name}_info`,
           label: `${def.displayId} — Mevcut: ${def.currentValue} ${def.unit}`,
           detail: `${def.description} — sınırlar: ${def.lowerLimit}..${def.upperLimit} (${def.source.toUpperCase()})`,
           offset: def.address,
+          dataSize: def.dataSize,
+          datatype: def.datatype,
+          currentValue: def.currentValue,
+          newValue: null, // Kullanıcı veya AI-suggest belirler
           expectedByte: null,
-          newByte: null, // Kullanıcı AI-suggest ile belirler
+          newByte: null,
           risk: 'info',
           confidence: 'high',
           source: `imported-${def.source}`
