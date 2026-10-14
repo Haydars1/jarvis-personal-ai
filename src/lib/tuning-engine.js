@@ -553,89 +553,89 @@ const ECU_PROFILES = {
   // Dizel ECU'lar — Bosch DAMOS kalibrasyon label beklentileri
   'EDC17': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'EDC16': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'EDC15': {
     fuel: 'diesel',
-    systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum'],
+    systems: ['EGR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_MDMXAS','KF_MDSOL','KF_LD','KFLDIMX','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX']
   },
   'SID': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_DPF','KF_MDMXAS','KF_MDSOL','KF_LD','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX','KL_VMAX']
   },
   'PCR': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'DCM': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KF_EINSP','KF_MMEN','KF_LAM','KL_NMAX','KL_VMAX']
   },
   // Benzinli ECU'lar — Bosch DAMOS label beklentileri (EGR/DPF/SCR yok)
   'MED17': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'MED9': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_LD','KF_EINSP','KF_MMEN','KF_LAM','KF_KLS','KL_NMAX','KL_VMAX']
   },
   'ME7': {
     fuel: 'gasoline',
-    systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_EINSP','KF_MMEN','KF_LAM','KF_KLS','KL_NMAX','KL_VMAX']
   },
   'MEVD17': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'SIMOS': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'MG1': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'MD1': {
     fuel: 'diesel',
-    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'],
+    systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_AGR','KF_EGRV','KF_DPF','KF_DPFPC','KF_SCR','KF_ADBLUE','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   'MEVD': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: ['KF_EGAS','KF_MDMXAS','KF_MDSOL','KF_MDRED','KF_LD','KFLDIMX','KFLDRX','KF_EINSP','KF_MMEN','KF_LAM','KF_LSHK','KF_KLS','KL_NMAX','KL_VMAX','KF_VMAX']
   },
   // Denso / Japon benzinli — farklı kalibrasyon isimlendirmesi, Bosch DAMOS label'ları beklenmez
   'DENSO': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'],
     damosLabels: []
   },
   'SH7058': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum'],
     damosLabels: []
   },
   'SH7059': {
     fuel: 'gasoline',
-    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'],
+    systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum'],
     damosLabels: []
   },
 };
@@ -649,10 +649,10 @@ function detectEcuType(strings) {
   // Yakıt tipi tahmini — string'lerde dizel veya benzinli ipuçları
   const dieselHints = /EDC|DPF|FAP|AdBlue|SCR|Diesel|TDI|CDI|HDI|dCi|CDTI|CRD|JTD|Rußfilter|Harnstoff|BlueTec|Einspritz|SID80[1237]|PCR2|DCM3|EA288|K9K|R9M/i;
   const gasolineHints = /MED|TFSI|TSI|FSI|GDI|Benzin|Ottomotor|Zündung|Klopf|Knock|VANOS|Valvetronic|VarioCam|DENSO|SH705[89]|EJ20|FA20|4U-GSE/i;
-  if (dieselHints.test(allText)) return { ecuType: 'generic-diesel', fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] };
-  if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] };
+  if (dieselHints.test(allText)) return { ecuType: 'generic-diesel', fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC'] };
+  if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Hız sınırı','RPM sınırı','Checksum','DTC'] };
   // Bilinmeyen — en geniş küme
-  return { ecuType: 'unknown', fuel: 'unknown', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
+  return { ecuType: 'unknown', fuel: 'unknown', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Hız sınırı','RPM sınırı','Checksum','DTC'] };
 }
 
 // ---------- Stage 1 paket önerileri ----------
@@ -1717,13 +1717,14 @@ export async function applyActions(originalBytes, selectedActions) {
         // Tüm hücreleri sabit değerle doldur — Vmax/RPM limiter
         const elSz = a.elementSize || 1;
         const count = a.elementCount || Math.floor(ds / elSz);
+        const fillLE = (a.endian || 'LE') === 'LE';
         for (let e = 0; e < count; e++) {
           const pos = a.offset + e * elSz;
           if (pos + elSz > tuned.length) break;
           if (elSz === 1) tuned[pos] = a.fillValue & 0xFF;
-          else if (elSz === 2) dv.setUint16(pos, a.fillValue & 0xFFFF, true);
-          else if (elSz === 4 && a.datatype === 'FLOAT32_IEEE') dv.setFloat32(pos, a.fillValue, true);
-          else if (elSz === 4) dv.setUint32(pos, a.fillValue >>> 0, true);
+          else if (elSz === 2) dv.setUint16(pos, a.fillValue & 0xFFFF, fillLE);
+          else if (elSz === 4 && a.datatype === 'FLOAT32_IEEE') dv.setFloat32(pos, a.fillValue, fillLE);
+          else if (elSz === 4) dv.setUint32(pos, a.fillValue >>> 0, fillLE);
         }
       }
 
@@ -1734,6 +1735,66 @@ export async function applyActions(originalBytes, selectedActions) {
         id: a.id, label: a.label, offset: a.offset,
         offsetHex: hexAddr(a.offset), dataSize: ds,
         mapAction: a.mapAction,
+        beforeBytes, afterBytes,
+        before: beforeBytes[0], after: afterBytes[0]
+      });
+      continue;
+    }
+
+    // ---- Effect-tabanlı yazma (limiter tarama sonuçları) ----
+    if (a.effect && a.effect.type) {
+      const eff = a.effect;
+      const totalLen = a.length || ds;
+      const le = (eff.endian || 'LE') === 'LE';
+      const elMap = { uint8: 1, uint16: 2, uint32: 4, float32: 4 };
+      const elSz = elMap[eff.elementType] || 2;
+      const count = Math.floor(totalLen / elSz);
+
+      const beforeBytes = [];
+      for (let i = 0; i < totalLen && (a.offset + i) < tuned.length; i++) beforeBytes.push(tuned[a.offset + i]);
+
+      if (eff.type === 'fill' && a.newValue != null) {
+        for (let e = 0; e < count; e++) {
+          const pos = a.offset + e * elSz;
+          if (pos + elSz > tuned.length) break;
+          if (elSz === 1) tuned[pos] = a.newValue & 0xFF;
+          else if (elSz === 2) dv.setUint16(pos, a.newValue & 0xFFFF, le);
+          else if (elSz === 4 && eff.elementType === 'float32') dv.setFloat32(pos, a.newValue, le);
+          else if (elSz === 4) dv.setUint32(pos, a.newValue >>> 0, le);
+        }
+      } else if (eff.type === 'zero') {
+        for (let i = 0; i < totalLen && (a.offset + i) < tuned.length; i++) tuned[a.offset + i] = 0x00;
+      } else if (eff.type === 'scale' && a.scaleFactor != null) {
+        for (let e = 0; e < count; e++) {
+          const pos = a.offset + e * elSz;
+          if (pos + elSz > tuned.length) break;
+          let val;
+          if (elSz === 1) val = tuned[pos];
+          else if (elSz === 2) val = dv.getUint16(pos, le);
+          else if (elSz === 4 && eff.elementType === 'float32') val = dv.getFloat32(pos, le);
+          else if (elSz === 4) val = dv.getUint32(pos, le);
+          else continue;
+          let scaled = val * a.scaleFactor;
+          if (eff.elementType === 'float32') {
+            dv.setFloat32(pos, scaled, le);
+          } else {
+            scaled = Math.round(scaled);
+            const maxVal = elSz === 1 ? 0xFF : elSz === 2 ? 0xFFFF : 0xFFFFFFFF;
+            scaled = Math.max(0, Math.min(maxVal, scaled));
+            if (elSz === 1) tuned[pos] = scaled;
+            else if (elSz === 2) dv.setUint16(pos, scaled, le);
+            else if (elSz === 4) dv.setUint32(pos, scaled >>> 0, le);
+          }
+        }
+      }
+
+      const afterBytes = [];
+      for (let i = 0; i < totalLen && (a.offset + i) < tuned.length; i++) afterBytes.push(tuned[a.offset + i]);
+
+      applied.push({
+        id: a.id, label: a.label, offset: a.offset,
+        offsetHex: hexAddr(a.offset), dataSize: totalLen,
+        effectType: eff.type, elementType: eff.elementType, endian: eff.endian,
         beforeBytes, afterBytes,
         before: beforeBytes[0], after: afterBytes[0]
       });
