@@ -10,6 +10,7 @@ import { googleCredential, googleStored, googleAccessToken, mailRaw, gmailList, 
 import { addChat, chatHistory, rememberExplicit } from './lib/chat.js';
 import { aiFallback, aiRouterStatus, aiDiagnostics, aiRouterMark } from './lib/ai-router.js';
 import { obdBridgeRouter } from './lib/obd-bridge.js';
+import { thinkdiagRouter } from './lib/thinkdiag-import.js';
 
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
@@ -740,6 +741,9 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
 
  // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
  if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
+
+ // === THINKDIAG TC RECORDING IMPORT ===
+ if(p.startsWith('/api/ecu/thinkdiag/')){const tdRes=await thinkdiagRouter(req,env,p,m);if(tdRes)return tdRes}
 
  // === GÖRSEL ÜRETME (Cloudflare AI — ücretsiz) ===
  if(p==='/api/ai/image'&&m==='POST'){try{
