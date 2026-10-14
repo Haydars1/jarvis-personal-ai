@@ -348,6 +348,10 @@ const SYSTEMS = [
   { re: /DTC|Fehler|Fehlerspeicher|DiagCode|FaultMem|DFES|P0[0-9A-F]{3}|P1[0-9A-F]{3}|P2[0-9A-F]{3}/i, system: 'DTC', icon: '🚨', desc: 'Hata kodu yönetimi',
     explain: 'Araçtaki hata kodlarını (DTC) kaydeder. Motor lambası yanmasına neden olur.',
     offExplain: 'DTC silme: Belirli hata kodlarını ECU hafızasından siler veya tetiklenmesini engeller. EGR/DPF off sonrası ilgili DTC\'ler kapatılmalı.',
+    stage1: false, hpGain: '0' },
+  { re: /Overrun|Überlauf|SchubAb|PopBang|Pop.?Bang|Crackle|Burble|ALS|Anti.?Lag|OvrFuel|DecFuel|SA_Ovr|ZW_Ovr|ÜberlaufEinspritz|Schubabschaltung|BurstFuel|ExhFlame|OvRnFl/i, system: 'Pop&Bang', icon: '💥', desc: 'Pop & Bang / Crackle Map',
+    explain: 'Gaz bırakıldığında (deceleration) egzozdan patlama/çıtırtı sesi üretir. Overrun sırasında yakıt enjeksiyonu ve ateşleme geciktirme ile çalışır.',
+    offExplain: 'Pop&Bang aktifleştirilince: Gaz bırakıldığında ECU yakıt kesmeyi geciktirir ve ateşlemeyi geri çeker → yanmamış yakıt sıcak egzoza gider → patlama sesi. Spor egzoz ile en iyi sonuç.',
     stage1: false, hpGain: '0' }
 ];
 
@@ -389,14 +393,18 @@ const ECU_PROFILES = {
   'PCR': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
   'DCM': { fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
   // Benzinli ECU'lar
-  'MED17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
-  'MED9': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum'] },
-  'ME7': { fuel: 'gasoline', systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
-  'MEVD17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
-  'SIMOS': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'MED17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
+  'MED9': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
+  'ME7': { fuel: 'gasoline', systems: ['Lambda','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
+  'MEVD17': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
+  'SIMOS': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
   'MG1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
   'MD1': { fuel: 'diesel', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] },
-  'MEVD': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] },
+  'MEVD': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
+  // Denso / Japon benzinli
+  'DENSO': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] },
+  'SH7058': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
+  'SH7059': { fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum'] },
 };
 
 function detectEcuType(strings) {
@@ -406,10 +414,10 @@ function detectEcuType(strings) {
     if (re.test(allText)) return { ecuType, ...profile };
   }
   // Yakıt tipi tahmini — string'lerde dizel veya benzinli ipuçları
-  const dieselHints = /EDC|DPF|FAP|AdBlue|SCR|Diesel|TDI|CDI|HDI|dCi|CDTI|CRD|JTD|Rußfilter|Harnstoff|BlueTec|Einspritz/i;
-  const gasolineHints = /MED|TFSI|TSI|FSI|GDI|Benzin|Ottomotor|Zündung|Klopf|Knock|VANOS|Valvetronic|VarioCam/i;
+  const dieselHints = /EDC|DPF|FAP|AdBlue|SCR|Diesel|TDI|CDI|HDI|dCi|CDTI|CRD|JTD|Rußfilter|Harnstoff|BlueTec|Einspritz|SID80[1237]|PCR2|DCM3|EA288|K9K|R9M/i;
+  const gasolineHints = /MED|TFSI|TSI|FSI|GDI|Benzin|Ottomotor|Zündung|Klopf|Knock|VANOS|Valvetronic|VarioCam|DENSO|SH705[89]|EJ20|FA20|4U-GSE/i;
   if (dieselHints.test(allText)) return { ecuType: 'generic-diesel', fuel: 'diesel', systems: ['EGR','DPF','Lambda','Boost','Torque','Injection','MAF/MAP','Checksum','DTC'] };
-  if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
+  if (gasolineHints.test(allText)) return { ecuType: 'generic-gasoline', fuel: 'gasoline', systems: ['Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Pop&Bang','Checksum','DTC'] };
   // Bilinmeyen — en geniş küme
   return { ecuType: 'unknown', fuel: 'unknown', systems: ['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Vuruntu','Checksum','DTC'] };
 }
@@ -438,7 +446,7 @@ export function getSystemInfo(systemName) {
 }
 
 // Her sistem için yapılabilecek "disable" / "modify" aksiyon tarifi
-function buildActions(system, offset, bytes, dpfConfig, egrConfig, adblueConfig) {
+function buildActions(system, offset, bytes, dpfConfig, egrConfig, adblueConfig, popbangConfig) {
   const safe = ofs => ofs >= 0 && ofs + 1 < bytes.length;
   const flagOffset = offset + 16;
   const limitOffset = offset + 8;
@@ -638,6 +646,64 @@ function buildActions(system, offset, bytes, dpfConfig, egrConfig, adblueConfig)
         offset: flagOffset, currentByte: bytes[flagOffset], newByte: 0, risk: 'medium'
       });
       break;
+
+    case 'Pop&Bang': {
+      // Overrun fuel injection — gaz bırakıldığında yakıt kesme gecikmesi
+      const ovrFuelOffset = offset + 12;
+      if (safe(ovrFuelOffset)) {
+        const curr = bytes[ovrFuelOffset];
+        // Overrun sırasında enjeksiyon süresini uzat (fuel cut-off delay)
+        const target = Math.min(0xFF, curr + 0x40);
+        list.push({
+          id: 'popbang_overrun_fuel_' + offset.toString(16),
+          label: 'Overrun Yakıt Enjeksiyonu Aktifleştir',
+          detail: `Adres ${hexAddr(ovrFuelOffset)}: 0x${hexByte(curr)} → 0x${hexByte(target)} (overrun fuel cut-off delay)`,
+          explain: 'Gaz bırakıldığında yakıt kesme süresini uzatır. Yanmamış yakıt sıcak egzoz manifolduna ulaşır ve patlar.',
+          effect: 'Deceleration sırasında egzozdan patlama sesi, spor egzoz ile belirgin crackle',
+          hpGain: '',
+          offset: ovrFuelOffset, currentByte: curr, newByte: target, risk: 'medium'
+        });
+      }
+
+      // Ignition retard — ateşleme geciktirme (overrun sırasında)
+      const ignRetOffset = offset + 20;
+      if (safe(ignRetOffset)) {
+        const curr = bytes[ignRetOffset];
+        // Ateşlemeyi geri çek → yanma geç olur → egzozda tamamlanır
+        const target = Math.max(0x00, curr - 0x20);
+        list.push({
+          id: 'popbang_ign_retard_' + offset.toString(16),
+          label: 'Overrun Ateşleme Geciktirme',
+          detail: `Adres ${hexAddr(ignRetOffset)}: 0x${hexByte(curr)} → 0x${hexByte(target)} (ignition retard during overrun)`,
+          explain: 'Gaz bırakıldığında ateşleme zamanlamasını geri çeker. Yanma geç olur ve egzozda tamamlanır → patlama/çıtırtı sesi.',
+          effect: 'Daha belirgin pop ve crackle sesleri, özellikle yüksek devirden gaz bırakıldığında',
+          hpGain: '',
+          offset: ignRetOffset, currentByte: curr, newByte: target, risk: 'medium'
+        });
+      }
+
+      // Overrun RPM eşiği — hangi devirden itibaren aktif
+      const rpmThreshOffset = offset + 28;
+      if (safe(rpmThreshOffset + 1)) {
+        const currHi = bytes[rpmThreshOffset];
+        const currLo = bytes[rpmThreshOffset + 1];
+        const currRpm = (currHi << 8) | currLo;
+        // Pop&Bang genelde 2000+ RPM'den aktif — eşiği düşür
+        const targetRpm = Math.max(1500, Math.min(currRpm, 2500));
+        const targetHi = (targetRpm >> 8) & 0xFF;
+        const targetLo = targetRpm & 0xFF;
+        list.push({
+          id: 'popbang_rpm_thresh_' + offset.toString(16),
+          label: 'Pop&Bang RPM Eşiği Ayarla',
+          detail: `Adres ${hexAddr(rpmThreshOffset)}: ${currRpm} RPM → ${targetRpm} RPM (overrun activation threshold)`,
+          explain: `Pop&Bang efektinin aktif olacağı minimum devir. Şu an ${currRpm} RPM, hedef ${targetRpm} RPM.`,
+          effect: `${targetRpm} RPM üzerinde gaz bırakıldığında pop&bang aktif olur`,
+          hpGain: '',
+          offset: rpmThreshOffset, currentByte: currHi, newByte: targetHi, risk: 'low'
+        });
+      }
+      break;
+    }
   }
 
   return list;
@@ -698,11 +764,13 @@ export async function scanRegions(bytes) {
   let dpfConfig = null;
   let egrConfig = null;
   let adblueConfig = null;
+  let popbangConfig = null;
   try {
-    const { getDpfDetection, getEgrDetection, getAdblueDetection } = await import('./ecu-rulepacks.js');
+    const { getDpfDetection, getEgrDetection, getAdblueDetection, getPopbangDetection } = await import('./ecu-rulepacks.js');
     dpfConfig = getDpfDetection(rulepackMatches);
     egrConfig = getEgrDetection(rulepackMatches);
     adblueConfig = getAdblueDetection(rulepackMatches);
+    popbangConfig = getPopbangDetection(rulepackMatches);
   } catch (_e) { /* import hatasında devam */ }
 
   // Tüm DAMOS label setlerini birleştirerek tara
@@ -710,6 +778,7 @@ export async function scanRegions(bytes) {
     { config: dpfConfig, system: 'DPF', prefix: 'DPF' },
     { config: egrConfig, system: 'EGR', prefix: 'EGR' },
     { config: adblueConfig, system: 'AdBlue/SCR', prefix: 'AdBlue' },
+    { config: popbangConfig, system: 'Pop&Bang', prefix: 'Pop&Bang' },
   ];
 
   for (const { config: cfg, system: sysName, prefix } of damosGroups) {
@@ -763,7 +832,7 @@ export async function scanRegions(bytes) {
       const windowEnd = Math.min(bytes.length, s.offset + s.text.length + 24);
       const windowBytes = bytes.subarray(windowStart, windowEnd);
 
-      const heuristicActions = buildActions(sys.system, s.offset, bytes, dpfConfig, egrConfig, adblueConfig).map(a => ({
+      const heuristicActions = buildActions(sys.system, s.offset, bytes, dpfConfig, egrConfig, adblueConfig, popbangConfig).map(a => ({
         ...a,
         confidence: 'low',
         source: 'scanner-heuristic',
@@ -805,7 +874,8 @@ export async function scanRegions(bytes) {
     'RPM sınırı': ['RPM','Drehzahl','nLim','N_Lim','nMax'],
     'Pedal': ['Pedal','FahrPed','APP_','Gaspedal','AccPedal'],
     'Immobilizer': ['Immo','IMMO','WFS','Wegfahr'],
-    'DTC': ['DTC','FehlerSp','DiagErr','CEL_','MIL_']
+    'DTC': ['DTC','FehlerSp','DiagErr','CEL_','MIL_'],
+    'Pop&Bang': ['Overrun','SchubAb','SA_Ovr','OvrFuel','DecFuel','Ueberlauf','BurstF','ALS_','Crackle']
   };
 
   for (const expectedSys of ecuProfile.systems) {

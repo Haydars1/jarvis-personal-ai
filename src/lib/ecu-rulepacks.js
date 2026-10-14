@@ -46,6 +46,30 @@ export const RULEPACKS = [
       { name: 'KFLDHBN', desc: 'Boost oran karakteristiği' },
       { name: 'MLHFM',   desc: 'MAF (HFM) kalibrasyon tablosu' }
     ],
+    popBangDetection: {
+      damosLabels: [
+        { id: 'KFSA',                type: 'overrun_fuel',    desc: 'Schubabschaltung — overrun fuel cut map',       size: 2, onValue: 0x0100, risk: 'medium' },
+        { id: 'ZWOUT',               type: 'ign_retard',      desc: 'Ateşleme geciktirme — overrun ignition retard', size: 2, onValue: 0xF0E0, risk: 'medium' },
+        { id: 'KFMIRL',              type: 'torque_request',  desc: 'İstek torku haritası (overrun bölgesi)',        size: 2, onValue: null,   risk: 'low' },
+      ],
+      controlHeuristics: {
+        overrunFuelCut: {
+          desc: 'Overrun fuel-cut delay byte',
+          expectedValues: [0x00, 0x01],
+          onValue: 0x01,
+          size: 1,
+          risk: 'medium',
+          scoring: {
+            wordAligned: 10,
+            valueIsZero: 20,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
     notes: 'ME7 Stage 1 için gerçek haritalar aile çapında isim-tabanlıdır; MxT (XDF yüklemeli) veya TunerPro ile tam harita düzenleme yapılır. JARVIS burada sadece string konumlarını işaretler.'
   },
 
@@ -73,6 +97,63 @@ export const RULEPACKS = [
       { name: 'Smoke Limiter',  desc: 'Duman sınırı (MAF/pedal)' },
       { name: 'IQ Limiter',     desc: 'Enjeksiyon miktarı limit (mg/stroke)' }
     ],
+    egrDetection: {
+      damosLabels: [
+        { id: 'AGR_mSoll_C',            type: 'egr_valve',     desc: 'AGR hedef kütle akışı (EDC15/16)',  size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'AGR_stEnable_C',         type: 'egr_switch',    desc: 'AGR master switch (EDC15/16)',      size: 1, offValue: 0x00,   risk: 'low' },
+        { id: 'EGR_rSoll_C',            type: 'egr_rate',      desc: 'EGR oran hedefi',                   size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_mDesRate_C',         type: 'egr_flow',      desc: 'EGR akış oranı hedef',              size: 2, offValue: 0x0000, risk: 'low' },
+      ],
+      controlHeuristics: {
+        egrValve: {
+          desc: 'EGR valf kontrol byte (EDC15/16)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'low',
+          scoring: {
+            wordAligned: 10,
+            valueIsOne: 25,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
+    dpfDetection: {
+      damosLabels: [
+        { id: 'DPF_stRegen_C',          type: 'regen_switch',   desc: 'DPF regen switch (EDC16)',          size: 1, offValue: 0x00,   risk: 'medium' },
+        { id: 'DPF_tiRgnMax_C',         type: 'regen_duration', desc: 'Max regen süresi (EDC16)',          size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_dpThresh_C',         type: 'diff_pressure',  desc: 'Diferansiyel basınç eşiği',         size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_mSootLim_C',         type: 'soot_threshold', desc: 'Kurum eşiği (EDC16)',               size: 2, offValue: 0xFFFF, risk: 'medium' },
+      ],
+      controlHeuristics: {
+        regenSwitch: {
+          desc: 'Rejenerasyon aktif/pasif bayrağı (EDC16)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'medium',
+          scoring: {
+            wordAligned: 10,
+            valueIsOne: 25,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        },
+        diffPressure: {
+          desc: 'Diferansiyel basınç eşiği (EDC16)',
+          offValue: 0xFFFF,
+          size: 2,
+          risk: 'medium',
+          plausibleRange: [30, 3000],
+        }
+      },
+      searchRadius: 512,
+    },
     notes: 'EDC15/16 için ZedSuite\'in Rust motoru otomatik harita bulma yapar; sonuçları XDF/JSON olarak dışa aktarabilirsin.'
   },
 
@@ -221,6 +302,31 @@ export const RULEPACKS = [
       { name: 'Lambda Target',    desc: 'Hedef lambda (yakıt zenginliği)' },
       { name: 'Ignition Timing',  desc: 'Ateşleme avansı' }
     ],
+    popBangDetection: {
+      damosLabels: [
+        { id: 'SA_OvRn_C',              type: 'overrun_fuel',    desc: 'Schubabschaltung overrun fuel map',              size: 2, onValue: 0x0100, risk: 'medium' },
+        { id: 'ZW_OvRn_C',              type: 'ign_retard',      desc: 'Overrun ignition retard angle',                  size: 2, onValue: 0xF0E0, risk: 'medium' },
+        { id: 'SA_tiDecFuel_C',         type: 'fuel_cut_delay',  desc: 'Fuel-cut deceleration delay timer',              size: 2, onValue: 0x0200, risk: 'medium' },
+        { id: 'KD_tiOverrun_C',         type: 'overrun_timer',   desc: 'Overrun condition duration timer',               size: 2, onValue: 0x0300, risk: 'low' },
+      ],
+      controlHeuristics: {
+        overrunFuelCut: {
+          desc: 'Overrun fuel-cut delay byte — MED17 benzinli',
+          expectedValues: [0x00, 0x01],
+          onValue: 0x01,
+          size: 1,
+          risk: 'medium',
+          scoring: {
+            wordAligned: 10,
+            valueIsZero: 20,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
     notes: 'MED17 modern benzinli — EGR/DPF yok ama lambda, boost, timing haritaları aktif.'
   },
 
@@ -245,6 +351,31 @@ export const RULEPACKS = [
       { name: 'Ignition Timing',  desc: 'Ateşleme avansı' },
       { name: 'Torque Limiters',  desc: 'Tork sınırları (çok katmanlı)' }
     ],
+    popBangDetection: {
+      damosLabels: [
+        { id: 'SchubAb_tiDecFuel_C',    type: 'fuel_cut_delay',  desc: 'Schubabschaltung fuel-cut delay (Continental)',  size: 2, onValue: 0x0200, risk: 'medium' },
+        { id: 'SchubAb_rOvFuel_C',      type: 'overrun_fuel',    desc: 'Overrun fuel enrichment ratio',                  size: 2, onValue: 0x0180, risk: 'medium' },
+        { id: 'ZW_SA_retard_C',         type: 'ign_retard',      desc: 'Ignition retard during overrun (Simos)',          size: 2, onValue: 0xF0E0, risk: 'medium' },
+        { id: 'SA_nOvRun_C',            type: 'rpm_threshold',   desc: 'Overrun RPM activation threshold',               size: 2, onValue: 0x05DC, risk: 'low' },
+      ],
+      controlHeuristics: {
+        overrunFuelCut: {
+          desc: 'Overrun fuel-cut delay byte — Simos benzinli',
+          expectedValues: [0x00, 0x01],
+          onValue: 0x01,
+          size: 1,
+          risk: 'medium',
+          scoring: {
+            wordAligned: 10,
+            valueIsZero: 20,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
     notes: 'Simos18 TriCore — password-protected flash alanları var. bench flash için TheFlashBold\'un Pi 5 + ESP32 kurulumu gerekir. KT200 OBD üzerinden çoğu alanı okur ama bazı Simos variant\'ları full-read için bench ister.'
   },
 
@@ -270,7 +401,285 @@ export const RULEPACKS = [
       { name: 'Rev Limiter',      desc: 'Devir sınırı' },
       { name: 'VMax Limiter',     desc: 'Hız sınırı' }
     ],
+    popBangDetection: {
+      damosLabels: [
+        { id: 'FUELCUT_OVERRUN',        type: 'overrun_fuel',    desc: 'Fuel-cut overrun map (Siemens MS)',               size: 2, onValue: 0x0100, risk: 'medium' },
+        { id: 'IGN_RETARD_OVERRUN',     type: 'ign_retard',      desc: 'Ignition retard during decel overrun',            size: 2, onValue: 0xF0E0, risk: 'medium' },
+        { id: 'OVERRUN_RPM_THRESH',     type: 'rpm_threshold',   desc: 'Overrun activation RPM threshold',                size: 2, onValue: 0x05DC, risk: 'low' },
+      ],
+      controlHeuristics: {
+        overrunFuelCut: {
+          desc: 'Overrun fuel-cut byte — BMW MS4x',
+          expectedValues: [0x00, 0x01],
+          onValue: 0x01,
+          size: 1,
+          risk: 'medium',
+          scoring: {
+            wordAligned: 10,
+            valueIsZero: 20,
+            nearbySmallScalars: 15,
+            closeToKeyword: 0.2,
+            notInAscii: 50,
+          }
+        }
+      },
+      searchRadius: 512,
+    },
     notes: 'BMW MS4x için bimmerstein-bin-analyzer araç çıktısına JARVIS entegrasyonu önerilir. Hex görünümü + 2D/3D grafik aynı anda.'
+  },
+
+  // ========== Siemens SID 803 / SID 807 (PSA Diesel) ==========
+  {
+    family: 'siemens_sid80x',
+    familyName: 'Siemens SID 803 / SID 807',
+    description: 'PSA (Peugeot/Citroën) HDi + Ford TDCi dizel (1.6 HDi, 2.0 HDi, 2.2 HDi)',
+    sources: [
+      { name: 'FLASHFILES/SID803-SID807-maps', url: 'https://github.com/FLASHFILES/SID803-SID807-maps', note: 'SID803/807 kalibrasyon haritaları, XDF tanımları' },
+      { name: 'Community: psa-tuning.co.uk', url: 'https://psa-tuning.co.uk', note: 'SID801/803/807 offset tabloları, map listesi' },
+    ],
+    identify: {
+      sizeHints: [524288, 1048576, 2097152],
+      strings: [/SID80[1237]/i, /SIEMENS/i, /9H[A-Z]\d{3}/, /PSA/i, /HDi/i]
+    },
+    firmwares: {},
+    familyMaps: [
+      { name: 'IQ Pilot / Driver Demand', desc: 'Sürücü talebi → enjeksiyon miktarı haritası' },
+      { name: 'Smoke Limiter',            desc: 'Duman sınır haritası (Air/Fuel sınırı)' },
+      { name: 'Rail Pressure',            desc: 'Common-rail basınç hedefi' },
+      { name: 'Boost Pressure',           desc: 'Turbo basınç hedefi' },
+      { name: 'Torque Limiters',          desc: 'Tork sınır haritaları (çok katmanlı)' },
+      { name: 'EGR Map',                  desc: 'EGR valf pozisyon haritası' },
+      { name: 'Speed Limiter',            desc: 'Hız sınırı' },
+    ],
+    dpfDetection: {
+      damosLabels: [
+        { id: 'DPF_Regen_Req',         type: 'regen_switch',     desc: 'DPF rejenerasyon istek bayrağı (SID80x)',     size: 1, offValue: 0x00,   risk: 'medium' },
+        { id: 'DPF_DiffPress_Thresh',  type: 'diff_pressure',    desc: 'Diferansiyel basınç eşiği (SID80x)',          size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_Soot_Mass_Lim',     type: 'soot_threshold',   desc: 'Kurum kütle sınırı',                          size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_Regen_Interval',    type: 'regen_interval',   desc: 'Rejenerasyon aralığı (km)',                   size: 2, offValue: 0xFFFF, risk: 'medium' },
+      ],
+      controlHeuristics: {
+        regenSwitch: {
+          desc: 'Rejenerasyon aktif/pasif bayrağı (SID80x)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'medium',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    egrDetection: {
+      damosLabels: [
+        { id: 'EGR_Pos_Target',     type: 'egr_valve',    desc: 'EGR valf hedef pozisyonu (SID80x)',    size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_Enable_Sw',     type: 'egr_switch',   desc: 'EGR master switch (SID80x)',           size: 1, offValue: 0x00,   risk: 'low' },
+        { id: 'EGR_Mass_Flow',     type: 'egr_flow',     desc: 'EGR kütle akışı hedefi',               size: 2, offValue: 0x0000, risk: 'low' },
+      ],
+      controlHeuristics: {
+        egrValve: {
+          desc: 'EGR valf kontrol byte (SID80x)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'low',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    notes: 'SID803 (Euro 3/4) ve SID807 (Euro 4/5) Siemens Continental ECU. FAP (DPF) off ve EGR off PSA tuning topluluğunda çok yaygın. Winols ve CMD flasher ile çalışılır.'
+  },
+
+  // ========== Continental PCR2.1 (VW EA288 Diesel) ==========
+  {
+    family: 'continental_pcr21',
+    familyName: 'Continental PCR2.1',
+    description: 'VW/Audi/Skoda/Seat EA288 2.0 TDI (Euro 6 dizel) — Continental ECU',
+    sources: [
+      { name: 'EA288-Community/pcr21-maps', url: 'https://github.com/EA288-Community/pcr21-maps', note: 'PCR2.1 kalibrasyon referansları' },
+      { name: 'Community: digital-kaos.co.uk', url: 'https://digital-kaos.co.uk', note: 'PCR2.1 map locations, tuning bilgileri' },
+    ],
+    identify: {
+      sizeHints: [4194304, 8388608],
+      strings: [/PCR2\.1/i, /CONTINENTAL/i, /EA288/i, /04L\d{6}/, /CJAA|CRUA|DFGA|DFHA|DTUA/i]
+    },
+    firmwares: {},
+    familyMaps: [
+      { name: 'IQ Driver Demand',   desc: 'Sürücü talebi → enjeksiyon miktarı' },
+      { name: 'IQ Smoke Limiter',   desc: 'Duman sınır haritası' },
+      { name: 'Rail Pressure Map',  desc: 'Common-rail basınç hedef haritası' },
+      { name: 'Boost Target Map',   desc: 'Turbo basınç hedefi (VTG/WG)' },
+      { name: 'Torque Limiter',     desc: 'Tork sınırı (multi-layer)' },
+      { name: 'EGR Rate Target',    desc: 'EGR oran hedef haritası' },
+      { name: 'Injection Timing',   desc: 'Enjeksiyon zamanlaması' },
+      { name: 'Speed Limiter',      desc: 'Hız sınırı' },
+    ],
+    dpfDetection: {
+      damosLabels: [
+        { id: 'DPF_stRegen_C',      type: 'regen_switch',    desc: 'DPF regen switch (PCR2.1)',               size: 1, offValue: 0x00,   risk: 'medium' },
+        { id: 'DPF_dpThrsh_C',      type: 'diff_pressure',   desc: 'DPF diferansiyel basınç eşiği',           size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_mSootLm_C',      type: 'soot_threshold',  desc: 'Kurum yükleme eşiği (PCR2.1)',            size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'DPF_tiRgInt_C',      type: 'regen_interval',  desc: 'Rejenerasyon aralığı',                    size: 2, offValue: 0xFFFF, risk: 'medium' },
+      ],
+      controlHeuristics: {
+        regenSwitch: {
+          desc: 'Rejenerasyon aktif/pasif bayrağı (PCR2.1)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'medium',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    egrDetection: {
+      damosLabels: [
+        { id: 'EGR_rDes_C',        type: 'egr_rate',     desc: 'EGR oran hedefi (PCR2.1)',               size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_stEn_C',        type: 'egr_switch',   desc: 'EGR master switch (PCR2.1)',             size: 1, offValue: 0x00,   risk: 'low' },
+        { id: 'EGR_mFlw_C',        type: 'egr_flow',     desc: 'EGR kütle akış hedefi (PCR2.1)',         size: 2, offValue: 0x0000, risk: 'low' },
+      ],
+      controlHeuristics: {
+        egrValve: {
+          desc: 'EGR valf kontrol byte (PCR2.1)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'low',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    adblueDetection: {
+      damosLabels: [
+        { id: 'SCR_stDos_C',       type: 'dosing_switch',   desc: 'AdBlue dozaj switch (PCR2.1)',          size: 1, offValue: 0x00,   risk: 'high' },
+        { id: 'SCR_qDos_C',        type: 'dosing_quantity',  desc: 'AdBlue dozaj miktarı',                 size: 2, offValue: 0x0000, risk: 'high' },
+        { id: 'SCR_tCat_C',        type: 'cat_temp',         desc: 'SCR katalizör sıcaklık eşiği',         size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'SCR_NOxTgt_C',      type: 'nox_target',       desc: 'NOx hedef çıkış değeri',               size: 2, offValue: 0x0000, risk: 'high' },
+      ],
+      controlHeuristics: {
+        dosingSwitch: {
+          desc: 'AdBlue dozaj açık/kapalı (PCR2.1)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'high',
+          scoring: { wordAligned: 10, valueIsOne: 30, nearbySmallScalars: 15, closeToKeyword: 0.3, notInAscii: 50 }
+        }
+      },
+      searchRadius: 1024,
+    },
+    notes: 'EA288 PCR2.1 Euro 6 dizel. AdBlue/SCR sistemi var. VW Dieselgate sonrası güncellenen kalibrasyon. CMD/KTAG ile boot-mode flash gerekir.'
+  },
+
+  // ========== Delphi DCM3.5 (Renault / Dacia) ==========
+  {
+    family: 'delphi_dcm35',
+    familyName: 'Delphi DCM3.5',
+    description: 'Renault/Dacia 1.5 dCi / 1.6 dCi dizel (K9K, R9M motorlar)',
+    sources: [
+      { name: 'Community: tunerpro.net/viewforum.php?f=55', url: 'https://tunerpro.net/viewforum.php?f=55', note: 'Delphi DCM XDF tanımları' },
+      { name: 'Community: digital-kaos.co.uk', url: 'https://digital-kaos.co.uk', note: 'DCM3.5 map yerleşimleri, tuning bilgileri' },
+    ],
+    identify: {
+      sizeHints: [1048576, 2097152, 4194304],
+      strings: [/DCM3\.5/i, /DELPHI/i, /K9K/i, /R9M/i, /237\w{6}/, /RENAULT/i]
+    },
+    firmwares: {},
+    familyMaps: [
+      { name: 'IQ Driver Demand',  desc: 'Sürücü talebi → enjeksiyon miktarı' },
+      { name: 'Smoke Limiter',     desc: 'Duman sınır haritası (AFR limiter)' },
+      { name: 'Rail Pressure',     desc: 'Common-rail basınç hedefi' },
+      { name: 'Boost Target',      desc: 'Turbo basınç hedefi' },
+      { name: 'Torque Limit',      desc: 'Tork sınırı' },
+      { name: 'EGR Map',           desc: 'EGR pozisyon hedefi' },
+      { name: 'Injection Timing',  desc: 'Ana enjeksiyon zamanlaması' },
+    ],
+    dpfDetection: {
+      damosLabels: [
+        { id: 'FAP_Regen_Enable',   type: 'regen_switch',    desc: 'FAP rejenerasyon switch (DCM3.5)',       size: 1, offValue: 0x00,   risk: 'medium' },
+        { id: 'FAP_DiffP_Thresh',   type: 'diff_pressure',   desc: 'FAP diferansiyel basınç eşiği',          size: 2, offValue: 0xFFFF, risk: 'medium' },
+        { id: 'FAP_Soot_Limit',     type: 'soot_threshold',  desc: 'Kurum kütle sınırı (DCM3.5)',            size: 2, offValue: 0xFFFF, risk: 'medium' },
+      ],
+      controlHeuristics: {
+        regenSwitch: {
+          desc: 'FAP rejenerasyon bayrağı (DCM3.5)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'medium',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    egrDetection: {
+      damosLabels: [
+        { id: 'EGR_Pos_Demand',    type: 'egr_valve',    desc: 'EGR valf hedef pozisyonu (DCM3.5)',     size: 2, offValue: 0x0000, risk: 'low' },
+        { id: 'EGR_Switch',        type: 'egr_switch',   desc: 'EGR master switch (DCM3.5)',            size: 1, offValue: 0x00,   risk: 'low' },
+      ],
+      controlHeuristics: {
+        egrValve: {
+          desc: 'EGR valf kontrol byte (DCM3.5)',
+          expectedValues: [0x00, 0x01],
+          offValue: 0x00,
+          size: 1,
+          risk: 'low',
+          scoring: { wordAligned: 10, valueIsOne: 25, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    notes: 'Delphi DCM3.5 Renault/Dacia K9K/R9M dizel. Çoğu Euro 4/5, bazıları Euro 6. FAP = DPF (Filtre à Particules). BDM/JTAG veya CMD flasher ile çalışılır.'
+  },
+
+  // ========== Denso SH7058 / SH7059 (Toyota / Subaru) ==========
+  {
+    family: 'denso_sh705x',
+    familyName: 'Denso SH7058 / SH7059',
+    description: 'Toyota/Subaru benzinli — Renesas SH7058/SH7059 tabanlı Denso ECU',
+    sources: [
+      { name: 'EcuFlash/SubaruDefs', url: 'https://github.com/EcuFlash/SubaruDefs', note: 'Subaru ECU tanım dosyaları (EcuFlash XML)' },
+      { name: 'Community: romraider.com', url: 'https://www.romraider.com', note: 'Subaru/Toyota ECU düzenleme topluluğu, RomRaider tanımları' },
+      { name: 'speeps/ecuern', url: 'https://github.com/speeps/ecuern', note: 'Renesas SH tabanlı ECU reverse-engineering araçları' },
+    ],
+    identify: {
+      sizeHints: [524288, 1048576, 1572864],
+      strings: [/DENSO/i, /SH705[89]/i, /A2[A-Z]\d{3}/, /SUBARU/i, /TOYOTA/i, /22611/]
+    },
+    firmwares: {},
+    familyMaps: [
+      { name: 'Fuel Map A/B',          desc: 'Yakıt haritası (dual-map A/B)' },
+      { name: 'Ignition Timing A/B',   desc: 'Ateşleme avansı (dual-map A/B)' },
+      { name: 'Boost Target',          desc: 'Turbo basınç hedefi (WRX/STI)' },
+      { name: 'Wastegate Duty',        desc: 'Wastegate görev döngüsü' },
+      { name: 'MAF Scaling',           desc: 'MAF kalibrasyon ölçekleme' },
+      { name: 'Rev Limiter',           desc: 'Devir sınırı (flat-foot shift)' },
+      { name: 'Speed Limiter',         desc: 'Hız sınırı' },
+      { name: 'Launch Control',        desc: 'Launch control RPM eşiği' },
+    ],
+    popBangDetection: {
+      damosLabels: [
+        { id: 'OvRnFuelCut_Map',       type: 'overrun_fuel',    desc: 'Overrun fuel-cut map (Denso)',            size: 2, onValue: 0x0100, risk: 'medium' },
+        { id: 'OvRn_IgnRetard',        type: 'ign_retard',      desc: 'Overrun ignition retard (Denso)',         size: 2, onValue: 0xF0E0, risk: 'medium' },
+        { id: 'OvRn_RPM_Thresh',       type: 'rpm_threshold',   desc: 'Overrun RPM aktivasyon eşiği (Denso)',    size: 2, onValue: 0x05DC, risk: 'low' },
+        { id: 'OvRn_TPS_Thresh',       type: 'tps_threshold',   desc: 'Overrun gaz kelebeği eşiği (Denso)',      size: 2, onValue: 0x0000, risk: 'low' },
+      ],
+      controlHeuristics: {
+        overrunFuelCut: {
+          desc: 'Overrun fuel-cut byte — Denso SH705x',
+          expectedValues: [0x00, 0x01],
+          onValue: 0x01,
+          size: 1,
+          risk: 'medium',
+          scoring: { wordAligned: 10, valueIsZero: 20, nearbySmallScalars: 15, closeToKeyword: 0.2, notInAscii: 50 }
+        }
+      },
+      searchRadius: 512,
+    },
+    notes: 'Denso SH7058/7059 Renesas SuperH. EcuFlash veya RomRaider ile açılır. Subaru WRX/STI/Forester XT ve Toyota 86/BRZ yaygın hedefler. Tactrix OpenPort 2.0 ile OBD flash.'
   },
 
   // ========== Honda CBR250RR (örnek motosiklet) ==========
@@ -394,6 +803,14 @@ export function getAdblueDetection(familyMatches) {
   for (const m of familyMatches || []) {
     const pack = RULEPACKS.find(r => r.family === m.family);
     if (pack?.adblueDetection) return pack.adblueDetection;
+  }
+  return null;
+}
+
+export function getPopbangDetection(familyMatches) {
+  for (const m of familyMatches || []) {
+    const pack = RULEPACKS.find(r => r.family === m.family);
+    if (pack?.popBangDetection) return pack.popBangDetection;
   }
   return null;
 }
