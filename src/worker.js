@@ -447,6 +447,19 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const fmt=mod.detectFileFormat(fileData);
    const stats=mod.fileStats(fileData);
    const regions=await mod.scanRegions(fileData);
+   // --- Tier 0.5: Import edilmiş A2L/XDF tanımlarını D1'den çek ve binary ile eşleştir ---
+   try{
+     const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+     if(importedDefs&&importedDefs.length){
+       const {matchDefinitions,definitionsToRegions}=await import('./lib/ecu-definition-parser.js');
+       const normalized=importedDefs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
+       const matched=matchDefinitions(fileData,normalized);
+       if(matched.length){
+         const importedRegions=definitionsToRegions(matched);
+         regions.unshift(...importedRegions);
+       }
+     }
+   }catch(t05err){/* tier 0.5 hatası upload'ı durdurmamalı */}
    const upload_id=id();
    const file_hash=await mod.sha256Hex(fileData);
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
@@ -649,6 +662,80 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const recentFiles=await qall(env,'SELECT id,filename,ecu_type,fuel_type,vehicle_make,vehicle_model,times_uploaded,last_seen_at FROM ecu_file_memory ORDER BY last_seen_at DESC LIMIT 10');
    return j({ok:true,totalFiles:total?.c||0,byEcuType:byEcu,byFuelType:byFuel,byMake,recentFiles});
  }catch(e){return j({error:e.message||'STATS_FAILED'},500)}}
+
+ // === ECU DEFINITION IMPORT (A2L / XDF) ===
+ if(p==='/api/ecu/import-definitions'&&m==='POST'){try{
+   const b=await body(req);
+   const defText=b.content||b.text||'';
+   if(!defText||defText.length<50)return j({error:'EMPTY_OR_TOO_SHORT'},400);
+   if(defText.length>20*1024*1024)return j({error:'FILE_TOO_LARGE',max:'20MB'},413);
+   const {parseDefinitionFile}=await import('./lib/ecu-definition-parser.js');
+   const result=parseDefinitionFile(defText);
+   if(!result.definitions.length)return j({error:'NO_DEFINITIONS_FOUND',meta:result.meta},400);
+   const setId=id();
+   const ts=Date.now();
+   await run(env,'INSERT INTO ecu_definition_sets(id,user_id,filename,format,ecu_family,base_offset,definition_count,meta,tags,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',
+     setId,'owner',String(b.filename||'definitions.'+result.meta.format),result.meta.format,b.ecuFamily||b.ecu_family||'',result.baseOffset||0,result.definitions.length,JSON.stringify(result.meta),'[]','',ts,ts);
+   // Batch insert tanımlar — 50'lik gruplar halinde
+   const defs=result.definitions;
+   for(let i=0;i<defs.length;i+=50){
+     const batch=defs.slice(i,i+50);
+     const vals=[];const params=[];
+     for(const d of batch){
+       const did=id();
+       vals.push('(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+       params.push(did,setId,d.name,d.description||'',d.displayId||d.name,d.address,d.rawAddress,d.datatype||'UWORD',d.dataSize||2,d.type||'scalar',d.system||null,d.unit||'',d.math||'X',d.lowerLimit!=null?d.lowerLimit:null,d.upperLimit!=null?d.upperLimit:null,JSON.stringify(d.axes||[]),d.elementCount||1,d.totalBytes||2,d.source||result.meta.format,ts,ts);
+     }
+     await run(env,'INSERT INTO ecu_definitions(id,def_set_id,name,description,display_id,address,raw_address,datatype,data_size,type,system,unit,math,lower_limit,upper_limit,axes,element_count,total_bytes,source,created_at,updated_at) VALUES '+vals.join(','),...params);
+   }
+   // Sistem dağılım özeti
+   const systemCounts={};
+   for(const d of defs)if(d.system){systemCounts[d.system]=(systemCounts[d.system]||0)+1}
+   return j({ok:true,setId,format:result.meta.format,definitionCount:defs.length,baseOffset:result.baseOffset||0,systems:systemCounts,meta:result.meta});
+ }catch(e){return j({error:e.message||'IMPORT_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
+
+ if(p==='/api/ecu/definition-sets'&&m==='GET'){try{
+   const rows=await qall(env,'SELECT * FROM ecu_definition_sets ORDER BY created_at DESC LIMIT 100');
+   return j({ok:true,sets:rows.map(r=>({...r,meta:JSON.parse(r.meta||'{}'),tags:JSON.parse(r.tags||'[]')}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/definition-sets/')&&m==='GET'){try{
+   const setId=p.split('/api/ecu/definition-sets/')[1];
+   if(!setId)return j({error:'SET_ID_REQUIRED'},400);
+   const set=await q1(env,'SELECT * FROM ecu_definition_sets WHERE id=?',setId);
+   if(!set)return j({error:'SET_NOT_FOUND'},404);
+   const defs=await qall(env,'SELECT * FROM ecu_definitions WHERE def_set_id=? ORDER BY address ASC',setId);
+   return j({ok:true,set:{...set,meta:JSON.parse(set.meta||'{}'),tags:JSON.parse(set.tags||'[]')},definitions:defs.map(d=>({...d,axes:JSON.parse(d.axes||'[]')}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/definition-sets/')&&m==='DELETE'){try{
+   const setId=p.split('/api/ecu/definition-sets/')[1];
+   if(!setId)return j({error:'SET_ID_REQUIRED'},400);
+   const set=await q1(env,'SELECT id FROM ecu_definition_sets WHERE id=?',setId);
+   if(!set)return j({error:'SET_NOT_FOUND'},404);
+   await run(env,'DELETE FROM ecu_definitions WHERE def_set_id=?',setId);
+   await run(env,'DELETE FROM ecu_definition_sets WHERE id=?',setId);
+   return j({ok:true,deleted:setId});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/definitions/match'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   // Tüm import edilmiş tanımları çek
+   const defs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');
+   if(!defs.length)return j({ok:true,matched:[],regions:[],message:'Henüz import edilmiş tanım yok'});
+   const {matchDefinitions,definitionsToRegions}=await import('./lib/ecu-definition-parser.js');
+   const normalized=defs.map(d=>({name:d.name,description:d.description,displayId:d.display_id,address:d.address,rawAddress:d.raw_address,datatype:d.datatype,dataSize:d.data_size,type:d.type,system:d.system,unit:d.unit,math:d.math,lowerLimit:d.lower_limit,upperLimit:d.upper_limit,axes:JSON.parse(d.axes||'[]'),elementCount:d.element_count,totalBytes:d.total_bytes,source:d.source}));
+   const matched=matchDefinitions(bytes,normalized);
+   const regions=definitionsToRegions(matched);
+   return j({ok:true,totalDefs:defs.length,matchedCount:matched.length,regionCount:regions.length,matched:matched.slice(0,200),regions});
+ }catch(e){return j({error:e.message||'MATCH_FAILED'},500)}}
 
  // === GÖRSEL ÜRETME (Cloudflare AI — ücretsiz) ===
  if(p==='/api/ai/image'&&m==='POST'){try{
