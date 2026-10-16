@@ -96,7 +96,7 @@ final class BiometricLoginStore {
         var query = baseQuery()
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
-        query[kSecUseOperationPrompt as String] = "JARVIS'e Face ID ile giriş yap"
+        query[kSecUseOperationPrompt as String] = "hayırlıevlad'e Face ID ile giriş yap"
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)

@@ -78,7 +78,7 @@ struct ContentView: View {
             .buttonStyle(.bordered)
             Spacer()
             VStack(spacing: 1) {
-                Text("JARVIS").font(.system(size: 17, weight: .bold))
+                Text("hayırlıevlad").font(.system(size: 17, weight: .bold))
                 Text(state.statusText).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
@@ -120,7 +120,7 @@ struct ContentView: View {
         VStack(spacing: 14) {
             Circle().fill(accent.opacity(0.12)).frame(width: 64, height: 64)
                 .overlay(Image(systemName: "sparkles").font(.system(size: 27, weight: .semibold)).foregroundStyle(accent))
-            Text("JARVIS hazır").font(.title3.bold())
+            Text("hayırlıevlad hazır").font(.title3.bold())
             Text("Sorunu yaz, dosya ekle veya mikrofona konuş.")
                 .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
@@ -235,7 +235,7 @@ struct ContentView: View {
             .overlay(RoundedRectangle(cornerRadius: 25).stroke(border, lineWidth: 0.7))
             .padding(.horizontal, 12)
 
-            Text("JARVIS hata yapabilir. Önemli bilgileri kontrol et.")
+            Text("hayırlıevlad hata yapabilir. Önemli bilgileri kontrol et.")
                 .font(.caption2).foregroundStyle(.secondary).padding(.bottom, 1)
         }
         .padding(.top, 9)
@@ -279,7 +279,7 @@ struct ContentView: View {
                 Circle().fill(accent).frame(width: 68, height: 68)
                     .overlay(Text("J").font(.system(size: 31, weight: .bold)).foregroundStyle(.white))
                 VStack(spacing: 5) {
-                    Text("JARVIS").font(.system(size: 34, weight: .bold))
+                    Text("hayırlıevlad").font(.system(size: 34, weight: .bold))
                     Text("Devam etmek için giriş yap").font(.subheadline).foregroundStyle(.secondary)
                 }
                 VStack(spacing: 12) {
