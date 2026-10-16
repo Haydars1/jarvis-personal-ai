@@ -28,7 +28,7 @@ Metinlerin tamamı burada sohbet dosyalarından çıkarılarak **1041 parça** o
 - GitHub **herkese açık** olduğundan tam PDF metinleri, sayfa dökümleri veya orijinal kitap dosyaları GitHub commit'lerinde yoktur. Yalnızca özgün özetler ve çalışma kodu eklidir.
 - Özel JSON paketi kullanıcıya burada teslim edilir; yüklemek için `ECU Kataloğu > ECU Teknik Bilgi Kütüphanesi > ŞİMDİ ÖĞREN / KAYDET` yolu kullanılır.
 - API: `GET /api/ecu/manual-library/concepts`, `GET /stats`, `GET /search?q=`, `GET /page?doc=&page=`, `POST /activate`, `POST /import`. Her birinde JARVIS oturumu doğrulanır.
-- `POST /import` 25'e kadar kayıt alır; arayüz 20 kayıtlık paketlerle aktarır, SHA-256 sürüm uyuşmazlıklarını engeller. Tekrar gönderim kayıtları çoğaltmaz.
+- `POST /import` 8'e kadar kayıt alır; arayüz Cloudflare D1 sınırlarına uyum için 6 kayıtlık paketlerle aktarır, SHA-256 sürüm uyuşmazlıklarını engeller. Tekrar gönderim kayıtları çoğaltmaz.
 - Öğrenilmiş açıklamalar doğrulanmamış ECU yazılımına doğrudan kalibrasyon değişikliği yapmaz. Motor, araç ve HW/SW versiyonu uyumu ayrıca doğrulanır.
 - PDF metinleri olası talimat enjeksiyonuna karşı **güvenilmeyen kaynak verisi** olarak değerlendirilmelidir.
 - Eski bilgi kanalları, tuning haritaları, checksum araçları, KT200 ve Thinkdiag işlevleri aynı kalır.
