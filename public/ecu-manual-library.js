@@ -81,7 +81,7 @@
     $('#ecuLibraryImport').disabled=true;
     let imported=0;
     try{
-      for(let i=0;i<records.length;i+=20){
+      for(let i=0;i<records.length;i+=6){
         const response=await api('import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({authorized:true,page_counts:pages,records:records.slice(i,i+20)})});
         imported+=response.imported;
         status('Öğreniliyor / kaydediliyor: '+imported+' / '+records.length+' bilgi parçası');
