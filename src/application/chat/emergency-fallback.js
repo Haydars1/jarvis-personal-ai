@@ -2,7 +2,7 @@ import { jsonResponse, settleWithin } from '../../lib/runtime.js';
 import { cleanReply } from '../../lib/orchestration.js';
 
 const MODEL = '@cf/zai-org/glm-4.7-flash';
-const FAILURE_PREFIX = 'hayırlıevlad şu an yanıt üretemedi';
+const FAILURE_PATTERN = /şu an yanıt üretemedi/i;
 
 function extractWorkersText(result) {
   const content = result?.choices?.[0]?.message?.content;
@@ -40,7 +40,7 @@ export function createEmergencyChatFallback(handleChat) {
     let payload;
     try { payload = await response.clone().json(); } catch { return response; }
     const current = String(payload?.reply || '').trim();
-    if (!current.startsWith(FAILURE_PREFIX)) return response;
+    if (!FAILURE_PATTERN.test(current)) return response;
 
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
@@ -51,7 +51,7 @@ export function createEmergencyChatFallback(handleChat) {
     payload.provider = 'hayırlıevlad';
     const history = Array.isArray(payload.history) ? [...payload.history] : [];
     const last = history.at(-1);
-    if (last?.role === 'assistant' && String(last.content || '').trim().startsWith(FAILURE_PREFIX)) {
+    if (last?.role === 'assistant' && FAILURE_PATTERN.test(String(last.content || ''))) {
       history[history.length - 1] = { ...last, content: reply, provider: 'hayırlıevlad' };
     } else {
       if (!history.length) history.push({ role: 'user', content: text });
