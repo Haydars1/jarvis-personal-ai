@@ -52,7 +52,7 @@ export function createEcuPartnumberCatalog(core){
           if(!query&&!group)return jsonResponse({ok:true,results:[],message:'ENTER_QUERY_OR_GROUP'});
           const clauses=[],values=[];
           if(group){clauses.push('group_name=?');values.push(group);}
-          if(query){clauses.push('(normalized_number LIKE ? OR UPPER(ecu_type) LIKE ? OR UPPER(manufacturer) LIKE ? OR UPPER(brand) LIKE ? OR UPPER(model) LIKE ? OR UPPER(engine) LIKE ?)');values.push(query+'%',...Array(5).fill('%'+query+'%'));}
+          if(query){clauses.push('(normalized_number LIKE ? OR UPPER(ecu_type) LIKE ? OR UPPER(manufacturer) LIKE ? OR UPPER(brand) LIKE ? OR UPPER(model) LIKE ? OR UPPER(engine) LIKE ? OR UPPER(software_part_number) LIKE ? OR UPPER(software_version) LIKE ?)');const textQuery=String(url.searchParams.get('q')||'').trim().toUpperCase().slice(0,100);values.push(query+'%',...Array(7).fill('%'+textQuery+'%'));}
           const sql='SELECT id,group_name AS "group",part_number,ecu_type,manufacturer,brand,model,engine,software_part_number,software_version,description,source_url,notes FROM ecu_part_catalog WHERE '+clauses.join(' AND ')+' ORDER BY CASE WHEN normalized_number=? THEN 0 WHEN normalized_number LIKE ? THEN 1 ELSE 2 END,part_number LIMIT ?';
           const results=await queryAll(env,sql,...values,query,query+'%',limit);
           return jsonResponse({ok:true,results,query,group});
