@@ -1,0 +1,117 @@
+import { execute, queryAll, queryOne, jsonResponse } from '../../lib/runtime.js';
+import { ECU_MANUALS, ECU_MANUAL_FOUNDATIONS, ecuStudyConcepts } from './manual-learning-foundations.js';
+
+// Independent ECU technical knowledge channel. Never writes to ECU binary or existing app tables.
+const MAX_BATCH=25;
+const MAX_REQUEST=125000;
+const ok=(data,status=200)=>jsonResponse({ok:true,...data},status);
+const error=(message,status=400)=>jsonResponse({ok:false,error:message},status);
+let schemaReady=false;
+async function ensureSchema(env){
+  if(schemaReady)return;
+  await execute(env,"CREATE TABLE IF NOT EXISTS ecu_manual_library_documents (id TEXT PRIMARY KEY, filename TEXT NOT NULL, source_sha256 TEXT NOT NULL, page_count INTEGER NOT NULL, tags_json TEXT NOT NULL DEFAULT '[]', imported_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
+  await execute(env,"CREATE TABLE IF NOT EXISTS ecu_manual_library_passages (id TEXT PRIMARY KEY,document_id TEXT NOT NULL,page INTEGER NOT NULL,part INTEGER NOT NULL,content TEXT NOT NULL,has_visuals INTEGER NOT NULL DEFAULT 0,imported_at INTEGER NOT NULL, UNIQUE(document_id,page,part))");
+  await execute(env,"CREATE INDEX IF NOT EXISTS ecu_manual_library_passages_page ON ecu_manual_library_passages(document_id,page,part)");
+  schemaReady=true;
+}
+async function authed(core,req,env,ctx){
+  const url=new URL('/api/auth/status',req.url);
+  const status=await core.fetch(new Request(url,{headers:req.headers}),env,ctx);
+  if(!status.ok)return false;
+  try{return (await status.json()).authenticated===true;}catch{return false;}
+}
+function safeRecord(input){
+  if(!input||typeof input!=='object')throw Error('INVALID_RECORD');
+  const id=String(input.document_id||'').trim();
+  if(!ECU_MANUALS.some(doc=>doc.id===id))throw Error('UNKNOWN_DOCUMENT');
+  const page=Number(input.page),part=Number(input.part);
+  if(!Number.isSafeInteger(page)||page<1||page>1500||!Number.isSafeInteger(part)||part<1||part>100)throw Error('INVALID_PAGE');
+  const content=String(input.text||'').trim();
+  if(!content||content.length>3500)throw Error('INVALID_TEXT_LENGTH');
+  const sha=String(input.source_sha256||'').toLowerCase();
+  if(!/^[a-f0-9]{64}$/.test(sha))throw Error('INVALID_SHA256');
+  const filename=String(input.filename||'').slice(0,180);
+  if(!filename.toLowerCase().endsWith('.pdf'))throw Error('INVALID_PDF_FILENAME');
+  const tags=Array.isArray(input.tags)?input.tags.slice(0,12).map(x=>String(x).slice(0,60)):[];
+  const visuals=Number(input.image_count||0)>0?1:0;
+  return {id:id+':'+page+':'+part,document_id:id,page,part,content,source_sha256:sha,filename,tags,visuals};
+}
+function shortQuery(input){
+  return String(input||'').trim().slice(0,120).replace(/[%_]/g,'').replace(/[\x00-\x1f]/g,' ');
+}
+export function createEcuManualLibrary(core){
+  if(!core?.fetch)throw Error('ECU_MANUAL_LIBRARY_CORE_REQUIRED');
+  return {
+    async fetch(req,env,ctx){
+      const url=new URL(req.url),path=url.pathname,method=req.method;
+      if(!path.startsWith('/api/ecu/manual-library/'))return core.fetch(req,env,ctx);
+      if(!(await authed(core,req,env,ctx)))return error('AUTH_REQUIRED',401);
+      if(!env.DB)return error('D1_NOT_BOUND',503);
+      try{
+        await ensureSchema(env);
+        if(path==='/api/ecu/manual-library/concepts'&&method==='GET'){
+          const query=shortQuery(url.searchParams.get('q'));
+          return ok({concepts:query?ecuStudyConcepts(query,30):ECU_MANUAL_FOUNDATIONS,manuals:ECU_MANUALS,source:'curated-study-notes',not_model_training:true});
+        }
+        if(path==='/api/ecu/manual-library/stats'&&method==='GET'){
+          const docs=await queryAll(env,'SELECT id,filename,page_count,source_sha256,imported_at,updated_at FROM ecu_manual_library_documents ORDER BY id');
+          const coverage=await queryAll(env,'SELECT document_id AS id,COUNT(*) AS chunks,COUNT(DISTINCT page) AS indexed_pages FROM ecu_manual_library_passages GROUP BY document_id ORDER BY document_id');
+          const total=await queryOne(env,'SELECT COUNT(*) AS chunks FROM ecu_manual_library_passages');
+          return ok({source_documents:ECU_MANUALS.length,uploaded_documents:docs.length,passages:Number(total?.chunks||0),documents:docs,coverage,concepts:ECU_MANUAL_FOUNDATIONS.length});
+        }
+        if(path==='/api/ecu/manual-library/search'&&method==='GET'){
+          const query=shortQuery(url.searchParams.get('q')),doc=String(url.searchParams.get('doc')||'').slice(0,60);
+          if(!query&&!doc)return error('QUERY_REQUIRED');
+          if(doc&&!ECU_MANUALS.some(x=>x.id===doc))return error('UNKNOWN_DOCUMENT');
+          const limit=Math.max(1,Math.min(40,Number(url.searchParams.get('limit')||12)||12));
+          const conditions=[],params=[];
+          if(doc){conditions.push('document_id=?');params.push(doc);}
+          if(query){conditions.push('LOWER(content) LIKE ?');params.push('%'+query.toLowerCase()+'%');}
+          const passages=await queryAll(env,'SELECT document_id,page,part,SUBSTR(content,1,1800) AS text,has_visuals FROM ecu_manual_library_passages WHERE '+conditions.join(' AND ')+' ORDER BY document_id,page,part LIMIT ?',...params,limit);
+          return ok({query,doc,passages,concepts:query?ecuStudyConcepts(query,5):[]});
+        }
+        if(path==='/api/ecu/manual-library/page'&&method==='GET'){
+          const doc=String(url.searchParams.get('doc')||''),page=Number(url.searchParams.get('page'));
+          if(!ECU_MANUALS.some(x=>x.id===doc)||!Number.isSafeInteger(page)||page<1)return error('INVALID_PAGE');
+          const rows=await queryAll(env,'SELECT page,part,content AS text,has_visuals FROM ecu_manual_library_passages WHERE document_id=? AND page=? ORDER BY part',doc,page);
+          return ok({document_id:doc,page,parts:rows});
+        }
+        if(path==='/api/ecu/manual-library/import'&&method==='POST'){
+          const claimed=Number(req.headers.get('content-length')||0);
+          if(claimed>MAX_REQUEST)return error('REQUEST_TOO_LARGE',413);
+          const body=await req.text();
+          if(body.length>MAX_REQUEST)return error('REQUEST_TOO_LARGE',413);
+          let data;try{data=JSON.parse(body);}catch{return error('INVALID_JSON');}
+          // Explicit consent to index documents the account owner already supplied to JARVIS.
+          if(data?.authorized!==true)return error('AUTHORIZATION_CONFIRMATION_REQUIRED',403);
+          if(!Array.isArray(data.records)||data.records.length<1||data.records.length>MAX_BATCH)return error('INVALID_BATCH_SIZE');
+          let records;try{records=data.records.map(safeRecord);}catch(e){return error(e.message);}
+          // Do not mix different PDF revisions under the same document ID.
+          const versions=new Map();
+          for(const record of records){
+            const original=versions.get(record.document_id);
+            if(original&&original!==record.source_sha256)return error('BATCH_VERSION_MISMATCH',409);
+            versions.set(record.document_id,record.source_sha256);
+          }
+          for(const [id,sha] of versions){
+            const stored=await queryOne(env,'SELECT source_sha256 FROM ecu_manual_library_documents WHERE id=?',id);
+            if(stored&&stored.source_sha256!==sha)return error('DOCUMENT_VERSION_MISMATCH',409);
+          }
+          const ts=Date.now(),statements=[];
+          const dsql="INSERT INTO ecu_manual_library_documents(id,filename,source_sha256,page_count,tags_json,imported_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at,page_count=MAX(page_count,excluded.page_count)";
+          const grouped=new Map();
+          for(const record of records){if(!grouped.has(record.document_id))grouped.set(record.document_id,record);}
+          for(const r of grouped.values()){
+            statements.push(env.DB.prepare(dsql).bind(r.document_id,r.filename,r.source_sha256,Math.max(r.page,Number(data.page_counts?.[r.document_id]||0)),JSON.stringify(r.tags),ts,ts));
+          }
+          const psql="INSERT INTO ecu_manual_library_passages(id,document_id,page,part,content,has_visuals,imported_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET content=excluded.content,has_visuals=excluded.has_visuals";
+          for(const r of records)statements.push(env.DB.prepare(psql).bind(r.id,r.document_id,r.page,r.part,r.content,r.visuals,ts));
+          await env.DB.batch(statements);
+          return ok({imported:records.length,documents:[...grouped.keys()]});
+        }
+        return error('NOT_FOUND',404);
+      }catch(e){return error('ECU_MANUAL_LIBRARY_ERROR:'+String(e.message||e).slice(0,140),500);}
+    },
+    scheduled(event,env,ctx){return core.scheduled?.(event,env,ctx);}
+  };
+}
