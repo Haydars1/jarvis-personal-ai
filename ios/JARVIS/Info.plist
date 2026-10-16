@@ -6,8 +6,8 @@
 <key>NSMicrophoneUsageDescription</key><string>hayırlıevlad ile sesli konuşmak için mikrofon kullanılır.</string>
 <key>NSBluetoothAlwaysUsageDescription</key><string>hayırlıevlad OBD cihazını bulmak ve seçtiğin cihaza Bluetooth ile bağlanmak için erişim kullanır.</string>
 <key>NSSpeechRecognitionUsageDescription</key><string>hayırlıevlad konuşmanı yazıya çevirmek için konuşma tanımayı kullanır.</string>
-<key>NSCameraUsageDescription</key><string>hayırlıevlad'e fotoğraf göstermek için kamera kullanılır.</string>
-<key>NSPhotoLibraryUsageDescription</key><string>hayırlıevlad'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
+<key>NSCameraUsageDescription</key><string>hayırlıevlad'a fotoğraf göstermek için kamera kullanılır.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>hayırlıevlad'a fotoğraf ve video göndermek için fotoğraf arşivine erişilir.</string>
 <key>UIBackgroundModes</key><array><string>remote-notification</string></array>
 <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
 <key>LSSupportsGameMode</key><false/>

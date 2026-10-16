@@ -36,7 +36,7 @@ struct SettingsView: View {
                         }
 
                         serviceRow("Dosyalar & Paylaşım", "PDF, fotoğraf, belge ve paylaşım uzantısını kontrol et.", "folder.badge.gearshape") {
-                            quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. hayırlıevlad'e dosya gönderme akışını hazır hale getir.")
+                            quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. hayırlıevlad'a dosya gönderme akışını hazır hale getir.")
                         }
                     }
 
@@ -109,7 +109,7 @@ struct SettingsView: View {
                             state.statusText = "Ekler temizlendi"
                         }
 
-                        settingRow(icon: state.isListening ? "waveform.circle.fill" : "waveform", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla hayırlıevlad'e konuş.", tint: accentColor) {
+                        settingRow(icon: state.isListening ? "waveform.circle.fill" : "waveform", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla hayırlıevlad'a konuş.", tint: accentColor) {
                             state.toggleVoice()
                         }
                     }
