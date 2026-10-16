@@ -65,7 +65,8 @@ test('import accepts validated page chunks and D1 writes exclusively to library 
  const response=await createEcuManualLibrary(core()).fetch(request,{DB:db},null);
  assert.equal(response.status,200);
  assert.equal((await response.json()).imported,1);
- assert(queries.every(sql=>/ecu_manual_library/i.test(sql)));
+ assert(queries.every(sql=>/ecu_manual_library|learning_sources|learning_chunks/i.test(sql)));
+ assert(queries.some(sql=>/INSERT INTO learning_chunks/i.test(sql)));
  assert(!queries.some(sql=>/\b(drop|delete|alter|truncate)\b/i.test(sql)));
 });
 
