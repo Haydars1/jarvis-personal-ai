@@ -1,4 +1,4 @@
-// JARVIS Chat — message storage, history, explicit memory
+// hayırlıevlad Chat — message storage, history, explicit memory
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { now, id } from './core.js';

@@ -1,4 +1,4 @@
-// JARVIS Crypto — HMAC, JWT-like tokens, AES-GCM credential encryption, CBOR, SHA-256
+// hayırlıevlad Crypto — HMAC, JWT-like tokens, AES-GCM credential encryption, CBOR, SHA-256
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { te, td } from './core.js';

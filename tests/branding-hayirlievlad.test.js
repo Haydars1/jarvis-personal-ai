@@ -37,6 +37,13 @@ test('existing native app identity remains compatible', () => {
   assert.ok(appState.includes('group.com.haydojarvis.jarvis'));
 });
 
+test('passkey name is updated without changing registration identity', () => {
+  const auth = file('src/lib/auth.js');
+  assert.ok(auth.includes("rpName: 'hayırlıevlad'"));
+  assert.ok(auth.includes("displayName: 'hayırlıevlad'"));
+  assert.ok(auth.includes("te.encode('jarvis-owner')"));
+});
+
 test('AI request headers use ASCII-safe technical label', () => {
   for (const path of ['src/application/chat/smart-router.js', 'src/lib/ai-router.js']) {
     const code = file(path);

@@ -1,4 +1,4 @@
-// JARVIS Core Utilities — zero-dependency foundation
+// hayırlıevlad Core Utilities — zero-dependency foundation
 // Language: JavaScript (Cloudflare Workers ESM)
 
 export const te = new TextEncoder();
