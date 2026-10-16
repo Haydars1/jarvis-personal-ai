@@ -15,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: jarvis-autonomous-development
+  group: hayirlievlad-autonomous-development
   cancel-in-progress: false
 
 jobs:
@@ -75,15 +75,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          name="jarvis/auto-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          name="hayirlievlad/auto-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git switch -c "$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: Write autonomous development prompt
         shell: bash
         run: |
-          cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
-          Work only in this checked-out hayırlıevlad repository on the current isolated jarvis/auto-* branch.
+          cat > /tmp/hayirlievlad-dev-prompt.txt <<'EOF'
+          Work only in this checked-out hayırlıevlad repository on the current isolated hayirlievlad/auto-* branch.
           Start from the current main implementation. Inspect code, tests and architecture before editing.
           Read src/lib/capability-policy.js, src/lib/native-skill-adapters.js, and /tmp/hayirlievlad-skill-backlog.json before choosing work.
 
@@ -129,7 +129,7 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/jarvis-dev-prompt.txt
+        run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/hayirlievlad-dev-prompt.txt
 
       - name: Reset failed specialist work
         if: ${{ steps.multiprovider.outcome != 'success' }}
@@ -142,8 +142,8 @@ jobs:
         if: ${{ steps.multiprovider.outcome != 'success' }}
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
+          path: ~/.cache/hayirlievlad-local-coder
+          key: hayirlievlad-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Run keyless local coding fallback
         id: localcoder
@@ -151,14 +151,14 @@ jobs:
         continue-on-error: true
         timeout-minutes: 15
         shell: bash
-        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
+        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/hayirlievlad-dev-prompt.txt
 
       - name: Save keyless local coder cache
         if: ${{ always() && steps.multiprovider.outcome != 'success' && steps.localcache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
+          path: ~/.cache/hayirlievlad-local-coder
+          key: hayirlievlad-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Reset failed local coding work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
@@ -178,8 +178,8 @@ jobs:
           allow-bots: true
           allow-bot-users: "github-actions[bot]"
           prompt: |
-            Work only in this repository on the current jarvis/auto-* branch.
-            Read /tmp/jarvis-dev-prompt.txt and /tmp/hayirlievlad-skill-backlog.json and follow them. Make useful safe improvements,
+            Work only in this repository on the current hayirlievlad/auto-* branch.
+            Read /tmp/hayirlievlad-dev-prompt.txt and /tmp/hayirlievlad-skill-backlog.json and follow them. Make useful safe improvements,
             run npm run check, and leave verified changes uncommitted.
 
       - name: Reset failed Codex work
@@ -219,8 +219,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name "jarvis-autonomous-agent"
-          git config user.email "jarvis-autonomous-agent@users.noreply.github.com"
+          git config user.name "hayirlievlad-autonomous-agent"
+          git config user.email "hayirlievlad-autonomous-agent@users.noreply.github.com"
           git add -A
           git commit -m "feat(agent): autonomous verified hayırlıevlad improvement"
 

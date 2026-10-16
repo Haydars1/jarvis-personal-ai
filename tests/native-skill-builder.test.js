@@ -8,8 +8,8 @@ test('worker exposes OIDC-protected native skill backlog for the autonomous buil
   const source=read('src/application/capabilities/cloud-execution.js');
   assert.match(source,/\/api\/tools\/skills\/runner\/backlog/);
   assert.match(source,/hayirlievlad-skill-builder/);
-  assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/main/);
-  assert.match(source,/jarvis-codex-agent\.yml@refs\/heads\/test\/autonomy-runtime/);
+  assert.match(source,/hayirlievlad-codex-agent\.yml@refs\/heads\/main/);
+  assert.match(source,/hayirlievlad-codex-agent\.yml@refs\/heads\/test\/autonomy-runtime/);
   assert.match(source,/adapter_status='unverified'/);
 });
 
@@ -19,7 +19,7 @@ test('autonomous developer requests a GitHub OIDC token and fetches skill backlo
   assert.match(workflow,/Fetch native skill backlog/);
   assert.match(workflow,/audience=hayirlievlad-skill-builder/);
   assert.match(workflow,/\/api\/tools\/skills\/runner\/backlog/);
-  assert.match(workflow,/\/tmp\/jarvis-skill-backlog\.json/);
+  assert.match(workflow,/\/tmp\/hayirlievlad-skill-backlog\.json/);
 });
 
 test('autonomous skill builder is instructed to clean-room reimplement behavior instead of copying third-party source',()=>{
