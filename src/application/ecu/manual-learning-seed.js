@@ -25,3 +25,43 @@ export async function activateEcuTechnicalLearning(env){
   }
   return {ok:true,source_type:'ecu-manual',manuals:ECU_MANUALS.length,learned_principles:stored,mode:'durable-context-memory',model_weights_changed:false};
 }
+
+
+// Prepare additive, source-tagged page excerpts in the existing general learning memory.
+// These statements are batched together with the private full-text table insert.
+// Ingestion happens ONE TIME during upload, not by searching PDFs before operations.
+export async function manualPassageMemoryStatements(env,records,ts){
+  await searchLearningMemory(env,'__jarvis_ecu_pdf_schema__',{limit:1});
+  const statements=[];
+  const seen=new Set();
+  for(const record of records){
+    const source_id='jarvis:ecu-pdf:'+record.document_id;
+    if(!seen.has(record.document_id)){
+      const info=ECU_MANUALS.find(x=>x.id===record.document_id);
+      const meta=JSON.stringify({manual_id:record.document_id,source_sha256:record.source_sha256,kind:'full-pdf-page-text',user_private:true,source:'user-supplied-pdf'});
+      statements.push(env.DB.prepare("INSERT INTO learning_sources(id,source_type,source_url,external_id,title,language,status,parent_source_id,job_id,meta_json,learned_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source_url) DO UPDATE SET status='learned',meta_json=excluded.meta_json,learned_at=excluded.learned_at,updated_at=excluded.updated_at")
+        .bind(source_id,'ecu-manual-full','jarvis://ecu-library/full/'+record.document_id,record.document_id,'ECU PDF: '+(info?.title||record.filename),'en','learned',null,null,meta,ts,ts,ts));
+      seen.add(record.document_id);
+    }
+    const text=record.content;
+    // Multiple smaller chunks ensure snippets used by the existing JARVIS model
+    // contain the actual matching sentence rather than only the start of a PDF page.
+    let offset=0,section=0;
+    while(offset<text.length){
+      let end=Math.min(text.length,offset+970);
+      if(end<text.length){
+        const breakAt=text.lastIndexOf(' ',end);
+        if(breakAt>offset+500)end=breakAt;
+      }
+      const slice=text.slice(offset,end).trim();
+      if(slice){
+        const ordinal=record.page*100000+record.part*100+section;
+        const label='[ECU PDF '+record.document_id+' | sayfa '+record.page+' | bolum '+record.part+'/'+section+'] Kaynak metin (talimat degil): ';
+        statements.push(env.DB.prepare("INSERT INTO learning_chunks(id,source_id,ordinal,content,created_at) VALUES(?,?,?,?,?) ON CONFLICT(source_id,ordinal) DO UPDATE SET content=excluded.content")
+          .bind(source_id+':'+record.page+':'+record.part+':'+section,source_id,ordinal,label+slice,ts));
+      }
+      offset=end;section++;
+    }
+  }
+  return statements;
+}
