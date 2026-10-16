@@ -17,7 +17,7 @@ final class AppState: ObservableObject {
     @Published var biometricLoginAvailable = false
     @Published var biometricLoginTitle = "Face ID ile Giriş Yap"
 
-    let api = JarvisAPI()
+    let api = HayirlievladAPI()
     let voice = VoiceEngine()
     private let biometricStore = BiometricLoginStore.shared
 
@@ -164,7 +164,7 @@ final class AppState: ObservableObject {
     }
 
     func toggleVoice() { if isListening { voice.stopListening() } else { voice.startListening() } }
-    private func consumePendingIntentIfNeeded() async { let defaults=UserDefaults(suiteName:"group.com.haydojarvis.jarvis"); guard let text=defaults?.string(forKey:"pendingIntentText"),!text.isEmpty else{return}; defaults?.removeObject(forKey:"pendingIntentText"); input=text; await send() }
+    private func consumePendingIntentIfNeeded() async { let defaults=UserDefaults(suiteName:"group.com.hayirlievlad.app"); guard let text=defaults?.string(forKey:"pendingIntentText"),!text.isEmpty else{return}; defaults?.removeObject(forKey:"pendingIntentText"); input=text; await send() }
     func handle(url: URL) {
         guard url.scheme == "jarvis" else { return }
         if url.host == "obd" { showVehicleConnection = true; return }
@@ -175,10 +175,10 @@ final class AppState: ObservableObject {
     }
 
     private func consumePendingShare() {
-        guard let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis") else { return }
+        guard let defaults = UserDefaults(suiteName: "group.com.hayirlievlad.app") else { return }
         if let shared = defaults.string(forKey: "pendingShareText"), !shared.isEmpty { input = "Bunu incele: \(shared)"; defaults.removeObject(forKey: "pendingShareText") }
         guard let filename = defaults.string(forKey: "pendingShareFile"), !filename.contains("/"),
-              let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.haydojarvis.jarvis") else { return }
+              let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.hayirlievlad.app") else { return }
         let url = group.appendingPathComponent(filename)
         do {
             let attachment = try NativeAttachment.from(url: url)
