@@ -61,10 +61,10 @@ function jsonRequest(url,req,body){
 function skillPayload(text,skill,reply,extra={}){
   return {
     reply,
-    history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'JARVIS Skill'}],
-    provider:'JARVIS Skill',
+    history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'hayırlıevlad Skill'}],
+    provider:'hayırlıevlad Skill',
     skill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id},
-    trace:[{kind:'skill',label:'JARVIS native skill',value:`${skill.repo||skill.primary_capability} · ${skill.native_adapter?.id} · hosted AI API kullanılmadı`}],
+    trace:[{kind:'skill',label:'hayırlıevlad native skill',value:`${skill.repo||skill.primary_capability} · ${skill.native_adapter?.id} · hosted AI API kullanılmadı`}],
     ...extra
   };
 }
@@ -126,10 +126,10 @@ async function executeDeviceSkill(core,req,env,ctx,text,skill){
   let payload={};try{payload=await response.json();}catch{}
   if(response.ok&&payload?.job){
     const job=payload.job;
-    return skillPayload(text,skill,`${meta.label} işi doğrudan JARVIS cihaz becerisine verildi. Job: ${String(job.id||'').slice(0,8)}.`,{device_action:{action,status:'queued',job}});
+    return skillPayload(text,skill,`${meta.label} işi doğrudan hayırlıevlad cihaz becerisine verildi. Job: ${String(job.id||'').slice(0,8)}.`,{device_action:{action,status:'queued',job}});
   }
   if(response.status===409&&payload?.error==='CONFIRMATION_REQUIRED'){
-    return skillPayload(text,skill,`${meta.label} yazma/servis işlemi. JARVIS bunu otomatik çalıştırmadı; açık kullanıcı onayı gerekiyor.`,{device_action:{action,status:'confirmation_required',requires_confirmation:true,hazard:meta.hazard}});
+    return skillPayload(text,skill,`${meta.label} yazma/servis işlemi. hayırlıevlad bunu otomatik çalıştırmadı; açık kullanıcı onayı gerekiyor.`,{device_action:{action,status:'confirmation_required',requires_confirmation:true,hazard:meta.hazard}});
   }
   if(response.status===409&&payload?.error==='NO_DEVICE_BRIDGE'){
     return skillPayload(text,skill,'Cihaz becerisi bulundu fakat bağlı ECU/OBD bridge yok. Fiziksel araç işlemi başlatılmadı.',{device_action:{action,status:'blocked',reason:'NO_DEVICE_BRIDGE'}});
@@ -149,7 +149,7 @@ async function executeBinarySkill(core,req,env,ctx,text,skill,context={}){
   return {
     ...payload,
     skill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id},
-    trace:[...(Array.isArray(payload.trace)?payload.trace:[]),{kind:'skill',label:'JARVIS native skill',value:`${skill.repo||skill.primary_capability} · ecu-binary-inspector · hosted AI API kullanılmadı`}]
+    trace:[...(Array.isArray(payload.trace)?payload.trace:[]),{kind:'skill',label:'hayırlıevlad native skill',value:`${skill.repo||skill.primary_capability} · ecu-binary-inspector · hosted AI API kullanılmadı`}]
   };
 }
 

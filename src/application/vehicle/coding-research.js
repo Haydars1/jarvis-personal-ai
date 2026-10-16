@@ -147,7 +147,7 @@ async function googleSearch(env, query, pages = 3) {
 function ghHeaders(env) {
   const headers = {
     accept:'application/vnd.github+json',
-    'user-agent':'JARVIS-Vehicle-Coding-Research/1.0',
+    'user-agent':'hayirlievlad-Vehicle-Coding-Research/1.0',
     'x-github-api-version':'2022-11-28'
   };
   const token = String(env.GITHUB_TOKEN || env.GH_TOKEN || '').trim();

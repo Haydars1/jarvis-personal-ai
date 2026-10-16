@@ -87,7 +87,7 @@ async function analyzeFrames(env, body) {
   const secret = await decryptCredential(env, credential.encrypted_secret);
   const model = String(credential.model || 'gemini-2.5-flash').trim();
   const prompt = [
-    'Bu kareler JARVIS YT Öğretisi için teknik eğitim videosundan alınmıştır.',
+    'Bu kareler hayırlıevlad YT Öğretisi için teknik eğitim videosundan alınmıştır.',
     'İnsan kimliğiyle ilgilenme. Ekrandaki teknik bilgiyi çıkar: yazılar, menüler, ECU/WinOLS haritaları, tablolar, grafikler, hata kodları, ölçüm değerleri, bağlantı şemaları, kullanılan yazılım adımları ve görünür uyarılar.',
     'Her kare için yalnız doğrulanabilir gördüğün bilgiyi Türkçe yaz. Emin olmadığını uydurma.',
     'Çıktıyı her satırda [saniye] açıklama biçiminde ver.'
