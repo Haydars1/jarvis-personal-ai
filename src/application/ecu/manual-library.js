@@ -3,7 +3,7 @@ import { ECU_MANUALS, ECU_MANUAL_FOUNDATIONS, ecuStudyConcepts } from './manual-
 import { activateEcuTechnicalLearning, manualPassageMemoryStatements } from './manual-learning-seed.js';
 
 // Independent ECU technical knowledge channel. Never writes to ECU binary or existing app tables.
-const MAX_BATCH=25;
+const MAX_BATCH=8;
 const MAX_REQUEST=125000;
 const ok=(data,status=200)=>jsonResponse({ok:true,...data},status);
 const error=(message,status=400)=>jsonResponse({ok:false,error:message},status);
