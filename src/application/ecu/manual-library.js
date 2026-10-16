@@ -1,5 +1,6 @@
 import { execute, queryAll, queryOne, jsonResponse } from '../../lib/runtime.js';
 import { ECU_MANUALS, ECU_MANUAL_FOUNDATIONS, ecuStudyConcepts } from './manual-learning-foundations.js';
+import { activateEcuTechnicalLearning } from './manual-learning-seed.js';
 
 // Independent ECU technical knowledge channel. Never writes to ECU binary or existing app tables.
 const MAX_BATCH=25;
@@ -52,6 +53,10 @@ export function createEcuManualLibrary(core){
         if(path==='/api/ecu/manual-library/concepts'&&method==='GET'){
           const query=shortQuery(url.searchParams.get('q'));
           return ok({concepts:query?ecuStudyConcepts(query,30):ECU_MANUAL_FOUNDATIONS,manuals:ECU_MANUALS,source:'curated-study-notes',not_model_training:true});
+        }
+        if(path==='/api/ecu/manual-library/activate'&&method==='POST'){
+          const activation=await activateEcuTechnicalLearning(env);
+          return ok({learning:activation});
         }
         if(path==='/api/ecu/manual-library/stats'&&method==='GET'){
           const docs=await queryAll(env,'SELECT id,filename,page_count,source_sha256,imported_at,updated_at FROM ecu_manual_library_documents ORDER BY id');
