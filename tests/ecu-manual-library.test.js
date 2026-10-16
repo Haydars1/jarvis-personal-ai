@@ -68,3 +68,16 @@ test('import accepts validated page chunks and D1 writes exclusively to library 
  assert(queries.every(sql=>/ecu_manual_library/i.test(sql)));
  assert(!queries.some(sql=>/\b(drop|delete|alter|truncate)\b/i.test(sql)));
 });
+
+test('activation creates only source-labeled ECU study memory, not tuning mutations',async()=>{
+ const {db,queries}=mockDatabase();
+ const response=await createEcuManualLibrary(core()).fetch(new Request(base+'activate',{method:'POST'}),{DB:db},null);
+ assert.equal(response.status,200);
+ const payload=await response.json();
+ assert.equal(payload.learning.manuals,10);
+ assert(payload.learning.learned_principles>=18);
+ assert.equal(payload.learning.model_weights_changed,false);
+ assert(!queries.some(s=>/\b(drop|delete|alter|truncate)\b/i.test(s)));
+ assert(queries.some(s=>/learning_sources/.test(s)));
+ assert(queries.some(s=>/learning_chunks/.test(s)));
+});
