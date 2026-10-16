@@ -16,6 +16,7 @@ import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js'
 import { createEcuChannelStore } from './application/ecu/channels.js';
 import { createThinkdiagImport } from './application/ecu/thinkdiag.js';
 import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
+import { createEcuPartnumberCatalog } from './application/ecu/partnumber-catalog.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
@@ -45,6 +46,7 @@ const capabilityCore = createCapabilityRuntime(outputCore);
 const cloudExecutionCore = createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore));
 const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(cloudExecutionCore));
 const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
+const partnumberCore = createEcuPartnumberCatalog(cloudToolCore);
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
   fetch(req, env, ctx) {
@@ -70,6 +72,7 @@ function shouldFlushPush(req, response) {
 
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
+  if (url.pathname.startsWith('/api/ecu/partnumbers/')) return partnumberCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/tools/cloud/')) return cloudToolCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/learning/')) return cloudToolCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/') || url.pathname.startsWith('/api/ecu/thinkdiag/')) return ecuCore.fetch(req, env, ctx);
