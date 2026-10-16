@@ -22,16 +22,16 @@
   function overlay(){
     let o=document.querySelector('#jarvisVoiceOverlay');if(o)return o;
     o=document.createElement('div');o.id='jarvisVoiceOverlay';o.className='jarvisVoiceOverlay hidden';o.innerHTML=`
-      <div class="voiceHead"><div><b>JARVIS</b><div class="voiceHint">Sesli asistan modu</div></div><button class="voiceClose" type="button">×</button></div>
-      <div class="voiceCenter"><div class="voiceOrb"></div><div class="voiceState">Hazır</div><div class="voiceTranscript">JARVIS seni dinlemeye hazır.</div><div class="voiceHint">Konuş → JARVIS araştırır/araçları kullanır → cevabı sesli verir.</div></div>
-      <div class="voiceBottom"><button class="voiceTalk" type="button">🎙 JARVIS'İ BAŞLAT</button><button class="voiceKeyboard" type="button">⌨️</button></div>`;
+      <div class="voiceHead"><div><b>hayırlıevlad</b><div class="voiceHint">Sesli asistan modu</div></div><button class="voiceClose" type="button">×</button></div>
+      <div class="voiceCenter"><div class="voiceOrb"></div><div class="voiceState">Hazır</div><div class="voiceTranscript">hayırlıevlad seni dinlemeye hazır.</div><div class="voiceHint">Konuş → hayırlıevlad araştırır/araçları kullanır → cevabı sesli verir.</div></div>
+      <div class="voiceBottom"><button class="voiceTalk" type="button">🎙 hayırlıevlad'İ BAŞLAT</button><button class="voiceKeyboard" type="button">⌨️</button></div>`;
     document.body.appendChild(o);
     o.querySelector('.voiceClose').onclick=()=>stopVoice(true);
     o.querySelector('.voiceTalk').onclick=()=>active?stopVoice(false):startVoice(true);
     o.querySelector('.voiceKeyboard').onclick=()=>{stopVoice(false);o.classList.add('hidden');try{switchPage('chat')}catch{};setTimeout(()=>document.querySelector('#chatCmd')?.focus(),150)};
     return o;
   }
-  function setState(state,text){const o=overlay(),orb=o.querySelector('.voiceOrb');orb.classList.remove('listening','thinking','speaking');if(state)orb.classList.add(state);o.querySelector('.voiceState').textContent=state==='listening'?'Dinliyorum':state==='thinking'?'Düşünüyorum':state==='speaking'?'Yanıtlıyorum':'Hazır';if(text)o.querySelector('.voiceTranscript').textContent=text;o.querySelector('.voiceTalk').textContent=active?'■ SES MODUNU KAPAT':'🎙 JARVIS\'İ BAŞLAT'}
+  function setState(state,text){const o=overlay(),orb=o.querySelector('.voiceOrb');orb.classList.remove('listening','thinking','speaking');if(state)orb.classList.add(state);o.querySelector('.voiceState').textContent=state==='listening'?'Dinliyorum':state==='thinking'?'Düşünüyorum':state==='speaking'?'Yanıtlıyorum':'Hazır';if(text)o.querySelector('.voiceTranscript').textContent=text;o.querySelector('.voiceTalk').textContent=active?'■ SES MODUNU KAPAT':'🎙 hayırlıevlad\'İ BAŞLAT'}
   async function lockScreen(){try{if('wakeLock'in navigator){wakeLock=await navigator.wakeLock.request('screen')}}catch{}}
   async function releaseLock(){try{await wakeLock?.release()}catch{}wakeLock=null}
   function ensureRec(){
@@ -53,13 +53,13 @@
 
   function installSettingsCard(){
     const settings=document.querySelector('#settings');if(!settings||document.querySelector('#voiceSettingsCard'))return;
-    const card=document.createElement('div');card.id='voiceSettingsCard';card.className='card voiceCard';card.innerHTML=`<h2>JARVIS Ses Modu / iPhone</h2><p class="muted">Telefonda JARVIS'i konuşarak kullan. PWA açıkken sürekli dinleme ve sesli cevap çalışır.</p><div class="row"><button id="openVoiceMode">🎙 SES MODUNU AÇ</button><button id="copyVoiceUrl">SIRI KISAYOLU URL'SİNİ KOPYALA</button></div><div class="voiceSteps"><small>1. Safari → Paylaş → Ana Ekrana Ekle.</small><small>2. Kestirmeler uygulaması → yeni kestirme → “URL Aç” → aşağıdaki JARVIS adresini gir.</small><small>3. Kestirmenin adını “JARVIS” yap. Sonra “Hey Siri, JARVIS” dediğinde ses modu açılır.</small></div><code>${escV(VOICE_URL)}</code><p class="muted">Not: iOS, web uygulamalarına ekran kilitliyken arka planda “Hey JARVIS” diye sürekli mikrofon dinleme izni vermez. Gerçek bağımsız wake-word için ileride native iOS uygulaması gerekir.</p>`;
+    const card=document.createElement('div');card.id='voiceSettingsCard';card.className='card voiceCard';card.innerHTML=`<h2>hayırlıevlad Ses Modu / iPhone</h2><p class="muted">Telefonda hayırlıevlad'i konuşarak kullan. PWA açıkken sürekli dinleme ve sesli cevap çalışır.</p><div class="row"><button id="openVoiceMode">🎙 SES MODUNU AÇ</button><button id="copyVoiceUrl">SIRI KISAYOLU URL'SİNİ KOPYALA</button></div><div class="voiceSteps"><small>1. Safari → Paylaş → Ana Ekrana Ekle.</small><small>2. Kestirmeler uygulaması → yeni kestirme → “URL Aç” → aşağıdaki hayırlıevlad adresini gir.</small><small>3. Kestirmenin adını “hayırlıevlad” yap. Sonra “Hey Siri, hayırlıevlad” dediğinde ses modu açılır.</small></div><code>${escV(VOICE_URL)}</code><p class="muted">Not: iOS, web uygulamalarına ekran kilitliyken arka planda “Hey hayırlıevlad” diye sürekli mikrofon dinleme izni vermez. Gerçek bağımsız wake-word için ileride native iOS uygulaması gerekir.</p>`;
     const grid=settings.querySelector('.grid2');(grid||settings).appendChild(card);
     card.querySelector('#openVoiceMode').onclick=()=>{const u=new URL(location.href);u.searchParams.set('voice','1');history.replaceState({},'',u);startVoice(true)};
-    card.querySelector('#copyVoiceUrl').onclick=async()=>{try{await navigator.clipboard.writeText(VOICE_URL);toast('JARVIS ses modu adresi kopyalandı')}catch{toast(VOICE_URL)}};
+    card.querySelector('#copyVoiceUrl').onclick=async()=>{try{await navigator.clipboard.writeText(VOICE_URL);toast('hayırlıevlad ses modu adresi kopyalandı')}catch{toast(VOICE_URL)}};
   }
 
-  function boot(){style();wrapSpeak();installSettingsCard();if(new URL(location.href).searchParams.get('voice')==='1'){overlay().classList.remove('hidden');setState('','Bir kez “JARVIS\'İ BAŞLAT” düğmesine dokun. Sonrasında konuşarak devam edebilirsin.')}}
+  function boot(){style();wrapSpeak();installSettingsCard();if(new URL(location.href).searchParams.get('voice')==='1'){overlay().classList.remove('hidden');setState('','Bir kez “hayırlıevlad\'İ BAŞLAT” düğmesine dokun. Sonrasında konuşarak devam edebilirsin.')}}
   window.jarvisVoiceMode={start:startVoice,stop:stopVoice,url:VOICE_URL};
   setTimeout(boot,500);setTimeout(installSettingsCard,1500);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&active){lockScreen();setTimeout(()=>{try{rec?.start()}catch{}},300)}});

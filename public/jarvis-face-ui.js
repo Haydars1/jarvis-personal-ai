@@ -16,13 +16,13 @@
       if(!String(url).includes('/api/chat/send'))return res;
       const x=await res.clone().json().catch(()=>null);if(!x)return res;
       setTimeout(()=>{
-        const p=document.querySelector('#chatProvider');if(p)p.textContent='JARVIS';
+        const p=document.querySelector('#chatProvider');if(p)p.textContent='hayırlıevlad';
         const host=document.querySelector('#chatHistory');if(!host)return;
         if(x.resources?.length){const box=document.createElement('div');box.className='chatMsg assistant';box.innerHTML='<b>Bulduğum görsel / video kaynakları</b><div class="jarvisResourceGrid">'+x.resources.slice(0,8).map(r=>`<a class="jarvisResource" href="${esc(r.url)}" target="_blank" rel="noopener">${r.image?`<img src="${esc(r.image)}" alt="">`:''}<div><b>${esc(r.title||'Kaynak')}</b><small>${esc(r.source||'')}</small></div></a>`).join('')+'</div>';host.appendChild(box);host.scrollTop=host.scrollHeight}
       },120);
     }catch{}
     return res;
   };
-  const enforce=()=>{const p=document.querySelector('#chatProvider');if(p&&p.textContent!=='JARVIS')p.textContent='JARVIS';document.querySelectorAll('#chatHistory .chatMsg.assistant small').forEach(x=>x.style.display='none')};
+  const enforce=()=>{const p=document.querySelector('#chatProvider');if(p&&p.textContent!=='hayırlıevlad')p.textContent='hayırlıevlad';document.querySelectorAll('#chatHistory .chatMsg.assistant small').forEach(x=>x.style.display='none')};
   new MutationObserver(enforce).observe(document.documentElement,{childList:true,subtree:true});setTimeout(enforce,300);
 })();
