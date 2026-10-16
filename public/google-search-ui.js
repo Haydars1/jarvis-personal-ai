@@ -9,7 +9,7 @@
       <h3>Google Web Araması</h3>
       <div id="googleSearchStatus" class="muted">Durum kontrol ediliyor…</div>
       <div id="googleSearchSetup" class="googleSetup hidden">
-        <p class="muted">JARVIS, Google'ın resmi Programmable Search JSON API'sini kullanır. API key ve Search Engine ID (cx) bir kez girilir ve şifreli saklanır.</p>
+        <p class="muted">hayırlıevlad, Google'ın resmi Programmable Search JSON API'sini kullanır. API key ve Search Engine ID (cx) bir kez girilir ve şifreli saklanır.</p>
         <div class="row"><a class="btnlink" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">GOOGLE API KEY</a><a class="btnlink" href="https://programmablesearchengine.google.com/controlpanel/all" target="_blank" rel="noopener">SEARCH ENGINE ID (CX)</a></div>
         <input id="googleSearchApiKey" type="password" autocomplete="new-password" placeholder="Google Custom Search API key">
         <input id="googleSearchCx" autocomplete="off" placeholder="Search Engine ID (cx)">

@@ -4,7 +4,7 @@
     if(!page||document.querySelector('#videoPoolPanel'))return;
     const box=document.createElement('div');
     box.id='videoPoolPanel';
-    box.innerHTML=`<hr><h3>Video AI Havuzu</h3><p class="muted">JARVIS video üretiminde sağlayıcıları sırayla dener. Kota, 429, kredi veya servis hatasında otomatik diğerine geçer ve problemli sağlayıcıyı cooldown'a alır.</p><div id="videoPoolRows"></div>
+    box.innerHTML=`<hr><h3>Video AI Havuzu</h3><p class="muted">hayırlıevlad video üretiminde sağlayıcıları sırayla dener. Kota, 429, kredi veya servis hatasında otomatik diğerine geçer ve problemli sağlayıcıyı cooldown'a alır.</p><div id="videoPoolRows"></div>
     <div class="grid2">
       <div class="googleSetup"><h4>Replicate</h4><p class="muted">API token yeterli. Model boşsa uygun video modeli otomatik aranır.</p><input id="replicateToken" type="password" autocomplete="new-password" placeholder="Replicate API token"><input id="replicateModel" placeholder="Opsiyonel model: owner/name"><div class="row"><button id="replicateSave">BAĞLA</button><button id="replicateTest">TEST</button></div><a class="btnlink" href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener">API TOKEN AL</a></div>
       <div class="googleSetup"><h4>Runway</h4><p class="muted">Resmi Runway Dev API. Varsayılan video modeli gen4.5; 9:16 Reels üretimine hazır.</p><input id="runwayToken" type="password" autocomplete="new-password" placeholder="Runway API secret"><input id="runwayModel" placeholder="Model (varsayılan: gen4.5)"><div class="row"><button id="runwaySave">BAĞLA</button><button id="runwayTest">TEST</button></div><a class="btnlink" href="https://dev.runwayml.com/" target="_blank" rel="noopener">RUNWAY DEV</a></div>
