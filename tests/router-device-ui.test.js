@@ -12,7 +12,7 @@ test('coding fallback uses current Gemini and OpenRouter Auto',()=>{
 });
 
 test('scheduled development tries task-aware specialist pool before Codex fallback',()=>{
-  const source=read('.github/workflows/jarvis-codex-agent.yml');
+  const source=read('.github/workflows/hayirlievlad-codex-agent.yml');
   const pool=source.indexOf('Run best available coding specialist');
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(pool>=0&&codex>pool);
