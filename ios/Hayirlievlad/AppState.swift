@@ -157,7 +157,7 @@ final class AppState: ObservableObject {
 
     private func friendlyError(_ raw: String) -> String {
         let lower = raw.lowercased()
-        if lower.contains("jarvis_temporary_unavailable") || lower.contains("temporarily unavailable") || lower.contains("service unavailable") { return "hayırlıevlad kısa süreliğine yanıt yolunu değiştirdi. Birkaç saniye sonra tekrar dene." }
+        if lower.contains("hayirlievlad_temporary_unavailable") || lower.contains("temporarily unavailable") || lower.contains("service unavailable") { return "hayırlıevlad kısa süreliğine yanıt yolunu değiştirdi. Birkaç saniye sonra tekrar dene." }
         if lower.contains("timed out") || lower.contains("timeout") || lower.contains("zaman aş") { return "Yanıt gecikti. hayırlıevlad cevabı tamamlayamadı; tekrar gönderebilirsin." }
         if lower.contains("network") || lower.contains("internet") || lower.contains("connection") || lower.contains("bağlantı") { return "Bağlantı şu an kararsız. Mesajını kaybetmedim; tekrar deneyebilirsin." }
         return raw

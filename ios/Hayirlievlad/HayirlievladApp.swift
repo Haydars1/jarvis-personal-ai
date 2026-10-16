@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct JARVISApp: App {
+struct HayirlievladApp: App {
     @UIApplicationDelegateAdaptor(NotificationManager.self) private var notificationManager
     @StateObject private var appState = AppState()
 

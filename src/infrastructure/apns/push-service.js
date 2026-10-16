@@ -11,7 +11,7 @@ function apnsConfig(env) {
   const teamId = String(env.APNS_TEAM_ID || '').trim();
   const keyId = String(env.APNS_KEY_ID || '').trim();
   const privateKey = String(env.APNS_PRIVATE_KEY || '').trim();
-  const bundleId = String(env.APNS_BUNDLE_ID || 'com.haydojarvis.jarvis').trim();
+  const bundleId = String(env.APNS_BUNDLE_ID || 'com.hayirlievlad.app').trim();
   const missing = [];
   if (!teamId) missing.push('APNS_TEAM_ID');
   if (!keyId) missing.push('APNS_KEY_ID');
@@ -70,7 +70,7 @@ async function registerDevice(env, body) {
   const token = cleanToken(body.token);
   if (!token) return jsonResponse({ error: 'INVALID_DEVICE_TOKEN' }, 400);
   const environment = String(body.environment || '').toLowerCase() === 'production' ? 'production' : 'sandbox';
-  const appBundle = String(body.appBundle || 'com.haydojarvis.jarvis').trim().slice(0, 200) || 'com.haydojarvis.jarvis';
+  const appBundle = String(body.appBundle || 'com.hayirlievlad.app').trim().slice(0, 200) || 'com.hayirlievlad.app';
   const existing = await queryOne(env, 'SELECT id FROM push_devices WHERE device_token=? LIMIT 1', token);
   const timestamp = now();
 
@@ -108,7 +108,7 @@ async function sendToDevice(env, device, payload) {
   if (!cfg.ready) throw new Error(`APNS_NOT_CONFIGURED:${cfg.missing.join(',')}`);
   const jwt = await providerToken(env);
   const host = device.environment === 'production' ? 'api.push.apple.com' : 'api.sandbox.push.apple.com';
-  const topic = String(device.app_bundle || cfg.bundleId || 'com.haydojarvis.jarvis');
+  const topic = String(device.app_bundle || cfg.bundleId || 'com.hayirlievlad.app');
   const response = await fetch(`https://${host}/3/device/${encodeURIComponent(device.device_token)}`, {
     method: 'POST',
     headers: {
@@ -146,14 +146,14 @@ function notificationPayload(notification) {
   return {
     aps: {
       alert: {
-        title: String(notification.title || 'JARVIS').slice(0, 120),
+        title: String(notification.title || 'hayırlıevlad').slice(0, 120),
         body: String(notification.body || '').slice(0, 500)
       },
       sound: 'default',
       badge: 1,
-      'thread-id': String(notification.kind || 'jarvis')
+      'thread-id': String(notification.kind || 'hayirlievlad')
     },
-    jarvis: data
+    hayirlievlad: data
   };
 }
 
@@ -285,7 +285,7 @@ export function createPushApi(core) {
       const synthetic = {
         id: `test-${uid()}`,
         kind: 'test',
-        title: String(body.title || 'JARVIS'),
+        title: String(body.title || 'hayırlıevlad'),
         body: String(body.body || 'Push bildirimi çalışıyor.'),
         meta: '{}'
       };

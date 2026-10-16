@@ -42,7 +42,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.hayirlievlad.app
             CFBundleURLSchemes:
-              - jarvis
+              - hayirlievlad
         NSMicrophoneUsageDescription: "hayırlıevlad ile sesli konuşmak için mikrofon kullanılır."
         NSBluetoothAlwaysUsageDescription: "hayırlıevlad OBD cihazını bulmak ve seçtiğin cihaza Bluetooth ile bağlanmak için erişim kullanır."
         NSSpeechRecognitionUsageDescription: "hayırlıevlad konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."

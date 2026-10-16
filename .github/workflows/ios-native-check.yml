@@ -23,8 +23,8 @@ jobs:
       - name: Validate candidate VCI frame against published example
         working-directory: ios
         run: |
-          swiftc Hayirlievlad/VciFrameInspector.swift scripts/test_vci_frame.swift -o /tmp/jarvis-vci-frame-check
-          /tmp/jarvis-vci-frame-check
+          swiftc Hayirlievlad/VciFrameInspector.swift scripts/test_vci_frame.swift -o /tmp/hayirlievlad-vci-frame-check
+          /tmp/hayirlievlad-vci-frame-check
       - name: Build simulator without signing
         working-directory: ios
         run: xcodebuild -project Hayirlievlad.xcodeproj -scheme Hayirlievlad -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
