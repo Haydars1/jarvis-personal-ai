@@ -37,7 +37,7 @@ test('repository skill compiler recognizes YouTube teaching as a first-class cap
   assert.ok(skillMatchesTask(skill,'youtube_teaching')>0);
   const adapter=resolveNativeSkillAdapter(skill);
   assert.equal(adapter?.id,'youtube-teaching');
-  assert.match(String(adapter?.notes||''),/JARVIS/i);
+  assert.match(String(adapter?.notes||''),/hayırlıevlad/i);
 });
 
 test('YouTube teaching adapter only runs for explicit teaching intent plus a YouTube URL',()=>{
@@ -67,7 +67,7 @@ test('caption JSON and channel feed parsers produce bounded source text and vide
   assert.equal(items[0].url,'https://www.youtube.com/watch?v=abc123XYZ00');
 });
 
-test('cloud runner has a JARVIS-owned YouTube teaching adapter and never executes third-party loader code',()=>{
+test('cloud runner has a hayırlıevlad-owned YouTube teaching adapter and never executes third-party loader code',()=>{
   assert.equal(ALLOWED_ADAPTERS['youtube-teaching'],true);
   const runner=readFileSync(new URL('../.github/scripts/cloud-tool-runner.mjs',import.meta.url),'utf8');
   assert.match(runner,/fetchYouTubeTranscript/);

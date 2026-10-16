@@ -22,8 +22,8 @@
           const host = document.querySelector('#chatHistory'); if (!host) return;
           for (const m of x.media) {
             const box = document.createElement('div'); box.className = 'chatMsg assistant';
-            if (m.type === 'image' && m.src) box.innerHTML = `<img src="${m.src}" alt="${String(m.alt || 'JARVIS görseli').replace(/[\"<>]/g,'')}" style="display:block;max-width:min(100%,720px);border-radius:16px;margin-top:8px">`;
-            else if (m.type === 'video-job') box.textContent = 'Video üretimi başlatıldı. JARVIS sonucu hazır olduğunda takip edecek.';
+            if (m.type === 'image' && m.src) box.innerHTML = `<img src="${m.src}" alt="${String(m.alt || 'hayırlıevlad görseli').replace(/[\"<>]/g,'')}" style="display:block;max-width:min(100%,720px);border-radius:16px;margin-top:8px">`;
+            else if (m.type === 'video-job') box.textContent = 'Video üretimi başlatıldı. hayırlıevlad sonucu hazır olduğunda takip edecek.';
             else continue;
             host.appendChild(box);
           }

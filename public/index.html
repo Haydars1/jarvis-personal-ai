@@ -8,14 +8,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="stylesheet" href="/app.css">
-<title>JARVIS · ECU</title>
+<title>hayırlıevlad</title>
 </head>
 <body>
 
 <!-- GİRİŞ -->
 <div id="auth" class="auth">
   <div class="authbox">
-    <div class="brand">JARVIS</div>
+    <div class="brand">hayırlıevlad</div>
     <p>ECU Tuning · Kodlama · Arıza</p>
     <button id="passkeyLogin" class="face hidden">◉ FACE ID İLE GİR</button>
     <div class="sep">veya</div>
@@ -30,7 +30,7 @@
 
   <!-- SOL (desktop) -->
   <aside>
-    <div class="brand">JARVIS</div>
+    <div class="brand">hayırlıevlad</div>
     <div class="cloud">● CLOUD ONLINE</div>
     <nav>
       <button data-page="ecu" class="active">⌁ <span>ECU</span></button>
@@ -128,14 +128,14 @@
     <section id="chat" class="page">
       <div class="chatShell">
         <div class="chatTop">
-          <div><h2>JARVIS</h2><small id="chatProvider">AUTO RouteLLM</small></div>
+          <div><h2>hayırlıevlad</h2><small id="chatProvider">AUTO RouteLLM</small></div>
           <button id="chatClear" class="softBtn danger">TEMİZLE</button>
         </div>
         <div id="chatHistory" class="chatHistory">
-          <div class="chatEmpty">JARVIS hazır.</div>
+          <div class="chatEmpty">hayırlıevlad hazır.</div>
         </div>
         <div class="chatComposer">
-          <textarea id="chatCmd" rows="2" placeholder="JARVIS'e bir şey yaz..."></textarea>
+          <textarea id="chatCmd" rows="2" placeholder="hayırlıevlad'a bir şey yaz..."></textarea>
           <button id="chatMic" class="iconBtn ghost">🎙</button>
           <button id="chatSend">GÖNDER</button>
         </div>
@@ -151,7 +151,7 @@
 
     <!-- ========== SAYFA 3: AYARLAR (hepsi burada) ========== -->
     <section id="settings" class="page">
-      <h1>JARVIS Araçları & Ayarlar</h1>
+      <h1>hayırlıevlad Araçları & Ayarlar</h1>
 
       <!-- DTC ARAMA -->
       <details class="settingsBlock" open>
@@ -167,7 +167,7 @@
       <details class="settingsBlock">
         <summary>📺 YouTube'dan Öğren</summary>
         <div class="settingsBody">
-          <p class="muted">YouTube linki at → JARVIS transcript'i çeker, hafızaya kaydeder. Sonraki sorularında bu bilgiyi kullanır.</p>
+          <p class="muted">YouTube linki at → hayırlıevlad transcript'i çeker, hafızaya kaydeder. Sonraki sorularında bu bilgiyi kullanır.</p>
           <div class="row"><input id="learnUrl" placeholder="https://youtube.com/watch?v=..."><button id="learnBtn">ÖĞREN</button></div>
           <div id="learnStatus"></div>
           <hr>
@@ -270,7 +270,7 @@
       <details class="settingsBlock">
         <summary>📱 Sosyal Medya Otomasyonu</summary>
         <div class="settingsBody">
-          <p class="muted">Zamanlanmış paylaşım kur → JARVIS otomatik içerik + görsel üretir → onay kuyruğuna koyar. Sen onaylarsan paylaşılır.</p>
+          <p class="muted">Zamanlanmış paylaşım kur → hayırlıevlad otomatik içerik + görsel üretir → onay kuyruğuna koyar. Sen onaylarsan paylaşılır.</p>
           <input id="socialTopic" placeholder="Konu: araç bakım ipuçları, ECU tuning haberleri...">
           <div class="row">
             <select id="socialPlatform">
@@ -306,7 +306,7 @@
       <details class="settingsBlock">
         <summary>◆ AI Sağlayıcı Anahtarları</summary>
         <div class="settingsBody">
-          <p class="muted">JARVIS bağlı sağlayıcıları öncelik sırasına göre dener. Hata/kota durumunda otomatik diğerine geçer. AES-GCM ile şifrelenir.</p>
+          <p class="muted">hayırlıevlad bağlı sağlayıcıları öncelik sırasına göre dener. Hata/kota durumunda otomatik diğerine geçer. AES-GCM ile şifrelenir.</p>
           <div id="providerCards" class="providerGrid"></div>
           <hr>
           <h3>Yeni / Özel Sağlayıcı</h3>
@@ -350,7 +350,7 @@
       <details class="settingsBlock">
         <summary>↻ Self Update (GitHub)</summary>
         <div class="settingsBody">
-          <p class="muted">"Jarvis, şu özelliği ekle" dediğinde GitHub PR'ı hazırlar, test geçerse deploy olur; health-check başarısızsa rollback.</p>
+          <p class="muted">"hayırlıevlad, şu özelliği ekle" dediğinde GitHub PR'ı hazırlar, test geçerse deploy olur; health-check başarısızsa rollback.</p>
           <div class="row"><input id="suRequest" placeholder="Örn: ECU sayfasına şu özelliği ekle"><button id="suSend">GÖNDER</button></div>
           <div id="suStatus" class="muted"></div>
           <div id="suList"></div>
@@ -427,7 +427,7 @@
       <details class="settingsBlock">
         <summary>⌁ ECU Rulepack Kaynakları</summary>
         <div class="settingsBody">
-          <p class="muted">JARVIS'in ECU tanıma motoruna önceden yüklenmiş açık kaynak paketler. Her biri topluluk GitHub repolarından veya forum belgelerinden derlendi — kaynak linkleri aşağıda.</p>
+          <p class="muted">hayırlıevlad'ın ECU tanıma motoruna önceden yüklenmiş açık kaynak paketler. Her biri topluluk GitHub repolarından veya forum belgelerinden derlendi — kaynak linkleri aşağıda.</p>
           <div id="rulepackList" class="rulepackList"><div class="muted">Yükleniyor...</div></div>
         </div>
       </details>
@@ -435,7 +435,7 @@
       <details class="settingsBlock">
         <summary>◉ ECU/OBD Repo Havuzu (henüz adapter yazılmamış)</summary>
         <div class="settingsBody">
-          <p class="muted">Registry'de kayıtlı olup JARVIS'in otomotiv tarafına değer katabilecek repolar. Şu an sadece bilgi — gerçek skill'e dönüşmesi için her birine adapter yazmak gerekir. Hangisine önce yapılacağını seçmen için önüne koydum.</p>
+          <p class="muted">Registry'de kayıtlı olup hayırlıevlad'ın otomotiv tarafına değer katabilecek repolar. Şu an sadece bilgi — gerçek skill'e dönüşmesi için her birine adapter yazmak gerekir. Hangisine önce yapılacağını seçmen için önüne koydum.</p>
           <div id="ecuRepoList" class="rulepackList"><div class="muted">Yükleniyor...</div></div>
         </div>
       </details>

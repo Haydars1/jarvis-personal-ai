@@ -1,4 +1,4 @@
-// JARVIS Credential Management — vault CRUD, provider config, connectivity test
+// hayırlıevlad Credential Management — vault CRUD, provider config, connectivity test
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { fetchT, now } from './core.js';
@@ -39,7 +39,7 @@ export async function testCredential(env, c) {
       const r = await fetchT('https://graph.facebook.com/v24.0/me?access_token=' + encodeURIComponent(sec));
       if (!r.ok) throw Error('HTTP_' + r.status);
     } else if (p === 'github') {
-      const r = await fetchT('https://api.github.com/user', { headers: { authorization: 'Bearer ' + sec, accept: 'application/vnd.github+json', 'user-agent': 'JARVIS-SelfUpdate' } });
+      const r = await fetchT('https://api.github.com/user', { headers: { authorization: 'Bearer ' + sec, accept: 'application/vnd.github+json', 'user-agent': 'hayirlievlad-SelfUpdate' } });
       if (!r.ok) throw Error('HTTP_' + r.status);
     } else if (p === 'anthropic') {
       const r = await fetchT('https://api.anthropic.com/v1/models', { headers: { 'x-api-key': sec, 'anthropic-version': '2023-06-01' } });

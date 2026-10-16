@@ -41,7 +41,7 @@ async function illustrativeImage(env, text) {
     return {
       type: 'image',
       src: `data:image/jpeg;base64,${base64}`,
-      alt: 'JARVIS tarafından oluşturulan temsili teknik şema',
+      alt: 'hayırlıevlad tarafından oluşturulan temsili teknik şema',
       label: 'Temsili AI şeması'
     };
   } catch {
@@ -129,7 +129,7 @@ export function createMediaRescue(core) {
     }
 
     if (limited) {
-      payload.reply = `${useful ? `${useful}\n\n` : ''}Bu yetenek için bağlı sağlayıcı bulunamadı. JARVIS bunu başarısızlık olarak işaretledi; uygun medya sağlayıcısı bağlandığında otomatik devreye girecek.`;
+      payload.reply = `${useful ? `${useful}\n\n` : ''}Bu yetenek için bağlı sağlayıcı bulunamadı. hayırlıevlad bunu başarısızlık olarak işaretledi; uygun medya sağlayıcısı bağlandığında otomatik devreye girecek.`;
       payload.provider = `${payload.provider ? `${String(payload.provider)} · ` : ''}Capability Rescue`;
       payload.trace = trace;
       await replaceLatestAssistant(env, payload.reply, payload.provider);

@@ -41,7 +41,7 @@ function fingerprint(value) {
 }
 
 async function recordMetric(env, provider, latencyMs, ok = true, error = '') {
-  provider = String(provider || 'JARVIS').slice(0, 140);
+  provider = String(provider || 'hayırlıevlad').slice(0, 140);
   const row = await queryOne(env, 'SELECT * FROM provider_metrics WHERE provider=?', provider);
   if (!row) {
     await execute(env, 'INSERT INTO provider_metrics(provider,samples,successes,failures,avg_latency_ms,last_latency_ms,last_error,updated_at) VALUES(?,?,?,?,?,?,?,?)', provider, 1, ok ? 1 : 0, ok ? 0 : 1, latencyMs, latencyMs, error || null, now());
@@ -179,7 +179,7 @@ async function createTask(env, text) {
 async function planAgent(env, text) {
   if (env.AI) {
     const run = env.AI.run('@cf/zai-org/glm-4.7-flash', {
-      prompt: `İstek: ${text}\nBunu JARVIS agent işi olarak 2-6 adıma ayır. Sadece şu tipleri kullan: search,tool,task,watch,self_update,answer. JSON dizi döndür: [{"type":"search","instruction":"..."}]. Riskli dış işlemleri doğrudan yapma; self_update yalnız kullanıcı sisteme özellik eklenmesini istiyorsa kullan. Son adım answer olsun.`,
+      prompt: `İstek: ${text}\nBunu hayırlıevlad agent işi olarak 2-6 adıma ayır. Sadece şu tipleri kullan: search,tool,task,watch,self_update,answer. JSON dizi döndür: [{"type":"search","instruction":"..."}]. Riskli dış işlemleri doğrudan yapma; self_update yalnız kullanıcı sisteme özellik eklenmesini istiyorsa kullan. Son adım answer olsun.`,
       max_tokens: 550,
       temperature: 0.1
     });
@@ -239,8 +239,8 @@ async function runAgent(core, req, env, ctx, text) {
     await execute(env, 'UPDATE agent_jobs SET status=?,result=?,updated_at=? WHERE id=?', 'completed', reply, now(), id);
     await notify(env, 'agent', 'Agent işi tamamlandı', text, { agent_id: id });
     await saveMessage(env, 'user', text);
-    await saveMessage(env, 'assistant', reply, 'JARVIS Agent');
-    return jsonResponse({ reply, provider: 'JARVIS Agent', agent: { id, plan, outputs }, state: await state(core, req, env, ctx), history: await history(env) });
+    await saveMessage(env, 'assistant', reply, 'hayırlıevlad Agent');
+    return jsonResponse({ reply, provider: 'hayırlıevlad Agent', agent: { id, plan, outputs }, state: await state(core, req, env, ctx), history: await history(env) });
   } catch (error) {
     await execute(env, 'UPDATE agent_jobs SET status=?,error=?,updated_at=? WHERE id=?', 'failed', error.message, now(), id);
     await notify(env, 'error', 'Agent işi başarısız', error.message, { agent_id: id });
@@ -362,14 +362,14 @@ export function createJarvisOS(core) {
             const id = await createWatch(env, text);
             const reply = 'Takibi başlattım. Değişiklik veya koşul gerçekleştiğinde Bildirim Merkezi’ne düşecek.';
             await saveMessage(env, 'user', text);
-            await saveMessage(env, 'assistant', reply, 'JARVIS Watch');
-            response = jsonResponse({ reply, provider: 'JARVIS Watch', watch: { id }, state: await state(core, req, env, ctx), history: await history(env) });
+            await saveMessage(env, 'assistant', reply, 'hayırlıevlad Watch');
+            response = jsonResponse({ reply, provider: 'hayırlıevlad Watch', watch: { id }, state: await state(core, req, env, ctx), history: await history(env) });
           } else if (text && taskIntent(text)) {
             const id = await createTask(env, text);
             const reply = 'Görevi ekledim.';
             await saveMessage(env, 'user', text);
-            await saveMessage(env, 'assistant', reply, 'JARVIS Tasks');
-            response = jsonResponse({ reply, provider: 'JARVIS Tasks', task: { id }, state: await state(core, req, env, ctx), history: await history(env) });
+            await saveMessage(env, 'assistant', reply, 'hayırlıevlad Tasks');
+            response = jsonResponse({ reply, provider: 'hayırlıevlad Tasks', task: { id }, state: await state(core, req, env, ctx), history: await history(env) });
           } else if (text && freshIntent(text)) {
             try { response = await liveWeb(core, req, env, ctx, text); }
             catch { response = await core.fetch(req, env, ctx); }
@@ -381,16 +381,16 @@ export function createJarvisOS(core) {
           if (response.ok) {
             try {
               const payload = await response.clone().json();
-              ctx.waitUntil(recordMetric(env, payload.provider || 'JARVIS', latency, true, ''));
+              ctx.waitUntil(recordMetric(env, payload.provider || 'hayırlıevlad', latency, true, ''));
               if (text) ctx.waitUntil(rememberAsync(env, text, payload.reply || ''));
             } catch {}
           } else {
-            ctx.waitUntil(recordMetric(env, 'JARVIS', latency, false, `HTTP_${response.status}`));
+            ctx.waitUntil(recordMetric(env, 'hayırlıevlad', latency, false, `HTTP_${response.status}`));
           }
           return response;
         } catch (error) {
           const latency = now() - started;
-          ctx.waitUntil(recordMetric(env, 'JARVIS', latency, false, error.message));
+          ctx.waitUntil(recordMetric(env, 'hayırlıevlad', latency, false, error.message));
           ctx.waitUntil(logRuntimeError(env, 'chat', error.message));
           return jsonResponse({ error: error.message }, 500);
         }

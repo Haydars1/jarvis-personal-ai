@@ -27,7 +27,7 @@ struct SettingsView: View {
                             Task { await connectGoogle() }
                         }
 
-                        serviceRow("Tüm bağlantıları tara", "Eksik servis, API veya izin varsa JARVIS kontrol etsin.", "checklist") {
+                        serviceRow("Tüm bağlantıları tara", "Eksik servis, API veya izin varsa hayırlıevlad kontrol etsin.", "checklist") {
                             quickAction("Uygulamadaki tüm bağlantıları, izinleri, Google servislerini, bildirimleri, konumu, mikrofonu, dosyaları ve backend durumunu tara. Eksikleri bana kısa ve net şekilde listele.")
                         }
 
@@ -36,7 +36,7 @@ struct SettingsView: View {
                         }
 
                         serviceRow("Dosyalar & Paylaşım", "PDF, fotoğraf, belge ve paylaşım uzantısını kontrol et.", "folder.badge.gearshape") {
-                            quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. JARVIS'e dosya gönderme akışını hazır hale getir.")
+                            quickAction("Dosya, PDF, fotoğraf ve iOS paylaşım uzantısı ayarlarını kontrol et. hayırlıevlad'a dosya gönderme akışını hazır hale getir.")
                         }
                     }
 
@@ -109,7 +109,7 @@ struct SettingsView: View {
                             state.statusText = "Ekler temizlendi"
                         }
 
-                        settingRow(icon: state.isListening ? "waveform.circle.fill" : "waveform", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla JARVIS'e konuş.", tint: accentColor) {
+                        settingRow(icon: state.isListening ? "waveform.circle.fill" : "waveform", title: state.isListening ? "Dinlemeyi durdur" : "Sesli dinlemeyi başlat", subtitle: "Mikrofonla hayırlıevlad'a konuş.", tint: accentColor) {
                             state.toggleVoice()
                         }
                     }
@@ -119,7 +119,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("Sade görünüm")
                                     .font(.subheadline.weight(.medium))
-                                Text("Büyük amblem yerine temiz JARVIS arayüzü kullanılır.")
+                                Text("Büyük amblem yerine temiz hayırlıevlad arayüzü kullanılır.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -174,7 +174,7 @@ struct SettingsView: View {
             }
 
             VStack(spacing: 4) {
-                Text("JARVIS")
+                Text("hayırlıevlad")
                     .font(.title2.weight(.semibold))
                 Text("Servisler, izinler ve uygulama işlemleri")
                     .font(.subheadline)

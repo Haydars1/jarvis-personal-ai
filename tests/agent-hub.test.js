@@ -18,5 +18,5 @@ test('Agent Hub dashboard is loaded in Turkish interface',()=>{
   assert.match(read('public/index.html'), /agent-hub-ui\.js/);
   const ui=read('public/agent-hub-ui.js');
   assert.match(ui, /\/api\/tools\/agent-hub\/plan/);
-  assert.match(ui, /JARVIS Agent Hub/);
+  assert.match(ui, /Görev Merkezi/);
 });

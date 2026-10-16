@@ -200,7 +200,7 @@ async function generatePlanned(env, item) {
   }
   const meta = await updateMeta(env, item, { video_failover_errors:errors, last_video_error:errors.at(-1)?.error || 'NO_VIDEO_PROVIDER' });
   await execute(env, 'UPDATE social_content_queue SET scheduled_at=?,meta=?,updated_at=? WHERE id=?', now() + 30 * 60 * 1000, JSON.stringify(meta), now(), item.id);
-  await notify(env, 'video', 'Video üretimi beklemeye alındı', 'Bağlı ve kullanılabilir video sağlayıcısı kalmadı. JARVIS 30 dakika sonra tekrar deneyecek.', { queue_id:item.id, errors });
+  await notify(env, 'video', 'Video üretimi beklemeye alındı', 'Bağlı ve kullanılabilir video sağlayıcısı kalmadı. hayırlıevlad 30 dakika sonra tekrar deneyecek.', { queue_id:item.id, errors });
   return false;
 }
 async function pollExternal(env, item) {

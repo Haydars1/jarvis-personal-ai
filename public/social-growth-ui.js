@@ -12,7 +12,7 @@
     card.id='socialGrowthHub';
     card.className='card purple';
     card.innerHTML=`
-      <div class="providerHead"><div><h2 style="margin:0">JARVIS Social Growth</h2><small>Reels planla • üret • yayınla • yorumları izle</small></div><span id="sgBadge" class="providerBadge bad">yükleniyor</span></div>
+      <div class="providerHead"><div><h2 style="margin:0">Sosyal Medya</h2><small>Reels planla • üret • yayınla • yorumları izle</small></div><span id="sgBadge" class="providerBadge bad">yükleniyor</span></div>
       <p class="muted">Instagram/Facebook Page içerikleri resmi API bağlantılarıyla otomatik ilerler. Facebook gruplarında rastgele otomatik üyelik veya insan taklidi yapılmaz; yalnız açıkça yetkilendirilmiş hedefler kullanılabilir.</p>
       <div class="row"><input id="sgTopic" placeholder="Örn: Almanya'da otomobil içerikleriyle büyü ve para kazan"><button id="sgCreate">KAMPANYA BAŞLAT</button></div>
       <div id="sgStats" class="statusGrid" style="margin-top:12px"></div>

@@ -1,4 +1,4 @@
-// JARVIS ECU Tuning UI — v3: araç seçimi + zengin aksiyon kartları + Stage 1 + AI önerisi
+// hayırlıevlad ECU Tuning UI — v3: araç seçimi + zengin aksiyon kartları + Stage 1 + AI önerisi
 (() => {
   const state = {
     uploadId: null,

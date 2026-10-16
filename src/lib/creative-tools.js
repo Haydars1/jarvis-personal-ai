@@ -1,4 +1,4 @@
-// JARVIS Creative Tools — görsel + video + ses üretim araçları
+// hayırlıevlad Creative Tools — görsel + video + ses üretim araçları
 // Tüm modeller Cloudflare AI free tier veya açık kaynak
 
 // ========== CLOUDFLARE AI MODELLERİ ==========
@@ -105,7 +105,7 @@ export function beforeAfterSvg({ width = 1080, height = 1080, beforeLabel = 'ÖN
 
 // ========== HASHTAG ÜRETİCİ ==========
 export function generateHashtags(topic, platform = 'instagram', count = 15) {
-  const base = ['jarvis', 'ai', 'otomasyon'];
+  const base = ['hayirlievlad', 'otomasyon'];
   const auto = ['araç', 'otomotiv', 'car', 'automotive', 'tuning', 'chiptuning', 'ecu', 'ecutuning', 'stage1', 'dpfoff', 'egroff'];
   const detailing = ['detailing', 'ceramiccoating', 'carcare', 'araçbakım', 'polisaj', 'carglanz'];
   const social = ['reels', 'trending', 'viral', 'keşfet', 'fyp'];
@@ -162,7 +162,7 @@ export const TTS_VOICES = {
 
 // GitHub Actions workflow — TTS + video birleştirme
 export const TTS_VIDEO_WORKFLOW = `
-name: JARVIS TTS Video
+name: hayırlıevlad TTS Video
 on:
   workflow_dispatch:
     inputs:

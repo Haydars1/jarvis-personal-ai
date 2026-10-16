@@ -56,7 +56,7 @@ async function state(core, req, env, ctx) {
 function messagesFor(hist, text, expert = 'general', project = '') {
   const expertPrompt = EXPERT_PROMPTS[expert] || EXPERT_PROMPTS.general;
   const projectPrompt = project ? ` Aktif proje: ${String(project).slice(0,120)}. Bu proje bağlamını cevap boyunca koru.` : '';
-  const system = { role: 'system', content: `Sen JARVIS kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür. ${expertPrompt}${projectPrompt}` };
+  const system = { role: 'system', content: `Sen hayırlıevlad kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür. ${expertPrompt}${projectPrompt}` };
   const recent = (hist || []).slice(-14).map(item => ({ role: item.role === 'assistant' ? 'assistant' : 'user', content: item.content }));
   return [system, ...recent, { role: 'user', content: text }];
 }
@@ -122,7 +122,7 @@ async function nvidiaCall(env, credential, messages, capability, timeoutMs = 650
     try {
       const response = await fetchWithTimeout(`${base}/chat/completions`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' },
         body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
       }, timeoutMs);
       if (!response.ok) { lastError = `NVIDIA_${response.status}_${model}`; continue; }
@@ -184,7 +184,7 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
   if (!model) throw new Error('NO_MODEL');
   const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' },
     body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
   }, timeoutMs);
   if (!response.ok) throw new Error(`${(provider || 'AI').toUpperCase()}_${response.status}`);
@@ -270,7 +270,7 @@ async function aiCatalog(env) {
     default: 'auto',
     experts: Object.keys(EXPERT_PROMPTS),
     models: [
-      { id: 'auto', provider: 'jarvis', label: 'AUTO · JARVIS RouteLLM', model: 'automatic', healthy: true },
+      { id: 'auto', provider: 'jarvis', label: 'AUTO · hayırlıevlad RouteLLM', model: 'automatic', healthy: true },
       ...(env.AI ? [{ id: 'cloudflare', provider: 'cloudflare', label: 'Cloudflare AI · GLM 4.7 Flash', model: FAST_CF_MODEL, healthy: true }] : []),
       ...rows.map(row => ({
         id: String(row.id),

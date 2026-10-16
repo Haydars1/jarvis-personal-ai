@@ -15,7 +15,7 @@ targets:
     info:
       path: ShareExtension/Info.plist
       properties:
-        CFBundleDisplayName: JARVIS
+        CFBundleDisplayName: hayırlıevlad
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).ShareViewController"
@@ -38,21 +38,21 @@ targets:
     info:
       path: JARVIS/Info.plist
       properties:
-        CFBundleDisplayName: JARVIS
+        CFBundleDisplayName: hayırlıevlad
         CFBundleURLTypes:
           - CFBundleURLName: com.haydojarvis.jarvis
             CFBundleURLSchemes:
               - jarvis
-        NSMicrophoneUsageDescription: "JARVIS ile sesli konuşmak için mikrofon kullanılır."
-        NSBluetoothAlwaysUsageDescription: "JARVIS OBD cihazını bulmak ve seçtiğin cihaza Bluetooth ile bağlanmak için erişim kullanır."
-        NSSpeechRecognitionUsageDescription: "JARVIS konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
-        NSCameraUsageDescription: "JARVIS'e fotoğraf göstermek için kamera kullanılır."
-        NSPhotoLibraryUsageDescription: "JARVIS'e fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
-        NSLocationWhenInUseUsageDescription: "JARVIS yakındaki yerleri, rota ve konuma bağlı cevapları doğru verebilmek için konumunu kullanır."
-        NSFaceIDUsageDescription: "JARVIS parolanı tekrar yazmadan güvenli giriş yapmak için Face ID kullanır."
-        NSCalendarsFullAccessUsageDescription: "JARVIS takvimini okuyup randevu ve etkinliklerini yönetmek için tam takvim erişimi kullanır."
-        NSRemindersFullAccessUsageDescription: "JARVIS hatırlatıcılarını okuyup oluşturmak ve yönetmek için erişim kullanır."
-        NSAlarmKitUsageDescription: "JARVIS istediğin zamanlarda gerçek alarm ve zamanlayıcı kurmak için AlarmKit kullanır."
+        NSMicrophoneUsageDescription: "hayırlıevlad ile sesli konuşmak için mikrofon kullanılır."
+        NSBluetoothAlwaysUsageDescription: "hayırlıevlad OBD cihazını bulmak ve seçtiğin cihaza Bluetooth ile bağlanmak için erişim kullanır."
+        NSSpeechRecognitionUsageDescription: "hayırlıevlad konuşmanı yazıya çevirmek için konuşma tanımayı kullanır."
+        NSCameraUsageDescription: "hayırlıevlad'a fotoğraf göstermek için kamera kullanılır."
+        NSPhotoLibraryUsageDescription: "hayırlıevlad'a fotoğraf ve video göndermek için fotoğraf arşivine erişilir."
+        NSLocationWhenInUseUsageDescription: "hayırlıevlad yakındaki yerleri, rota ve konuma bağlı cevapları doğru verebilmek için konumunu kullanır."
+        NSFaceIDUsageDescription: "hayırlıevlad parolanı tekrar yazmadan güvenli giriş yapmak için Face ID kullanır."
+        NSCalendarsFullAccessUsageDescription: "hayırlıevlad takvimini okuyup randevu ve etkinliklerini yönetmek için tam takvim erişimi kullanır."
+        NSRemindersFullAccessUsageDescription: "hayırlıevlad hatırlatıcılarını okuyup oluşturmak ve yönetmek için erişim kullanır."
+        NSAlarmKitUsageDescription: "hayırlıevlad istediğin zamanlarda gerçek alarm ve zamanlayıcı kurmak için AlarmKit kullanır."
         UILaunchScreen: {}
         UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:

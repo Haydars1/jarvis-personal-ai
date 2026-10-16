@@ -302,10 +302,10 @@ async function chatCampaign(core, req, env, ctx, text) {
   let reply = `Sosyal medya growth kampanyasını oluşturdum. ${campaign.items} içerik kuyruğa alındı. Konu araştırması, hook, açıklama, hashtag, Higgsfield video üretimi ve bağlı Instagram/Facebook Page hesabında yayınlama otomatik ilerleyecek.`;
   if (groupIntent(text)) reply += ' Facebook grupları tarafında rastgele gruplara otomatik katılıp insanmış gibi paylaşım yapmayacağım; bu spam/deceptive otomasyon olur. Yetkili olduğun/izinli hedefleri ekleyebilir, onlar için doğal metinleri hazırlayıp onaylı paylaşım kuyruğu yönetebilirim.';
   await saveMessage(env, 'user', text);
-  await saveMessage(env, 'assistant', reply, 'JARVIS Social Growth');
+  await saveMessage(env, 'assistant', reply, 'hayırlıevlad Social Growth');
   const stateResponse = await core.fetch(new Request(new URL('/api/state', req.url), { headers:req.headers }), env, ctx);
   let state = {}; try { state = await stateResponse.json(); } catch {}
-  return jsonResponse({ reply, provider:'JARVIS Social Growth', campaign, state, history:await history(env) });
+  return jsonResponse({ reply, provider:'hayırlıevlad Social Growth', campaign, state, history:await history(env) });
 }
 
 export function createSocialGrowth(core) {

@@ -1,4 +1,4 @@
-// JARVIS Tools UI — DTC arama, YouTube öğrenme, video oluşturma, sosyal otomasyon
+// hayırlıevlad Tools UI — DTC arama, YouTube öğrenme, video oluşturma, sosyal otomasyon
 (() => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>'"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
@@ -1195,7 +1195,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'jarvis-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+      a.download = 'hayirlievlad-backup-' + new Date().toISOString().slice(0, 10) + '.json';
       document.body.appendChild(a);
       a.click();
       a.remove();

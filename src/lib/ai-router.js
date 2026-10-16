@@ -1,4 +1,4 @@
-// JARVIS AI Router — multi-provider AI with failure cooldowns, 3-wave race, diagnostics
+// hayırlıevlad AI Router — multi-provider AI with failure cooldowns, 3-wave race, diagnostics
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { fetchT, withTimeout, now } from './core.js';
@@ -61,7 +61,7 @@ export async function callGeminiEnv(env, messages, ms) {
 }
 
 export async function callOpenAICompat(base, key, model, messages, ms, provider) {
-  const r = await fetchT(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + key, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
+  const r = await fetchT(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + key, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
   if (!r.ok) throw Error(provider.toUpperCase() + '_' + r.status);
   const text = (await r.json()).choices?.[0]?.message?.content || '';
   if (!String(text || '').trim()) throw Error(provider.toUpperCase() + '_EMPTY');
@@ -100,7 +100,7 @@ export async function callVaultAI(env, c, messages, ms = 9000) {
   }
   const base = providerBase(p, c.endpoint); if (!base) throw Error('NO_ENDPOINT');
   const model = providerModel(p, c.model);
-  const r = await fetchT(base + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
+  const r = await fetchT(base + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
   if (!r.ok) throw Error((p || 'AI').toUpperCase() + '_' + r.status);
   return (await r.json()).choices?.[0]?.message?.content || ''
 }
@@ -181,7 +181,7 @@ export async function aiDiagnostics(env) {
   const working = items.filter(x => x.ok);
   const fatal = !working.length;
   const recommendation = fatal
-    ? 'Hiç çalışan AI sağlayıcısı yok. En az bir geçerli OpenAI, Groq, OpenRouter, Anthropic veya Gemini anahtarı eklenip testten geçmeli; aksi halde JARVIS gerçek AI gibi cevap veremez.'
+    ? 'Hiç çalışan AI sağlayıcısı yok. En az bir geçerli OpenAI, Groq, OpenRouter, Anthropic veya Gemini anahtarı eklenip testten geçmeli; aksi halde hayırlıevlad gerçek AI gibi cevap veremez.'
     : 'Çalışan sağlayıcı var: ' + working.map(x => x.label).join(', ') + '. Router bunları önce kullanmalı.';
   return { ok: !fatal, working: working.length, total: items.length, duration_ms: now() - started, recommendation, items };
 }

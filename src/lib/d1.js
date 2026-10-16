@@ -1,4 +1,4 @@
-// JARVIS D1 Database Helpers
+// hayırlıevlad D1 Database Helpers
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { now, id } from './core.js';

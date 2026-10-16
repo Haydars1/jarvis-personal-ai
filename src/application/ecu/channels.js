@@ -177,10 +177,10 @@ export function createEcuChannelStore(core){
 
         if(acknowledgeRepeatedFile){
           const reply=`Evet. Bu kanalın aktif dosyası: ${channel.fileName}. Dosyayı tekrar yüklemene gerek yok; aynı kanalda analiz, checksum veya ORI ↔ MOD karşılaştırması isteyebilirsin.`;
-          await saveMessage(env,channel.id,'assistant',reply,'JARVIS ECU Brain',now());
+          await saveMessage(env,channel.id,'assistant',reply,'hayırlıevlad ECU Brain',now());
           return json({
             reply,
-            provider:'JARVIS ECU Brain',
+            provider:'hayırlıevlad ECU Brain',
             channelId:channel.id,
             channel:{id:channel.id,title:channel.title,file_name:channel.fileName,file_sha256:channel.hash,file_size:channel.fileSize},
             history:await messages(env,channel.id)
@@ -205,7 +205,7 @@ export function createEcuChannelStore(core){
         let payload=null;
         try{payload=await response.clone().json();}catch{}
         if(payload?.reply){
-          await saveMessage(env,channel.id,'assistant',payload.reply,payload.provider||'JARVIS ECU Brain',now());
+          await saveMessage(env,channel.id,'assistant',payload.reply,payload.provider||'hayırlıevlad ECU Brain',now());
           payload.channelId=channel.id;
           payload.channel={id:channel.id,title:channel.title,file_name:channel.fileName,file_sha256:channel.hash,file_size:channel.fileSize};
           payload.history=await messages(env,channel.id);

@@ -2,7 +2,7 @@ import { jsonResponse, settleWithin } from '../../lib/runtime.js';
 import { cleanReply } from '../../lib/orchestration.js';
 
 const MODEL = '@cf/zai-org/glm-4.7-flash';
-const FAILURE_PREFIX = 'JARVIS şu an yanıt üretemedi';
+const FAILURE_PATTERN = /şu an yanıt üretemedi/i;
 
 function extractWorkersText(result) {
   const content = result?.choices?.[0]?.message?.content;
@@ -19,7 +19,7 @@ async function generateEmergencyReply(env, text) {
   try {
     const run = env.AI.run(MODEL, {
       messages: [
-        { role: 'system', content: 'Sen JARVIS kişisel asistansın. Kullanıcıya doğrudan, doğal, doğru ve yararlı Türkçe cevap ver. Basit sorularda hızlı ve net ol; gerektiğinde kısa açıklama ve pratik ayrıntı ekle. İç sistem/provider hatalarından bahsetme.' },
+        { role: 'system', content: 'Sen hayırlıevlad kişisel asistansın. Kullanıcıya doğrudan, doğal, doğru ve yararlı Türkçe cevap ver. Basit sorularda hızlı ve net ol; gerektiğinde kısa açıklama ve pratik ayrıntı ekle. İç sistem/provider hatalarından bahsetme.' },
         { role: 'user', content: text }
       ],
       max_completion_tokens: 700,
@@ -40,7 +40,7 @@ export function createEmergencyChatFallback(handleChat) {
     let payload;
     try { payload = await response.clone().json(); } catch { return response; }
     const current = String(payload?.reply || '').trim();
-    if (!current.startsWith(FAILURE_PREFIX)) return response;
+    if (!FAILURE_PATTERN.test(current)) return response;
 
     let text = '';
     try { text = String((await req.clone().json())?.text || '').trim(); } catch {}
@@ -48,17 +48,17 @@ export function createEmergencyChatFallback(handleChat) {
     if (!reply) return response;
 
     payload.reply = reply;
-    payload.provider = 'JARVIS';
+    payload.provider = 'hayırlıevlad';
     const history = Array.isArray(payload.history) ? [...payload.history] : [];
     const last = history.at(-1);
-    if (last?.role === 'assistant' && String(last.content || '').trim().startsWith(FAILURE_PREFIX)) {
-      history[history.length - 1] = { ...last, content: reply, provider: 'JARVIS' };
+    if (last?.role === 'assistant' && FAILURE_PATTERN.test(String(last.content || ''))) {
+      history[history.length - 1] = { ...last, content: reply, provider: 'hayırlıevlad' };
     } else {
       if (!history.length) history.push({ role: 'user', content: text });
-      history.push({ role: 'assistant', content: reply, provider: 'JARVIS' });
+      history.push({ role: 'assistant', content: reply, provider: 'hayırlıevlad' });
     }
     payload.history = history;
-    payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), { kind: 'fallback', label: 'JARVIS emergency AI', value: 'Primary chat paths failed; Workers AI returned the final reply' }];
+    payload.trace = [...(Array.isArray(payload.trace) ? payload.trace : []), { kind: 'fallback', label: 'hayırlıevlad emergency AI', value: 'Primary chat paths failed; Workers AI returned the final reply' }];
     return jsonResponse(payload, response.status);
   };
 }

@@ -1,4 +1,4 @@
-// JARVIS Auth — session helpers + WebAuthn/Passkey (Face ID)
+// hayırlıevlad Auth — session helpers + WebAuthn/Passkey (Face ID)
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { te, td, now, parseCookies, safeJsonParse, body } from './core.js';
@@ -29,7 +29,7 @@ export async function passkeys(env) {
 
 export function rpFrom(req) {
   const u = new URL(req.url);
-  return { rpID: u.hostname, origin: u.origin, rpName: 'JARVIS Personal AI' };
+  return { rpID: u.hostname, origin: u.origin, rpName: 'hayırlıevlad' };
 }
 
 export async function registrationOptions(req, env) {
@@ -38,7 +38,7 @@ export async function registrationOptions(req, env) {
   return {
     challenge,
     rp: { name: rp.rpName, id: rp.rpID },
-    user: { id: b64u(te.encode('jarvis-owner')), name: 'jarvis-owner', displayName: 'JARVIS Owner' },
+    user: { id: b64u(te.encode('jarvis-owner')), name: 'hayırlıevlad', displayName: 'hayırlıevlad' },
     pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
     timeout: 60000,
     attestation: 'none',

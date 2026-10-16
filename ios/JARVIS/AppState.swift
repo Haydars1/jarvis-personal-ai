@@ -105,14 +105,14 @@ final class AppState: ObservableObject {
     func loadHistory() async throws { messages = try await api.history() }
     func addAttachment(_ attachment: NativeAttachment) { guard attachments.count < 4 else { statusText = "En fazla 4 dosya eklenebilir"; return }; attachments.append(attachment) }
     func removeAttachment(_ id: UUID) { attachments.removeAll { $0.id == id } }
-    func startQuickAction(_ text: String) { guard !isSending else { statusText = "JARVIS zaten çalışıyor..."; return }; input = text; Task { await send() } }
+    func startQuickAction(_ text: String) { guard !isSending else { statusText = "hayırlıevlad zaten çalışıyor..."; return }; input = text; Task { await send() } }
 
     func send() async {
         let typed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (!typed.isEmpty || !attachments.isEmpty), !isSending else { return }
         let text = typed.isEmpty ? "Bu dosyaları incele ve ihtiyacım olan sonucu ver." : typed
         let pendingAttachments = attachments
-        input = ""; attachments = []; isSending = true; statusText = "JARVIS çalışıyor..."
+        input = ""; attachments = []; isSending = true; statusText = "hayırlıevlad çalışıyor..."
         let visible = pendingAttachments.isEmpty ? text : "\(text)\n📎 \(pendingAttachments.map(\.name).joined(separator: ", "))"
         messages.append(ChatMessage(role: "user", content: visible, provider: nil, createdAt: Date().timeIntervalSince1970 * 1000))
         do {
@@ -142,7 +142,7 @@ final class AppState: ObservableObject {
             if !recovered {
                 let message = friendlyError(raw)
                 statusText = message
-                messages.append(ChatMessage(role: "assistant", content: message, provider: "JARVIS", createdAt: Date().timeIntervalSince1970 * 1000))
+                messages.append(ChatMessage(role: "assistant", content: message, provider: "hayırlıevlad", createdAt: Date().timeIntervalSince1970 * 1000))
             }
         }
         isSending = false
@@ -157,8 +157,8 @@ final class AppState: ObservableObject {
 
     private func friendlyError(_ raw: String) -> String {
         let lower = raw.lowercased()
-        if lower.contains("jarvis_temporary_unavailable") || lower.contains("temporarily unavailable") || lower.contains("service unavailable") { return "JARVIS kısa süreliğine yanıt yolunu değiştirdi. Birkaç saniye sonra tekrar dene." }
-        if lower.contains("timed out") || lower.contains("timeout") || lower.contains("zaman aş") { return "Yanıt gecikti. JARVIS cevabı tamamlayamadı; tekrar gönderebilirsin." }
+        if lower.contains("jarvis_temporary_unavailable") || lower.contains("temporarily unavailable") || lower.contains("service unavailable") { return "hayırlıevlad kısa süreliğine yanıt yolunu değiştirdi. Birkaç saniye sonra tekrar dene." }
+        if lower.contains("timed out") || lower.contains("timeout") || lower.contains("zaman aş") { return "Yanıt gecikti. hayırlıevlad cevabı tamamlayamadı; tekrar gönderebilirsin." }
         if lower.contains("network") || lower.contains("internet") || lower.contains("connection") || lower.contains("bağlantı") { return "Bağlantı şu an kararsız. Mesajını kaybetmedim; tekrar deneyebilirsin." }
         return raw
     }

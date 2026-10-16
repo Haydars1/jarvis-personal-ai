@@ -11,7 +11,7 @@ const repoSkill={
   native_adapter:{id:'repo-cloud-tools'}
 };
 
-const request=text=>new Request('https://jarvis.test/api/chat/send',{
+const request=text=>new Request('https://hayirlievlad.test/api/chat/send',{
   method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})
 });
 
@@ -63,7 +63,7 @@ test('chat fallback keeps queued repo job so iOS can append the later real resul
       return new Response(JSON.stringify({job:{id:'job-later',status:'queued',repo:repoSkill.repo},answer:null}),{headers:{'content-type':'application/json'}});
     }
     if(path==='/api/chat/send'){
-      return new Response(JSON.stringify({reply:'Geçici AI cevabı',history:[],provider:'JARVIS'}),{headers:{'content-type':'application/json'}});
+      return new Response(JSON.stringify({reply:'Geçici AI cevabı',history:[],provider:'hayırlıevlad'}),{headers:{'content-type':'application/json'}});
     }
     return new Response('{}',{headers:{'content-type':'application/json'}});
   }};
@@ -87,7 +87,7 @@ test('completed repository cloud job returns its concrete answer',async()=>{
   }};
   const text='github kaynak kodunda checksum fonksiyonunu bul';
   const result=await skillFirstResponse(core,request(text),{}, {},text,[repoSkill]);
-  assert.equal(result?.provider,'JARVIS Skill');
+  assert.equal(result?.provider,'hayırlıevlad Skill');
   assert.match(result?.reply||'',/checksum helper/);
 });
 

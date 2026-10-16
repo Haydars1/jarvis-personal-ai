@@ -1,4 +1,4 @@
-// JARVIS GitHub API — credential lookup, repo config, API client, file ops
+// hayırlıevlad GitHub API — credential lookup, repo config, API client, file ops
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { te, td, fetchT } from './core.js';
@@ -16,7 +16,7 @@ export function repoCfg(c) {
 }
 
 export async function gh(c, path, opts = {}) {
-  const r = await fetchT('https://api.github.com' + path, { ...opts, headers: { accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28', 'user-agent': 'JARVIS-SelfUpdate', authorization: 'Bearer ' + c.secret, ...(opts.headers || {}) } });
+  const r = await fetchT('https://api.github.com' + path, { ...opts, headers: { accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28', 'user-agent': 'hayirlievlad-SelfUpdate', authorization: 'Bearer ' + c.secret, ...(opts.headers || {}) } });
   const text = await r.text(); let data; try { data = text ? JSON.parse(text) : {} } catch { data = { text } };
   if (!r.ok) throw Error('GITHUB_' + r.status + ':' + (data.message || text).slice(0, 240)); return data;
 }

@@ -1,4 +1,4 @@
-// JARVIS D1-backed File Storage — auto-chunks files >1.5MB
+// hayırlıevlad D1-backed File Storage — auto-chunks files >1.5MB
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { te, td } from './core.js';

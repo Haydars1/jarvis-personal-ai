@@ -25,7 +25,7 @@ async function repair(env, userText, draft) {
   const safeDraft = stripThink(draft) || 'Yanıt oluşturulamadı.';
   if (!env.AI) return safeDraft;
   const run = env.AI.run('@cf/zai-org/glm-4.7-flash', {
-    prompt: `Sen JARVIS'sin. Kullanıcının gerçek isteğine doğrudan Türkçe cevap ver. İç düşünce, analiz planı, chain-of-thought, "thinking process", meta açıklama veya kullanıcı isteğini yeniden analiz eden bölüm ASLA yazma. Taslak yanlış yorumladıysa taslağı yok say. Kullanıcı görsel/video/şema istiyorsa bunu açıkça belirt ve mevcut sistemin uygun araç akışına yönlendirecek şekilde kısa cevap ver.\n\nKULLANICI İSTEĞİ:\n${String(userText || '').slice(0, 7000)}\n\nHATALI/TASLAK MODEL ÇIKTISI:\n${String(draft || '').slice(0, 9000)}\n\nYalnız kullanıcıya gösterilecek nihai cevabı yaz.`,
+    prompt: `Sen hayırlıevlad'sin. Kullanıcının gerçek isteğine doğrudan Türkçe cevap ver. İç düşünce, analiz planı, chain-of-thought, "thinking process", meta açıklama veya kullanıcı isteğini yeniden analiz eden bölüm ASLA yazma. Taslak yanlış yorumladıysa taslağı yok say. Kullanıcı görsel/video/şema istiyorsa bunu açıkça belirt ve mevcut sistemin uygun araç akışına yönlendirecek şekilde kısa cevap ver.\n\nKULLANICI İSTEĞİ:\n${String(userText || '').slice(0, 7000)}\n\nHATALI/TASLAK MODEL ÇIKTISI:\n${String(draft || '').slice(0, 9000)}\n\nYalnız kullanıcıya gösterilecek nihai cevabı yaz.`,
     max_tokens: 900,
     temperature: 0.2
   });
@@ -38,7 +38,7 @@ async function repair(env, userText, draft) {
 async function replaceLatestAssistant(env, text, provider) {
   try {
     const row = await queryOne(env, "SELECT id FROM chat_messages WHERE role='assistant' ORDER BY created_at DESC LIMIT 1");
-    if (row?.id) await execute(env, 'UPDATE chat_messages SET content=?,provider=? WHERE id=?', text, provider || 'JARVIS', row.id);
+    if (row?.id) await execute(env, 'UPDATE chat_messages SET content=?,provider=? WHERE id=?', text, provider || 'hayırlıevlad', row.id);
   } catch {}
 }
 
@@ -47,7 +47,7 @@ function cleanHistory(rows = []) {
     if (message?.role !== 'assistant') return message;
     const clean = stripThink(message.content || '');
     if (clean) return { ...message, content: clean };
-    if (reasoningLeak(message.content || '')) return { ...message, content: 'Eski hatalı model düşünce çıktısı gizlendi.', provider: 'JARVIS' };
+    if (reasoningLeak(message.content || '')) return { ...message, content: 'Eski hatalı model düşünce çıktısı gizlendi.', provider: 'hayırlıevlad' };
     return message;
   });
 }
@@ -76,7 +76,7 @@ export function createChatOutput(core) {
           if (reasoningLeak(draft) || looksMostlyEnglish(draft) || !clean) clean = await repair(env, userText, draft);
           if (clean && clean !== draft) {
             payload.reply = clean;
-            payload.provider = `${payload.provider ? `${String(payload.provider)} · ` : ''}JARVIS Clean`;
+            payload.provider = `${payload.provider ? `${String(payload.provider)} · ` : ''}hayırlıevlad Clean`;
             await replaceLatestAssistant(env, clean, payload.provider);
           }
           if (Array.isArray(payload.history)) payload.history = cleanHistory(payload.history);

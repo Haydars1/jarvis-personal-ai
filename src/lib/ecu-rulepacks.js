@@ -1,4 +1,4 @@
-// JARVIS ECU Rulepacks — kamuya açık GitHub depolarından ve topluluk kaynaklarından
+// hayırlıevlad ECU Rulepacks — kamuya açık GitHub depolarından ve topluluk kaynaklarından
 // derlenmiş ECU ailesi/firmware tanım paketleri.
 //
 // HER KALEMDE kaynak linki var. Hiçbir proprietary DAMOS/A2L içermez — sadece
@@ -72,7 +72,7 @@ export const RULEPACKS = [
       },
       searchRadius: 512,
     },
-    notes: 'ME7 Stage 1 için gerçek haritalar aile çapında isim-tabanlıdır; MxT (XDF yüklemeli) veya TunerPro ile tam harita düzenleme yapılır. JARVIS burada sadece string konumlarını işaretler.'
+    notes: 'ME7 Stage 1 için gerçek haritalar aile çapında isim-tabanlıdır; MxT (XDF yüklemeli) veya TunerPro ile tam harita düzenleme yapılır. hayırlıevlad burada sadece string konumlarını işaretler.'
   },
 
   // ========== BOSCH EDC15 / EDC16 (VAG dizel, eski nesil) ==========
@@ -437,7 +437,7 @@ export const RULEPACKS = [
       },
       searchRadius: 512,
     },
-    notes: 'BMW MS4x için bimmerstein-bin-analyzer araç çıktısına JARVIS entegrasyonu önerilir. Hex görünümü + 2D/3D grafik aynı anda.'
+    notes: 'BMW MS4x için bimmerstein-bin-analyzer araç çıktısına hayırlıevlad entegrasyonu önerilir. Hex görünümü + 2D/3D grafik aynı anda.'
   },
 
   // ========== Siemens SID 803 / SID 807 (PSA Diesel) ==========
