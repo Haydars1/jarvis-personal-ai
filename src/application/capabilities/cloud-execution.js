@@ -9,13 +9,13 @@ import { resolveNativeSkillAdapter } from '../../lib/native-skill-adapters.js';
 const now=()=>Date.now();
 const uid=()=>crypto.randomUUID();
 const OIDC_ISSUER='https://token.actions.githubusercontent.com';
-const OIDC_AUDIENCE='jarvis-cloud-tool-runner';
-const SKILL_BUILDER_AUDIENCE='jarvis-skill-builder';
-const TRUSTED_REPOSITORY='Haydars1/jarvis-personal-ai';
-const TRUSTED_WORKFLOW='Haydars1/jarvis-personal-ai/.github/workflows/cloud-tool-runner.yml@refs/heads/main';
+const OIDC_AUDIENCE='hayirlievlad-cloud-tool-runner';
+const SKILL_BUILDER_AUDIENCE='hayirlievlad-skill-builder';
+const TRUSTED_REPOSITORY='Haydars1/hayirlievlad';
+const TRUSTED_WORKFLOW='Haydars1/hayirlievlad/.github/workflows/cloud-tool-runner.yml@refs/heads/main';
 const SKILL_BUILDER_WORKFLOWS=Object.freeze([
-  'Haydars1/jarvis-personal-ai/.github/workflows/jarvis-codex-agent.yml@refs/heads/main',
-  'Haydars1/jarvis-personal-ai/.github/workflows/jarvis-codex-agent.yml@refs/heads/test/autonomy-runtime'
+  'Haydars1/hayirlievlad/.github/workflows/hayirlievlad-codex-agent.yml@refs/heads/main',
+  'Haydars1/hayirlievlad/.github/workflows/hayirlievlad-codex-agent.yml@refs/heads/test/autonomy-runtime'
 ]);
 const ALLOWED_ADAPTERS=Object.freeze({
   'repo-inspect':{label:'Repository inspect',mode:'read-only'},

@@ -15,7 +15,7 @@ export const ALLOWED_ADAPTERS=Object.freeze({
   'code-graph-query':true
 });
 
-const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
+const BASE=String(process.env.HAYIRLIEVLAD_URL||'https://hayirlievlad.hayirlievlad.workers.dev').replace(/\/$/,'');
 const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
 const MAX_BATCHES=Math.max(1,Math.min(12,Number(process.env.JARVIS_CLOUD_MAX_BATCHES||1)));
 const API_TIMEOUT_MS=Math.max(5000,Math.min(60000,Number(process.env.JARVIS_CLOUD_API_TIMEOUT_MS||20000)));
@@ -39,7 +39,7 @@ async function oidcToken(){
   const url=process.env.ACTIONS_ID_TOKEN_REQUEST_URL,token=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
   if(!url||!token)throw new Error('GITHUB_OIDC_UNAVAILABLE');
   const sep=url.includes('?')?'&':'?';
-  const response=await fetch(`${url}${sep}audience=jarvis-cloud-tool-runner`,{headers:{Authorization:`bearer ${token}`},signal:AbortSignal.timeout(API_TIMEOUT_MS)});
+  const response=await fetch(`${url}${sep}audience=hayirlievlad-cloud-tool-runner`,{headers:{Authorization:`bearer ${token}`},signal:AbortSignal.timeout(API_TIMEOUT_MS)});
   if(!response.ok)throw new Error(`OIDC_REQUEST_${response.status}`);
   const payload=await response.json();return payload.value;
 }

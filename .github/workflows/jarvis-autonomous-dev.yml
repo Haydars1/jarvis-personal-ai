@@ -1,4 +1,4 @@
-name: JARVIS Autonomous Dev Manual Backup
+name: hayırlıevlad Autonomous Dev Manual Backup
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   develop:
-    if: github.repository == 'Haydars1/jarvis-personal-ai'
+    if: github.repository == 'Haydars1/hayirlievlad'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:
@@ -36,7 +36,7 @@ jobs:
         run: |
           cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
           Work only in this checked-out repository and only toward branch feature/learning-engine.
-          Continue JARVIS development autonomously for this run. Inspect implementation, tests, git history and current working tree.
+          Continue hayırlıevlad development autonomously for this run. Inspect implementation, tests, git history and current working tree.
           Read src/lib/capability-policy.js and prioritize concrete missing capability implementations, regressions and integrations.
           Prioritize conversation/task continuity, persistent learning context, provider routing/failover, social/video automation,
           ECU diagnostics/file-analysis infrastructure, safe device-bridge architecture, reliability, observability, tests, performance,
@@ -105,6 +105,6 @@ jobs:
           git config user.name "jarvis-dev-agent"
           git config user.email "jarvis-dev-agent@users.noreply.github.com"
           git add -A
-          git commit -m "chore(agent): autonomous JARVIS development"
+          git commit -m "chore(agent): autonomous hayırlıevlad development"
           gh auth setup-git
           git push origin HEAD:feature/learning-engine
