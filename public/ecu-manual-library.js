@@ -40,6 +40,8 @@
   }
   async function load(){
     try{
+      // One-time idempotent synthesis activation in the existing JARVIS learning memory.
+      const activation=await api('activate',{method:'POST'}).catch(()=>null);
       const [stats,concepts]=await Promise.all([api('stats'),api('concepts')]);
       state.manuals=concepts.manuals||[];
       const count=(stats.coverage||[]).reduce((n,x)=>n+Number(x.indexed_pages||0),0);
@@ -48,7 +50,8 @@
       for(const m of state.manuals){const o=document.createElement('option');o.value=m.id;o.textContent=m.title+' ('+m.applies_to+')';source.appendChild(o);}
       const box=$('#ecuLibraryConcepts');
       for(const c of concepts.concepts||[])box.appendChild(card(c,true));
-      if(!stats.passages)status('Kavramsal ders notları hazır. 908 sayfanın tamamını kalıcı hale getirmek için JSON bilgi paketini içe aktar.');
+      if(activation?.learning?.ok)status(activation.learning.learned_principles+' teknik prensip JARVIS uzun süreli hafızasına eklendi. '+(!stats.passages?'908 sayfalık tam kitap paketi henüz D1 içine alınmadı.':'Tüm kayıtlar kullanılabilir.'));
+      else if(!stats.passages)status('Kavramsal ders notları hazır. 908 sayfanın tamamını kalıcı hale getirmek için JSON bilgi paketini içe aktar.');
     }catch(e){status('Kitaplık henüz bağlı değil: '+e.message);}
   }
   async function search(){
