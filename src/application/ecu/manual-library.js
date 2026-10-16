@@ -1,6 +1,6 @@
 import { execute, queryAll, queryOne, jsonResponse } from '../../lib/runtime.js';
 import { ECU_MANUALS, ECU_MANUAL_FOUNDATIONS, ecuStudyConcepts } from './manual-learning-foundations.js';
-import { activateEcuTechnicalLearning } from './manual-learning-seed.js';
+import { activateEcuTechnicalLearning, manualPassageMemoryStatements } from './manual-learning-seed.js';
 
 // Independent ECU technical knowledge channel. Never writes to ECU binary or existing app tables.
 const MAX_BATCH=25;
@@ -111,8 +111,10 @@ export function createEcuManualLibrary(core){
           }
           const psql="INSERT INTO ecu_manual_library_passages(id,document_id,page,part,content,has_visuals,imported_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET content=excluded.content,has_visuals=excluded.has_visuals";
           for(const r of records)statements.push(env.DB.prepare(psql).bind(r.id,r.document_id,r.page,r.part,r.content,r.visuals,ts));
-          await env.DB.batch(statements);
-          return ok({imported:records.length,documents:[...grouped.keys()]});
+          const learnedStatements=await manualPassageMemoryStatements(env,records,ts);
+          // One transaction: full private PDF passages and existing AI learning memory.
+          await env.DB.batch([...statements,...learnedStatements]);
+          return ok({imported:records.length,learned_chunks:learnedStatements.length-grouped.size,documents:[...grouped.keys()]});
         }
         return error('NOT_FOUND',404);
       }catch(e){return error('ECU_MANUAL_LIBRARY_ERROR:'+String(e.message||e).slice(0,140),500);}
