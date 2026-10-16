@@ -122,7 +122,7 @@ async function nvidiaCall(env, credential, messages, capability, timeoutMs = 650
     try {
       const response = await fetchWithTimeout(`${base}/chat/completions`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayırlıevlad' },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' },
         body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
       }, timeoutMs);
       if (!response.ok) { lastError = `NVIDIA_${response.status}_${model}`; continue; }
@@ -184,7 +184,7 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
   if (!model) throw new Error('NO_MODEL');
   const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayırlıevlad' },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' },
     body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
   }, timeoutMs);
   if (!response.ok) throw new Error(`${(provider || 'AI').toUpperCase()}_${response.status}`);

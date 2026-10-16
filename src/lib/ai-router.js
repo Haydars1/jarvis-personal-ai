@@ -61,7 +61,7 @@ export async function callGeminiEnv(env, messages, ms) {
 }
 
 export async function callOpenAICompat(base, key, model, messages, ms, provider) {
-  const r = await fetchT(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + key, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayırlıevlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
+  const r = await fetchT(base.replace(/\/$/, '') + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + key, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
   if (!r.ok) throw Error(provider.toUpperCase() + '_' + r.status);
   const text = (await r.json()).choices?.[0]?.message?.content || '';
   if (!String(text || '').trim()) throw Error(provider.toUpperCase() + '_EMPTY');
@@ -100,7 +100,7 @@ export async function callVaultAI(env, c, messages, ms = 9000) {
   }
   const base = providerBase(p, c.endpoint); if (!base) throw Error('NO_ENDPOINT');
   const model = providerModel(p, c.model);
-  const r = await fetchT(base + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayırlıevlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
+  const r = await fetchT(base + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'hayirlievlad' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
   if (!r.ok) throw Error((p || 'AI').toUpperCase() + '_' + r.status);
   return (await r.json()).choices?.[0]?.message?.content || ''
 }
