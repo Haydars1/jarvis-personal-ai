@@ -3,7 +3,7 @@ import UserNotifications
 
 final class NotificationManager: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
-    private let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
+    private let defaults = UserDefaults(suiteName: "group.com.hayirlievlad.app")
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
@@ -40,9 +40,9 @@ final class NotificationManager: NSObject, UIApplicationDelegate, UNUserNotifica
         #else
         let environment = "production"
         #endif
-        let bundle = Bundle.main.bundleIdentifier ?? "com.haydojarvis.jarvis"
+        let bundle = Bundle.main.bundleIdentifier ?? "com.hayirlievlad.app"
         do {
-            try await JarvisAPI().registerPushToken(token, environment: environment, appBundle: bundle)
+            try await HayirlievladAPI().registerPushToken(token, environment: environment, appBundle: bundle)
             defaults?.set(Date().timeIntervalSince1970, forKey: "apnsLastSyncAt")
             defaults?.removeObject(forKey: "apnsLastError")
         } catch {
