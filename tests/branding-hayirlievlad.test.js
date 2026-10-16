@@ -40,7 +40,7 @@ test('existing native app identity remains compatible', () => {
 test('passkey name is updated without changing registration identity', () => {
   const auth = file('src/lib/auth.js');
   assert.ok(auth.includes("rpName: 'hayırlıevlad'"));
-  assert.ok(auth.includes("displayName: 'hayırlıevlad'"));
+  assert.ok(auth.includes("name: 'hayırlıevlad', displayName: 'hayırlıevlad'"));
   assert.ok(auth.includes("te.encode('jarvis-owner')"));
 });
 

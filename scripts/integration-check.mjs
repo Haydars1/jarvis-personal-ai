@@ -47,7 +47,7 @@ try {
     return r;
   }
   assert.equal((await (await call('/api/health', 200)).json()).ok, true);
-  assert.match(await (await call('/', 200)).text(), /JARVIS/);
+  assert.match(await (await call('/', 200)).text(), /hayırlıevlad/);
   await call('/api/ecu/channels', 401);
   await call('/api/chat/send', 401, { text: 'session test' });
   await call('/api/tools/cloud/adapters', 401);
@@ -107,7 +107,7 @@ try {
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
+      await page.locator('#chatProvider').filter({ hasText: /^hayırlıevlad$/ }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
