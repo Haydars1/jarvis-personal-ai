@@ -71,7 +71,7 @@ const BASE_CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'n8n-io/n8n', category: 'workflow-rpa', executionTarget: 'external-service' },
   { repo: 'activepieces/activepieces', category: 'workflow-rpa', executionTarget: 'external-service' },
   { repo: 'apify/crawlee', category: 'crawler-scraper', executionTarget: 'local-cpu' },
-  { repo: 'artemnovitckii/notebooklm-coach', category: 'youtube-teaching', executionTarget: 'catalog-only', autoExecute: false, restriction: 'GitHub license metadata is NOASSERTION; reference/provenance only. JARVIS executes its own clean-room YouTube teaching adapter.' },
+  { repo: 'artemnovitckii/notebooklm-coach', category: 'youtube-teaching', executionTarget: 'catalog-only', autoExecute: false, restriction: 'GitHub license metadata is NOASSERTION; reference/provenance only. hayırlıevlad executes its own clean-room YouTube teaching adapter.' },
   { repo: 'comfyanonymous/ComfyUI', category: 'image-generation', executionTarget: 'local-gpu' },
   { repo: 'Lightricks/LTX-Video', category: 'video-generation', executionTarget: 'local-gpu' },
   { repo: 'Wan-Video/Wan2.1', category: 'video-generation', executionTarget: 'local-gpu' },

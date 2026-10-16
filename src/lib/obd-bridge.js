@@ -1,5 +1,5 @@
 // src/lib/obd-bridge.js
-// ELM327 → JARVIS OBD-II Bridge
+// ELM327 → hayırlıevlad OBD-II Bridge
 // Cloudflare Workers ESM — WebSocket live-stream + REST decode
 // Handles: ELM327 AT init, OBD-II Mode 01 PID decode, DTC parse, session logging
 

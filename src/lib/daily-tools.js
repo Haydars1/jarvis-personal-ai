@@ -1,4 +1,4 @@
-// JARVIS Daily Tools — Invoice, CRM, Weather, Fuel, QR, Translation, Shift Planner
+// hayırlıevlad Daily Tools — Invoice, CRM, Weather, Fuel, QR, Translation, Shift Planner
 // All free APIs — no paid services
 // Language: JavaScript (Cloudflare Workers ESM)
 // Target: Cloudflare Workers runtime, D1 binding (DB), AI binding (AI)
@@ -68,7 +68,7 @@ td{padding:10px 12px;border-bottom:1px solid #e0e0e0}
   <div class="grand"><span>${labels.total}</span><span>${currency}${fmt(total)}</span></div>
 </div>
 ${notes ? `<div class="notes"><b>${labels.notes}:</b> ${esc(notes)}</div>` : ''}
-<div style="margin-top:40px;text-align:center;font-size:11px;color:#aaa">JARVIS · Oluşturulma: ${new Date().toISOString().slice(0, 16)}</div>
+<div style="margin-top:40px;text-align:center;font-size:11px;color:#aaa">hayırlıevlad · Oluşturulma: ${new Date().toISOString().slice(0, 16)}</div>
 </body></html>`;
 }
 

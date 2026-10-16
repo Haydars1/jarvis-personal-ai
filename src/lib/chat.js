@@ -18,12 +18,12 @@ export async function chatHistory(env, limit = 100) {
 export async function rememberExplicit(env, text) {
   const raw = String(text || '').trim();
   const l = raw.toLocaleLowerCase('tr-TR');
-  const explicit = /^(jarvis[, ]*)?(bunu|şunu|sunu|bu bilgiyi)?\s*(hafızana|belleğine|bellegine)\s+kaydet[: ]+/i.test(l)
-    || /^(jarvis[, ]*)?(bunu|şunu|sunu|bu bilgiyi)\s+hatırla[: ]+/i.test(l)
-    || /^(jarvis[, ]*)?kaydet[: ]+/i.test(l);
+  const explicit = /^(hayırlıevlad[, ]*)?(bunu|şunu|sunu|bu bilgiyi)?\s*(hafızana|belleğine|bellegine)\s+kaydet[: ]+/i.test(l)
+    || /^(hayırlıevlad[, ]*)?(bunu|şunu|sunu|bu bilgiyi)\s+hatırla[: ]+/i.test(l)
+    || /^(hayırlıevlad[, ]*)?kaydet[: ]+/i.test(l);
   if (!explicit) return null;
   const clean = raw
-    .replace(/^(jarvis[, ]*)?/i, '')
+    .replace(/^(hayırlıevlad[, ]*)?/i, '')
     .replace(/^(bunu|şunu|sunu|bu bilgiyi)?\s*(hafızana|belleğine|bellegine)\s+kaydet[: ]*/i, '')
     .replace(/^(bunu|şunu|sunu|bu bilgiyi)\s+hatırla[: ]*/i, '')
     .replace(/^kaydet[: ]*/i, '')

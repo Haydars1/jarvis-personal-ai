@@ -1,4 +1,4 @@
-// JARVIS Integrations — Google OAuth/Gmail/Drive, Meta Facebook/Instagram, Action queue
+// hayırlıevlad Integrations — Google OAuth/Gmail/Drive, Meta Facebook/Instagram, Action queue
 // Language: JavaScript (Cloudflare Workers ESM)
 
 import { te, fetchT, now, id, safeJsonParse } from './core.js';
