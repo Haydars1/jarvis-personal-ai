@@ -38,7 +38,7 @@ export async function registrationOptions(req, env) {
   return {
     challenge,
     rp: { name: rp.rpName, id: rp.rpID },
-    user: { id: b64u(te.encode('jarvis-owner')), name: 'hayırlıevlad', displayName: 'hayırlıevlad' },
+    user: { id: b64u(te.encode('hayirlievlad-owner')), name: 'hayırlıevlad', displayName: 'hayırlıevlad' },
     pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
     timeout: 60000,
     attestation: 'none',
