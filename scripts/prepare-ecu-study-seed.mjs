@@ -19,7 +19,7 @@ export function buildEcuStudySeedSql(){
       [q(id),q('ecu-manual'),q(url),q(manual.id),q('ECU Kitabı: '+manual.title),q('tr'),q('learned'),'NULL','NULL',q(meta),ts,ts,ts].join(',')+") ON CONFLICT(source_url) DO UPDATE SET title=excluded.title,meta_json=excluded.meta_json,status='learned',learned_at=excluded.learned_at,updated_at=excluded.updated_at;");
     let ordinal=0;
     for(const fact of ECU_MANUAL_FOUNDATIONS.filter(row=>row.doc===manual.id)){
-      const text='ECU TEKNIK BILGI - '+manual.title+' ('+manual.applies_to+')\\nKaynak sayfalar: '+fact.pages+'\\nKonu etiketleri: '+fact.topics.join(', ')+'\\nTeknik prensip (özgün sentez): '+fact.lesson+'\\nUYARI: ECU adresleri, haritalar, sensör ve firmware kimliği doğrulanmalıdır.';
+      const text='ECU TEKNIK BILGI - '+manual.title+' ('+manual.applies_to+')\nKaynak sayfalar: '+fact.pages+'\nKonu etiketleri: '+fact.topics.join(', ')+'\nTeknik prensip (özgün sentez): '+fact.lesson+'\nUYARI: ECU adresleri, haritalar, sensör ve firmware kimliği doğrulanmalıdır.';
       lines.push("INSERT INTO learning_chunks(id,source_id,ordinal,content,created_at) VALUES("+
         [q(id+':'+ordinal),q(id),String(ordinal),q(text),ts].join(',')+
         ") ON CONFLICT(source_id,ordinal) DO UPDATE SET content=excluded.content;");
@@ -27,7 +27,7 @@ export function buildEcuStudySeedSql(){
     }
   }
   lines.push('COMMIT;');
-  return lines.join('\\n')+'\\n';
+  return lines.join('\n')+'\n';
 }
 
 if(process.argv[1]?.endsWith('prepare-ecu-study-seed.mjs')){
