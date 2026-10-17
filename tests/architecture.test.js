@@ -10,7 +10,7 @@ test('wrangler points at the explicit application composition root', () => {
 });
 
 test('composition root owns Higgsfield, integrations, provider state, smart routing, Google search, enhancements, OS, social, video, output, capabilities, media, orchestration and push wiring', () => {
-  const entry = read('src/app-entry.js');
+  const entry = read('src/app-entry.js') + read('src/app-runtime.js');
   assert.match(entry, /from '\.\/worker\.js'/);
   assert.match(entry, /createHiggsfieldIntegration/);
   assert.match(entry, /createIntegrationHub/);
@@ -43,7 +43,7 @@ test('composition root owns Higgsfield, integrations, provider state, smart rout
 });
 
 test('production composition exposes vehicle coding research used by the native offline catalog', () => {
-  const entry = read('src/app-entry.js');
+  const entry = read('src/app-entry.js') + read('src/app-runtime.js');
   assert.match(entry, /createVehicleCodingResearch/);
   assert.match(entry, /const vehicleResearchCore\s*=\s*createVehicleCodingResearch\(searchCore\)/);
   assert.match(entry, /createChatEnhancements\(vehicleResearchCore\)/);
