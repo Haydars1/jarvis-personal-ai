@@ -8,7 +8,7 @@ const workflow = readFileSync(new URL('../.github/workflows/deploy-cloudflare.ym
 test('Cloudflare deploy, production health probe and configured Worker use the same renamed script', () => {
   assert.equal(config.name, 'hayirlievlad');
   assert.match(workflow, /npx wrangler deploy --name hayirlievlad/);
-  assert.match(workflow, /HEALTH_URL: https:\/\/hayirlievlad-live\.haydojarvis\.workers\.dev/);
+  assert.match(workflow, /HEALTH_URL: https:\/\/hayirlievlad\.haydojarvis\.workers\.dev/);
   assert.doesNotMatch(workflow, /HEALTH_URL: .*secrets\.JARVIS_HEALTH_URL/);
 });
 
