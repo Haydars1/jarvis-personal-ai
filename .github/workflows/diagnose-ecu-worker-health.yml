@@ -1,0 +1,51 @@
+name: Cloudflare Worker Health Diagnostics (read-only)
+on:
+  push:
+    branches:
+      - diagnostics/ecu-health-20261017
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Compare configured versus canonical Worker health with error tail
+        env:
+          HEALTH_URL: ${{ secrets.JARVIS_HEALTH_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          (timeout 28s npx wrangler tail jarvis-personal-ai --format json --status error > /tmp/worker-errors.log 2>&1 || true) &
+          TAIL_PID=$!
+          sleep 7
+          node --input-type=module <<'NODE'
+          const candidates=[
+            {label:'configured',value:process.env.HEALTH_URL},
+            {label:'canonical',value:'https://jarvis-personal-ai.haydojarvis.workers.dev'}
+          ];
+          for (const c of candidates){
+            if(!c.value){console.log(c.label, 'not configured');continue;}
+            let base;
+            try {
+              const u=new URL(c.value);base=u.origin;
+              console.log(c.label,'host',u.hostname);
+            } catch(e){console.log(c.label,'invalid URL');continue;}
+            for (const path of ['/api/health','/']){
+              try{
+                const response=await fetch(base+path,{signal:AbortSignal.timeout(12000)});
+                const body=(await response.text()).replace(/\s+/g,' ').slice(0,480);
+                console.log(c.label,path,'HTTP',response.status,'cf-ray',response.headers.get('cf-ray'),'content-type',response.headers.get('content-type'),'body',body);
+              }catch(e){console.log(c.label,path,'fetch error',String(e.message).slice(0,170));}
+            }
+          }
+          NODE
+          sleep 7
+          kill "$TAIL_PID" 2>/dev/null || true
+          echo "--- Captured Worker runtime errors ---"
+          tail -n 80 /tmp/worker-errors.log || true
