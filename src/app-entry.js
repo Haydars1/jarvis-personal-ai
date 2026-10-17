@@ -1,3 +1,4 @@
+import { DurableObject } from 'cloudflare:workers';
 import legacyBase from './worker.js';
 import { createCapabilityRuntime } from './application/capabilities/runtime.js';
 import { createRepositoryCatalog } from './application/capabilities/repository-catalog.js';
@@ -129,4 +130,9 @@ export default {
     })().catch(() => {}));
   }
 };
+
+// Compatibility export for the existing Cloudflare Durable Object class.
+export class EcuComputeContainer extends DurableObject {
+  async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
+}
 
