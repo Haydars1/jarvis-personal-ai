@@ -48,7 +48,13 @@ jobs:
           NODE
           for mode in pure d1 ai assets all; do
             echo "Uploading UNDEPLOYED config: $mode"
-            npx wrangler versions upload --config "wrangler.probe-$mode.jsonc" --preview-alias "probe$mode" 2>&1 | grep -E "Uploaded|Version ID|Preview|Error|workers.dev|WARN|error" || true
+            if npx wrangler versions upload --config "wrangler.probe-$mode.jsonc" --preview-alias "probe$mode" >"/tmp/upload-$mode.log" 2>&1; then
+              echo "upload_result $mode OK"
+              grep -E "Uploaded|Version ID|Preview|workers.dev" "/tmp/upload-$mode.log" || true
+            else
+              echo "upload_result $mode FAILED"
+              grep -E "ERROR|Error|error|✘|100[0-9]+|Unsupported|config|versions upload|unknown" "/tmp/upload-$mode.log" | tail -n 12 || true
+            fi
           done
           node --input-type=module <<'NODE'
           const host='hayirlievlad.haydojarvis.workers.dev';
