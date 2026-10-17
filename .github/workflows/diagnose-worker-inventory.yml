@@ -27,3 +27,14 @@ jobs:
             }catch(e){console.log('Request failed',path.split('/').pop(),e?.name);}
           }
           NODE
+          echo "--- Current renamed Worker HTTP status ---"
+          node --input-type=module <<'NODE'
+          const base='https://hayirlievlad.haydojarvis.workers.dev';
+          for(const path of ['/api/health','/','/api/auth/status','/api/ecu/manual-library/stats']){
+            try {
+              const r=await fetch(base+path,{signal:AbortSignal.timeout(12000)});
+              const raw=(await r.text()).replace(/\s+/g,' ').slice(0,450);
+              console.log(path, 'HTTP', r.status, 'type', r.headers.get('content-type'), 'body', raw);
+            } catch(e){console.log(path, 'request failed', e?.name);}
+          }
+          NODE
