@@ -9,8 +9,8 @@ test('production study migration creates exactly one record per source and conce
   assert.equal(ECU_MANUALS.length,20);
   assert.ok(ECU_MANUAL_FOUNDATIONS.length>=50);
   assert.ok(sql.includes("ON CONFLICT(source_id,ordinal) DO UPDATE"));
-  assert.ok(sql.includes("BEGIN TRANSACTION;\n"));
-  assert.ok(sql.endsWith("COMMIT;\n"));
+  assert.doesNotMatch(sql, /\bBEGIN TRANSACTION\b/i);
+  assert.doesNotMatch(sql, /\bCOMMIT\s*;/i);
   assert.doesNotMatch(sql, /\b(?:DROP|TRUNCATE|DELETE FROM|ALTER TABLE)\b/i);
 });
 test('production notes are source labeled and do not contain full original PDF passages',()=>{
