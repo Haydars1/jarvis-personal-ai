@@ -17,7 +17,8 @@ export async function productionSmoke(baseUrl, request = fetch) {
       await response.body?.cancel?.().catch(() => {});
       await new Promise(resolve => setTimeout(resolve, 2500));
     }
-    assert.equal(response.status, expected, `${path}: expected HTTP ${expected}; actual HTTP ${response.status}`);
+    const detail = response.status === expected ? '' : (await response.clone().text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 200);
+    assert.equal(response.status, expected, `${path}: expected HTTP ${expected}; actual HTTP ${response.status}; ${detail}`);
     if (validate) await validate(response);
     checks.push(path);
   }
