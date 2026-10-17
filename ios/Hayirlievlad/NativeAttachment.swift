@@ -31,7 +31,7 @@ struct NativeAttachment: Identifiable {
         defer { if access { url.stopAccessingSecurityScopedResource() } }
         let data = try Data(contentsOf: url)
         guard data.count <= maxBytes else {
-            throw NSError(domain: "JARVIS", code: 413, userInfo: [NSLocalizedDescriptionKey: "Dosya çok büyük. Maksimum 10 MB."])
+            throw NSError(domain: "Hayirlievlad", code: 413, userInfo: [NSLocalizedDescriptionKey: "Dosya çok büyük. Maksimum 10 MB."])
         }
         let type = UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         return NativeAttachment(name: url.lastPathComponent, mimeType: type, data: data)

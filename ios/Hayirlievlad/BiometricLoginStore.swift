@@ -28,9 +28,9 @@ enum BiometricLoginError: LocalizedError {
 final class BiometricLoginStore {
     static let shared = BiometricLoginStore()
 
-    private let service = "com.haydojarvis.jarvis.login"
-    private let account = "jarvis-password"
-    private let enabledKey = "jarvisBiometricLoginEnabled"
+    private let service = "com.hayirlievlad.app.login"
+    private let account = "hayirlievlad-password"
+    private let enabledKey = "hayirlievladBiometricLoginEnabled"
 
     private init() {}
 

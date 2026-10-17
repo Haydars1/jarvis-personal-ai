@@ -1,7 +1,7 @@
 import AppIntents
 import Foundation
 
-struct OpenJarvisIntent: AppIntent {
+struct OpenHayirlievladIntent: AppIntent {
     static var title: LocalizedStringResource = "hayırlıevlad'ı Aç"
     static var description = IntentDescription("hayırlıevlad sesli asistanını açar.")
     static var openAppWhenRun = true
@@ -11,7 +11,7 @@ struct OpenJarvisIntent: AppIntent {
     }
 }
 
-struct AskJarvisIntent: AppIntent {
+struct AskHayirlievladIntent: AppIntent {
     static var title: LocalizedStringResource = "hayırlıevlad'a Sor"
     static var description = IntentDescription("Bir soruyu hayırlıevlad'a gönderir ve uygulamayı açar.")
     static var openAppWhenRun = true
@@ -20,13 +20,13 @@ struct AskJarvisIntent: AppIntent {
     var question: String
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
+        let defaults = UserDefaults(suiteName: "group.com.hayirlievlad.app")
         defaults?.set(question, forKey: "pendingIntentText")
         return .result(dialog: IntentDialog("hayırlıevlad sorunu aldı."))
     }
 }
 
-struct AskClipboardJarvisIntent: AppIntent {
+struct AskClipboardHayirlievladIntent: AppIntent {
     static var title: LocalizedStringResource = "Panodakini hayırlıevlad'a Sor"
     static var description = IntentDescription("Kopyaladığın metni hayırlıevlad'a gönderir.")
     static var openAppWhenRun = true
@@ -35,12 +35,12 @@ struct AskClipboardJarvisIntent: AppIntent {
         guard let text = await SystemActions.shared.clipboardText(), !text.isEmpty else {
             throw SystemActionError.emptyClipboard
         }
-        UserDefaults(suiteName: "group.com.haydojarvis.jarvis")?.set("Bunu incele ve bana yardımcı ol: \(text)", forKey: "pendingIntentText")
+        UserDefaults(suiteName: "group.com.hayirlievlad.app")?.set("Bunu incele ve bana yardımcı ol: \(text)", forKey: "pendingIntentText")
         return .result(dialog: IntentDialog("Panodaki içerik hayırlıevlad'a hazırlandı."))
     }
 }
 
-struct AddJarvisCalendarEventIntent: AppIntent {
+struct AddHayirlievladCalendarEventIntent: AppIntent {
     static var title: LocalizedStringResource = "Takvime Ekle"
     static var description = IntentDescription("hayırlıevlad ile Apple Takvim'e etkinlik ekler.")
 
@@ -54,7 +54,7 @@ struct AddJarvisCalendarEventIntent: AppIntent {
     }
 }
 
-struct AddJarvisReminderIntent: AppIntent {
+struct AddHayirlievladReminderIntent: AppIntent {
     static var title: LocalizedStringResource = "Hatırlatıcı Ekle"
     static var description = IntentDescription("hayırlıevlad ile Apple Hatırlatıcılar'a kayıt ekler.")
 
@@ -67,12 +67,12 @@ struct AddJarvisReminderIntent: AppIntent {
     }
 }
 
-struct JarvisShortcuts: AppShortcutsProvider {
+struct HayirlievladShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
-        AppShortcut(intent: OpenJarvisIntent(), phrases: ["\(.applicationName) aç", "\(.applicationName) ile konuş", "\(.applicationName) başlat"], shortTitle: "hayırlıevlad", systemImageName: "waveform.circle.fill")
-        AppShortcut(intent: AskJarvisIntent(), phrases: ["\(.applicationName) ile sor", "\(.applicationName) soru sor"], shortTitle: "hayırlıevlad'a Sor", systemImageName: "sparkles")
-        AppShortcut(intent: AskClipboardJarvisIntent(), phrases: ["\(.applicationName) panodakini sor", "\(.applicationName) kopyaladığımı sor"], shortTitle: "Panodakini Sor", systemImageName: "doc.on.clipboard")
-        AppShortcut(intent: AddJarvisCalendarEventIntent(), phrases: ["\(.applicationName) takvime ekle"], shortTitle: "Takvime Ekle", systemImageName: "calendar.badge.plus")
-        AppShortcut(intent: AddJarvisReminderIntent(), phrases: ["\(.applicationName) hatırlatıcı ekle"], shortTitle: "Hatırlatıcı Ekle", systemImageName: "checklist")
+        AppShortcut(intent: OpenHayirlievladIntent(), phrases: ["\(.applicationName) aç", "\(.applicationName) ile konuş", "\(.applicationName) başlat"], shortTitle: "hayırlıevlad", systemImageName: "waveform.circle.fill")
+        AppShortcut(intent: AskHayirlievladIntent(), phrases: ["\(.applicationName) ile sor", "\(.applicationName) soru sor"], shortTitle: "hayırlıevlad'a Sor", systemImageName: "sparkles")
+        AppShortcut(intent: AskClipboardHayirlievladIntent(), phrases: ["\(.applicationName) panodakini sor", "\(.applicationName) kopyaladığımı sor"], shortTitle: "Panodakini Sor", systemImageName: "doc.on.clipboard")
+        AppShortcut(intent: AddHayirlievladCalendarEventIntent(), phrases: ["\(.applicationName) takvime ekle"], shortTitle: "Takvime Ekle", systemImageName: "calendar.badge.plus")
+        AppShortcut(intent: AddHayirlievladReminderIntent(), phrases: ["\(.applicationName) hatırlatıcı ekle"], shortTitle: "Hatırlatıcı Ekle", systemImageName: "checklist")
     }
 }

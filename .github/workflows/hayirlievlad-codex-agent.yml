@@ -1,4 +1,4 @@
-name: JARVIS Autonomous Development Agent
+name: hayırlıevlad Autonomous Development Agent
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: jarvis-autonomous-development
+  group: hayirlievlad-autonomous-development
   cancel-in-progress: false
 
 jobs:
@@ -47,20 +47,20 @@ jobs:
       - name: Fetch native skill backlog
         shell: bash
         env:
-          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
+          HAYIRLIEVLAD_URL: https://hayirlievlad.hayirlievlad.workers.dev
         run: |
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
-          const output='/tmp/jarvis-skill-backlog.json';
+          const output='/tmp/hayirlievlad-skill-backlog.json';
           try {
             const requestUrl=process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
             const requestToken=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
             if(!requestUrl||!requestToken)throw new Error('OIDC unavailable');
             const sep=requestUrl.includes('?')?'&':'?';
-            const oidc=await fetch(`${requestUrl}${sep}audience=jarvis-skill-builder`,{headers:{Authorization:`bearer ${requestToken}`}});
+            const oidc=await fetch(`${requestUrl}${sep}audience=hayirlievlad-skill-builder`,{headers:{Authorization:`bearer ${requestToken}`}});
             if(!oidc.ok)throw new Error(`OIDC ${oidc.status}`);
             const token=(await oidc.json()).value;
-            const response=await fetch(`${process.env.JARVIS_URL}/api/tools/skills/runner/backlog?limit=8`,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});
+            const response=await fetch(`${process.env.HAYIRLIEVLAD_URL}/api/tools/skills/runner/backlog?limit=8`,{headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});
             if(!response.ok)throw new Error(`BACKLOG ${response.status}`);
             writeFileSync(output,JSON.stringify(await response.json(),null,2));
           } catch (error) {
@@ -68,30 +68,30 @@ jobs:
             writeFileSync(output,JSON.stringify({skills:[],error:String(error.message||error)},null,2));
           }
           NODE
-          cat /tmp/jarvis-skill-backlog.json
+          cat /tmp/hayirlievlad-skill-backlog.json
 
       - name: Create isolated development branch
         id: branch
         shell: bash
         run: |
           set -euo pipefail
-          name="jarvis/auto-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          name="hayirlievlad/auto-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git switch -c "$name"
           echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: Write autonomous development prompt
         shell: bash
         run: |
-          cat > /tmp/jarvis-dev-prompt.txt <<'EOF'
-          Work only in this checked-out JARVIS repository on the current isolated jarvis/auto-* branch.
+          cat > /tmp/hayirlievlad-dev-prompt.txt <<'EOF'
+          Work only in this checked-out hayırlıevlad repository on the current isolated hayirlievlad/auto-* branch.
           Start from the current main implementation. Inspect code, tests and architecture before editing.
-          Read src/lib/capability-policy.js, src/lib/native-skill-adapters.js, and /tmp/jarvis-skill-backlog.json before choosing work.
+          Read src/lib/capability-policy.js, src/lib/native-skill-adapters.js, and /tmp/hayirlievlad-skill-backlog.json before choosing work.
 
           Repository-skill priority:
-          - If /tmp/jarvis-skill-backlog.json contains skills, prefer one useful low/medium-risk missing skill when it can be completed safely in this run.
+          - If /tmp/hayirlievlad-skill-backlog.json contains skills, prefer one useful low/medium-risk missing skill when it can be completed safely in this run.
           - Treat the source repository and its repo_skills manifest as a behavioral specification/reference, not as code to vendor.
-          - Use a clean-room reimplementation: understand the behavior/interface, then implement equivalent JARVIS-native behavior with our own code and tests.
-          - Do not copy third-party source code, large snippets, license headers, generated assets, model weights, or install scripts into JARVIS.
+          - Use a clean-room reimplementation: understand the behavior/interface, then implement equivalent hayırlıevlad-native behavior with our own code and tests.
+          - Do not copy third-party source code, large snippets, license headers, generated assets, model weights, or install scripts into hayırlıevlad.
           - Preserve attribution/source metadata in tests/docs where useful, but the implementation must stand on its own.
           - When the native implementation is verified, add/update src/lib/native-skill-adapters.js so the learned repo skill resolves to adapter_status ready.
           - For GPU-heavy capabilities, create a safe cloud adapter contract rather than pretending CPU Workers can run the model.
@@ -129,7 +129,7 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/jarvis-dev-prompt.txt
+        run: bash .github/scripts/run-coding-provider-fallback.sh /tmp/hayirlievlad-dev-prompt.txt
 
       - name: Reset failed specialist work
         if: ${{ steps.multiprovider.outcome != 'success' }}
@@ -142,8 +142,8 @@ jobs:
         if: ${{ steps.multiprovider.outcome != 'success' }}
         uses: actions/cache/restore@v4
         with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
+          path: ~/.cache/hayirlievlad-local-coder
+          key: hayirlievlad-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Run keyless local coding fallback
         id: localcoder
@@ -151,14 +151,14 @@ jobs:
         continue-on-error: true
         timeout-minutes: 15
         shell: bash
-        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/jarvis-dev-prompt.txt
+        run: bash .github/scripts/run-local-coder-fallback.sh /tmp/hayirlievlad-dev-prompt.txt
 
       - name: Save keyless local coder cache
         if: ${{ always() && steps.multiprovider.outcome != 'success' && steps.localcache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
-          path: ~/.cache/jarvis-local-coder
-          key: jarvis-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
+          path: ~/.cache/hayirlievlad-local-coder
+          key: hayirlievlad-local-coder-v4-${{ runner.os }}-bartowski-qwen2.5-coder-1.5b-q4
 
       - name: Reset failed local coding work
         if: ${{ steps.multiprovider.outcome != 'success' && steps.localcoder.outcome != 'success' }}
@@ -178,8 +178,8 @@ jobs:
           allow-bots: true
           allow-bot-users: "github-actions[bot]"
           prompt: |
-            Work only in this repository on the current jarvis/auto-* branch.
-            Read /tmp/jarvis-dev-prompt.txt and /tmp/jarvis-skill-backlog.json and follow them. Make useful safe improvements,
+            Work only in this repository on the current hayirlievlad/auto-* branch.
+            Read /tmp/hayirlievlad-dev-prompt.txt and /tmp/hayirlievlad-skill-backlog.json and follow them. Make useful safe improvements,
             run npm run check, and leave verified changes uncommitted.
 
       - name: Reset failed Codex work
@@ -219,10 +219,10 @@ jobs:
             exit 0
           fi
 
-          git config user.name "jarvis-autonomous-agent"
-          git config user.email "jarvis-autonomous-agent@users.noreply.github.com"
+          git config user.name "hayirlievlad-autonomous-agent"
+          git config user.email "hayirlievlad-autonomous-agent@users.noreply.github.com"
           git add -A
-          git commit -m "feat(agent): autonomous verified JARVIS improvement"
+          git commit -m "feat(agent): autonomous verified hayırlıevlad improvement"
 
           gh auth setup-git
           git push origin "HEAD:$BRANCH"
@@ -244,5 +244,5 @@ jobs:
           gh pr create \
             --base main \
             --head "$BRANCH" \
-            --title "JARVIS autonomous verified improvement" \
+            --title "hayırlıevlad autonomous verified improvement" \
             --body "Autonomous development run ${GITHUB_RUN_ID}. Provider: ${provider}. Model: ${model}. The run passed npm run check and Cloudflare dry-run before opening this PR. The repository self-update workflow will independently test it again before merge."

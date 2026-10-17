@@ -30,12 +30,12 @@ test('cloud runner seeds learning queue before claiming jobs',()=>{
 test('cloud runner can drain repository learning through bounded multi-batches without reinstalling the runner',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
-  assert.match(runner,/JARVIS_CLOUD_MAX_BATCHES/);
+  assert.match(runner,/HAYIRLIEVLAD_CLOUD_MAX_BATCHES/);
   assert.match(runner,/MAX_BATCHES/);
   assert.match(runner,/for\s*\(let batch=0;batch<MAX_BATCHES;batch\+\+\)/);
   assert.match(runner,/seededCount===0&&batchProcessed===0/);
-  assert.match(workflow,/JARVIS_CLOUD_MAX_JOBS:\s*['"]?8['"]?/);
-  assert.match(workflow,/JARVIS_CLOUD_MAX_BATCHES:\s*['"]?12['"]?/);
+  assert.match(workflow,/HAYIRLIEVLAD_CLOUD_MAX_JOBS:\s*['"]?8['"]?/);
+  assert.match(workflow,/HAYIRLIEVLAD_CLOUD_MAX_BATCHES:\s*['"]?12['"]?/);
 });
 
 test('cloud workflow prints the exact Worker execution summary after a batch',()=>{
@@ -58,7 +58,7 @@ test('cloud runner targets the canonical deployed Worker hostname',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
   const reporter=read('.github/scripts/cloud-skill-summary.mjs');
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
-  const canonical='https://jarvis-personal-ai.haydojarvis.workers.dev';
+  const canonical='https://hayirlievlad.hayirlievlad.workers.dev';
   const escaped=new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
   assert.match(runner,escaped);
   assert.match(reporter,escaped);

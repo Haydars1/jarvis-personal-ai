@@ -95,7 +95,7 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard selected === peripheral, connected else { return }
         notificationStatus = error.map { "Bildirim hatası: \($0.localizedDescription)" }
-            ?? (characteristic.isNotifying ? "Paket izleme açık; bu yalnız Jarvis bağlantısına gelen verilerdir" : "Bu kanalın paket izlemesi kapalı")
+            ?? (characteristic.isNotifying ? "Paket izleme açık; bu yalnız Hayirlievlad bağlantısına gelen verilerdir" : "Bu kanalın paket izlemesi kapalı")
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
@@ -118,7 +118,7 @@ final class VehicleBluetooth: NSObject, ObservableObject, CBCentralManagerDelega
         switch central?.state {
         case .poweredOn: status = "Bluetooth hazır"
         case .poweredOff: status = "iPhone Bluetooth kapalı"
-        case .unauthorized: status = "Bluetooth izni kapalı; iPhone ayarlarından JARVIS iznini aç"
+        case .unauthorized: status = "Bluetooth izni kapalı; iPhone ayarlarından Hayirlievlad iznini aç"
         case .unsupported: status = "Bu cihaz BLE bağlantısını desteklemiyor"
         default: status = "Bluetooth durumu bekleniyor"
         }
@@ -230,13 +230,13 @@ struct VehicleBluetoothView: View {
                 }
                 if bluetooth.connected && !bluetooth.busy && !bluetooth.notificationChannels.isEmpty {
                     Section("Cihazdan gelen paketler") {
-                        Text("Bu ekran yalnız Jarvis bağlantısına gelen bildirimleri izler. ThinkDiag+ uygulamasının iletişimini yakalamaz; araç komutu göndermez.").font(.footnote)
+                        Text("Bu ekran yalnız Hayirlievlad bağlantısına gelen bildirimleri izler. ThinkDiag+ uygulamasının iletişimini yakalamaz; araç komutu göndermez.").font(.footnote)
                         Text(bluetooth.notificationStatus).font(.caption)
                         ForEach(bluetooth.notificationChannels) { channel in
                             Button("İzlemeyi aç/kapat: \(channel.id)") { bluetooth.monitor(channel) }
                         }
                         if !bluetooth.receivedPackets.isEmpty {
-                            ShareLink(item: "JARVIS BLE bildirim kaydı — araç komutları doğrulanmadı\n" + bluetooth.receivedPackets.joined(separator: "\n")) {
+                            ShareLink(item: "Hayirlievlad BLE bildirim kaydı — araç komutları doğrulanmadı\n" + bluetooth.receivedPackets.joined(separator: "\n")) {
                                 Label("Paket kaydını paylaş", systemImage: "square.and.arrow.up")
                             }
                             ForEach(Array(bluetooth.receivedPackets.enumerated()), id: \.offset) { _, packet in
@@ -247,7 +247,7 @@ struct VehicleBluetoothView: View {
                 }
                 if !bluetooth.inventory.isEmpty {
                     Section("Bağlantı özellikleri") {
-                        ShareLink(item: "JARVIS BLE GATT keşfi — araç oturumu kurulmadı\n" + bluetooth.inventory.joined(separator: "\n")) {
+                        ShareLink(item: "Hayirlievlad BLE GATT keşfi — araç oturumu kurulmadı\n" + bluetooth.inventory.joined(separator: "\n")) {
                             Label("Bağlantı bilgisini paylaş", systemImage: "square.and.arrow.up")
                         }
                         ForEach(Array(bluetooth.inventory.enumerated()), id: \.offset) { _, line in

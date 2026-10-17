@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
-const source=readFileSync(new URL('../.github/workflows/jarvis-codex-agent.yml',import.meta.url),'utf8');
-const selfUpdate=readFileSync(new URL('../.github/workflows/jarvis-self-update.yml',import.meta.url),'utf8');
+const source=readFileSync(new URL('../.github/workflows/hayirlievlad-codex-agent.yml',import.meta.url),'utf8');
+const selfUpdate=readFileSync(new URL('../.github/workflows/hayirlievlad-self-update.yml',import.meta.url),'utf8');
 
 test('autonomous dev workflow has off-peak quarter-hour schedule',()=>{
   assert.match(source,/cron:\s*'7,22,37,52 \* \* \* \*'/);
@@ -11,19 +11,19 @@ test('autonomous dev workflow has off-peak quarter-hour schedule',()=>{
 
 test('autonomous dev starts every run from current main',()=>{
   assert.match(source,/name: Checkout current main[\s\S]*ref: main/);
-  assert.match(source,/jarvis\/auto-/);
+  assert.match(source,/hayirlievlad\/auto-/);
 });
 
 test('skill builder fetches backlog from the canonical production worker',()=>{
-  assert.match(source,/JARVIS_URL:\s*https:\/\/jarvis-personal-ai\.haydojarvis\.workers\.dev/);
-  assert.doesNotMatch(source,/JARVIS_URL:\s*https:\/\/haydojarvis\.workers\.dev/);
+  assert.match(source,/HAYIRLIEVLAD_URL:\s*https:\/\/hayirlievlad\.hayirlievlad\.workers\.dev/);
+  assert.doesNotMatch(source,/HAYIRLIEVLAD_URL:\s*https:\/\/haydojarvis\.workers\.dev/);
   assert.match(source,/\/api\/tools\/skills\/runner\/backlog\?limit=8/);
 });
 
 test('self-update CI tests fix branches as well as feature and autonomous branches',()=>{
   assert.match(selfUpdate,/startsWith\(github\.head_ref, 'fix\/'\)/);
   assert.match(selfUpdate,/startsWith\(github\.head_ref, 'feature\/'\)/);
-  assert.match(selfUpdate,/startsWith\(github\.head_ref, 'jarvis\/'\)/);
+  assert.match(selfUpdate,/startsWith\(github\.head_ref, 'hayirlievlad\/'\)/);
 });
 
 test('verified autonomous work is promoted through a fresh PR',()=>{
@@ -55,7 +55,7 @@ test('autonomous workflow tries keyless local coding before paid Codex fallback'
   const codex=source.indexOf('Run Codex fallback');
   assert.ok(hosted>=0&&local>hosted&&codex>local,'expected hosted -> local -> Codex order');
   assert.match(source,/name: Run keyless local coding fallback[\s\S]*timeout-minutes:\s*15/);
-  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*jarvis-local-coder-v4-\$\{\{ runner\.os \}\}-bartowski-qwen2\.5-coder-1\.5b-q4/);
+  assert.match(source,/uses:\s*actions\/cache\/restore@v4[\s\S]*key:\s*hayirlievlad-local-coder-v4-\$\{\{ runner\.os \}\}-bartowski-qwen2\.5-coder-1\.5b-q4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*uses:\s*actions\/cache\/save@v4/);
   assert.match(source,/name: Save keyless local coder cache[\s\S]*if:\s*\$\{\{ always\(\)/);
 });

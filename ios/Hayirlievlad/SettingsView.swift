@@ -9,7 +9,7 @@ import UserNotifications
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("jarvisMinimalBranding") private var minimalBranding = true
+    @AppStorage("hayirlievladMinimalBranding") private var minimalBranding = true
     @StateObject private var location = LocationPermissionController()
     @State private var notificationStatus = "Kontrol ediliyor"
     @State private var googleStatus = "Kontrol edilmedi"

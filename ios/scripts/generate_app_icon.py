@@ -7,7 +7,7 @@ import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ICONSET = ROOT / "JARVIS" / "Assets.xcassets" / "AppIcon.appiconset"
+ICONSET = ROOT / "Hayirlievlad" / "Assets.xcassets" / "AppIcon.appiconset"
 
 ICONS = [
     ("iphone", "20x20", "2x", 40),

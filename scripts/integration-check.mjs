@@ -112,10 +112,13 @@ try {
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
+      // The active ECU tuning page uses #ecuDrop; the unused ECU Studio #ecuMeta is not mounted here.
+      await page.locator('#ecuDrop').filter({ hasText: 'browser-fixture.bin' }).waitFor();
+      await page.locator('#ecuStudioFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
       await page.locator('#ecuMeta').filter({ hasText: 'browser-fixture.bin' }).waitFor();
       await page.locator('#thinkdiagImport').setInputFiles({ name: 'real-upstream.TC', mimeType: 'application/octet-stream', buffer: Buffer.from(tcBase64, 'base64') });
       await page.locator('#thinkdiagConnect').waitFor({ state: 'visible' });
-      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'jarvis://obd');
+      assert.equal(await page.locator('#thinkdiagConnect').getAttribute('href'), 'hayirlievlad://obd');
       assert.match(await page.locator('#thinkdiagConnectionStatus').innerText(), /web ekranı cihazı bağlamaz/);
       await page.locator('#thinkdiagStatus').filter({ hasText: '203 örnek · 32 parametre' }).waitFor();
       assert.equal(await page.locator('#thinkdiagSummary tbody tr').count(), 32);

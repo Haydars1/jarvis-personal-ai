@@ -1,6 +1,6 @@
-# JARVIS Personal AI
+# hayırlıevlad
 
-Kisisel JARVIS asistani icin ana kaynak deposu.
+hayırlıevlad uygulamasının ana kaynak deposu.
 
 ## Teknoloji
 
@@ -29,19 +29,19 @@ Deploy workflow icin repository secrets:
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `JARVIS_HEALTH_URL`
+- `HAYIRLIEVLAD_HEALTH_URL`
 
-Uygulama API anahtarlari ve OAuth secret'lari repoya yazilmaz; JARVIS Credential Manager / Cloudflare secrets kullanilir.
+Uygulama API anahtarlari ve OAuth secret'lari repoya yazilmaz; hayırlıevlad bağlantı merkezi / Cloudflare secrets kullanilir.
 
 ## Self Update
 
-JARVIS degisiklikleri `jarvis/*` branch'lerinde hazirlayip PR acacak sekilde tasarlanmistir. `.github/workflows/jarvis-self-update.yml` syntax/dry-run testlerinden sonra bu PR'lari birlestirebilir.
+hayırlıevlad değişiklikleri `hayirlievlad/*` branch'lerinde hazirlayip PR acacak sekilde tasarlanmistir. `.github/workflows/hayirlievlad-self-update.yml` syntax/dry-run testlerinden sonra bu PR'lari birlestirebilir.
 
-Ana repo: `Haydars1/jarvis-personal-ai`
+Ana repo: `Haydars1/hayirlievlad` (geçiş sonrası)
 
 ## Code graph
 
-Repository dependency/impact analysis is local-first and JARVIS-owned. The default graph build uses the native deterministic parser and requires no Graphify installation, Python runtime, hosted account or paid API.
+Repository dependency/impact analysis is local-first and hayırlıevlad. The default graph build uses the native deterministic parser and requires no Graphify installation, Python runtime, hosted account or paid API.
 
 ```bash
 npm run graph:build

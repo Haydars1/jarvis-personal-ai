@@ -19,41 +19,41 @@ final class ShareViewController: UIViewController {
         }) {
             let type = provider.hasItemConformingToTypeIdentifier(UTType.pdf.identifier) ? UTType.pdf.identifier : UTType.data.identifier
             provider.loadFileRepresentation(forTypeIdentifier: type) { [weak self] url, _ in
-                guard let url, let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.haydojarvis.jarvis") else { self?.finish(); return }
+                guard let url, let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.hayirlievlad.app") else { self?.finish(); return }
                 do {
                     let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
                     guard size > 0, size <= 10 * 1024 * 1024 else { self?.finish(); return }
                     let name = UUID().uuidString + "." + url.pathExtension
                     let destination = group.appendingPathComponent(name)
                     try FileManager.default.copyItem(at: url, to: destination)
-                    let defaults = UserDefaults(suiteName: "group.com.haydojarvis.jarvis")
+                    let defaults = UserDefaults(suiteName: "group.com.hayirlievlad.app")
                     defaults?.set(name, forKey: "pendingShareFile")
                     defaults?.set(url.lastPathComponent, forKey: "pendingShareFileName")
-                    self?.openJarvis("")
+                    self?.openHayirlievlad("")
                 } catch { self?.finish() }
             }
             return
         }
         if let p = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.url.identifier) }) {
             p.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { [weak self] item, _ in
-                self?.openJarvis((item as? URL)?.absoluteString ?? "")
+                self?.openHayirlievlad((item as? URL)?.absoluteString ?? "")
             }
             return
         }
         if let p = providers.first(where: { $0.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) }) {
             p.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { [weak self] item, _ in
-                self?.openJarvis(item as? String ?? "")
+                self?.openHayirlievlad(item as? String ?? "")
             }
             return
         }
         finish()
     }
 
-    private func openJarvis(_ text: String) {
-        UserDefaults(suiteName: "group.com.haydojarvis.jarvis")?.set(text, forKey: "pendingShareText")
+    private func openHayirlievlad(_ text: String) {
+        UserDefaults(suiteName: "group.com.hayirlievlad.app")?.set(text, forKey: "pendingShareText")
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            let url = URL(string: "jarvis://share")!
+            let url = URL(string: "hayirlievlad://share")!
             self.extensionContext?.open(url) { _ in self.finish() }
         }
     }

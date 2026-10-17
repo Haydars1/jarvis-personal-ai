@@ -1,7 +1,7 @@
 import Foundation
 
-final class JarvisAPI {
-    private let baseURL = URL(string: "https://jarvis-personal-ai.haydojarvis.workers.dev")!
+final class HayirlievladAPI {
+    private let baseURL = URL(string: "https://hayirlievlad.hayirlievlad.workers.dev")!
     private let session: URLSession
     private let decoder: JSONDecoder
 
@@ -33,7 +33,7 @@ final class JarvisAPI {
         guard let http = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
         guard (200..<300).contains(http.statusCode) else {
             let parsed = try? decoder.decode(APIErrorBody.self, from: data)
-            throw NSError(domain: "JARVIS", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: parsed?.detail ?? parsed?.error ?? "HTTP \(http.statusCode)"])
+            throw NSError(domain: "Hayirlievlad", code: http.statusCode, userInfo: [NSLocalizedDescriptionKey: parsed?.detail ?? parsed?.error ?? "HTTP \(http.statusCode)"])
         }
         return data
     }

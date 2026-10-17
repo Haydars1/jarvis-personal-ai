@@ -1,12 +1,12 @@
 import { validateDefinition, readMap, writeMapCell, parseIntelHex } from './lib/calibration.js';
 
 function mount() {
-  const host = document.querySelector('#ecu .ecuShell'); if (!host || !window.jarvisEcuStudio) return;
+  const host = document.querySelector('#ecu .ecuShell'); if (!host || !window.hayirlievladEcuStudio) return;
   const card = document.createElement('div'); card.className = 'card';
   card.innerHTML = '<h3>Kalibrasyon Projesi · ORI / MOD</h3><p>Önce ORI dosyasını yükle. Mevcut MOD dosyanı karşılaştırabilir veya aynı ORI için hazırlanmış JSON map tanımını kullanabilirsin.</p><label>MOD karşılaştırma <input id="calibrationMod" type="file" accept=".bin,.ori,.mod,.rom,.hex,.ecu"></label><label>Map tanımı <input id="calibrationDefinition" type="file" accept=".json"></label><p id="calibrationStatus" role="status">Map tanımı bekleniyor. ECU checksum doğrulaması yapılmadı.</p><select id="calibrationMap" disabled></select><div id="calibrationCells" style="overflow:auto;max-height:360px"></div><button id="calibrationExport" disabled>PROJE / DEĞİŞİKLİK RAPORU İNDİR</button>';
   host.append(card); let definition;
   const status = document.querySelector('#calibrationStatus'), select = document.querySelector('#calibrationMap'), cells = document.querySelector('#calibrationCells');
-  const getState = () => window.jarvisEcuStudio.getState();
+  const getState = () => window.hayirlievladEcuStudio.getState();
   async function hash(bytes) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(b => b.toString(16).padStart(2, '0')).join(''); }
   const originalMatches = async () => definition && getState().original && definition.original_sha256.toLowerCase() === await hash(getState().original);
   function renderMap() {
@@ -14,7 +14,7 @@ function mount() {
     const table = document.createElement('table'); const values = readMap(getState().bytes, map);
     for (let row = 0; row < map.rows; row++) { const tr = table.insertRow(); for (let col = 0; col < map.columns; col++) {
       const index = row * map.columns + col, input = document.createElement('input'); input.type = 'number'; input.value = values[index]; input.step = Math.abs(map.factor); input.min = map.min; input.max = map.max; input.style.width = '100px'; input.setAttribute('aria-label', `${map.name || map.id} ${row + 1},${col + 1}`);
-      input.onchange = async () => { try { if (!(await originalMatches())) throw new Error('ORI dosyası değişti; tanımı yeniden yükle'); const state = getState(); state.bytes = writeMapCell(state.bytes, map, index, Number(input.value)); state.undo = []; state.redo = []; window.jarvisEcuStudio.render(); status.textContent = 'Map hücresi güncellendi. ECU checksum doğrulaması yapılmadı.'; } catch (error) { input.value = readMap(getState().bytes, map)[index]; status.textContent = error.message; } };
+      input.onchange = async () => { try { if (!(await originalMatches())) throw new Error('ORI dosyası değişti; tanımı yeniden yükle'); const state = getState(); state.bytes = writeMapCell(state.bytes, map, index, Number(input.value)); state.undo = []; state.redo = []; window.hayirlievladEcuStudio.render(); status.textContent = 'Map hücresi güncellendi. ECU checksum doğrulaması yapılmadı.'; } catch (error) { input.value = readMap(getState().bytes, map)[index]; status.textContent = error.message; } };
       tr.insertCell().append(input);
     } } cells.append(table);
   }
@@ -32,7 +32,7 @@ function mount() {
       let bytes = new Uint8Array(await file.arrayBuffer()), base = 0;
       if (/\.hex$/i.test(file.name) && bytes[0] === 58) { const parsed = parseIntelHex(new TextDecoder().decode(bytes)); bytes = parsed.bytes; base = parsed.base_address; }
       if (bytes.length !== state.original.length || base !== (state.baseAddress || 0)) throw new Error('ORI/MOD boyutu veya HEX başlangıç adresi farklı');
-      state.bytes = bytes; state.undo = []; state.redo = []; window.jarvisEcuStudio.render(); status.textContent = 'MOD yüklendi. ORI / MOD kanalında byte farklarını görebilirsin.'; document.querySelector('#calibrationExport').disabled = false;
+      state.bytes = bytes; state.undo = []; state.redo = []; window.hayirlievladEcuStudio.render(); status.textContent = 'MOD yüklendi. ORI / MOD kanalında byte farklarını görebilirsin.'; document.querySelector('#calibrationExport').disabled = false;
       if (await originalMatches()) renderMap();
     } catch (error) { status.textContent = 'MOD karşılaştırılamadı: ' + error.message; }
   };

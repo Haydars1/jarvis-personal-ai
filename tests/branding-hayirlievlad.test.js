@@ -23,25 +23,25 @@ test('installable web app has no brand suffix', () => {
 });
 
 test('native app display names and shortcut strings are rebranded', () => {
-  assert.ok(file('ios/JARVIS/Info.plist').includes('<string>' + brand + '</string>'));
+  assert.ok(file('ios/Hayirlievlad/Info.plist').includes('<string>' + brand + '</string>'));
   assert.ok(file('ios/ShareExtension/Info.plist').includes('<string>' + brand + '</string>'));
   assert.equal((file('ios/project.yml').match(/CFBundleDisplayName: hayırlıevlad/g) || []).length, 2);
-  assert.ok(file('ios/JARVIS/JarvisIntents.swift').includes(brand));
+  assert.ok(file('ios/Hayirlievlad/HayirlievladIntents.swift').includes(brand));
 });
 
-test('existing native app identity remains compatible', () => {
+test('new native app identity and sharing are consistent', () => {
   const project = file('ios/project.yml');
-  assert.ok(project.includes('PRODUCT_BUNDLE_IDENTIFIER: com.haydojarvis.jarvis'));
-  assert.ok(project.includes('group.com.haydojarvis') === false);
-  const appState = file('ios/JARVIS/AppState.swift');
-  assert.ok(appState.includes('group.com.haydojarvis.jarvis'));
+  assert.ok(project.includes('PRODUCT_BUNDLE_IDENTIFIER: com.hayirlievlad.app'));
+  assert.ok(project.includes('group.com.hayirlievlad') === false);
+  const appState = file('ios/Hayirlievlad/AppState.swift');
+  assert.ok(appState.includes('group.com.hayirlievlad.app'));
 });
 
-test('passkey name is updated without changing registration identity', () => {
+test('passkey registration has a fully new display and user identity', () => {
   const auth = file('src/lib/auth.js');
   assert.ok(auth.includes("rpName: 'hayırlıevlad'"));
   assert.ok(auth.includes("name: 'hayırlıevlad', displayName: 'hayırlıevlad'"));
-  assert.ok(auth.includes("te.encode('jarvis-owner')"));
+  assert.ok(auth.includes("te.encode('hayirlievlad-owner')"));
 });
 
 test('AI request headers use ASCII-safe technical label', () => {
