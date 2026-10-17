@@ -24,12 +24,33 @@
     if(!page||$('#ecuManualLearning'))return;
     const pane=document.createElement('section');pane.id='ecuManualLearning';
     pane.style.cssText='margin:18px 0;padding:16px;border:1px solid rgba(160,160,160,.22);border-radius:14px';
-    pane.innerHTML='<h2>📚 ECU Teknik Bilgi Kütüphanesi</h2><p class="partCatMuted">20 ECU kılavuzu · 1.011 sayfa. Bilgiler burada ECU parça kataloğundan ayrı saklanır. ORI/MOD dosyalarına, ECU komutlarına veya kodlamaya müdahale edilmez.</p><p><strong id="ecuLibraryStats">Bilgi durumu yükleniyor...</strong></p><details open><summary>Öğrenilmiş kavramlar ve teknik prensipler</summary><div id="ecuLibraryConcepts"></div></details><div class="partCatBar"><input id="ecuLibraryQuery" placeholder="Örn. torque limiter, checksum, rail pressure"><select id="ecuLibrarySource"><option value="">Tüm kitaplar</option></select><button id="ecuLibrarySearch">KİTAPLIKTA ARA</button></div><div id="ecuLibraryResults" style="max-height:480px;overflow:auto"></div><details><summary>20 PDF bilgi paketini kalıcı hayırlıevlad hafızasına yükle</summary><p class="partCatHelp">Bu sohbetten hazırlanmış HAYIRLIEVLAD_ECU_TUM_20_PDF_BILGI_PAKETI.json dosyasını seç. Dosya içerikleri yalnızca giriş yaptığın hayırlıevlad D1 veritabanına gönderilir, GitHub deposuna yüklenmez.</p><input type="file" id="ecuLibraryFile" accept=".json,application/json"><label style="display:block;margin:8px 0"><input type="checkbox" id="ecuLibraryAuth"> Yüklediğim belgeleri özel teknik kütüphaneme kaydetmeye izin veriyorum.</label><button id="ecuLibraryImport">ŞİMDİ ÖĞREN / KAYDET</button></details><p id="ecuLibraryStatus" class="partCatMuted" aria-live="polite"></p>';
+    pane.innerHTML='<h2>📚 ECU Teknik Bilgi Kütüphanesi</h2><p class="partCatMuted">PDF yükle; JARVIS metni sayfa sayfa çıkarıp aranabilir özel hafızaya ekler. ORI/MOD dosyalarına veya ECU komutlarına müdahale edilmez.</p><p><strong id="ecuLibraryStats">Bilgi durumu yükleniyor...</strong></p><details open><summary>Öğrenilmiş kavramlar ve teknik prensipler</summary><div id="ecuLibraryConcepts"></div></details><div class="partCatBar"><input id="ecuLibraryQuery" placeholder="Örn. torque limiter, checksum, rail pressure"><select id="ecuLibrarySource"><option value="">Tüm kitaplar</option></select><button id="ecuLibrarySearch">KİTAPLIKTA ARA</button></div><div id="ecuLibraryResults" style="max-height:480px;overflow:auto"></div><details><summary>PDF’yi JARVIS’e öğret</summary><p class="partCatHelp">Yeni bir PDF seç. Tarayıcı metni çıkarır, SHA-256 ile doğrular ve sayfa parçalarını özel D1 kütüphanene kaydeder.</p><input type="file" id="ecuLibraryPdf" accept="application/pdf,.pdf"><hr><p class="partCatHelp">İstersen daha önce hazırlanmış JSON bilgi paketini de içe aktarabilirsin.</p><input type="file" id="ecuLibraryFile" accept=".json,application/json"><label style="display:block;margin:8px 0"><input type="checkbox" id="ecuLibraryAuth"> Yüklediğim belgeleri özel teknik kütüphaneme kaydetmeye izin veriyorum.</label><button id="ecuLibraryImport">ŞİMDİ ÖĞREN / KAYDET</button></details><p id="ecuLibraryStatus" class="partCatMuted" aria-live="polite"></p>';
     page.appendChild(pane);
     $('#ecuLibrarySearch').addEventListener('click',search);
     $('#ecuLibraryQuery').addEventListener('keydown',e=>{if(e.key==='Enter')search();});
-    $('#ecuLibraryImport').addEventListener('click',importJson);
+    $('#ecuLibraryImport').addEventListener('click',()=>$('#ecuLibraryPdf').files?.[0]?importPdf():importJson());
     load();
+  }
+  async function importPdf(){
+    const file=$('#ecuLibraryPdf').files?.[0]; if(!file)return status('Önce PDF seç');
+    if(!$('#ecuLibraryAuth').checked)return status('Özel kütüphaneye yükleme onayı gerekiyor');
+    if(file.size>12*1024*1024)return status('PDF 12 MB sınırını aşıyor');
+    $('#ecuLibraryImport').disabled=true;
+    try{
+      const pdfjs=await import('/vendor/pdfjs/pdf.mjs'); pdfjs.GlobalWorkerOptions.workerSrc='/vendor/pdfjs/pdf.worker.mjs';
+      const pdf=await pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,useSystemFonts:true}).promise;
+      if(pdf.numPages>1500)throw Error('PDF_PAGE_LIMIT');
+      const bytes=new Uint8Array(await file.arrayBuffer()),hash=await crypto.subtle.digest('SHA-256',bytes); const sha=Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('');
+      const id='pdf_'+sha.slice(0,24), records=[];
+      for(let page=1;page<=pdf.numPages;page++){
+        const content=await (await pdf.getPage(page)).getTextContent(); const text=content.items.map(item=>item.str+(item.hasEOL?'\n':' ')).join('').trim();
+        for(let off=0,part=1;off<text.length||(!text.length&&part===1);part++){const chunk=text.slice(off,off+3400).trim(); if(chunk)records.push({document_id:id,page,part,text:chunk,source_sha256:sha,filename:file.name,tags:['user-pdf'],image_count:0}); if(!text.length)break; off+=3400;}
+        status('PDF okunuyor: '+page+' / '+pdf.numPages);
+      }
+      if(!records.length)throw Error('PDF_OCR_REQUIRED');
+      for(let i=0;i<records.length;i+=6){await api('import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({authorized:true,allow_new_document:true,page_counts:{[id]:pdf.numPages},records:records.slice(i,i+6)})});status('Öğreniliyor / kaydediliyor: '+Math.min(i+6,records.length)+' / '+records.length);}
+      status('PDF öğrenildi: '+pdf.numPages+' sayfa, '+records.length+' parça.'); await load();
+    }catch(e){status('PDF içe aktarma durdu: '+e.message)} finally{$('#ecuLibraryImport').disabled=false;}
   }
   function card(item,isConcept){
     const el=document.createElement('article');el.className='partCatResult';
@@ -48,6 +69,7 @@
       $('#ecuLibraryStats').textContent=stats.passages+' kayıt / '+count+' sayfa indekslendi · '+stats.uploaded_documents+'/'+stats.source_documents+' kitap · '+stats.concepts+' kavramsal not';
       const source=$('#ecuLibrarySource');
       for(const m of state.manuals){const o=document.createElement('option');o.value=m.id;o.textContent=m.title+' ('+m.applies_to+')';source.appendChild(o);}
+      for(const d of stats.documents||[]){if(!state.manuals.some(m=>m.id===d.id)){const o=document.createElement('option');o.value=d.id;o.textContent=d.filename+' (yüklenen PDF)';source.appendChild(o);}}
       const box=$('#ecuLibraryConcepts');
       for(const c of concepts.concepts||[])box.appendChild(card(c,true));
       if(activation?.learning?.ok)status(activation.learning.learned_principles+' teknik prensip hayırlıevlad uzun süreli hafızasına eklendi. '+(!stats.passages?'1.011 sayfalık tam kitap paketi henüz D1 içine alınmadı.':'Tüm kayıtlar kullanılabilir.'));
