@@ -1,0 +1,36 @@
+name: Restore last verified healthy Cloudflare Worker version
+on:
+  push:
+    branches:
+      - recovery/restore-known-good-worker-20261017
+    paths:
+      - .github/workflows/restore-healthy-worker.yml
+permissions:
+  contents: read
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Re-deploy last verified healthy version without changing D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler versions deploy e7306e38-0fee-412f-9a15-724392a54507@100 --name jarvis-personal-ai --yes --message "Restore 2026-10-14 confirmed HTTP healthy version; preserve D1 ECU learning"
+      - name: Verify live HTTP health and unchanged private session boundary
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base='https://jarvis-personal-ai.haydojarvis.workers.dev';
+          for(const [path,expected] of [['/api/health',200],['/',200],['/api/auth/status',200],['/api/ecu/channels',401]]){
+            const r=await fetch(base+path,{signal:AbortSignal.timeout(12000)});
+            console.log(path,'HTTP',r.status);
+            assert.equal(r.status,expected,path);
+          }
+          console.log('Verified healthy Worker restored; no database changes were performed.');
+          NODE
