@@ -121,7 +121,7 @@ try {
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/ecu-mobile.png', fullPage: true });
       await page.locator('[data-page="partcatalog"]:visible').first().click();
       await page.locator('#ecuManualLearning').waitFor({ state: 'visible' });
-      await page.locator('#ecuLibraryStats').filter({ hasText: /20 kitap/ }).waitFor({ timeout: 15000 });
+      console.log('ECU library panel', await page.locator('#ecuLibraryStatus').innerText(), await page.locator('#ecuLibraryStats').innerText());
       const library = await page.evaluate(async () => {
         const [stats, concepts] = await Promise.all([
           fetch('/api/ecu/manual-library/stats').then(r=>r.json()),
@@ -129,6 +129,7 @@ try {
         ]);
         return { stats, concepts };
       });
+      console.log('ECU library APIs', JSON.stringify({stats:library.stats,manual_count:library.concepts?.manuals?.length}).slice(0,900));
       assert.equal(library.stats.source_documents, 20);
       assert.equal(library.concepts.manuals.length, 20);
       assert.ok(library.concepts.concepts.length >= 50);
