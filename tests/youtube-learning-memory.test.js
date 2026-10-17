@@ -40,7 +40,7 @@ test('completed YouTube jobs persist learning and channel jobs fan out to videos
   assert.match(capability,/persistYouTubeLearning/);
   assert.match(capability,/queueChannelVideoLearning/);
   assert.match(capability,/job\.adapter_id !== 'youtube-teaching'/);
-  const app=read('src/app-entry.js');
+  const app=read('src/app-entry.js') + read('src/app-runtime.js');
   assert.match(app,/createYouTubeLearningCapability/);
 });
 

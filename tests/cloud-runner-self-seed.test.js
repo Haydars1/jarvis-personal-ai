@@ -13,7 +13,7 @@ test('OIDC cloud runner can request a bounded skill-learning batch before claimi
 });
 
 test('skill seeding middleware is composed into the Worker tool stack',()=>{
-  const app=read('src/app-entry.js');
+  const app=read('src/app-entry.js') + read('src/app-runtime.js');
   assert.match(app,/createSkillSeeding/);
   assert.match(app,/createCloudCapabilityExecution\(capabilityCore\)/);
   assert.match(app,/createYouTubeLearningCapability\(createCloudCapabilityExecution\(capabilityCore\)\)/);
