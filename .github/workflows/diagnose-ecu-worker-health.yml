@@ -21,17 +21,17 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          (timeout 52s npx wrangler tail jarvis-personal-ai --format json > /tmp/worker-errors.log 2>&1 || true) &
+          (timeout 52s npx wrangler tail hayirlievlad --format json > /tmp/worker-errors.log 2>&1 || true) &
           TAIL_PID=$!
           echo '--- Current production deployments ---'
-          npx wrangler deployments list --name jarvis-personal-ai | tail -n 80 || true
+          npx wrangler deployments list --name hayirlievlad | tail -n 80 || true
           echo '--- Current production versions ---'
-          npx wrangler versions list --name jarvis-personal-ai | tail -n 80 || true
+          npx wrangler versions list --name hayirlievlad | tail -n 80 || true
           sleep 4
           node --input-type=module <<'NODE'
           const candidates=[
             {label:'configured',value:process.env.HEALTH_URL},
-            {label:'canonical',value:'https://jarvis-personal-ai.haydojarvis.workers.dev'}
+            {label:'canonical',value:'https://hayirlievlad.haydojarvis.workers.dev'}
           ];
           for (const c of candidates){
             if(!c.value){console.log(c.label, 'not configured');continue;}
