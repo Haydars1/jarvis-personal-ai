@@ -8,6 +8,7 @@ import {
   readJson,
   settleWithin
 } from '../../lib/runtime.js';
+import { learnChatPdfAttachments } from '../ecu/chat-pdf-learning.js';
 
 const decoder = new TextDecoder();
 const now = () => Date.now();
@@ -99,7 +100,8 @@ function cleanAttachments(items) {
     .map(item => ({
       name: String(item.name || 'file').slice(0, 180),
       type: String(item.type || 'application/octet-stream'),
-      base64: String(item.base64 || '')
+      base64: String(item.base64 || ''),
+      extractedText: typeof item.extractedText === 'string' ? item.extractedText.slice(0, 200000) : ''
     }));
 }
 function imageOnly(items) { return items.length > 0 && items.every(item => /^image\//i.test(item.type)); }
@@ -353,6 +355,10 @@ export function createJarvisOS(core) {
         const body = await readJson(req.clone());
         const text = String(body.text || '').trim();
         const attachments = cleanAttachments(body.attachments);
+        if (attachments.some(file => /\.pdf$/i.test(file.name) && file.extractedText)) {
+          // Learning is additive and happens in the authenticated chat path.
+          ctx.waitUntil(learnChatPdfAttachments(env, attachments).catch(() => {}));
+        }
         const started = now();
         try {
           let response;
