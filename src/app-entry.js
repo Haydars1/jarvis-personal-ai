@@ -97,9 +97,30 @@ const handleOwnerRequest = createOwnerRouteGuard(legacyBase, routeRequest);
 
 export default {
   async fetch(req, env, ctx) {
-    const response = await handleOwnerRequest(req, env, ctx);
-    if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
-    return response;
+    try {
+      const response = await handleOwnerRequest(req, env, ctx);
+      if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
+      return response;
+    } catch (error) {
+      const name = String(error?.name || 'Error').slice(0, 80);
+      const message = String(error?.message || error || 'UNKNOWN').slice(0, 280);
+      const stack = String(error?.stack || '').slice(0, 850);
+      console.error('worker-fatal-request-error', name, message, stack);
+      // Private error evidence only for public health checks. Never store request headers,
+      // body contents, credentials or arbitrary client data.
+      if (new URL(req.url).pathname === '/api/health' && env.DB) {
+        try {
+          await env.DB.prepare('INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)')
+            .bind(crypto.randomUUID(), Date.now(), 'worker-runtime-exception', name,
+              JSON.stringify({ message, stack })).run();
+        } catch (loggingError) {
+          console.error('worker-health-error-audit-failed', String(loggingError?.name || 'Error'));
+        }
+      }
+      return new Response(JSON.stringify({ error: 'SERVER_ERROR', type: name }), {
+        status: 500, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+      });
+    }
   },
   async scheduled(event, env, ctx) {
     await cloudToolCore.scheduled?.(event, env, ctx);

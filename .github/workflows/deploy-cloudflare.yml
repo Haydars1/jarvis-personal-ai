@@ -63,6 +63,14 @@ jobs:
           HEALTH_URL: ${{ secrets.JARVIS_HEALTH_URL }}
           PRODUCTION_HEALTH_RETRIES: '6'
         run: node scripts/production-smoke.mjs
+      - name: Inspect private Worker error evidence if health failed
+        if: steps.health.outcome == 'failure'
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute jarvis-db --remote --command "SELECT ts, text AS error_type, substr(json_extract(meta, '$.message'), 1, 200) AS message FROM logs WHERE kind='worker-runtime-exception' ORDER BY ts DESC LIMIT 3;"
       - name: Roll back failed deployment
         if: steps.health.outcome == 'failure'
         env:
