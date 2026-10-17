@@ -26,3 +26,6 @@ Tam metin kamuya açık GitHub'a konulmaz. Kullanıcının özel JSON paketleri 
 
 ## Canlı Worker sağlık tanılaması
 Canlı Worker HTTP 500 hatasında, `src/app-entry.js` istek işleyicisi genel bir 500 yanıtı üretir. Yalnızca `/api/health` kaynaklı işlenmeyen hatanın sınıfı ve sınırlı stack açıklaması özel D1 `logs` tablosuna `worker-runtime-exception` etiketiyle kaydedilir. Dağıtım akışı bunların son üçünü okuyabilir ve sağlık testi başarısızsa otomatik rollback yapar. Kullanıcı PDF içeriği veya istek başlıkları bu tanılama kaydına yazılmaz.
+
+## Worker hizmet adı eşitleme
+Cloudflare hesabında mevcut Worker hizmeti `hayirlievlad` olarak adlandırılmıştır. Canlı dağıtımın `wrangler.jsonc` adı, sağlık testi URL'si ve çalışan Cloudflare Worker adı birbiriyle aynı olmalıdır. `haydojarvis.workers.dev` hesap alt alanı ve `jarvis-db` D1 kimliği değiştirilmez. Canlı `/api/health` HTTP 200 doğrulaması olmadan dağıtım başarılı kabul edilmez.
