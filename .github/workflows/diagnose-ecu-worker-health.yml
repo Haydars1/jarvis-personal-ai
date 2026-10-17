@@ -21,7 +21,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          (timeout 28s npx wrangler tail jarvis-personal-ai --format json --status error > /tmp/worker-errors.log 2>&1 || true) &
+          (timeout 36s npx wrangler tail jarvis-personal-ai --format json > /tmp/worker-errors.log 2>&1 || true) &
           TAIL_PID=$!
           sleep 7
           node --input-type=module <<'NODE'
@@ -45,7 +45,22 @@ jobs:
             }
           }
           NODE
-          sleep 7
+          sleep 12
           kill "$TAIL_PID" 2>/dev/null || true
-          echo "--- Captured Worker runtime errors ---"
-          tail -n 80 /tmp/worker-errors.log || true
+          echo "--- Sanitized Worker tail events ---"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const raw=readFileSync('/tmp/worker-errors.log','utf8');
+          let parsed=0, matched=0;
+          for(const line of raw.split(/\\r?\\n/)){
+            let event;
+            try{event=JSON.parse(line);}catch{continue;}
+            parsed++;
+            const path=String(event?.event?.request?.url||event?.request?.url||'');
+            const exceptions=event?.exceptions||event?.logs?.filter(x=>x.level==='error')||[];
+            if(!path.includes('/api/health')&&!exceptions.length)continue;
+            matched++;
+            console.log(JSON.stringify({outcome:event.outcome,health_request:path.includes('/api/health'),errors:exceptions.slice(0,3).map(x=>({name:String(x.name||''),message:String(x.message||'').slice(0,300),stack:String(x.stack||'').slice(0,700)}))}));
+          }
+          console.log('Worker tail diagnostics:',{captured_bytes:raw.length,parsed_events:parsed,matched});
+          NODE
