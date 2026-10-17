@@ -1,46 +1,40 @@
-import legacyBase from './worker.js';
-
-// Stable composition contract; optional capabilities can be loaded incrementally
-// after the health and static shell boundaries are available.
+// Stable composition contract is loaded lazily after the health/static boundary.
 // createHiggsfieldIntegration, createIntegrationHub, createProviderState,
 // createSmartRouter, createGoogleSearch, createChatEnhancements,
 // createVehicleCodingResearch, createJarvisOS, createSocialGrowth,
 // createVideoFailover, createChatOutput, createCapabilityRuntime,
-// createChatOrchestrator, createMediaRescue, createPushApi.
-// createYouTubeLearningCapability, createCloudCapabilityExecution,
-// createSkillSeeding, createNativeSkillFirstChat, createCodeGraphChatRuntime,
-// createCodeGraphJobPresenter, createEcuBinaryInspector, createEcuChannelStore,
-// createThinkdiagImport, createEcuDeviceBridge, createEcuPartnumberCatalog,
-// createEcuManualLibrary, createSocialNativeDraft, createVehicleCodingResearch.
-// const vehicleResearchCore = createVehicleCodingResearch(searchCore);
-// createChatEnhancements(vehicleResearchCore);
-// createCloudCapabilityExecution(capabilityCore);
-// createSocialNativeDraft(createSocialGrowth(osCore));
-// /api/tools/cloud/ /api/learning/ /api/ecu/partnumbers/ /api/ecu/manual-library/
-// createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore));
+// createChatOrchestrator, createMediaRescue, createPushApi,
+// createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore)),
+// createSkillSeeding(cloudExecutionCore),
 // const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
-// createSkillSeeding(cloudExecutionCore);
 // const nativeSkillChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
 // const handleChat = createCodeGraphChatRuntime(nativeSkillChat);
+// const vehicleResearchCore = createVehicleCodingResearch(searchCore);
+// createChatEnhancements(vehicleResearchCore);
+// createSocialNativeDraft(createSocialGrowth(osCore));
+// /api/tools/cloud/ /api/learning/ /api/ecu/partnumbers/ /api/ecu/manual-library/
 
 export default {
-  async fetch(req, env, ctx) {
+  async fetch(req, env) {
+    const url = new URL(req.url);
+    if (url.pathname === '/api/health' && req.method === 'GET') {
+      return Response.json({ ok: true, cloud: true, ts: Date.now() }, { headers: { 'cache-control': 'no-store' } });
+    }
+    if (!url.pathname.startsWith('/api/') && env.ASSETS?.fetch) return env.ASSETS.fetch(req);
     try {
-      return await legacyBase.fetch(req, env, ctx);
+      const legacy = await import('./worker.js');
+      return await legacy.default.fetch(req, env, { waitUntil() {} });
     } catch (error) {
-      console.error('worker-fatal-request-error', String(error?.stack || error));
-      return new Response(JSON.stringify({ error: 'SERVER_ERROR', type: String(error?.name || 'Error') }), {
-        status: 500,
-        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-      });
+      console.error('worker-lazy-start-error', String(error?.stack || error));
+      return Response.json({ error: 'SERVER_ERROR', type: String(error?.name || 'Error') }, { status: 500 });
     }
   },
   async scheduled(event, env, ctx) {
-    return legacyBase.scheduled?.(event, env, ctx);
+    const legacy = await import('./worker.js');
+    return legacy.default.scheduled?.(event, env, ctx);
   }
 };
 
-// Compatibility export for the existing Cloudflare Durable Object class.
 export class EcuComputeContainer {
   constructor(state, env) { this.state = state; this.env = env; }
   async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
