@@ -98,19 +98,6 @@ const handleOwnerRequest = createOwnerRouteGuard(legacyBase, routeRequest);
 export default {
   async fetch(req, env, ctx) {
     try {
-      // Keep the deployment probe and static shell independent from the optional
-      // capability graph. If an optional capability throws during request setup,
-      // the Worker must still be able to report health and serve the UI shell.
-      const url = new URL(req.url);
-      if (url.pathname === '/api/health' && req.method === 'GET') {
-        return new Response(JSON.stringify({ ok: true, cloud: true, ts: Date.now() }), {
-          status: 200,
-          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-        });
-      }
-      if (!url.pathname.startsWith('/api/') && env.ASSETS?.fetch) {
-        return env.ASSETS.fetch(req);
-      }
       const response = await handleOwnerRequest(req, env, ctx);
       if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
       return response;
