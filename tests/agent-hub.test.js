@@ -11,7 +11,7 @@ test('Agent Hub endpoints require existing JARVIS session',()=>{
   assert.match(source, /automatic_execution:false/);
 });
 test('existing Cloudflare app-entry integrates Cloud capability execution',()=>{
-  const source=read('src/app-entry.js') + read('src/app-runtime.js');
+  const source=read('src/app-entry.js');
   assert.match(source,/createCloudCapabilityExecution\(capabilityCore\)/);
 });
 test('Agent Hub dashboard is loaded in Turkish interface',()=>{
