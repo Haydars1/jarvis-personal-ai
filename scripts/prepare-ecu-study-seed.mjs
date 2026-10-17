@@ -9,7 +9,7 @@ export function buildEcuStudySeedSql(){
   const lines=[
     '-- Source-labeled teaching principles; does NOT contain full PDF text or firmware patches.',
     '-- Purely additive, repeatable UPSERTS; existing learning rows are preserved.',
-    'BEGIN TRANSACTION;'
+    '-- Cloudflare D1 remote import wraps statements atomically: no explicit BEGIN/COMMIT.'
   ];
   for(const manual of ECU_MANUALS){
     const id='jarvis:ecu-manual:'+manual.id;
@@ -26,7 +26,7 @@ export function buildEcuStudySeedSql(){
       ordinal++;
     }
   }
-  lines.push('COMMIT;');
+  // D1 remote importer controls the transaction boundary.
   return lines.join('\n')+'\n';
 }
 
