@@ -19,6 +19,9 @@ import legacyBase from './worker.js';
 // /api/tools/cloud/ /api/learning/ /api/ecu/partnumbers/ /api/ecu/manual-library/
 // createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore));
 // const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
+// createSkillSeeding(cloudExecutionCore);
+// const nativeSkillChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
+// const handleChat = createCodeGraphChatRuntime(nativeSkillChat);
 
 export default {
   async fetch(req, env, ctx) {
