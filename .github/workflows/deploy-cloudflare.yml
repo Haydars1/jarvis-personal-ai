@@ -53,6 +53,7 @@ jobs:
         continue-on-error: true
         env:
           HEALTH_URL: ${{ secrets.JARVIS_HEALTH_URL }}
+          PRODUCTION_HEALTH_RETRIES: '6'
         run: node scripts/production-smoke.mjs
       - name: Roll back failed deployment
         if: steps.health.outcome == 'failure'
