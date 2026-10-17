@@ -64,7 +64,7 @@ jobs:
           PRODUCTION_HEALTH_RETRIES: '6'
         run: node scripts/production-smoke.mjs
       - name: Inspect private Worker error evidence if health failed
-        if: always()
+        if: steps.health.outcome == 'failure'
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
