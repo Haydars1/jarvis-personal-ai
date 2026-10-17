@@ -42,7 +42,7 @@ export const ECU_MANUAL_FOUNDATIONS = Object.freeze([
   {doc:'bosch_me_motronic',pages:'18-35',topics:['ME Motronic','gasoline','injection','air','torque'],
    lesson:'ME-Motronic coordinates driver torque demand, cylinder air charge, electronic throttle, injected fuel and ignition; a requested load or throttle angle alone does not determine final torque.'},
   {doc:'bosch_me_motronic',pages:'34-64',topics:['ME Motronic','lambda','knock','protection','OBD','ignition'],
-   lesson:'Measured air and engine operating state feed lambda, knock, idle, torque and protective functions. Control loops and adaptation may override one-dimensional expectations, so analysis needs both requested and measured values.'}
+   lesson:'Measured air and engine operating state feed lambda, knock, idle, torque and protective functions. Control loops and adaptation may override one-dimensional expectations, so analysis needs both requested and measured values.'},
   ...ECU_ADDITIONAL_FOUNDATIONS
 ]);
 export const ECU_MANUALS = Object.freeze([
