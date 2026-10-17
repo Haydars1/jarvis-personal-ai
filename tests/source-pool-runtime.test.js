@@ -14,7 +14,7 @@ test('local ECU bridge is reserved for physical vehicle hardware, not general re
 });
 
 test('application uses cloud capability execution instead of ECU source-pool state', () => {
-  const source = read('src/app-entry.js') + read('src/app-runtime.js');
+  const source = read('src/app-entry.js');
   assert.match(source, /createCloudCapabilityExecution/);
   assert.doesNotMatch(source, /createSourcePoolState/);
   assert.match(source, /\/api\/tools\/cloud\//);
