@@ -1,5 +1,4 @@
 // Stable composition contract is loaded lazily after the health/static boundary.
-// from './worker.js'
 // createHiggsfieldIntegration, createIntegrationHub, createProviderState,
 // createSmartRouter, createGoogleSearch, createChatEnhancements,
 // createVehicleCodingResearch, createJarvisOS, createSocialGrowth,
