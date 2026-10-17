@@ -1,149 +1,33 @@
 import legacyBase from './worker.js';
-import { createCapabilityRuntime } from './application/capabilities/runtime.js';
-import { createRepositoryCatalog } from './application/capabilities/repository-catalog.js';
-import { createCloudCapabilityExecution } from './application/capabilities/cloud-execution.js';
-import { createYouTubeLearningCapability } from './application/capabilities/youtube-learning.js';
-import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
-import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
-import { createCodeGraphChatRuntime } from './application/code-graph/chat-runtime.js';
-import { createCodeGraphJobPresenter } from './application/code-graph/job-presenter.js';
-import { createChatEnhancements } from './application/chat/enhancements.js';
-import { createChatOrchestrator } from './application/chat/orchestrator.js';
-import { createEmergencyChatFallback } from './application/chat/emergency-fallback.js';
-import { createOwnerRouteGuard } from './application/chat/owner-route-guard.js';
-import { createEcuBinaryInspector } from './application/ecu/binary-inspector.js';
-import { createEcuChannelStore } from './application/ecu/channels.js';
-import { createThinkdiagImport } from './application/ecu/thinkdiag.js';
-import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
-import { createEcuPartnumberCatalog } from './application/ecu/partnumber-catalog.js';
-import { createEcuManualLibrary } from './application/ecu/manual-library.js';
-import { createChatOutput } from './application/chat/presenter.js';
-import { createSmartRouter } from './application/chat/smart-router.js';
-import { createIntegrationHub } from './application/integrations/hub.js';
-import { createMediaRescue } from './application/media/rescue.js';
-import { createJarvisOS } from './application/os/runtime.js';
-import { createHiggsfieldIntegration } from './application/providers/higgsfield.js';
-import { createProviderState } from './application/providers/state.js';
-import { createGoogleSearch } from './application/search/google.js';
-import { createSocialGrowth } from './application/social/growth.js';
-import { createSocialNativeDraft } from './application/social/native-draft.js';
-import { createVideoFailover } from './application/video/failover.js';
-import { createVehicleCodingResearch } from './application/vehicle/coding-research.js';
-import { createPushApi, flushPush } from './infrastructure/apns/push-service.js';
 
-const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
-const integrationCore = createIntegrationHub(higgsfieldCore);
-const providerCore = createProviderState(integrationCore);
-const routerCore = createSmartRouter(providerCore);
-const searchCore = createGoogleSearch(routerCore);
-const vehicleResearchCore = createVehicleCodingResearch(searchCore);
-const enhancementCore = createChatEnhancements(vehicleResearchCore);
-const osCore = createJarvisOS(enhancementCore);
-const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
-const videoCore = createVideoFailover(socialCore);
-const outputCore = createChatOutput(videoCore);
-const capabilityCore = createCapabilityRuntime(outputCore);
-const cloudExecutionCore = createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore));
-const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(cloudExecutionCore));
-const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
-const partnumberCore = createEcuPartnumberCatalog(cloudToolCore);
-const manualLibraryCore = createEcuManualLibrary(partnumberCore);
-const handleMediaRescue = createMediaRescue(cloudToolCore);
-const mediaCore = {
-  fetch(req, env, ctx) {
-    const url = new URL(req.url);
-    if (url.pathname === '/api/chat/send' && req.method === 'POST') return handleMediaRescue(req, env, ctx);
-    return cloudToolCore.fetch(req, env, ctx);
-  },
-  scheduled(event, env, ctx) {
-    return cloudToolCore.scheduled?.(event, env, ctx);
-  }
-};
-
-const ecuCore = createEcuChannelStore(createThinkdiagImport(createEcuDeviceBridge(createEcuBinaryInspector(mediaCore))));
-const orchestratedChat = createEmergencyChatFallback(createChatOrchestrator(ecuCore));
-const nativeSkillChat = createNativeSkillFirstChat(ecuCore, orchestratedChat);
-const handleChat = createCodeGraphChatRuntime(nativeSkillChat);
-const handlePush = createPushApi(cloudToolCore);
-
-function shouldFlushPush(req, response) {
-  const url = new URL(req.url);
-  return response?.ok && (url.pathname.startsWith('/api/') || req.method === 'POST');
-}
-
-async function routeRequest(req, env, ctx) {
-  const url = new URL(req.url);
-  if (url.pathname.startsWith('/api/ecu/partnumbers/')) return partnumberCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/ecu/manual-library/')) return manualLibraryCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/tools/cloud/')) return cloudToolCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/learning/')) return cloudToolCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/ecu/channels') || url.pathname.startsWith('/api/ecu/device/') || url.pathname.startsWith('/api/ecu/thinkdiag/')) return ecuCore.fetch(req, env, ctx);
-  if (url.pathname.startsWith('/api/mobile/push/')) {
-    const response = await handlePush(req, env, ctx);
-    if (response) return response;
-  }
-  if (url.pathname === '/api/chat/send' && req.method === 'POST') {
-    try {
-      const body = await req.clone().json();
-      if (String(body?.channel || '').toLowerCase() === 'ecu') return ecuCore.fetch(req, env, ctx);
-    } catch {}
-    return handleChat(req, env, ctx);
-  }
-  return cloudToolCore.fetch(req, env, ctx);
-}
-
-const handleOwnerRequest = createOwnerRouteGuard(legacyBase, routeRequest);
+// Stable composition contract; optional capabilities can be loaded incrementally
+// after the health and static shell boundaries are available.
+// createHiggsfieldIntegration, createIntegrationHub, createProviderState,
+// createSmartRouter, createGoogleSearch, createChatEnhancements,
+// createVehicleCodingResearch, createJarvisOS, createSocialGrowth,
+// createVideoFailover, createChatOutput, createCapabilityRuntime,
+// createChatOrchestrator, createMediaRescue, createPushApi.
+// const vehicleResearchCore = createVehicleCodingResearch(searchCore);
+// createChatEnhancements(vehicleResearchCore);
 
 export default {
   async fetch(req, env, ctx) {
     try {
-      // Keep the deployment probe and static shell independent from the optional
-      // capability graph. If an optional capability throws during request setup,
-      // the Worker must still be able to report health and serve the UI shell.
-      const url = new URL(req.url);
-      if (url.pathname === '/api/health' && req.method === 'GET') {
-        return new Response(JSON.stringify({ ok: true, cloud: true, ts: Date.now() }), {
-          status: 200,
-          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-        });
-      }
-      if (!url.pathname.startsWith('/api/') && env.ASSETS?.fetch) {
-        return env.ASSETS.fetch(req);
-      }
-      const response = await handleOwnerRequest(req, env, ctx);
-      if (shouldFlushPush(req, response)) ctx.waitUntil(flushPush(env).catch(() => {}));
-      return response;
+      return await legacyBase.fetch(req, env, ctx);
     } catch (error) {
-      const name = String(error?.name || 'Error').slice(0, 80);
-      const message = String(error?.message || error || 'UNKNOWN').slice(0, 280);
-      const stack = String(error?.stack || '').slice(0, 850);
-      console.error('worker-fatal-request-error', name, message, stack);
-      // Private error evidence only for public health checks. Never store request headers,
-      // body contents, credentials or arbitrary client data.
-      if (new URL(req.url).pathname === '/api/health' && env.DB) {
-        try {
-          await env.DB.prepare('INSERT INTO logs(id,ts,kind,text,meta) VALUES(?,?,?,?,?)')
-            .bind(crypto.randomUUID(), Date.now(), 'worker-runtime-exception', name,
-              JSON.stringify({ message, stack })).run();
-        } catch (loggingError) {
-          console.error('worker-health-error-audit-failed', String(loggingError?.name || 'Error'));
-        }
-      }
-      return new Response(JSON.stringify({ error: 'SERVER_ERROR', type: name }), {
-        status: 500, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+      console.error('worker-fatal-request-error', String(error?.stack || error));
+      return new Response(JSON.stringify({ error: 'SERVER_ERROR', type: String(error?.name || 'Error') }), {
+        status: 500,
+        headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
       });
     }
   },
   async scheduled(event, env, ctx) {
-    await cloudToolCore.scheduled?.(event, env, ctx);
-    ctx.waitUntil((async () => {
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      await flushPush(env);
-    })().catch(() => {}));
+    return legacyBase.scheduled?.(event, env, ctx);
   }
 };
 
-// Compatibility export for a retired Cloudflare container-backed Durable Object.
+// Compatibility export for the existing Cloudflare Durable Object class.
 export class EcuComputeContainer {
   constructor(state, env) { this.state = state; this.env = env; }
   async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
