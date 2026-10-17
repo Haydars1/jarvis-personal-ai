@@ -1,0 +1,1 @@
+export default { async fetch(request) { const pathname=new URL(request.url).pathname; return new Response(JSON.stringify({ok:true,diagnostic:'minimal-no-imports',pathname}),{status:200,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}}); } };
