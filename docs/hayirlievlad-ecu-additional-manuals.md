@@ -22,3 +22,7 @@ Tam metin kamuya açık GitHub'a konulmaz. Kullanıcının özel JSON paketleri 
 20 kaynak/57 özgün not için `scripts/prepare-ecu-study-seed.mjs` bir D1 SQL içe aktarım dosyası hazırlar. Cloudflare D1 uzaktan aktarımında açık `BEGIN TRANSACTION` veya `COMMIT` kullanılmaz; işlemi D1 yönettiği için kaynak SQL'inde yalnızca idempotent UPSERT kayıtları bulunur. Canlıya alındıktan sonra D1 sorgusunda `learned_ecu_sources=20` doğrulanmalıdır.
 
 **Ayrım:** 20 kaynağın teknik prensipleri otomatik D1'de saklanır; telifli tam PDF metinleri yalnızca hesap sahibi oturumuyla özel kütüphane panelinden JSON olarak içe alınır. Bu ikinci aktarım bitmeden 1.152 parçanın canlı D1'e geldiği iddia edilmez. Hiçbir ECU cihazına yazma, silme veya D1 tablosu düşürme yapılmaz.
+
+
+## Canlı Worker sağlık tanılaması
+Canlı Worker HTTP 500 hatasında, `src/app-entry.js` istek işleyicisi genel bir 500 yanıtı üretir. Yalnızca `/api/health` kaynaklı işlenmeyen hatanın sınıfı ve sınırlı stack açıklaması özel D1 `logs` tablosuna `worker-runtime-exception` etiketiyle kaydedilir. Dağıtım akışı bunların son üçünü okuyabilir ve sağlık testi başarısızsa otomatik rollback yapar. Kullanıcı PDF içeriği veya istek başlıkları bu tanılama kaydına yazılmaz.
