@@ -1,0 +1,25 @@
+name: Import official ECU PDFs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - name: Extract and index official PDFs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node scripts/import-web-pdfs.mjs
+          npx wrangler d1 execute jarvis-db --remote --file=.wrangler/web-pdf-import.sql
+          npx wrangler d1 execute jarvis-db --remote --command "SELECT COUNT(*) AS official_pdf_documents FROM ecu_manual_library_documents WHERE tags_json LIKE '%official-web-source%';"
