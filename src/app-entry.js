@@ -1,5 +1,3 @@
-import { DurableObject } from 'cloudflare:workers';
-
 // The full composition is kept in app-runtime.js but loaded on demand. This
 // keeps health and static assets available when an optional capability fails.
 // The composition still owns createHiggsfieldIntegration, createIntegrationHub,
@@ -44,6 +42,6 @@ export default {
 };
 
 // Existing Cloudflare Durable Objects still reference this class name.
-export class EcuComputeContainer extends DurableObject {
+export class EcuComputeContainer {
   async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
 }
