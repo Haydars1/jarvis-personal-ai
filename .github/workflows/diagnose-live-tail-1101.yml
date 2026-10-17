@@ -1,0 +1,54 @@
+name: Capture hayirlievlad Live 1101 Exception (read-only)
+on:
+  push:
+    branches:
+      - diagnostics/hayirlievlad-metadata-20261017
+permissions:
+  contents: read
+jobs:
+  tail:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Collect isolated health exceptions via Worker Tail
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          (
+            sleep 18
+            for i in 1 2 3 4 5; do
+              node --input-type=module -e "fetch('https://hayirlievlad.haydojarvis.workers.dev/api/health',{signal:AbortSignal.timeout(8000)}).then(x=>console.log('health',x.status)).catch(x=>console.log('request',x.name))"
+              sleep 2
+            done
+          ) &
+          echo "Start 42-second Worker live tail session"
+          set +e
+          timeout -s INT 42s npx wrangler tail hayirlievlad --format json --sampling-rate 1 >/tmp/hayirlievlad-tail.log 2>&1
+          EXIT=$?
+          set -e
+          echo "Tail exit $EXIT"
+          echo "Tail capture byte count: $(wc -c </tmp/hayirlievlad-tail.log)"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const raw=readFileSync('/tmp/hayirlievlad-tail.log','utf8');
+          let parsed=0,found=0;
+          for(const line of raw.split(/\r?\n/)){
+            let o;try{o=JSON.parse(line)}catch{continue}
+            parsed++;
+            const events=Array.isArray(o)?o:[o];
+            for(const event of events){
+              const errors=event.exceptions||[];
+              if(!errors.length && event.outcome!=='exception')continue;
+              found++;
+              console.log(JSON.stringify({outcome:event.outcome,exceptions:errors.slice(0,5).map(e=>({name:String(e.name||'').slice(0,60),message:String(e.message||'').slice(0,450),stack:String(e.stack||'').slice(0,500)}))}));
+            }
+          }
+          console.log('tail_results',JSON.stringify({parsed,found}));
+          if(!parsed) console.log('tail_connection_summary',raw.split('\n').filter(s=>/error|permission|connected|tail/i.test(s)).slice(-6).map(s=>s.slice(0,220)));
+          NODE
