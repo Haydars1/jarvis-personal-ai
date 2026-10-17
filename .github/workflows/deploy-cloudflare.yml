@@ -37,6 +37,14 @@ jobs:
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-file-chunks.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-07-ecu-file-memory.sql
           npx wrangler d1 execute jarvis-db --remote --file=./migrations/2026-10-14-ecu-definitions.sql
+      - name: Activate 20 source-grounded ECU study manuals in private D1
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node scripts/prepare-ecu-study-seed.mjs
+          npx wrangler d1 execute jarvis-db --remote --file=./.wrangler/ecu-study-seed.sql
+          npx wrangler d1 execute jarvis-db --remote --command "SELECT COUNT(*) AS learned_ecu_sources FROM learning_sources WHERE source_type='ecu-manual' AND status='learned';"
       - name: Audit configured AI providers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -53,6 +61,7 @@ jobs:
         continue-on-error: true
         env:
           HEALTH_URL: ${{ secrets.JARVIS_HEALTH_URL }}
+          PRODUCTION_HEALTH_RETRIES: '6'
         run: node scripts/production-smoke.mjs
       - name: Roll back failed deployment
         if: steps.health.outcome == 'failure'

@@ -6,8 +6,18 @@ export async function productionSmoke(baseUrl, request = fetch) {
   if (!/^https?:\/\//.test(base)) throw new Error('HEALTH_URL_REQUIRED');
   const checks = [];
   async function check(path, expected, init, validate) {
-    const response = await request(`${base}${path}`, { ...init, signal: AbortSignal.timeout(15000) });
-    assert.equal(response.status, expected, `${path}: expected HTTP ${expected}`);
+    // A freshly deployed Worker may take a few seconds to become reachable at every edge.
+    // Retry the public health check only; never weaken the required status or auth assertions.
+    const retries = path === '/api/health' ? Math.max(1, Math.min(8, Number(process.env.PRODUCTION_HEALTH_RETRIES || 1) || 1)) : 1;
+    let response;
+    for (let attempt = 0; attempt < retries; attempt++) {
+      response = await request(`${base}${path}`, { ...init, signal: AbortSignal.timeout(15000) });
+      if (response.status === expected || attempt === retries - 1) break;
+      console.warn(`Health check attempt ${attempt + 1}/${retries}: HTTP ${response.status}. Retrying deployment propagation.`);
+      await response.body?.cancel?.().catch(() => {});
+      await new Promise(resolve => setTimeout(resolve, 2500));
+    }
+    assert.equal(response.status, expected, `${path}: expected HTTP ${expected}; actual HTTP ${response.status}`);
     if (validate) await validate(response);
     checks.push(path);
   }

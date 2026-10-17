@@ -1,3 +1,4 @@
+import { ecuPermanentStudyContext } from '../ecu/manual-study-context.js';
 import { callVaultProvider } from './smart-router.js';
 import { executeFirstNativeSkill } from '../capabilities/native-skill-executor.js';
 import { jsonResponse, queryAll, settleWithin } from '../../lib/runtime.js';
@@ -21,7 +22,7 @@ async function getExperts(env,text,context=''){const kind=taskKind(text),pool=aw
 async function callJson(core,request,env,ctx){const r=await core.fetch(request,env,ctx);if(!r.ok)return null;try{return await r.json();}catch{return null;}}
 async function research(core,req,env,ctx,text){const url=new URL('/api/google-search',req.url);url.searchParams.set('q',text);url.searchParams.set('num','4');const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.researchMs,null);return p?.results||[];}
 async function tools(core,req,env,ctx,text){const url=new URL('/api/tools/discover',req.url);url.searchParams.set('capability',text);const p=await settleWithin(callJson(core,new Request(url,{headers:req.headers}),env,ctx),LIMITS.toolsMs,null);return p?.results||[];}
-async function learnedContext(env,text){const rows=await settleWithin(searchLearningMemory(env,text,{limit:6}),LIMITS.learningMs,[]);const notes=learningContextText(rows);return notes?`${LEARNING_CONTEXT_POLICY}\n${notes}`:'';}
+async function learnedContext(env,text){const compiled=ecuPermanentStudyContext(text);const rows=await settleWithin(searchLearningMemory(env,text,{limit:6}),LIMITS.learningMs,[]);const notes=learningContextText(rows);return [compiled,notes?`${LEARNING_CONTEXT_POLICY}\n${notes}`:''].filter(Boolean).join('\n\n');}
 function mergeContext(...parts){return parts.map(value=>String(value||'').trim()).filter(Boolean).join('\n\n');}
 export function readySkillCandidate(rows=[]){return (Array.isArray(rows)?rows:[]).find(skill=>skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true)||null;}
 export async function skillFirstResponse(core,req,env,ctx,text,rows=null){

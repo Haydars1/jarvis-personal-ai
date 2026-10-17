@@ -16,6 +16,24 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Syntax and behavioral regression tests
         run: npm run check
+      - name: Validate idempotent ECU D1 study seed locally
+        run: |
+          node scripts/prepare-ecu-study-seed.mjs
+          python3 - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          db=sqlite3.connect(':memory:')
+          db.executescript(Path('migrations/2026-10-03-youtube-learning.sql').read_text())
+          seed=Path('.wrangler/ecu-study-seed.sql').read_text()
+          db.executescript(seed)
+          before=db.execute("SELECT count(*) FROM learning_sources WHERE source_type='ecu-manual'").fetchone()[0]
+          assert before==20, f'expected 20 sources, got {before}'
+          chunks=db.execute("SELECT count(*) FROM learning_chunks WHERE source_id LIKE 'jarvis:ecu-manual:%'").fetchone()[0]
+          assert chunks>=50, f'expected 50+ technical notes, got {chunks}'
+          db.executescript(seed)
+          assert db.execute("SELECT count(*) FROM learning_chunks WHERE source_id LIKE 'jarvis:ecu-manual:%'").fetchone()[0]==chunks
+          print(f'ECU D1 seed validated: {before} sources and {chunks} notes, idempotent')
+          PY
       - name: Install browser test runtime
         run: |
           npm install --no-save --package-lock=false playwright
