@@ -1,0 +1,63 @@
+name: Diagnose live hayirlievlad Worker metadata (read-only)
+on:
+  push:
+    branches:
+      - diagnostics/hayirlievlad-metadata-20261017
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Read-only script settings, bindings, deployments and publicly-safe runtime details
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          node --input-type=module <<'NODE'
+          const {CLOUDFLARE_ACCOUNT_ID:id,CLOUDFLARE_API_TOKEN:token}=process.env;
+          const root='https://api.cloudflare.com/client/v4/accounts/'+id+'/workers/scripts/hayirlievlad';
+          const h={Authorization:'Bearer '+token};
+          for(const [label,path] of [
+            ['script-version-settings','/settings'],
+            ['script-logging-settings','/script-settings'],
+            ['workers-dev','/subdomain'],
+            ['deployments','/deployments'],
+            ['version-list','/versions'],
+            ['tail-sessions','/tails']
+          ]){
+            try{
+              const r=await fetch(root+path,{headers:h,signal:AbortSignal.timeout(15000)});
+              const d=await r.json(),v=d.result;
+              let info={name:label,http_status:r.status,success:d.success,errors:(d.errors||[]).map(e=>({code:e.code,message:String(e.message).slice(0,150)}))};
+              if(label==='script-version-settings'){
+                info.compatibility_date=v?.compatibility_date;
+                info.compatibility_flags=v?.compatibility_flags;
+                info.usage_model=v?.usage_model;
+                info.main_module=v?.main_module;
+                info.bindings=(v?.bindings||[]).map(b=>({name:b.name,type:b.type,database_id:b.type==='d1'?'present':undefined})); // Never expose plaintext/secret values.
+                info.other_fields=Object.keys(v||{}).filter(k=>!['bindings','usage_model','compatibility_flags','compatibility_date','main_module','annotations'].includes(k));
+              } else if(label==='script-logging-settings') {
+                info.observability=v?.observability;info.logpush=v?.logpush;info.tail_consumers=(v?.tail_consumers||[]).map(x=>x.service);
+              } else if(label==='workers-dev') {
+                info.enabled=v?.enabled;info.previews_enabled=v?.previews_enabled;
+              } else if(label==='deployments'){
+                const list=Array.isArray(v?.deployments)?v.deployments:Array.isArray(v)?v:[];
+                info.deployments=list.slice(0,5).map(x=>({id:x.id,created_on:x.created_on,versions:(x.versions||[]).map(y=>({version_id:y.version_id,percentage:y.percentage})),message:x.annotations?.['workers/message']}));
+              } else if(label==='version-list'){
+                const list=Array.isArray(v?.items)?v.items:Array.isArray(v?.versions)?v.versions:Array.isArray(v)?v:[];
+                info.latest=list.slice(0,7).map(x=>({id:x.id,created_on:x.created_on,compatibility_date:x.compatibility_date,compatibility_flags:x.compatibility_flags,source:x.annotations?.['workers/triggered_by']}));
+              } else if(label==='tail-sessions'){
+                info.count=Array.isArray(v)?v.length:null;
+              }
+              console.log(JSON.stringify(info));
+            }catch(e){console.log(label, 'request_failure', e?.name)}
+          }
+          for(const path of ['/api/health','/']){
+            try{
+              const r=await fetch('https://hayirlievlad.haydojarvis.workers.dev'+path,{signal:AbortSignal.timeout(12000)});
+              console.log(JSON.stringify({name:'live',path,status:r.status,cf_ray:r.headers.get('cf-ray'),content_type:r.headers.get('content-type')}));
+            }catch(e){console.log('live',path,e?.name)}
+          }
+          NODE
