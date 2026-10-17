@@ -9,10 +9,10 @@ function mockDatabase(){
  const db={prepare(sql){queries.push(sql);const statement={bind(...args){this.args=args;return this;},async run(){return{};},async all(){return{results:[]};},async first(){return null;}};return statement;},async batch(statements){return statements.map(()=>({success:true}));}};
  return {db,queries};
 }
-test('all ten uploaded ECU book identities are included',()=>{
- assert.equal(ECU_MANUALS.length,10);
- assert.equal(new Set(ECU_MANUALS.map(d=>d.id)).size,10);
- assert(ECU_MANUAL_FOUNDATIONS.length>=18);
+test('all twenty owner-supplied ECU book identities are included',()=>{
+ assert.equal(ECU_MANUALS.length,20);
+ assert.equal(new Set(ECU_MANUALS.map(d=>d.id)).size,20);
+ assert(ECU_MANUAL_FOUNDATIONS.length>=50);
 });
 test('concept synthesis includes relevant ECU families',()=>{
  assert(ecuStudyConcepts('EDC15P torque',10).some(x=>x.doc==='vag_edc15p_maps'));
@@ -75,8 +75,8 @@ test('activation creates only source-labeled ECU study memory, not tuning mutati
  const response=await createEcuManualLibrary(core()).fetch(new Request(base+'activate',{method:'POST'}),{DB:db},null);
  assert.equal(response.status,200);
  const payload=await response.json();
- assert.equal(payload.learning.manuals,10);
- assert(payload.learning.learned_principles>=18);
+ assert.equal(payload.learning.manuals,20);
+ assert(payload.learning.learned_principles>=50);
  assert.equal(payload.learning.model_weights_changed,false);
  assert(!queries.some(s=>/\b(drop|delete|alter|truncate)\b/i.test(s)));
  assert(queries.some(s=>/learning_sources/.test(s)));
