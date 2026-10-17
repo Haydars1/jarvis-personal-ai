@@ -7,6 +7,11 @@ import legacyBase from './worker.js';
 // createVehicleCodingResearch, createJarvisOS, createSocialGrowth,
 // createVideoFailover, createChatOutput, createCapabilityRuntime,
 // createChatOrchestrator, createMediaRescue, createPushApi.
+// createYouTubeLearningCapability, createCloudCapabilityExecution,
+// createSkillSeeding, createNativeSkillFirstChat, createCodeGraphChatRuntime,
+// createCodeGraphJobPresenter, createEcuBinaryInspector, createEcuChannelStore,
+// createThinkdiagImport, createEcuDeviceBridge, createEcuPartnumberCatalog,
+// createEcuManualLibrary, createSocialNativeDraft, createVehicleCodingResearch.
 // const vehicleResearchCore = createVehicleCodingResearch(searchCore);
 // createChatEnhancements(vehicleResearchCore);
 
