@@ -29,8 +29,6 @@ export default {
 };
 
 // Existing Cloudflare Durable Objects still reference this class name.
-export class EcuComputeContainer extends DurableObject {
+export class EcuComputeContainer {
   async fetch() { return new Response('ECU compute container retired', { status: 410 }); }
 }
-import { DurableObject } from 'cloudflare:workers';
-
