@@ -1,0 +1,50 @@
+name: Probe undeployed hayirlievlad versions with production bindings
+on:
+  push:
+    branches:
+      - diagnostics/hayirlievlad-metadata-20261017
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Upload only unpublished version previews and confirm live Worker remains unchanged
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync,writeFileSync } from 'node:fs';
+          const config=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+          if(config.name!=='hayirlievlad')throw new Error('Unexpected target');
+          config.main='src/health-only-version-probe.js';
+          writeFileSync('wrangler.version-probe.jsonc',JSON.stringify(config,null,2));
+          NODE
+          node --input-type=module -e "const u='https://api.cloudflare.com/client/v4/accounts/'+process.env.CLOUDFLARE_ACCOUNT_ID+'/workers/scripts/hayirlievlad/deployments'; const r=await fetch(u,{headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN}});const d=await r.json();console.log('active_before',d.result?.deployments?.[0]?.versions?.[0]?.version_id);"
+          echo "--- Uploading health-only diagnostic VERSION without deployment ---"
+          npx wrangler versions upload --config wrangler.version-probe.jsonc --preview-alias healthprobe
+          echo "--- Uploading complete application VERSION without deployment ---"
+          npx wrangler versions upload --preview-alias fullprobe
+          sleep 3
+          node --input-type=module <<'NODE'
+          const base='hayirlievlad.haydojarvis.workers.dev';
+          for(const name of ['healthprobe','fullprobe']){
+            const url='https://'+name+'-'+base+'/api/health';
+            for(let attempt=1;attempt<=3;attempt++){
+              try{
+                const r=await fetch(url,{signal:AbortSignal.timeout(10000)});
+                console.log(name,'attempt',attempt,'HTTP',r.status,'type',r.headers.get('content-type'),'body',(await r.text()).slice(0,180).replace(/\s+/g,' '));
+                if(r.status===200)break;
+              }catch(e){console.log(name,attempt,e.name)}
+              await new Promise(resolve=>setTimeout(resolve,1500));
+            }
+          }
+          NODE
+          node --input-type=module -e "const u='https://api.cloudflare.com/client/v4/accounts/'+process.env.CLOUDFLARE_ACCOUNT_ID+'/workers/scripts/hayirlievlad/deployments'; const r=await fetch(u,{headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN}});const d=await r.json();console.log('active_after',d.result?.deployments?.[0]?.versions?.[0]?.version_id);"
