@@ -253,6 +253,18 @@ export function createChatEnhancements(core) {
           try { return await vision(core, req, env, ctx, text, attachments); }
           catch (error) { return jsonResponse({ error: error.message }, 400); }
         }
+        const { parseCodeGraphIntent } = await import('../code-graph/chat-runtime.js');
+        const graphIntent = parseCodeGraphIntent(text);
+        if (graphIntent) {
+          try {
+            const id = crypto.randomUUID(), timestamp = Date.now();
+            await execute(env, 'INSERT INTO cloud_tool_jobs(id,adapter_id,repo,commit_sha,input_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)', id, 'code-graph-query', 'Haydars1/jarvis-personal-ai', null, JSON.stringify({ ...graphIntent, source: 'chat-direct' }), 'queued', timestamp, timestamp);
+            const reply = 'Kod grafiği analizi sıraya alındı. İşlem: ' + graphIntent.operation + '. Görev: ' + id + '. Sonuç henüz hazır değil; görev tamamlanınca bulut işleri bölümünden görüntülenebilir.';
+            await save(env, 'user', text);
+            await save(env, 'assistant', reply, 'JARVIS Code Graph');
+            return jsonResponse({ reply, provider: 'JARVIS Code Graph', job: { id, status: 'queued', adapter_id: 'code-graph-query', repo: 'Haydars1/jarvis-personal-ai' }, state: await state(core, req, env, ctx), history: await history(env) });
+          } catch (error) { return jsonResponse({ error: String(error?.message || error) }, 500); }
+        }
         const idea = simulationIntent(text);
         if (idea) {
           try { return await simulationChat(core, req, env, ctx, text, idea); }
