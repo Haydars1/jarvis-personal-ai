@@ -1,3 +1,4 @@
+import { simulateAudience } from '../../lib/synthetic-simulation.js';
 import {
   decryptCredential,
   fetchWithTimeout,
@@ -165,6 +166,16 @@ export function createChatEnhancements(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/simulation/audience' && req.method === 'POST') {
+        if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
+        try {
+          const body = await readJson(req.clone());
+          const result = simulateAudience(body);
+          return jsonResponse(result);
+        } catch (error) {
+          return jsonResponse({ error: String(error?.message || error) }, 400);
+        }
+      }
       if (url.pathname === '/api/chat/send' && req.method === 'POST') {
         if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
         const body = await readJson(req.clone()), text = String(body.text || '').trim(), attachments = cleanAttachments(body.attachments);
