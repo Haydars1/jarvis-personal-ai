@@ -63,7 +63,7 @@ jobs:
 
       - name: Run queued cloud capability batch
         env:
-          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
+          JARVIS_URL: https://hayirlievlad.haydojarvis.workers.dev
           JARVIS_CLOUD_MAX_JOBS: '8'
           JARVIS_CLOUD_MAX_BATCHES: '12'
           PATH: /home/runner/.local/bin:/usr/local/bin:/usr/bin:/bin
@@ -71,5 +71,5 @@ jobs:
 
       - name: Report production skill execution summary
         env:
-          JARVIS_URL: https://jarvis-personal-ai.haydojarvis.workers.dev
+          JARVIS_URL: https://hayirlievlad.haydojarvis.workers.dev
         run: node .github/scripts/cloud-skill-summary.mjs

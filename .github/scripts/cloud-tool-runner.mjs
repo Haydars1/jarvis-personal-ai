@@ -15,7 +15,7 @@ export const ALLOWED_ADAPTERS=Object.freeze({
   'code-graph-query':true
 });
 
-const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
+const BASE=String(process.env.JARVIS_URL||'https://hayirlievlad.haydojarvis.workers.dev').replace(/\/$/,'');
 const MAX_JOBS=Math.max(1,Math.min(8,Number(process.env.JARVIS_CLOUD_MAX_JOBS||6)));
 const MAX_BATCHES=Math.max(1,Math.min(12,Number(process.env.JARVIS_CLOUD_MAX_BATCHES||1)));
 const API_TIMEOUT_MS=Math.max(5000,Math.min(60000,Number(process.env.JARVIS_CLOUD_API_TIMEOUT_MS||20000)));
