@@ -194,6 +194,32 @@ export function createChatEnhancements(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/code-graph/run' && req.method === 'POST') {
+        if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
+        try {
+          const body = await readJson(req.clone());
+          const operation = String(body.operation || 'status');
+          if (!['status', 'find', 'neighbors', 'path', 'impact'].includes(operation)) return jsonResponse({ error: 'INVALID_OPERATION' }, 400);
+          const input = { operation, source: 'api-code-graph' };
+          if (operation === 'find' || operation === 'neighbors') {
+            input.query = String(body.query || '').slice(0, 160);
+            if (!input.query) return jsonResponse({ error: 'QUERY_REQUIRED' }, 400);
+          }
+          if (operation === 'neighbors') input.direction = ['incoming', 'outgoing', 'both'].includes(body.direction) ? body.direction : 'both';
+          if (operation === 'path') {
+            input.from = String(body.from || '').slice(0, 160);
+            input.to = String(body.to || '').slice(0, 160);
+            if (!input.from || !input.to) return jsonResponse({ error: 'PATH_ENDPOINTS_REQUIRED' }, 400);
+          }
+          if (operation === 'impact') {
+            input.files = (Array.isArray(body.files) ? body.files : []).filter(x => typeof x === 'string').slice(0, 12);
+            if (!input.files.length) return jsonResponse({ error: 'FILES_REQUIRED' }, 400);
+          }
+          const id = crypto.randomUUID(), timestamp = Date.now();
+          await execute(env, 'INSERT INTO cloud_tool_jobs(id,adapter_id,repo,commit_sha,input_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)', id, 'code-graph-query', 'Haydars1/jarvis-personal-ai', null, JSON.stringify(input), 'queued', timestamp, timestamp);
+          return jsonResponse({ id, status: 'queued', operation, repo: 'Haydars1/jarvis-personal-ai', note: 'Queued for existing GitHub code-graph runner; not completed yet.' }, 202);
+        } catch (error) { return jsonResponse({ error: String(error?.message || error) }, 400); }
+      }
       if (url.pathname === '/api/code-graph/inspect' && req.method === 'POST') {
         if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
         try {
