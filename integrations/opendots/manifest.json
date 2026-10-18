@@ -1,0 +1,33 @@
+{
+  "name": "opendots-agent-computers",
+  "kind": "optional-external-agent-runtime",
+  "enabled": false,
+  "upstream": "https://github.com/CopilotKit/OpenDots",
+  "license": "MIT",
+  "runtime": "Node.js 24",
+  "deployment": "separate service; not Cloudflare Worker compatible",
+  "required": [
+    "isolated host",
+    "CopilotKit Intelligence",
+    "model provider",
+    "persistent storage",
+    "owner authentication",
+    "HTTPS"
+  ],
+  "capabilities": [
+    "isolated-browser",
+    "persistent-workspace",
+    "human-approval",
+    "MCP-connections",
+    "scheduled-background-work"
+  ],
+  "restrictions": {
+    "default": "disabled",
+    "read_only_without_approval": true,
+    "write_requires_approval": true,
+    "destructive_requires_approval": true,
+    "production_deploy_requires_approval": true,
+    "secret_change_requires_approval": true
+  },
+  "integration_status": "design-only; not installed or connected"
+}
