@@ -73,6 +73,34 @@ async function discover(core, req, env, ctx, text) {
   return jsonResponse({ reply, provider: 'AI Tool Scout', tools, change, state: await state(core, req, env, ctx), history: await history(env) });
 }
 
+function simulationIntent(text = '') {
+  const match = String(text).trim().match(/^(?:\/simule|\/simulate|simülasyon yap:|simulasyon yap:)\s*(.+)$/is);
+  return match?.[1]?.trim() || null;
+}
+async function simulationChat(core, req, env, ctx, text, idea) {
+  const result = simulateAudience({
+    idea,
+    personas: [
+      { name: 'Meraklı kullanıcı', skepticism: 0.15 },
+      { name: 'Fiyat odaklı kullanıcı', skepticism: 0.55 },
+      { name: 'Şüpheci kullanıcı', skepticism: 0.85 },
+      { name: 'Teknik uzman', skepticism: 0.4 }
+    ],
+    rounds: 3
+  });
+  const finalRound = result.history.at(-1);
+  const reply = [
+    'Sanal kullanıcı simülasyonu (gerçek müşteri araştırması değildir)',
+    'Konu: ' + idea,
+    '3 tur sonunda ilgi gösteren: ' + finalRound.adoption + '/' + finalRound.total,
+    ...finalRound.decisions.map(d => '- ' + d.persona + ': ' + (d.accepts ? 'ilgili' : 'çekimser') + ' (sentetik puan: ' + d.score + ')'),
+    'Bu sonuçlar tahmin değil, deterministik örnek senaryodur.'
+  ].join('\n');
+  await save(env, 'user', text);
+  await save(env, 'assistant', reply, 'Synthetic Simulation');
+  return jsonResponse({ reply, provider: 'Synthetic Simulation', simulation: result, state: await state(core, req, env, ctx), history: await history(env) });
+}
+
 function cleanAttachments(items) {
   return (Array.isArray(items) ? items : [])
     .filter(item => item && /^image\//i.test(String(item.type || '')) && String(item.base64 || '').length > 20)
@@ -182,6 +210,11 @@ export function createChatEnhancements(core) {
         if (attachments.length) {
           try { return await vision(core, req, env, ctx, text, attachments); }
           catch (error) { return jsonResponse({ error: error.message }, 400); }
+        }
+        const idea = simulationIntent(text);
+        if (idea) {
+          try { return await simulationChat(core, req, env, ctx, text, idea); }
+          catch (error) { return jsonResponse({ error: String(error?.message || error) }, 400); }
         }
         if (text && toolIntent(text)) {
           try { return await discover(core, req, env, ctx, text); } catch {}
