@@ -194,6 +194,22 @@ export function createChatEnhancements(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/code-graph/inspect' && req.method === 'POST') {
+        if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
+        try {
+          const body = await readJson(req.clone());
+          const graph = body.graph;
+          const action = String(body.action || 'search');
+          const { validateCodeGraph, findGraphNodes, getGraphNeighbors, findGraphPath, rankImpactedFiles } = await import('../../lib/code-graph.js');
+          const validation = validateCodeGraph(graph);
+          if (!validation.valid) return jsonResponse({ error: 'INVALID_GRAPH', details: validation.errors }, 400);
+          if (action === 'search') return jsonResponse({ action, results: findGraphNodes(graph, String(body.query || ''), { limit: 50 }) });
+          if (action === 'neighbors') return jsonResponse({ action, results: getGraphNeighbors(graph, String(body.nodeId || ''), { direction: body.direction || 'both' }) });
+          if (action === 'path') return jsonResponse({ action, results: findGraphPath(graph, String(body.from || ''), String(body.to || '')) });
+          if (action === 'impact') return jsonResponse({ action, results: rankImpactedFiles(graph, Array.isArray(body.files) ? body.files.slice(0, 50) : []) });
+          return jsonResponse({ error: 'UNKNOWN_ACTION' }, 400);
+        } catch (error) { return jsonResponse({ error: String(error?.message || error) }, 400); }
+      }
       if (url.pathname === '/api/simulation/audience' && req.method === 'POST') {
         if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
         try {
