@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "description": "Curated general learning sources beyond ECU. Source pages are not yet imported or learned. Import only downloadable PDFs with verified licensing and provenance.",
+  "sources": [
+    {
+      "id": "openstax-python",
+      "topic": "programming",
+      "title": "Introduction to Python Programming",
+      "publisher": "OpenStax",
+      "url": "https://openstax.org/books/introduction-python-programming/pages/preface",
+      "license": "CC BY-NC-SA 4.0",
+      "status": "discovered"
+    },
+    {
+      "id": "openstax-statistics",
+      "topic": "mathematics",
+      "title": "Introductory Statistics 2e",
+      "publisher": "OpenStax",
+      "url": "https://openstax.org/books/introductory-statistics-2e/pages/preface",
+      "license": "CC BY-NC-SA 4.0",
+      "status": "discovered"
+    },
+    {
+      "id": "openstax-physics",
+      "topic": "science",
+      "title": "College Physics 2e",
+      "publisher": "OpenStax",
+      "url": "https://openstax.org/books/college-physics-2e/pages/preface",
+      "license": "verify on source",
+      "status": "discovered"
+    },
+    {
+      "id": "openstax-management",
+      "topic": "business",
+      "title": "Principles of Management",
+      "publisher": "OpenStax",
+      "url": "https://openstax.org/books/principles-management/pages/preface",
+      "license": "verify on source",
+      "status": "discovered"
+    },
+    {
+      "id": "mit-ocw",
+      "topic": "engineering",
+      "title": "MIT OpenCourseWare",
+      "publisher": "MIT",
+      "url": "https://ocw.mit.edu/pages/get-started/",
+      "license": "course-specific; usually noncommercial",
+      "status": "catalog-only"
+    },
+    {
+      "id": "nasa-ntrs",
+      "topic": "aerospace",
+      "title": "NASA Technical Reports Server",
+      "publisher": "NASA",
+      "url": "https://ntrs.nasa.gov/",
+      "license": "document-specific",
+      "status": "catalog-only"
+    }
+  ]
+}
