@@ -5,6 +5,9 @@ on:
 
 permissions:
   contents: read
+concurrency:
+  group: jarvis-cloudflare-d1-operations
+  cancel-in-progress: false
 
 jobs:
   import:
