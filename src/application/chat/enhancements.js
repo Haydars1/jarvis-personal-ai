@@ -194,6 +194,20 @@ export function createChatEnhancements(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
+      if (url.pathname === '/api/code-graph/result' && req.method === 'GET') {
+        if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
+        const id = String(url.searchParams.get('id') || '');
+        if (!/^[0-9a-f-]{36}$/i.test(id)) return jsonResponse({ error: 'INVALID_JOB_ID' }, 400);
+        try {
+          const rows = await queryAll(env, 'SELECT id,adapter_id,repo,status,result_json,error,created_at,finished_at FROM cloud_tool_jobs WHERE id=?', id);
+          const job = rows[0];
+          if (!job || job.adapter_id !== 'code-graph-query' || job.repo !== 'Haydars1/jarvis-personal-ai') return jsonResponse({ error: 'JOB_NOT_FOUND' }, 404);
+          const result = job.result_json ? JSON.parse(job.result_json) : null;
+          const { cloudJobAnswer } = await import('../capabilities/cloud-execution.js');
+          const reply = cloudJobAnswer({ ...job, result });
+          return jsonResponse({ id: job.id, status: job.status, result, reply, error: job.error || null, created_at: job.created_at, finished_at: job.finished_at });
+        } catch (error) { return jsonResponse({ error: String(error?.message || error) }, 500); }
+      }
       if (url.pathname === '/api/code-graph/run' && req.method === 'POST') {
         if (!(await authed(req, env, ctx))) return jsonResponse({ error: 'UNAUTHORIZED' }, 401);
         try {
