@@ -1,8 +1,13 @@
 import { jsonResponse } from '../../lib/runtime.js';
 import { parseEcuDeviceIntent, ECU_DEVICE_ACTIONS } from '../ecu/device-bridge.js';
 import { socialDraftIntent } from '../social/native-draft.js';
+import { parseYouTubeResourceUrl, YOUTUBE_TEACHING_REPO } from '../../lib/youtube-teaching-runtime.js';
 
 const SUPPORTED_ADAPTERS=new Set(['repo-cloud-tools','device-bridge','ecu-binary-inspector','social-growth','youtube-teaching']);
+const BUILTIN_YOUTUBE_SKILL=Object.freeze({
+  id:'builtin:youtube-teaching',repo:YOUTUBE_TEACHING_REPO,primary_capability:'youtube-teaching',
+  adapter_status:'ready',requires_paid_api:false,native_adapter:{id:'youtube-teaching'}
+});
 
 function ready(skill){return skill?.adapter_status==='ready'&&skill?.native_adapter&&skill?.requires_paid_api!==true;}
 function binaryAttachments(context={}){
@@ -28,7 +33,10 @@ function extractYouTubeUrl(text=''){
 
 function youtubeTeachingIntent(text=''){
   const value=String(text||'').toLocaleLowerCase('tr-TR');
-  if(!extractYouTubeUrl(value))return false;
+  const source=parseYouTubeResourceUrl(extractYouTubeUrl(value));
+  if(!source)return false;
+  // A pasted video link is sufficient; channel fan-out still needs explicit intent.
+  if(source.type==='video')return true;
   return /(?:yt|youtube).*(?:öğreti|ogreti|öğren|ogren|eğitim|egitim|analiz et.*öğren|kaynak olarak işle|teach)|(?:öğreti|ogreti|öğren|ogren|eğitim|egitim|teach|kaynak olarak işle).*(?:youtube|youtu\.be)/i.test(value);
 }
 
@@ -64,7 +72,7 @@ function skillPayload(text,skill,reply,extra={}){
     history:[{role:'user',content:text},{role:'assistant',content:reply,provider:'JARVIS Skill'}],
     provider:'JARVIS Skill',
     skill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:skill.native_adapter?.id},
-    trace:[{kind:'skill',label:'JARVIS native skill',value:`${skill.repo||skill.primary_capability} · ${skill.native_adapter?.id} · hosted AI API kullanılmadı`}],
+    trace:[{kind:'skill',label:'JARVIS native skill',value:skill.native_adapter?.id==='youtube-teaching' ? `${skill.repo} · ses/görüntü analizi bulut işleyicisinde yapılır` : `${skill.repo||skill.primary_capability} · ${skill.native_adapter?.id} · hosted AI API kullanılmadı`}],
     ...extra
   };
 }
@@ -105,17 +113,26 @@ async function executeRepoCloudSkill(core,req,env,ctx,text,skill){
 async function executeYouTubeTeachingSkill(core,req,env,ctx,text,skill){
   const sourceUrl=extractYouTubeUrl(text);if(!sourceUrl)return null;
   const url=new URL('/api/tools/cloud/jobs',req.url);
-  const body={adapter_id:'youtube-teaching',repo:skill.repo,commit:null,input:{url:sourceUrl,source:'yt-teaching'}};
+  const body={adapter_id:'youtube-teaching',repo:YOUTUBE_TEACHING_REPO,commit:null,input:{url:sourceUrl,source:'youtube-link-auto-learning'}};
   const response=await core.fetch(jsonRequest(url,req,body),env,ctx);
-  if(!response.ok)return null;
-  const payload=await readJsonResponse(response),queuedJob=payload?.job;
-  if(!queuedJob?.id)return null;
-  const current=await repoJobStatus(core,req,env,ctx,queuedJob.id);
-  if(current?.job?.status==='completed'&&current.answer)return skillPayload(text,skill,current.answer,{job:current.job});
-  if(['queued','running'].includes(String(current?.job?.status||queuedJob.status||''))){
-    return {pendingSkillJob:current?.job||queuedJob,pendingSkill:{id:skill.id,repo:skill.repo,capability:skill.primary_capability,adapter:'youtube-teaching'}};
+  if(!response.ok){
+    return skillPayload(text,skill,'YouTube bağlantısını aldım ancak öğrenme işi başlatılamadı. Video henüz öğrenilmedi.',{learning_status:'failed'});
   }
-  return null;
+  const payload=await readJsonResponse(response),queuedJob=payload?.job;
+  if(!queuedJob?.id){
+    return skillPayload(text,skill,'YouTube işi için geçerli bir kayıt numarası alınamadı. Video henüz öğrenilmedi.',{learning_status:'failed'});
+  }
+  const current=await repoJobStatus(core,req,env,ctx,queuedJob.id);
+  const job=current?.job||queuedJob;
+  if(job.status==='completed'){
+    return skillPayload(text,skill,current?.answer||'YouTube öğrenme işi tamamlandı. Kaydedilen bilgileri sorabilirsin.',{job,learning_status:'completed'});
+  }
+  if(job.status==='failed'){
+    return skillPayload(text,skill,'YouTube video analizi başarısız oldu; bu kaynak öğrenilemedi.',{job,learning_status:'failed'});
+  }
+  const jobId=String(job.id).slice(0,8);
+  const reply=`YouTube bağlantısı öğrenme kuyruğuna alındı (iş: ${jobId}). Ses, video kareleri ve erişilebilen altyazı analiz edilecek; işlem henüz tamamlanmadı.`;
+  return skillPayload(text,skill,reply,{job,learning_status:job.status||'queued'});
 }
 
 async function executeDeviceSkill(core,req,env,ctx,text,skill){
@@ -209,6 +226,11 @@ export function createNativeSkillFirstChat(core,fallback){
     let body={};try{body=await req.clone().json();}catch{}
     const text=String(body?.text||'').trim();
     if(!text)return fallback(req,env,ctx);
+    // Built-in trusted YouTube adapter: do not depend on seeded repository skills.
+    if(youtubeTeachingIntent(text)){
+      const result=await executeYouTubeTeachingSkill(core,req,env,ctx,text,BUILTIN_YOUTUBE_SKILL).catch(()=>null);
+      return jsonResponse(result||skillPayload(text,BUILTIN_YOUTUBE_SKILL,'YouTube öğrenme hizmetine ulaşılamadı. Video henüz öğrenilmedi.',{learning_status:'failed'}));
+    }
     const rows=await discoverSkills(core,req,env,ctx,text).catch(()=>[]);
     const payload=await executeFirstNativeSkill(core,req,env,ctx,text,rows,body).catch(()=>null);
     if(payload?.reply)return jsonResponse(payload);
