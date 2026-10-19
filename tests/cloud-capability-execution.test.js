@@ -109,17 +109,18 @@ test('YouTube queue deduplicates short and watch URLs for the same video',()=>{
   assert.equal(findPendingYouTubeJob(pending,'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),null);
 });
 
-test('completed YouTube result reports modalities and persisted memory status accurately',()=>{
+test('completed direct-video learning reports causal notes and persistent memory',()=>{
   const answer=cloudJobAnswer({
     adapter_id:'youtube-teaching',status:'completed',repo:'artemnovitckii/notebooklm-coach',
     result:{
       kind:'video',title:'ECU demonstration',source_url:'https://www.youtube.com/watch?v=jNQXAC9IVRw',
-      captions_available:false,audio_used:true,vision_used:true,learning_status:'learned',
-      transcript:'[SES TRANSKRİPTİ] Checksum. [GÖRSEL NOTLAR] WinOLS'
+      video_analyzed:true,learning_method:'direct-youtube-video-understanding',
+      learning_status:'learned',
+      transcript:'Özet: Checksum. Karar kuralı: Değişiklik sonrasında bütünlük doğrulanmalı.'
     }
   });
-  assert.match(answer,/Ses kaydı çözümlendi/);
-  assert.match(answer,/Görüntü kareleri analiz edildi/);
-  assert.match(answer,/öğrenme hafızasına kaydedildi/);
-  assert.doesNotMatch(answer,/Transkript alındı/);
+  assert.match(answer,/doğrudan analiz edildi/);
+  assert.match(answer,/işlem adımları, gerekçeleri/);
+  assert.match(answer,/hafızaya kaydedildi/);
+  assert.doesNotMatch(answer,/Transkript alındı|Görüntü kareleri/);
 });
