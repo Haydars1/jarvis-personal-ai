@@ -40,12 +40,18 @@ test('repository skill compiler recognizes YouTube teaching as a first-class cap
   assert.match(String(adapter?.notes||''),/JARVIS/i);
 });
 
-test('YouTube teaching adapter only runs for explicit teaching intent plus a YouTube URL',()=>{
+test('YouTube teaching accepts a pasted video URL without a special command',()=>{
   const skill={
     adapter_status:'ready',requires_paid_api:false,repo:REPO,
     primary_capability:'youtube-teaching',native_adapter:{id:'youtube-teaching'}
   };
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://youtu.be/dQw4w9WgXcQ'),true);
+  assert.equal(canExecuteNativeSkill(skill,'Bak: https://www.youtube.com/shorts/dQw4w9WgXcQ'),true);
   assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi: https://www.youtube.com/watch?v=dQw4w9WgXcQ bu videodan öğren'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/@example'),false,'channel bulk ingestion requires explicit intent');
+  assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi: https://www.youtube.com/@example öğren'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),false);
   assert.equal(canExecuteNativeSkill(skill,'YouTube için reels video üret'),false);
   assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi aç ama link yok'),false);
 });
