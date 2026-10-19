@@ -5,7 +5,7 @@ import { CURATED_CAPABILITY_SEEDS } from '../src/lib/open-source-capabilities.js
 import { compileRepositorySkill, skillMatchesTask } from '../src/lib/repo-skill-compiler.js';
 import { resolveNativeSkillAdapter } from '../src/lib/native-skill-adapters.js';
 import { canExecuteNativeSkill } from '../src/application/capabilities/native-skill-executor.js';
-import { ALLOWED_ADAPTERS, youtubeMediaErrorCode } from '../.github/scripts/cloud-tool-runner.mjs';
+import { ALLOWED_ADAPTERS } from '../.github/scripts/cloud-tool-runner.mjs';
 import { parseYouTubeResourceUrl, captionTextFromJson3, parseYouTubeFeedXml } from '../src/lib/youtube-teaching-runtime.js';
 
 const REPO='artemnovitckii/notebooklm-coach';
@@ -77,17 +77,14 @@ test('caption JSON and channel feed parsers produce bounded source text and vide
 test('cloud runner has a JARVIS-owned YouTube teaching adapter and never executes third-party loader code',()=>{
   assert.equal(ALLOWED_ADAPTERS['youtube-teaching'],true);
   const runner=readFileSync(new URL('../.github/scripts/cloud-tool-runner.mjs',import.meta.url),'utf8');
-  assert.match(runner,/fetchYouTubeTranscript/);
+  assert.match(runner,/\/api\/learning\/youtube\/direct\/analyze/);
   assert.match(runner,/fetchYouTubeChannelIndex/);
   assert.match(runner,/YOUTUBE_TEACHING_REPO/);
   assert.doesNotMatch(runner,/load_channel\.py[^\n]*spawn|spawn\([^\n]*load_channel\.py/);
 });
 
-test('server-side YouTube bot challenge is flagged and cannot silently count as learned',()=>{
-  const error='Sign in to confirm you’re not a bot. Use --cookies for authentication.';
-  assert.equal(youtubeMediaErrorCode([error]),'YOUTUBE_BOT_VERIFICATION_REQUIRED');
-  assert.equal(youtubeMediaErrorCode(['Network timed out']),'YOUTUBE_MEDIA_DOWNLOAD_FAILED');
-  assert.equal(youtubeMediaErrorCode([]),null);
+test('direct YouTube teaching never downloads media to the cloud runner',()=>{
   const runner=readFileSync(new URL('../.github/scripts/cloud-tool-runner.mjs',import.meta.url),'utf8');
-  assert.match(runner,/if\(!fused\.transcript\)[\s\S]*?throw new Error/);
+  assert.doesNotMatch(runner,/yt-dlp|downloadYouTubeMedia|transcribeAudioChunks/);
+  assert.match(runner,/YOUTUBE_DIRECT_ANALYSIS_INCOMPLETE/);
 });
