@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { skillExecutionState, summarizeExecutionStates } from '../src/application/capabilities/cloud-execution.js';
+import { skillExecutionState, summarizeExecutionStates, findPendingYouTubeJob, cloudJobAnswer } from '../src/application/capabilities/cloud-execution.js';
 
 const read = p => readFileSync(new URL('../'+p, import.meta.url), 'utf8');
 
@@ -96,4 +96,30 @@ test('trusted GitHub OIDC runner can read the execution summary without an owner
   assert.match(source,/\/api\/tools\/skills\/execution-summary[\s\S]{0,500}verifyRunnerJwt\(bearer\(req\)\)/);
   assert.match(source,/runnerExecutionSummary/);
   assert.match(source,/summarizeExecutionStates/);
+});
+
+test('YouTube queue deduplicates short and watch URLs for the same video',()=>{
+  const pending=[
+    {id:'job-one',input_json:JSON.stringify({url:'https://youtu.be/dQw4w9WgXcQ'})},
+    {id:'job-two',input_json:JSON.stringify({url:'https://www.youtube.com/watch?v=jNQXAC9IVRw'})}
+  ];
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com/watch?v=dQw4w9WgXcQ&si=example')?.id,'job-one');
+  assert.equal(findPendingYouTubeJob(pending,'https://youtu.be/jNQXAC9IVRw')?.id,'job-two');
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com/watch?v=someOtherID'),null);
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),null);
+});
+
+test('completed YouTube result reports modalities and persisted memory status accurately',()=>{
+  const answer=cloudJobAnswer({
+    adapter_id:'youtube-teaching',status:'completed',repo:'artemnovitckii/notebooklm-coach',
+    result:{
+      kind:'video',title:'ECU demonstration',source_url:'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+      captions_available:false,audio_used:true,vision_used:true,learning_status:'learned',
+      transcript:'[SES TRANSKRİPTİ] Checksum. [GÖRSEL NOTLAR] WinOLS'
+    }
+  });
+  assert.match(answer,/Ses kaydı çözümlendi/);
+  assert.match(answer,/Görüntü kareleri analiz edildi/);
+  assert.match(answer,/öğrenme hafızasına kaydedildi/);
+  assert.doesNotMatch(answer,/Transkript alındı/);
 });
