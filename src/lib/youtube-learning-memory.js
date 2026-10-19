@@ -112,13 +112,20 @@ export async function persistYouTubeLearning(env, result = {}, { jobId = null, p
   const title = normalize(result?.title || (kind === 'channel' ? `YouTube kanalı ${externalId || ''}` : 'YouTube eğitimi'));
   const language = String(result?.language || '').trim() || null;
   const transcript = normalize(result?.transcript || '');
-  const status = kind === 'video' ? (transcript ? 'learned' : 'no-transcript') : 'indexed';
+  const direct = result?.learning_method === 'direct-youtube-video-understanding' && result?.video_analyzed === true;
+  // A direct-video job may only enter memory after verified audiovisual model output.
+  const status = kind === 'video' ? (direct && transcript && Number(result?.insights_count || 0) > 0 ? 'learned' : 'no-transcript') : 'indexed';
   const sourceType = kind === 'channel' ? 'youtube-channel' : 'youtube-video';
   const existing = await queryOne(env, 'SELECT id,created_at FROM learning_sources WHERE source_url=?', sourceUrl);
   const sourceId = existing?.id || `learn:${crypto.randomUUID()}`;
   const meta = {
     captions_available: !!result?.captions_available,
     engine: String(result?.engine || 'jarvis-clean-room-youtube-teaching'),
+    learning_method: String(result?.learning_method || ''),
+    video_analyzed: result?.video_analyzed === true,
+    insight_count: Math.max(0, Number(result?.insights_count || 0)),
+    provider: String(result?.provider || ''),
+    model: String(result?.model || ''),
     video_count: Array.isArray(result?.videos) ? result.videos.length : undefined
   };
 
@@ -128,7 +135,7 @@ export async function persistYouTubeLearning(env, result = {}, { jobId = null, p
     sourceId, sourceType, sourceUrl, externalId, title, language, status, parentSourceId, jobId, JSON.stringify(meta), status === 'learned' ? ts : null, existing?.created_at || ts, ts);
 
   await execute(env, 'DELETE FROM learning_chunks WHERE source_id=?', sourceId);
-  const chunks = kind === 'video' && transcript ? chunkTranscript(transcript) : [];
+  const chunks = status === 'learned' && transcript ? chunkTranscript(transcript) : [];
   for (const chunk of chunks) {
     await execute(env, 'INSERT INTO learning_chunks(id,source_id,ordinal,content,created_at) VALUES(?,?,?,?,?)', `${sourceId}:${chunk.ordinal}`, sourceId, chunk.ordinal, chunk.content, ts);
   }
