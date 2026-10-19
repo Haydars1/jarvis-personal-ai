@@ -125,19 +125,26 @@ async function findDownloaded(root,prefix){
   return name?path.join(root,name):null;
 }
 
+export function youtubeMediaErrorCode(errors=[]){
+  const messages=(Array.isArray(errors)?errors:[]).map(String).join(' ');
+  if(/sign in to confirm[^.]*bot|not a bot/i.test(messages))return 'YOUTUBE_BOT_VERIFICATION_REQUIRED';
+  return messages?'YOUTUBE_MEDIA_DOWNLOAD_FAILED':null;
+}
+
 export async function downloadYouTubeMedia(sourceUrl){
   const root=await mkdtemp(path.join(tmpdir(),'jarvis-youtube-'));
   const audioChunksDir=path.join(root,'audio-chunks'),framesDir=path.join(root,'frames');
   await mkdir(audioChunksDir,{recursive:true});await mkdir(framesDir,{recursive:true});
   let audioPath=null,videoPath=null,duration=0,frameInterval=30;
+  const downloadErrors=[];
   try{
     await run('yt-dlp',['--no-playlist','--no-progress','--quiet','--no-warnings','--max-filesize','800M','-f','ba[abr<=128]/ba','-o',path.join(root,'audio.%(ext)s'),sourceUrl]);
     audioPath=await findDownloaded(root,'audio');
-  }catch(error){console.warn('YouTube audio download unavailable:',error?.message||error);}
+  }catch(error){downloadErrors.push(String(error?.message||error));console.warn('YouTube audio download unavailable:',error?.message||error);}
   try{
     await run('yt-dlp',['--no-playlist','--no-progress','--quiet','--no-warnings','--max-filesize','800M','-f','bv*[height<=360]/wv*[height<=360]/bv*','-o',path.join(root,'video.%(ext)s'),sourceUrl]);
     videoPath=await findDownloaded(root,'video');
-  }catch(error){console.warn('YouTube video download unavailable:',error?.message||error);}
+  }catch(error){downloadErrors.push(String(error?.message||error));console.warn('YouTube video download unavailable:',error?.message||error);}
   if(audioPath){
     await run('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',audioPath,'-vn','-ac','1','-ar','16000','-b:a','32k','-f','segment','-segment_time',String(AUDIO_CHUNK_SECONDS),'-reset_timestamps','1',path.join(audioChunksDir,'audio-%03d.mp3')]);
   }
@@ -151,7 +158,7 @@ export async function downloadYouTubeMedia(sourceUrl){
   }
   const audioChunks=(await readdir(audioChunksDir)).filter(name=>name.endsWith('.mp3')).sort().slice(0,MAX_AUDIO_CHUNKS).map((name,index)=>({path:path.join(audioChunksDir,name),timestamp_sec:index*AUDIO_CHUNK_SECONDS}));
   const frames=(await readdir(framesDir)).filter(name=>name.endsWith('.jpg')).sort().slice(0,MAX_VISUAL_FRAMES).map((name,index)=>({path:path.join(framesDir,name),timestamp_sec:index*frameInterval}));
-  return {root,audioChunks,frames,duration,frameInterval};
+  return {root,audioChunks,frames,duration,frameInterval,download_error_code:youtubeMediaErrorCode(downloadErrors)};
 }
 
 export async function transcribeAudioChunks(chunks,token,language=''){
@@ -214,6 +221,9 @@ async function youtubeTeaching(job,token){
   }catch(error){mediaError=String(error?.message||error);}
   finally{if(media?.root)await rm(media.root,{recursive:true,force:true}).catch(()=>{});}
   const fused=fuseYouTubeLearning({captionTranscript:captions.transcript,asrTranscript,visualNotes});
+  if(!fused.transcript){
+    throw new Error(media?.download_error_code||'YOUTUBE_NO_LEARNABLE_CONTENT');
+  }
   return {
     repo:YOUTUBE_TEACHING_REPO,commit:null,
     engine:'jarvis-multimodal-youtube-teaching-v2',
@@ -230,6 +240,7 @@ async function youtubeTeaching(job,token){
     audio_used:fused.audio_used,
     vision_used:fused.vision_used,
     media_analysis_error:mediaError,
+    media_download_error_code:media?.download_error_code||null,
     media_duration_sec:Number(media?.duration||0),
     sampled_visual_frames:Number(media?.frames?.length||0),
     audio_chunks:Number(media?.audioChunks?.length||0)
