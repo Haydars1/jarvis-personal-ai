@@ -79,14 +79,15 @@ export function cloudJobAnswer(row){
       const title=String(result.title||'YouTube videosu').trim();
       const transcript=String(result.transcript||'').trim();
       return [
-        `YT Öğretisi kaynağı işlendi: ${title}`,
-        `Kaynak: ${String(result.source_url||'')}`,
-        result.language?`Altyazı dili: ${result.language}`:'',
-        result.audio_used?'Ses kaydı çözümlendi.':'Ses çözümlemesi kullanılamadı.',
-        result.vision_used?'Görüntü kareleri analiz edildi.':'Görsel analiz kullanılamadı.',
-        result.captions_available?'Altyazı alındı.':'Altyazı bulunamadı.',
-        result.learning_status==='learned'?'Kaynak öğrenme hafızasına kaydedildi.':'Kaydın öğrenme durumu doğrulanamadı.',
-        transcript?`\nTranskript:\n${transcript.slice(0,12000)}`:''
+        'Video doğrudan analiz edildi: ' + title,
+        'Kaynak: ' + String(result.source_url || ''),
+        result.video_analyzed && result.learning_method === 'direct-youtube-video-understanding'
+          ? 'Ses ve görüntü üzerinden işlem adımları, gerekçeleri ve uygulanabilir kurallar çıkarıldı.'
+          : 'Doğrudan video analizinin doğrulandığına dair kanıt yok.',
+        result.learning_status === 'learned'
+          ? 'Öğrenilen bilgiler sonraki sohbetlerde kullanılmak üzere hafızaya kaydedildi.'
+          : 'Kalıcı hafıza kaydı doğrulanamadı.',
+        transcript ? '\nÖğrenme notları:\n' + transcript.slice(0, 12000) : ''
       ].filter(Boolean).join('\n');
     }
     const videos=Array.isArray(result.videos)?result.videos:[];
