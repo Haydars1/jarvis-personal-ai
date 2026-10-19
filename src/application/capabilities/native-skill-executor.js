@@ -32,8 +32,10 @@ function extractYouTubeUrl(text=''){
 }
 
 function youtubeTeachingIntent(text=''){
-  const value=String(text||'').toLocaleLowerCase('tr-TR');
-  const source=parseYouTubeResourceUrl(extractYouTubeUrl(value));
+  const raw=String(text||'');
+  const value=raw.toLocaleLowerCase('tr-TR');
+  // YouTube video IDs are case-sensitive: do not Turkish-lowercase the URL.
+  const source=parseYouTubeResourceUrl(extractYouTubeUrl(raw));
   if(!source)return false;
   // A pasted video link is sufficient; channel fan-out still needs explicit intent.
   if(source.type==='video')return true;
