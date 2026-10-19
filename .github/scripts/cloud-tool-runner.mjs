@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { compileRepositorySkill } from '../../src/lib/repo-skill-compiler.js';
-import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeTranscript, fetchYouTubeChannelIndex, fuseYouTubeLearning } from '../../src/lib/youtube-teaching-runtime.js';
+import { YOUTUBE_TEACHING_REPO, parseYouTubeResourceUrl, fetchYouTubeChannelIndex } from '../../src/lib/youtube-teaching-runtime.js';
 import { executeCodeGraphJob } from './code-graph-job.mjs';
 
 export const ALLOWED_ADAPTERS=Object.freeze({
@@ -22,9 +22,6 @@ const API_TIMEOUT_MS=Math.max(5000,Math.min(60000,Number(process.env.JARVIS_CLOU
 const MAX_CONSECUTIVE_CLAIM_FAILURES=Math.max(1,Math.min(6,Number(process.env.JARVIS_CLOUD_MAX_CLAIM_FAILURES||3)));
 const RETRYABLE_STATUS=new Set([408,425,429,500,502,503,504]);
 const TEXT_EXT=new Set(['.js','.mjs','.cjs','.ts','.tsx','.jsx','.py','.rs','.go','.java','.kt','.kts','.c','.cc','.cpp','.h','.hpp','.cs','.php','.rb','.swift','.sh','.ps1','.json','.yml','.yaml','.toml','.xml','.md','.txt','.ini','.cfg','.sql']);
-const MAX_AUDIO_CHUNKS=24;
-const MAX_VISUAL_FRAMES=48;
-const AUDIO_CHUNK_SECONDS=300;
 let apiRetryCount=0;
 
 function run(command,args,{cwd,quiet=true}={}){
@@ -44,11 +41,11 @@ async function oidcToken(){
   const payload=await response.json();return payload.value;
 }
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-async function api(pathname,{method='GET',body,token,retries=3}={}){
+async function api(pathname,{method='GET',body,token,retries=3,timeoutMs=API_TIMEOUT_MS}={}){
   let lastError;
   for(let attempt=0;attempt<=retries;attempt++){
     try{
-      const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(API_TIMEOUT_MS)});
+      const response=await fetch(BASE+pathname,{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs)});
       const text=await response.text();let payload={};try{payload=text?JSON.parse(text):{}}catch{payload={raw:text}}
       if(response.ok)return payload;
       const error=new Error(payload.error||`HTTP_${response.status}`);
@@ -119,88 +116,8 @@ async function sourceRead(job,ctx){
   return {repo:job.repo,commit:ctx.commit,path:file,content:await readFile(full,'utf8')};
 }
 
-async function findDownloaded(root,prefix){
-  const names=await readdir(root);
-  const name=names.find(item=>item.startsWith(prefix+'.'));
-  return name?path.join(root,name):null;
-}
-
-export function youtubeMediaErrorCode(errors=[]){
-  const messages=(Array.isArray(errors)?errors:[]).map(String).join(' ');
-  if(/sign in to confirm[^.]*bot|not a bot/i.test(messages))return 'YOUTUBE_BOT_VERIFICATION_REQUIRED';
-  return messages?'YOUTUBE_MEDIA_DOWNLOAD_FAILED':null;
-}
-
-export async function downloadYouTubeMedia(sourceUrl){
-  const root=await mkdtemp(path.join(tmpdir(),'jarvis-youtube-'));
-  const audioChunksDir=path.join(root,'audio-chunks'),framesDir=path.join(root,'frames');
-  await mkdir(audioChunksDir,{recursive:true});await mkdir(framesDir,{recursive:true});
-  let audioPath=null,videoPath=null,duration=0,frameInterval=30;
-  const downloadErrors=[];
-  try{
-    await run('yt-dlp',['--no-playlist','--no-progress','--quiet','--no-warnings','--max-filesize','800M','-f','ba[abr<=128]/ba','-o',path.join(root,'audio.%(ext)s'),sourceUrl]);
-    audioPath=await findDownloaded(root,'audio');
-  }catch(error){downloadErrors.push(String(error?.message||error));console.warn('YouTube audio download unavailable:',error?.message||error);}
-  try{
-    await run('yt-dlp',['--no-playlist','--no-progress','--quiet','--no-warnings','--max-filesize','800M','-f','bv*[height<=360]/wv*[height<=360]/bv*','-o',path.join(root,'video.%(ext)s'),sourceUrl]);
-    videoPath=await findDownloaded(root,'video');
-  }catch(error){downloadErrors.push(String(error?.message||error));console.warn('YouTube video download unavailable:',error?.message||error);}
-  if(audioPath){
-    await run('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',audioPath,'-vn','-ac','1','-ar','16000','-b:a','32k','-f','segment','-segment_time',String(AUDIO_CHUNK_SECONDS),'-reset_timestamps','1',path.join(audioChunksDir,'audio-%03d.mp3')]);
-  }
-  if(videoPath){
-    try{
-      const probe=await run('ffprobe',['-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',videoPath]);
-      duration=Math.max(0,Number(probe.stdout)||0);
-    }catch{}
-    frameInterval=Math.max(12,Math.min(120,Math.ceil((duration||1200)/42)));
-    await run('ffmpeg',['-hide_banner','-loglevel','error','-y','-i',videoPath,'-vf',`fps=1/${frameInterval},scale=960:-2`,'-frames:v',String(MAX_VISUAL_FRAMES),'-q:v','5',path.join(framesDir,'frame-%03d.jpg')]);
-  }
-  const audioChunks=(await readdir(audioChunksDir)).filter(name=>name.endsWith('.mp3')).sort().slice(0,MAX_AUDIO_CHUNKS).map((name,index)=>({path:path.join(audioChunksDir,name),timestamp_sec:index*AUDIO_CHUNK_SECONDS}));
-  const frames=(await readdir(framesDir)).filter(name=>name.endsWith('.jpg')).sort().slice(0,MAX_VISUAL_FRAMES).map((name,index)=>({path:path.join(framesDir,name),timestamp_sec:index*frameInterval}));
-  return {root,audioChunks,frames,duration,frameInterval,download_error_code:youtubeMediaErrorCode(downloadErrors)};
-}
-
-export async function transcribeAudioChunks(chunks,token,language=''){
-  const parts=[];
-  for(const chunk of (Array.isArray(chunks)?chunks:[]).slice(0,MAX_AUDIO_CHUNKS)){
-    try{
-      const data=(await readFile(chunk.path)).toString('base64');
-      const result=await api('/api/learning/youtube/media/analyze',{method:'POST',token,body:{kind:'audio',data,language:String(language||'').split('-')[0],timestamp_sec:chunk.timestamp_sec}});
-      const text=String(result?.text||'').trim();if(text)parts.push(`[${Math.round(chunk.timestamp_sec)}s] ${text}`);
-    }catch(error){console.warn(`Audio ASR failed at ${chunk.timestamp_sec}s:`,error?.message||error);}
-  }
-  return parts.join('\n').trim();
-}
-
-function parseVisionNotes(text,fallbackTimestamp=0){
-  const output=[];
-  for(const raw of String(text||'').split(/\r?\n/)){
-    const line=raw.trim();if(!line)continue;
-    const match=line.match(/^\[(\d+(?:\.\d+)?)\s*(?:s|sn|sec|saniye)?\]\s*(.+)$/i);
-    if(match)output.push({timestamp_sec:Number(match[1])||0,text:match[2].trim()});
-    else output.push({timestamp_sec:fallbackTimestamp,text:line});
-  }
-  return output;
-}
-
-export async function analyzeVisualFrames(frames,token){
-  const notes=[];
-  const list=(Array.isArray(frames)?frames:[]).slice(0,MAX_VISUAL_FRAMES);
-  for(let i=0;i<list.length;i+=6){
-    const batch=list.slice(i,i+6),payload=[];
-    for(const frame of batch){
-      try{payload.push({timestamp_sec:frame.timestamp_sec,mime:'image/jpeg',data:(await readFile(frame.path)).toString('base64')});}catch{}
-    }
-    if(!payload.length)continue;
-    try{
-      const result=await api('/api/learning/youtube/media/analyze',{method:'POST',token,body:{kind:'frames',frames:payload}});
-      notes.push(...parseVisionNotes(result?.text,payload[0].timestamp_sec));
-    }catch(error){console.warn(`Vision analysis failed near ${payload[0].timestamp_sec}s:`,error?.message||error);}
-  }
-  return notes.slice(0,120);
-}
-
+// YouTube videos are never downloaded or stored by JARVIS.
+// Gemini reads the public video URL directly; GitHub only dispatches the URL.
 async function youtubeTeaching(job,token){
   if(String(job.repo||'').toLowerCase()!==YOUTUBE_TEACHING_REPO)throw new Error('YOUTUBE_TEACHING_REPO_NOT_ALLOWED');
   const sourceUrl=String(job.input?.url||job.input?.source_url||'').trim();
@@ -209,41 +126,15 @@ async function youtubeTeaching(job,token){
     const learned=await fetchYouTubeChannelIndex(sourceUrl,{limit:50});
     return {repo:YOUTUBE_TEACHING_REPO,commit:null,engine:'jarvis-clean-room-youtube-teaching',provenance_repo:YOUTUBE_TEACHING_REPO,third_party_code_executed:false,...learned};
   }
-
-  const captions=await fetchYouTubeTranscript(sourceUrl).catch(error=>({kind:'video',source_url:parsed.url,video_id:parsed.videoId,title:'YouTube eğitimi',captions_available:false,transcript:'',language:null,caption_error:String(error?.message||error)}));
-  let media=null,asrTranscript='',visualNotes=[],mediaError=null;
-  try{
-    media=await downloadYouTubeMedia(sourceUrl);
-    [asrTranscript,visualNotes]=await Promise.all([
-      transcribeAudioChunks(media.audioChunks,token,captions.language),
-      analyzeVisualFrames(media.frames,token)
-    ]);
-  }catch(error){mediaError=String(error?.message||error);}
-  finally{if(media?.root)await rm(media.root,{recursive:true,force:true}).catch(()=>{});}
-  const fused=fuseYouTubeLearning({captionTranscript:captions.transcript,asrTranscript,visualNotes});
-  if(!fused.transcript){
-    throw new Error(media?.download_error_code||'YOUTUBE_NO_LEARNABLE_CONTENT');
-  }
+  const canonical='https://www.youtube.com/watch?v='+parsed.videoId;
+  const learned=await api('/api/learning/youtube/direct/analyze',{
+    method:'POST',token,retries:0,timeoutMs:130000,body:{url:canonical}
+  });
+  if(!learned?.video_analyzed||learned?.learning_method!=='direct-youtube-video-understanding'||!learned?.transcript)
+    throw new Error('YOUTUBE_DIRECT_ANALYSIS_INCOMPLETE');
   return {
-    repo:YOUTUBE_TEACHING_REPO,commit:null,
-    engine:'jarvis-multimodal-youtube-teaching-v2',
-    provenance_repo:YOUTUBE_TEACHING_REPO,
-    third_party_code_executed:false,
-    ...captions,
-    caption_transcript:String(captions.transcript||''),
-    asr_transcript:asrTranscript,
-    visual_notes:visualNotes,
-    transcript:fused.transcript,
-    modalities:fused.modalities,
-    primary_transcript:fused.primary_transcript,
-    captions_used:fused.captions_used,
-    audio_used:fused.audio_used,
-    vision_used:fused.vision_used,
-    media_analysis_error:mediaError,
-    media_download_error_code:media?.download_error_code||null,
-    media_duration_sec:Number(media?.duration||0),
-    sampled_visual_frames:Number(media?.frames?.length||0),
-    audio_chunks:Number(media?.audioChunks?.length||0)
+    repo:YOUTUBE_TEACHING_REPO,commit:null,engine:'jarvis-direct-youtube-learning-v3',
+    provenance_repo:YOUTUBE_TEACHING_REPO,third_party_code_executed:false,...learned
   };
 }
 async function executeJob(job,ctx,token){
