@@ -1,0 +1,31 @@
+name: YouTube Real Video Media Smoke
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/youtube-live-smoke.mjs'
+      - '.github/workflows/youtube-live-smoke.yml'
+      - '.github/scripts/cloud-tool-runner.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-video:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'feature/youtube-link-auto-learning-20261019'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install media tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python3 -m pip install --user --disable-pip-version-check yt-dlp
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Smoke-test real video download and frame/audio extraction
+        run: node scripts/youtube-live-smoke.mjs
