@@ -162,6 +162,16 @@ function publicSkill(row){
   return {...resolved,...skillExecutionState(resolved)};
 }
 function validRepo(repo){return CURATED_REPOS.has(String(repo||'').toLowerCase());}
+export function findPendingYouTubeJob(rows=[],sourceUrl=''){
+  const target=parseYouTubeResourceUrl(sourceUrl);
+  if(!target)return null;
+  return (Array.isArray(rows)?rows:[]).find(job=>{
+    const previous=parseYouTubeResourceUrl(String(parse(job.input_json,{}).url||''));
+    return previous&&previous.type===target.type&&(
+      target.type==='video'?previous.videoId===target.videoId:previous.url===target.url
+    );
+  })||null;
+}
 async function queueCloudJob(env,{adapterId,repo,commit=null,input={}}){
   const ts=now(),id=uid();
   await execute(env,'INSERT INTO cloud_tool_jobs(id,adapter_id,repo,commit_sha,input_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',id,adapterId,repo,commit,JSON.stringify(input||{}),'queued',ts,ts);
@@ -296,12 +306,7 @@ export function createCloudCapabilityExecution(core){
           const canonical=source.type==='video'?`https://www.youtube.com/watch?v=${source.videoId}`:source.url;
           input={...input,url:canonical};
           const pending=await queryAll(env,"SELECT * FROM cloud_tool_jobs WHERE adapter_id='youtube-teaching' AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 200");
-          const existing=pending.find(job=>{
-            const previous=parseYouTubeResourceUrl(String(parse(job.input_json,{}).url||''));
-            return previous&&previous.type===source.type&&(
-              source.type==='video'?previous.videoId===source.videoId:previous.url===source.url
-            );
-          });
+          const existing=findPendingYouTubeJob(pending,canonical);
           if(existing)return jsonResponse({job:publicJob(existing),deduplicated:true},200);
         }
         return jsonResponse({job:await queueCloudJob(env,{adapterId,repo,commit,input})},201);
