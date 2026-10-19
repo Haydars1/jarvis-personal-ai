@@ -142,3 +142,18 @@ test('untrusted YouTube lookalike URL does not trigger the built-in job',async()
   assert.equal(data.reply,'ordinary chat');
   assert.equal(fallbackCalled,true);
 });
+
+test('a blocked YouTube job reports the bot challenge rather than success',async()=>{
+  const core={fetch:async req=>{
+    const path=new URL(req.url).pathname;
+    if(path==='/api/tools/cloud/jobs')return Response.json({job:{id:'blocked-job',status:'queued'}},{status:201});
+    if(path==='/api/tools/cloud/jobs/blocked-job')return Response.json({job:{id:'blocked-job',status:'failed',error:'YOUTUBE_BOT_VERIFICATION_REQUIRED'}});
+    throw new Error('Unexpected path '+path);
+  }};
+  const handle=createNativeSkillFirstChat(core,async()=>{throw new Error('Must not fallback');});
+  const req=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'https://www.youtube.com/watch?v=jNQXAC9IVRw'})});
+  const result=await (await handle(req,{},{})).json();
+  assert.equal(result.learning_status,'failed');
+  assert.match(result.reply,/bot doğrulaması/);
+  assert.doesNotMatch(result.reply,/öğrenme işi tamamlandı/);
+});
