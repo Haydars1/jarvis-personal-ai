@@ -128,7 +128,11 @@ async function executeYouTubeTeachingSkill(core,req,env,ctx,text,skill){
     return skillPayload(text,skill,current?.answer||'YouTube öğrenme işi tamamlandı. Kaydedilen bilgileri sorabilirsin.',{job,learning_status:'completed'});
   }
   if(job.status==='failed'){
-    return skillPayload(text,skill,'YouTube video analizi başarısız oldu; bu kaynak öğrenilemedi.',{job,learning_status:'failed'});
+    const blocked=String(job.error||'').includes('YOUTUBE_BOT_VERIFICATION_REQUIRED');
+    const reply=blocked
+      ? 'YouTube, sunucudan video indirmeyi bot doğrulaması nedeniyle engelledi. Video henüz öğrenilemedi; erişilebilir altyazı veya yüklenmiş video gerekir.'
+      : 'YouTube video analizi başarısız oldu; bu kaynak öğrenilemedi.';
+    return skillPayload(text,skill,reply,{job,learning_status:'failed'});
   }
   const jobId=String(job.id).slice(0,8);
   const reply=`YouTube bağlantısı öğrenme kuyruğuna alındı (iş: ${jobId}). Ses, video kareleri ve erişilebilen altyazı analiz edilecek; işlem henüz tamamlanmadı.`;
