@@ -47,6 +47,7 @@ test('YouTube teaching accepts a pasted video URL without a special command',()=
   };
   assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),true);
   assert.equal(canExecuteNativeSkill(skill,'https://youtu.be/dQw4w9WgXcQ'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/watch?v=jNQXAC9IVRw'),true,'uppercase I in video ID remains valid');
   assert.equal(canExecuteNativeSkill(skill,'Bak: https://www.youtube.com/shorts/dQw4w9WgXcQ'),true);
   assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi: https://www.youtube.com/watch?v=dQw4w9WgXcQ bu videodan öğren'),true);
   assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/@example'),false,'channel bulk ingestion requires explicit intent');
