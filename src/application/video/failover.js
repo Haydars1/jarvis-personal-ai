@@ -1,3 +1,4 @@
+import { buildHyperframesProject } from './hyperframes-project.js';
 import {
   decryptCredential,
   encryptCredential,
@@ -262,6 +263,13 @@ export function createVideoFailover(core) {
       const url = new URL(req.url), path = url.pathname, method = req.method;
       if (path.startsWith('/api/video-pool/')) {
         if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
+        if (path === '/api/video-pool/hyperframes/project' && method === 'POST') {
+          try { return jsonResponse(buildHyperframesProject(await readJson(req))); }
+          catch (error) {
+            if (error instanceof RangeError || error instanceof TypeError) return jsonResponse({ error:error.message },400);
+            throw error;
+          }
+        }
         if (path === '/api/video-pool/status' && method === 'GET') return poolStatus(env);
         if (path === '/api/video-pool/replicate/setup' && method === 'POST') return setupReplicate(req, env);
         if (path === '/api/video-pool/replicate/test' && method === 'POST') return testReplicate(env);
