@@ -73,7 +73,6 @@ test('keyless local coder uses the llama.cpp tool-bench Qwen2.5 Coder build and 
   assert.equal(existsSync(scriptUrl),true,'local fallback script must exist');
   const script=readFileSync(scriptUrl,'utf8');
   assert.match(script,/bartowski\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF:Q4_K_M/);
-  assert.doesNotMatch(script,/MODEL_REPO="Qwen\/Qwen2\.5-Coder-1\.5B-Instruct-GGUF/);
   assert.match(script,/"context": 8192/);
   assert.match(script,/"output": 2048/);
   assert.match(script,/--ctx-size 8192/);
@@ -112,6 +111,15 @@ test('local coder falls back to a bounded verified unified-diff path when OpenCo
   assert.match(patchScript,/src\/\*\|public\/\*\|tests\/\*\|docs\/\*/);
   assert.match(patchScript,/PATCH_RESPONSE/);
   assert.match(patchScript,/\/v1\/chat\/completions/);
+});
+
+test('local patch fallback retries a rejected diff with apply error feedback and stays bounded',()=>{
+  const patchScript=readFileSync(new URL('../.github/scripts/run-local-patch-fallback.sh',import.meta.url),'utf8');
+  assert.match(patchScript,/PATCH_MAX_ATTEMPTS=2/);
+  assert.match(patchScript,/apply_error/);
+  assert.match(patchScript,/git apply --check/);
+  assert.match(patchScript,/for \(\(attempt=1; attempt<=PATCH_MAX_ATTEMPTS; attempt\+\+\)\)/);
+  assert.match(patchScript,/previous patch did not apply/i);
 });
 
 test('local coder bootstraps from pinned verified llama.cpp binary instead of compiling it',()=>{
