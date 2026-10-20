@@ -59,6 +59,7 @@
   }
 
   let activeCloudRender=null;
+  try{activeCloudRender=localStorage.getItem('jarvis.hyperframes.active-job')||null}catch{}
   let cloudPollTimer=null;
   function hfValue(id){return document.querySelector('#'+id)?.value||''}
   function setCloudState(message){
@@ -78,6 +79,7 @@
         format:hfValue('hfFormat'),duration:Number(hfValue('hfDuration'))};
       const x=await api('/api/video-pool/hyperframes/render',{method:'POST',body:JSON.stringify(input)});
       activeCloudRender=x.id;
+      try{localStorage.setItem('jarvis.hyperframes.active-job',activeCloudRender)}catch{}
       setCloudState('MP4 işi kuyruğa alındı. Kod: '+x.id+'. Durum otomatik yenileniyor.');
       scheduleCloudPoll();
     }catch(e){setCloudState('MP4 render başlatılamadı: '+e.message);toast(e.message)}
@@ -156,5 +158,6 @@
     if(player){player.src=url;player.style.display='block'}
     setCloudState('MP4 hazır. Video indirildi ve önizlemeye açıldı.');
   }
+  if(activeCloudRender)setTimeout(()=>refreshCloudRender().catch(()=>{}),2000);
   window.jarvisLoadVideoPool=loadPool;setTimeout(loadPool,1200);window.addEventListener('focus',()=>loadPool());
 })();
