@@ -1,4 +1,4 @@
-const BASE=String(process.env.JARVIS_URL||'https://jarvis-personal-ai.haydojarvis.workers.dev').replace(/\/$/,'');
+const BASE=String(process.env.JARVIS_URL||'https://hayirlievlad.haydojarvis.workers.dev').replace(/\/$/,'');
 
 async function oidcToken(){
   const url=process.env.ACTIONS_ID_TOKEN_REQUEST_URL,token=process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
