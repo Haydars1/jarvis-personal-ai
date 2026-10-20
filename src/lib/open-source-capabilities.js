@@ -75,6 +75,7 @@ const BASE_CURATED_CAPABILITY_SEEDS = Object.freeze([
   { repo: 'comfyanonymous/ComfyUI', category: 'image-generation', executionTarget: 'local-gpu' },
   { repo: 'Lightricks/LTX-Video', category: 'video-generation', executionTarget: 'local-gpu' },
   { repo: 'Wan-Video/Wan2.1', category: 'video-generation', executionTarget: 'local-gpu' },
+  { repo: 'heygen-com/hyperframes', category: 'video-editing-render', executionTarget: 'local-cpu', autoExecute: false, restriction: 'HTML video authoring supported via /api/video-pool/hyperframes/project; MP4 rendering requires approved local Chromium/FFmpeg execution. No arbitrary source auto-run or Cloudflare Worker rendering.' },
   { repo: 'remotion-dev/remotion', category: 'video-editing-render', executionTarget: 'local-cpu' },
   { repo: 'FFmpeg/FFmpeg', category: 'video-editing-render', executionTarget: 'local-cpu' },
   { repo: 'ggerganov/whisper.cpp', category: 'speech-to-text', executionTarget: 'local-cpu' },
