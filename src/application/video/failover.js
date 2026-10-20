@@ -1,4 +1,5 @@
 import { buildHyperframesProject } from './hyperframes-project.js';
+import { startHyperframesCloudRender, hyperframesCloudStatus, hyperframesCloudDownload } from './hyperframes-cloud.js';
 import {
   decryptCredential,
   encryptCredential,
@@ -263,6 +264,11 @@ export function createVideoFailover(core) {
       const url = new URL(req.url), path = url.pathname, method = req.method;
       if (path.startsWith('/api/video-pool/')) {
         if (!(await authed(req, env, ctx))) return core.fetch(req, env, ctx);
+        if (path === '/api/video-pool/hyperframes/render' && method === 'POST') return startHyperframesCloudRender(env, req);
+        if (path.startsWith('/api/video-pool/hyperframes/render-status/') && method === 'GET')
+          return hyperframesCloudStatus(env, path.slice('/api/video-pool/hyperframes/render-status/'.length));
+        if (path.startsWith('/api/video-pool/hyperframes/render-download/') && method === 'GET')
+          return hyperframesCloudDownload(env, path.slice('/api/video-pool/hyperframes/render-download/'.length));
         if (path === '/api/video-pool/hyperframes/project' && method === 'POST') {
           try { return jsonResponse(buildHyperframesProject(await readJson(req))); }
           catch (error) {
