@@ -16,8 +16,8 @@ const names = {
   ecu_part_number: ['ecupartnumber','ecupartno','partnumber','oempartnumber','oemnumber','ecuparcanumarasi','teilenummer','ersatzteilnummer','steuergeraetnummer','steuergeratnummer','boschpartnumber','parcanumarasi'],
   hw: ['hardware','hardwarenumber','hardwarenummer','hardwareversion','hwnumber','hwno','hw'],
   sw: ['software','softwarenumber','softwareversion','softwarenummer','softwarestand','swnumber','swno','sw'],
-  ecu_type: ['ecutype','ecumodel','ecumodeli','controlunittype','steuergeraettyp','steuergerattyp','ecufamily'],
-  vin: ['vin','fahrgestellnummer','vehicleidentificationnumber','sasenumarasi']
+  ecu_type: ['ecutype','ecumodel','ecumodeli','controlunittype','steuergeraettyp','steuergerattyp','ecufamily']
+  // Do not forward vehicle VIN by default; only technical ECU identification is needed.
 };
 export function parseEcuIdentity(input) {
   const raw = typeof input === 'string' ? input : JSON.stringify(input || {});
