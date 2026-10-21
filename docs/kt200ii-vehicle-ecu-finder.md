@@ -55,3 +55,7 @@ Jarvis masaustu ve mobil menülerinde **KT200 II ECU Bul**. Eski **ECU Kataloğu
 ### Denetimler
 
 `tests/ecu-identity-and-protocol.test.js` metin/JSON raporu, dosya kaynağı, rapor eskimesi, yayınlanmış protokol tablosu ve otomatik doğrulanmayan kaynak durumlarını test eder. `npm run check` ve Github Actions reliability checks geçmeli. Bu yeni düzeneğe yönelik gerçek araç testi yapılmadıkça **canlı USB cihaz entegrasyonu doğrulandı** denemez.
+
+### Telefon/tablet dosya aktarımı
+
+Yeni ECU Bul ekranındaki **ECU ID RAPORU SEÇ** tuşu, TXT/JSON raporunu doğrudan telefondan seçip kimlik alanlarını otomatik doldurur. `POST /api/ecu/compatibility/parse-report` yalnızca giriş yapılmış kullanıcının kısa (150 KB'dan küçük) rapor metnini işler, cihaz komutu oluşturmaz. PDF raporlar sohbet eki üzerinden metni çıkarılmış olarak gönderildiğinde Thinkdiag/Jarvis ECU akışında ECU kimliği olarak değerlendirilir; bu da belge içe aktarmadır, canlı OBD kimliği değildir.
