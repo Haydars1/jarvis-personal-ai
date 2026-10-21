@@ -12,6 +12,14 @@ function safeText(value, limit = MAX_TEXT) {
 function folded(value) {
   return safeText(value).normalize('NFKC').toLocaleLowerCase('en-US');
 }
+function canonicalBrand(value) {
+  const v = folded(value);
+  if (v === 'vw' || v === 'volkswagen') return 'volkswagen';
+  if (v === 'mercedes' || v === 'mercedes-benz') return 'mercedes';
+  if (v === 'seat' || v === 'cupra') return v;
+  return v;
+}
+function modelToken(value) { return folded(value).split(/[\\s,/]+/).filter(Boolean)[0] || ''; }
 function wildcard(value) {
   return '%' + folded(value).replace(/[\\%_]/g, '\\$&') + '%';
 }
@@ -21,11 +29,11 @@ function validYear(value) {
   return Number.isInteger(year) && year >= 1980 && year <= 2035 ? year : NaN;
 }
 export function rankVehicleCandidate(record, vehicle) {
-  const brand = folded(record.brand);
+  const brand = canonicalBrand(record.brand);
   const model = folded(record.model);
   const engine = folded(record.engine);
-  const wantBrand = folded(vehicle.brand);
-  const wantModel = folded(vehicle.model);
+  const wantBrand = canonicalBrand(vehicle.brand);
+  const wantModel = modelToken(vehicle.model);
   const wantEngine = folded(vehicle.engine);
   if (!wantBrand || !wantModel || !brand.includes(wantBrand) || !model.includes(wantModel)) return null;
   let score = 2;
@@ -56,7 +64,7 @@ async function candidates(env, params) {
   const part = normalizePartNumber(params.ecu_part_number);
   if (!part && (!brand || !model)) return { error: 'BRAND_MODEL_OR_ECU_PART_REQUIRED' };
   const clause = part ? 'normalized_number = ?' : "LOWER(brand) LIKE ? ESCAPE '\\' AND LOWER(model) LIKE ? ESCAPE '\\'";
-  const args = part ? [part] : [wildcard(brand), wildcard(model)];
+  const args = part ? [part] : [wildcard(brand.toLowerCase() === 'vw' ? 'volkswagen' : brand), wildcard(modelToken(model))];
   try {
     const rows = await queryAll(env, 'SELECT part_number,ecu_type,manufacturer,brand,model,engine,software_part_number,software_version,source_url,description FROM ecu_part_catalog WHERE ' + clause + ' LIMIT 150', ...args);
     const ranked = rows.map(row => part ? {
