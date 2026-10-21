@@ -1,0 +1,71 @@
+name: HyperFrames production E2E verification
+run-name: Production MP4 dispatch verification
+on:
+  push:
+    branches:
+      - test/hyperframes-live-e2e-20261021
+permissions:
+  contents: read
+  actions: write
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      JOB_ID: '33333333-3333-4333-8333-333333333333'
+    steps:
+      - name: Check live video UI and anonymous auth boundary
+        run: |
+          set -euo pipefail
+          curl -fL --retry 2 --max-time 20 -o /tmp/jarvis-ui.js https://hayirlievlad.haydojarvis.workers.dev/video-pool-ui.js
+          grep -q 'MP4 BULUTTA OLUŞTUR' /tmp/jarvis-ui.js
+          node --input-type=module -e '
+            const u="https://hayirlievlad.haydojarvis.workers.dev";
+            for(const p of ["/","/api/auth/status","/api/video-pool/hyperframes/render-status/33333333-3333-4333-8333-333333333333"]){
+              const r=await fetch(u+p,{signal:AbortSignal.timeout(15000)});
+              const s=await r.text();
+              console.log("LIVE_HTTP",p,r.status,r.headers.get("content-type"),s.length);
+              if(p==="/"&&!r.ok)throw Error("NO_LIVE_UI");
+              if(p==="/api/auth/status"&&!r.ok)throw Error("NO_AUTH_STATUS");
+              if(p.includes("render-status")&&s.includes("\"download_ready\":true"))throw Error("UNAUTHORIZED_DATA");
+            }'
+      - name: Trigger the production HyperFrames video workflow
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/hyperframes-render.yml/dispatches" \
+            -f ref=main \
+            -f "inputs[job_id]=$JOB_ID" \
+            -f 'inputs[brand]=6006 PERFORMANCE' \
+            -f 'inputs[title]=MP4 production route verification' \
+            -f 'inputs[subtitle]=Verified HyperFrames cloud workflow' \
+            -f 'inputs[format]=reels' \
+            -f 'inputs[duration]=5'
+          echo "PRODUCTION_RENDER_DISPATCHED $JOB_ID"
+      - name: Confirm completed render and download a valid MP4
+        run: |
+          set -euo pipefail
+          run_id=""
+          status=""
+          for i in $(seq 1 75); do
+            rows="$(gh run list -R "$GITHUB_REPOSITORY" -w hyperframes-render.yml -e workflow_dispatch -L 40 --json databaseId,displayTitle,status,conclusion)"
+            run_id="$(jq -r --arg id "$JOB_ID" 'map(select(.displayTitle | contains($id))) | first | .databaseId // empty' <<<"$rows")"
+            status="$(jq -r --arg id "$JOB_ID" 'map(select(.displayTitle | contains($id))) | first | .status // empty' <<<"$rows")"
+            if [ -n "$run_id" ] && [ "$status" = completed ]; then break; fi
+            if [ "$((i%5))" -eq 1 ]; then echo "PROD_VIDEO_RENDER run=$run_id status=$status"; fi
+            sleep 10
+          done
+          test -n "$run_id"
+          test "$status" = completed
+          gh run view "$run_id" -R "$GITHUB_REPOSITORY" --json conclusion --jq '.conclusion' | grep -q '^success$'
+          mkdir -p "$RUNNER_TEMP/hyperframes-video"
+          gh run download "$run_id" -R "$GITHUB_REPOSITORY" -n "hyperframes-$JOB_ID" -D "$RUNNER_TEMP/hyperframes-video"
+          test -s "$RUNNER_TEMP/hyperframes-video/final.mp4"
+          node -e '
+            const fs=require("fs");
+            const p=process.env.RUNNER_TEMP+"/hyperframes-video/final.mp4";
+            const b=fs.readFileSync(p);
+            if(b.length<128 || b.length>20*1024*1024 || b.toString("ascii",4,8)!=="ftyp") process.exit(2);
+            console.log("VERIFIED_PRODUCTION_MP4",b.length,"bytes");
+          '
+          echo "PRODUCTION_WORKFLOW_RUN https://github.com/$GITHUB_REPOSITORY/actions/runs/$run_id"
