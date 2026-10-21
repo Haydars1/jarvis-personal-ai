@@ -1,5 +1,6 @@
 import { execute, jsonResponse, queryAll, readJson } from '../../lib/runtime.js';
 import { normalizePartNumber } from './partnumber-catalog.js';
+import { checkKt200Live } from './kt200-live-source.js';
 
 export const KT200_SUPPORT_URL = 'https://kt200ii.com/support-list/';
 const METHODS = Object.freeze(['OBD', 'BENCH', 'BOOT', 'JTAG', 'BDM']);
@@ -85,6 +86,7 @@ async function lookup(url, env) {
     model: safeText(url.searchParams.get('model')),
     engine: safeText(url.searchParams.get('engine')),
     power: safeText(url.searchParams.get('power'), 20),
+    ecu_type: safeText(url.searchParams.get('ecu_type')),
     ecu_part_number: safeText(url.searchParams.get('ecu_part_number')),
     hw: safeText(url.searchParams.get('hw')),
     sw: safeText(url.searchParams.get('sw')),
@@ -98,8 +100,9 @@ async function lookup(url, env) {
     const rows = await queryAll(env, 'SELECT part_number,ecu_type,hw,sw,method,read_type,source_url,notes,created_at FROM ecu_kt200_protocol_notes WHERE part_normalized=? ORDER BY created_at DESC LIMIT 30', normalizePartNumber(params.ecu_part_number));
     notes = rows.map(row => ({ ...row, evidence_status: classifyProtocolEvidence(row, params), verification: 'OPERATOR_ENTERED_NOT_LIVE_KT200' }));
   }
+  const kt200_live = await checkKt200Live(params);
   return jsonResponse({
-    ok: true, vehicle: params, ...matches, notes,
+    ok: true, vehicle: params, ...matches, notes, kt200_live,
     official_support_url: KT200_SUPPORT_URL,
     protocol_verified_by_vehicle: false,
     warning: 'Model/yil/motor tek basina ECU veya KT200 II OBD/Bench/Boot destegini dogrulamaz. ECU ID ve guncel protokol listesi kontrol edilmeli.'
