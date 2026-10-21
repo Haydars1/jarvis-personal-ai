@@ -1,6 +1,7 @@
 import { execute, jsonResponse, queryAll, readJson } from '../../lib/runtime.js';
 import { normalizePartNumber } from './partnumber-catalog.js';
 import { checkKt200Live } from './kt200-live-source.js';
+import { parseEcuIdentity } from './ecu-identity-parser.js';
 
 export const KT200_SUPPORT_URL = 'https://kt200ii.com/support-list/';
 const METHODS = Object.freeze(['OBD', 'BENCH', 'BOOT', 'JTAG', 'BDM']);
@@ -142,6 +143,13 @@ export function createEcuCompatibilityAssistant(core) {
         await ensureNoteSchema(env);
         if (url.pathname === '/api/ecu/compatibility/lookup' && req.method === 'GET') return lookup(url, env);
         if (url.pathname === '/api/ecu/compatibility/note' && req.method === 'POST') return saveNote(req, env);
+        if (url.pathname === '/api/ecu/compatibility/parse-report' && req.method === 'POST') {
+          const body = await readJson(req);
+          const raw = typeof body?.text === 'string' ? body.text : body?.identity;
+          if (!raw) return jsonResponse({ok:false,error:'REPORT_TEXT_REQUIRED'},400);
+          try { return jsonResponse({ok:true,identity:parseEcuIdentity(raw),source_kind:'USER_UPLOADED_REPORT',direct_usb_read:false}); }
+          catch(error){ return jsonResponse({ok:false,error:String(error?.message || error)},422); }
+        }
         return jsonResponse({ ok: false, error: 'NOT_FOUND' }, 404);
       } catch (err) {
         return jsonResponse({ ok: false, error: 'ECU_COMPATIBILITY_ERROR', detail: String(err?.message || err).slice(0, 180) }, 500);
