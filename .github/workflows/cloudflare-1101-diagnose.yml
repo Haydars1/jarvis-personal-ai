@@ -1,0 +1,59 @@
+name: Cloudflare production exception diagnosis
+on:
+  push:
+    branches:
+      - test/hyperframes-live-e2e-20261021
+    paths:
+      - '.github/workflows/cloudflare-1101-diagnose.yml'
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Read deployed Worker version and timestamp
+        continue-on-error: true
+        run: npx wrangler deployments list --name hayirlievlad
+      - name: Capture only runtime exceptions from Cloudflare tail
+        run: |
+          set -euo pipefail
+          timeout 40s npx wrangler tail hayirlievlad --format json > "$RUNNER_TEMP/cloudflare-tail.jsonl" 2> "$RUNNER_TEMP/tail-stderr.txt" &
+          pid=$!
+          sleep 10
+          for p in / /api/auth/status /video-pool-ui.js; do
+            curl -sS --max-time 12 -o /dev/null -w "TRIGGER $p HTTP=%{http_code}\n" "https://hayirlievlad.haydojarvis.workers.dev$p" || true
+          done
+          sleep 12
+          kill "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const root=process.env.RUNNER_TEMP;
+          const stderr=readFileSync(join(root,'tail-stderr.txt'),'utf8');
+          const raw=readFileSync(join(root,'cloudflare-tail.jsonl'),'utf8');
+          if(stderr.includes('Error'))console.log('TAIL_DIAGNOSTIC_ERROR',stderr.replace(/\s+/g,' ').slice(0,500));
+          const eventLines=raw.split('\n').filter(Boolean);
+          let n=0;
+          for(const line of eventLines) {
+            let x;try{x=JSON.parse(line)}catch{continue}
+            const exceptionList=x.exceptions||x.logs?.filter(l=>l.level==='error')||[];
+            for(const e of exceptionList){
+              const msg=String(e.message||e.msg||'').slice(0,1200);
+              const stack=String(e.stack||'').split('\n').slice(0,5).join(' | ').slice(0,850);
+              console.log('WORKER_EXCEPTION',String(e.name||e.level||'unknown'),msg,stack);
+              n++;
+            }
+          }
+          console.log('TAIL_EVENTS',eventLines.length,'EXCEPTIONS',n);
+          NODE
