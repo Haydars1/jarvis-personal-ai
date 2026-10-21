@@ -1,6 +1,7 @@
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseEcuIdentity } from '../src/application/ecu/ecu-identity-parser.js';
 
 // Reports are read from an operator-selected local path. No undocumented KT200/Thinkdiag USB calls.
@@ -76,4 +77,4 @@ export function startServer() {
     return json(res, 404, { ok:false,error:'NOT_FOUND' });
   }).listen(PORT, HOST, () => console.log('ECU report adapter ready at http://' + HOST + ':' + PORT + ' (report: ' + (REPORT ? path.basename(REPORT) : 'not configured') + ')'));
 }
-if (process.argv[1] && import.meta.url === new URL('file://' + path.resolve(process.argv[1])).href) startServer();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) startServer();
