@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite, executeNativeSkill } from '../src/application/capabilities/native-skill-executor.js';
+import { chooseExecutableSkill, canExecuteNativeSkill, deviceIntentIsWrite, executeNativeSkill, createNativeSkillFirstChat } from '../src/application/capabilities/native-skill-executor.js';
 
 const skill=(adapter,extra={})=>({adapter_status:'ready',requires_paid_api:false,native_adapter:{id:adapter},repo:'example/tool',...extra});
 
@@ -86,4 +86,74 @@ test('application places native skill gate before graph-aware chat and orchestra
   assert.match(source,/const orchestratedChat = createEmergencyChatFallback\(createChatOrchestrator\(ecuCore\)\)/);
   assert.match(source,/const nativeSkillChat = createNativeSkillFirstChat\(ecuCore, orchestratedChat\)/);
   assert.match(source,/const handleChat = createCodeGraphChatRuntime\(nativeSkillChat\)/);
+});
+
+test('pasting a YouTube video starts a job without repository skill discovery or LLM fallback',async()=>{
+  const calls=[];
+  const core={fetch:async req=>{
+    const path=new URL(req.url).pathname;
+    calls.push(path);
+    if(path==='/api/tools/cloud/jobs'&&req.method==='POST'){
+      const body=await req.json();
+      assert.equal(body.adapter_id,'youtube-teaching');
+      assert.equal(body.repo,'artemnovitckii/notebooklm-coach');
+      assert.equal(body.input.url,'https://youtu.be/dQw4w9WgXcQ');
+      return Response.json({job:{id:'yt-job-1',adapter_id:'youtube-teaching',status:'queued'}},{status:201});
+    }
+    if(path==='/api/tools/cloud/jobs/yt-job-1')
+      return Response.json({job:{id:'yt-job-1',adapter_id:'youtube-teaching',status:'queued'}});
+    throw new Error('Unexpected route: '+path);
+  }};
+  let fallbackCalled=false;
+  const handle=createNativeSkillFirstChat(core,async()=>{fallbackCalled=true;return Response.json({reply:'not expected'});});
+  const message='https://youtu.be/dQw4w9WgXcQ';
+  const req=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:message})});
+  const response=await handle(req,{},{});
+  const data=await response.json();
+  assert.equal(fallbackCalled,false);
+  assert.deepEqual(calls,['/api/tools/cloud/jobs','/api/tools/cloud/jobs/yt-job-1']);
+  assert.equal(data.job.id,'yt-job-1');
+  assert.equal(data.learning_status,'queued');
+  assert.match(data.reply,/kuyruğuna alındı/);
+  assert.doesNotMatch(data.reply,/tamamlandı|öğrenildi/i);
+});
+
+test('YouTube enqueue failure does not falsely claim a video was learned',async()=>{
+  const core={fetch:async req=>{
+    assert.equal(new URL(req.url).pathname,'/api/tools/cloud/jobs');
+    return Response.json({error:'AUTH_REQUIRED'},{status:401});
+  }};
+  let fallbackCalled=false;
+  const handle=createNativeSkillFirstChat(core,async()=>{fallbackCalled=true;return Response.json({reply:'unexpected'});});
+  const req=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'https://www.youtube.com/watch?v=dQw4w9WgXcQ'})});
+  const response=await handle(req,{},{});
+  const data=await response.json();
+  assert.equal(data.learning_status,'failed');
+  assert.match(data.reply,/başlatılamadı/);
+  assert.equal(fallbackCalled,false);
+});
+
+test('untrusted YouTube lookalike URL does not trigger the built-in job',async()=>{
+  const core={fetch:async()=>{throw new Error('No calls expected');}};
+  let fallbackCalled=false;
+  const handle=createNativeSkillFirstChat(core,async()=>{fallbackCalled=true;return Response.json({reply:'ordinary chat'});});
+  const req=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'})});
+  const data=await (await handle(req,{},{})).json();
+  assert.equal(data.reply,'ordinary chat');
+  assert.equal(fallbackCalled,true);
+});
+
+test('a blocked YouTube job reports the bot challenge rather than success',async()=>{
+  const core={fetch:async req=>{
+    const path=new URL(req.url).pathname;
+    if(path==='/api/tools/cloud/jobs')return Response.json({job:{id:'blocked-job',status:'queued'}},{status:201});
+    if(path==='/api/tools/cloud/jobs/blocked-job')return Response.json({job:{id:'blocked-job',status:'failed',error:'YOUTUBE_BOT_VERIFICATION_REQUIRED'}});
+    throw new Error('Unexpected path '+path);
+  }};
+  const handle=createNativeSkillFirstChat(core,async()=>{throw new Error('Must not fallback');});
+  const req=new Request('https://jarvis.example/api/chat/send',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:'https://www.youtube.com/watch?v=jNQXAC9IVRw'})});
+  const result=await (await handle(req,{},{})).json();
+  assert.equal(result.learning_status,'failed');
+  assert.match(result.reply,/bot doğrulaması/);
+  assert.doesNotMatch(result.reply,/öğrenme işi tamamlandı/);
 });

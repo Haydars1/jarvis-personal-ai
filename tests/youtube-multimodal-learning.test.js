@@ -31,28 +31,23 @@ test('videos without captions can still become learned sources through audio and
   assert.equal(fused.captions_used,false);
 });
 
-test('cloud runner downloads bounded media and sends audio plus frames for analysis',()=>{
+test('runner sends YouTube URL to Gemini Worker with no video download',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
-  assert.match(runner,/downloadYouTubeMedia/);
-  assert.match(runner,/transcribeAudioChunks/);
-  assert.match(runner,/analyzeVisualFrames/);
-  assert.match(runner,/\/api\/learning\/youtube\/media\/analyze/);
-  assert.match(runner,/yt-dlp/);
-  assert.match(runner,/ffmpeg/);
+  assert.match(runner,/\/api\/learning\/youtube\/direct\/analyze/);
+  assert.match(runner,/YOUTUBE_TEACHING_REPO/);
+  assert.doesNotMatch(runner,/downloadYouTubeMedia|transcribeAudioChunks|analyzeVisualFrames|yt-dlp|ffmpeg/);
 });
 
-test('runner workflow really installs and verifies media tools',()=>{
+test('cloud runner does not install media download tools',()=>{
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
-  assert.match(workflow,/yt-dlp/);
-  assert.match(workflow,/apt-get[\s\S]{0,180}install[\s\S]{0,80}ffmpeg/);
-  assert.match(workflow,/command -v ffmpeg/);
-  assert.match(workflow,/command -v ffprobe/);
+  assert.doesNotMatch(workflow,/yt-dlp|apt-get install -y ffmpeg/);
 });
 
-test('Worker media endpoint uses ASR and vision rather than trusting captions alone',()=>{
+test('Worker accepts a secure direct-video request and does not use snapshots or ASR',()=>{
   const capability=read('src/application/capabilities/youtube-learning.js');
-  assert.match(capability,/@cf\/openai\/whisper-large-v3-turbo/);
-  assert.match(capability,/inlineData/);
+  assert.match(capability,/\/api\/learning\/youtube\/direct\/analyze/);
   assert.match(capability,/verifyRunnerJwt/);
-  assert.match(capability,/media\/analyze/);
+  assert.match(capability,/buildYouTubeInsightRequest/);
+  assert.match(capability,/parseYouTubeInsightResponse/);
+  assert.doesNotMatch(capability,/WHISPER_MODEL|inlineData|transcribeAudio/);
 });

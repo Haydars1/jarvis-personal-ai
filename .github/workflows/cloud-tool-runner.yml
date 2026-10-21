@@ -17,6 +17,7 @@ on:
       - 'src/lib/skill-learning.js'
       - 'src/lib/native-skill-adapters.js'
       - 'src/lib/youtube-teaching-runtime.js'
+      - 'src/lib/youtube-insight.js'
       - 'scripts/code-graph/**'
       - 'docs/releases/**'
   schedule:
@@ -48,18 +49,6 @@ jobs:
 
       - name: Install JARVIS dependencies
         run: npm install --no-audit --no-fund
-
-      - name: Install YouTube media tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          python3 -m pip install --user --disable-pip-version-check yt-dlp
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$HOME/.local/bin/yt-dlp" --version
-          command -v ffmpeg
-          command -v ffprobe
-          ffmpeg -version | sed -n '1p'
-          ffprobe -version | sed -n '1p'
 
       - name: Run queued cloud capability batch
         env:

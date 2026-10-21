@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { skillExecutionState, summarizeExecutionStates } from '../src/application/capabilities/cloud-execution.js';
+import { skillExecutionState, summarizeExecutionStates, findPendingYouTubeJob, cloudJobAnswer } from '../src/application/capabilities/cloud-execution.js';
 
 const read = p => readFileSync(new URL('../'+p, import.meta.url), 'utf8');
 
@@ -96,4 +96,31 @@ test('trusted GitHub OIDC runner can read the execution summary without an owner
   assert.match(source,/\/api\/tools\/skills\/execution-summary[\s\S]{0,500}verifyRunnerJwt\(bearer\(req\)\)/);
   assert.match(source,/runnerExecutionSummary/);
   assert.match(source,/summarizeExecutionStates/);
+});
+
+test('YouTube queue deduplicates short and watch URLs for the same video',()=>{
+  const pending=[
+    {id:'job-one',input_json:JSON.stringify({url:'https://youtu.be/dQw4w9WgXcQ'})},
+    {id:'job-two',input_json:JSON.stringify({url:'https://www.youtube.com/watch?v=jNQXAC9IVRw'})}
+  ];
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com/watch?v=dQw4w9WgXcQ&si=example')?.id,'job-one');
+  assert.equal(findPendingYouTubeJob(pending,'https://youtu.be/jNQXAC9IVRw')?.id,'job-two');
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com/watch?v=someOtherID'),null);
+  assert.equal(findPendingYouTubeJob(pending,'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),null);
+});
+
+test('completed direct-video learning reports causal notes and persistent memory',()=>{
+  const answer=cloudJobAnswer({
+    adapter_id:'youtube-teaching',status:'completed',repo:'artemnovitckii/notebooklm-coach',
+    result:{
+      kind:'video',title:'ECU demonstration',source_url:'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+      video_analyzed:true,learning_method:'direct-youtube-video-understanding',
+      learning_status:'learned',
+      transcript:'Özet: Checksum. Karar kuralı: Değişiklik sonrasında bütünlük doğrulanmalı.'
+    }
+  });
+  assert.match(answer,/doğrudan analiz edildi/);
+  assert.match(answer,/işlem adımları, gerekçeleri/);
+  assert.match(answer,/hafızaya kaydedildi/);
+  assert.doesNotMatch(answer,/Transkript alındı|Görüntü kareleri/);
 });

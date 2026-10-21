@@ -40,12 +40,19 @@ test('repository skill compiler recognizes YouTube teaching as a first-class cap
   assert.match(String(adapter?.notes||''),/JARVIS/i);
 });
 
-test('YouTube teaching adapter only runs for explicit teaching intent plus a YouTube URL',()=>{
+test('YouTube teaching accepts a pasted video URL without a special command',()=>{
   const skill={
     adapter_status:'ready',requires_paid_api:false,repo:REPO,
     primary_capability:'youtube-teaching',native_adapter:{id:'youtube-teaching'}
   };
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://youtu.be/dQw4w9WgXcQ'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/watch?v=jNQXAC9IVRw'),true,'uppercase I in video ID remains valid');
+  assert.equal(canExecuteNativeSkill(skill,'Bak: https://www.youtube.com/shorts/dQw4w9WgXcQ'),true);
   assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi: https://www.youtube.com/watch?v=dQw4w9WgXcQ bu videodan öğren'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://www.youtube.com/@example'),false,'channel bulk ingestion requires explicit intent');
+  assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi: https://www.youtube.com/@example öğren'),true);
+  assert.equal(canExecuteNativeSkill(skill,'https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ'),false);
   assert.equal(canExecuteNativeSkill(skill,'YouTube için reels video üret'),false);
   assert.equal(canExecuteNativeSkill(skill,'YT Öğretisi aç ama link yok'),false);
 });
@@ -70,8 +77,14 @@ test('caption JSON and channel feed parsers produce bounded source text and vide
 test('cloud runner has a JARVIS-owned YouTube teaching adapter and never executes third-party loader code',()=>{
   assert.equal(ALLOWED_ADAPTERS['youtube-teaching'],true);
   const runner=readFileSync(new URL('../.github/scripts/cloud-tool-runner.mjs',import.meta.url),'utf8');
-  assert.match(runner,/fetchYouTubeTranscript/);
+  assert.match(runner,/\/api\/learning\/youtube\/direct\/analyze/);
   assert.match(runner,/fetchYouTubeChannelIndex/);
   assert.match(runner,/YOUTUBE_TEACHING_REPO/);
   assert.doesNotMatch(runner,/load_channel\.py[^\n]*spawn|spawn\([^\n]*load_channel\.py/);
+});
+
+test('direct YouTube teaching never downloads media to the cloud runner',()=>{
+  const runner=readFileSync(new URL('../.github/scripts/cloud-tool-runner.mjs',import.meta.url),'utf8');
+  assert.doesNotMatch(runner,/yt-dlp|downloadYouTubeMedia|transcribeAudioChunks/);
+  assert.match(runner,/YOUTUBE_DIRECT_ANALYSIS_INCOMPLETE/);
 });
