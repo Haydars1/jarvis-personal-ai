@@ -2,6 +2,7 @@ import { parseThinkcarTc, summarizeRecording } from '../../../public/lib/thinkca
 import { decodeEcuFile } from '../../lib/ecu-file.js';
 import { jsonResponse } from '../../lib/runtime.js';
 import { analyzeDiagnosticReport } from '../../../public/lib/diagnostic-report.js';
+import { parseEcuIdentity } from './ecu-identity-parser.js';
 
 export const THINKDIAG_PROFILE = Object.freeze({ model: 'THINKDIAG2', app: 'ThinkDiag+', platform: 'iOS',
   supported: ['tc-recording-import', 'csv-json-export', 'parameter-statistics', 'report-text-analysis'],
@@ -28,6 +29,19 @@ export function createThinkdiagImport(core) {
         const tc = (body.attachments || []).find(file => /\.tc$/i.test(String(file.name)));
         const report = (body.attachments || []).find(file => typeof file.extractedText === 'string' && /\.(pdf|txt)$/i.test(String(file.name)));
         if (report) {
+          // Read the actual ECU identification fields from attached Thinkdiag/KT200 report text.
+          // Imported PDF text is NOT a live Bluetooth/USB device connection.
+          try {
+            const identity=parseEcuIdentity(report.extractedText);
+            const fields=[identity.ecu_part_number && 'Parça no: '+identity.ecu_part_number,
+              identity.hw && 'HW: '+identity.hw, identity.sw && 'SW: '+identity.sw,
+              identity.ecu_type && 'ECU: '+identity.ecu_type].filter(Boolean).join('\\n');
+            const reply='Yüklenen rapordan ECU kimlik bilgileri çıkarıldı:\\n'+fields+
+              '\\nKaynak: Kullanıcının yüklediği rapor. Gerçek araç ECU ID ve HW/SW bilgilerini KT200 II protokolüyle doğrula. Bu doğrudan cihaz okuması değildir.';
+            return jsonResponse({ reply, provider:'JARVIS ECU Raporu',
+              analysis:{type:'ecu-identity-from-upload',identity,source:report.name},
+              history:[{role:'user',content:String(body.text||report.name)},{role:'assistant',content:reply}]});
+          } catch {}
           try { const analysis = analyzeDiagnosticReport(report.extractedText); const reply = `Teşhis raporu okundu: ${analysis.code_count} farklı arıza kodu.\n` + analysis.codes.map(item => `${item.code}${item.subtype ? ' (' + item.subtype + ')' : ''}: ${item.context}`).join('\n\n') + '\n' + analysis.conclusion; return jsonResponse({ reply, provider: 'JARVIS Teşhis Raporu', analysis: { type: 'diagnostic-report', ...analysis }, history: [{ role: 'user', content: String(body.text || report.name) }, { role: 'assistant', content: reply }] }); }
           catch (error) { return jsonResponse({ error: error.message, reply: 'Rapor metni okunamadı.' }, 400); }
         }
