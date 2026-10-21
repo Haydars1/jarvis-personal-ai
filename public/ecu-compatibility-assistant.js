@@ -51,7 +51,7 @@
       field('ktHW','HW / donanım numarası','Thinkdiag bilgisi') +
       field('ktSW','SW / yazılım numarası','Thinkdiag bilgisi') +
       field('ktEcuType','ECU tipi (biliniyorsa)','EDC17 / MD1 / MG1') +
-      '</div><div class="ktActions"><button type="submit">ECU ARAŞTIR</button><button type="button" id="ktChat" class="softBtn">SOHBETTE DEĞERLENDİR</button><a id="ktOfficial" href="' + OFFICIAL + '" target="_blank" rel="noopener noreferrer">KT200 II resmi protokol listesi ↗</a></div></form>' +
+      '</div><div class="ktActions"><button type="submit">ECU ARAŞTIR</button><button type="button" id="ktDeviceRead" class="softBtn">BAĞLI CİHAZDAN ECU ID AL</button><button type="button" id="ktChat" class="softBtn">SOHBETTE DEĞERLENDİR</button><a id="ktOfficial" href="' + OFFICIAL + '" target="_blank" rel="noopener noreferrer">KT200 II resmi protokol listesi ↗</a></div></form>' +
       '<p class="ktWarning ktMuted"><strong>Güvenlik:</strong> Araç modeli ECU kimliğini kesinleştirmez. OBD / Bench / Boot önerisi, ECU ve HW/SW eşleşmeden onaylanmış sayılmaz. VR gerçek hafıza yedeği değildir.</p>' +
       '<p id="ktStatus" class="ktMuted" aria-live="polite">Araç bilgilerini girerek başla.</p><div id="ktResults"></div>' +
       '<details class="ktCard"><summary>Doğruladığım protokolü kaydet (isteğe bağlı)</summary>' +
@@ -65,6 +65,7 @@
     $('main').appendChild(section);
     $('#ktForm').addEventListener('submit', event => { event.preventDefault(); lookup(); });
     $('#ktChat').addEventListener('click', openChat);
+    $('#ktDeviceRead').addEventListener('click', getConnectedIdentity);
     $('#ktNoteForm').addEventListener('submit', saveNote);
     window.jarvisKt200Finder = { open: goPage, lookup };
   }
@@ -145,6 +146,7 @@
   }
   async function lookup() {
     const info = values();
+    info.ecu_type = $('#ktEcuType').value.trim();
     if ((!info.brand || !info.model) && !info.ecu_part_number) return status('Marka + model veya ECU parça numarası gir.');
     const target = $('#ktResults');
     target.replaceChildren();
@@ -166,6 +168,29 @@
       }
       (data.results || []).forEach(item => card.appendChild(resultCard(item)));
       target.appendChild(card);
+      const live = data.kt200_live || { status: 'NOT_CHECKED',results:[] };
+      const protocol = document.createElement('div');
+      protocol.className = 'ktCard';
+      protocol.innerHTML = '<h2>KT200 II · yayınlanan protokol kayıtları</h2><p class="ktMuted">Kaynak: <a href="' + OFFICIAL + '" target="_blank" rel="noopener noreferrer">KT200 II destek tablosu ↗</a> · ' + escapeHtml(live.status) + '</p><p class="ktMuted">Yalnızca sayfanın sağladığı kayıtlar taranır. Araçta birebir ECU ve HW/SW teyidi zorunludur.</p>';
+      if (!live.results?.length) {
+        const p = document.createElement('p');
+        p.className = 'ktMuted';
+        p.textContent = live.status === 'VENDOR_TABLE_NOT_MACHINE_READABLE'
+          ? 'KT200 sitesinin tüm protokolleri yazılımsal olarak okunamıyor. Kaynaktan elle kontrol et ve ECU ID ile doğrula.'
+          : 'Bu sorguda protokol kaydı doğrulanamadı. Bu, desteklenmediği anlamına gelmez.';
+        protocol.appendChild(p);
+      }
+      for (const item of live.results || []) {
+        const div = document.createElement('div');
+        div.className = 'ktResult';
+        div.innerHTML = '<strong>' + escapeHtml(item.ecu_type || '?') + '</strong> · ' +
+          escapeHtml([item.brand,item.model,item.engine].filter(Boolean).join(' / ')) +
+          '<small>Bağlantı: ' + escapeHtml((item.methods || []).join(', ') || 'belirtilmemiş') +
+          ' · İşlem: ' + escapeHtml(item.access) + '</small>' +
+          '<small class="ktMuted">Orijinal kayıt: ' + escapeHtml(item.source_text) + '</small>';
+        protocol.appendChild(div);
+      }
+      target.appendChild(protocol);
       const notes = (data.notes || []);
       if (notes.length) {
         const block = document.createElement('div');
@@ -184,6 +209,58 @@
       status(data.results.length + ' yerel ECU adayı bulundu. OBD / Bench / Boot için protokol ve ECU kimliğini doğrula.');
       await googleResearch(info, target);
     } catch(err) { status('Araştırma tamamlanamadı: ' + err.message); }
+  }
+  async function getConnectedIdentity() {
+    const btn = $('#ktDeviceRead');
+    btn.disabled = true;
+    try {
+      status('Yerel ECU köprüsü kontrol ediliyor...');
+      const response = await fetch('/api/ecu/device/bridges', {credentials:'same-origin'});
+      if (!response.ok) throw Error('ECU köprü listesine erişilemedi');
+      const data = await response.json();
+      const bridges = (data.bridges || []).filter(b => b.status === 'online' && Date.now() - Number(b.last_seen_at || 0) < 60000);
+      let picked = null;
+      for (const action of ['read_ecu_identity','import_ecu_identity']) {
+        const bridge = bridges.find(b => (b.capabilities || []).includes(action));
+        if (bridge) { picked = { action, bridge }; break; }
+      }
+      if (!picked) throw Error('Canlı ECU ID okuyabilen bir donanım adaptörü veya yerel rapor aktarım köprüsü bağlı değil. Önce Windows yerel köprüsünü ve gerçek cihaz/rapor adaptörünü başlat.');
+      const queued = await fetch('/api/ecu/device/jobs', {
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
+        body:JSON.stringify({action:picked.action,bridge_id:picked.bridge.id,module:'01 Engine',request:{purpose:'ecu_compatibility_identity_only'}})
+      });
+      const jobData = await queued.json();
+      if (!queued.ok) throw Error(jobData.error || 'İş kuyruğa eklenemedi');
+      const jobId = jobData.job?.id;
+      if (!jobId) throw Error('İş ID bulunamadı');
+      status((picked.action === 'read_ecu_identity' ? 'Cihazdan ECU kimliği okunuyor...' : 'Yerel ECU raporu içe aktarılıyor...'));
+      for (let attempt = 0; attempt < 16; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 1250));
+        const check = await fetch('/api/ecu/device/jobs/' + encodeURIComponent(jobId), {credentials:'same-origin'});
+        if (!check.ok) continue;
+        const payload = await check.json();
+        const job = payload.job || {};
+        if (job.status === 'failed') throw Error(job.error || 'Cihaz görevi başarısız');
+        if (job.status !== 'completed') continue;
+        const result = job.result || {};
+        if (result.simulated === true) throw Error('Simülasyon verileri gerçek ECU kimliği olarak kullanılamaz');
+        const identity = result.identity || result;
+        const part = String(identity.ecu_part_number || identity.part_number || '').trim();
+        const hw = String(identity.hw || identity.hardware || '').trim();
+        const sw = String(identity.sw || identity.software || '').trim();
+        if (!part && !hw && !sw) throw Error('Kimlik alanları cihaz sonucunda bulunamadı');
+        if (part) $('#ktPart').value = part;
+        if (hw) $('#ktHW').value = hw;
+        if (sw) $('#ktSW').value = sw;
+        if (identity.ecu_type) $('#ktEcuType').value = identity.ecu_type;
+        status((result.direct_usb_read === false ? 'Yerel rapordaki ECU kimliği aktarıldı.' : 'ECU kimliği adaptörden alındı.') + ' HW/SW bilgilerini doğrula.');
+        await lookup();
+        return;
+      }
+      throw Error('Köprü zamanında yanıt vermedi. İş geçmişinden durumu kontrol et.');
+    } catch(error) {
+      status('ECU kimliği alınamadı: ' + String(error?.message || error));
+    } finally { btn.disabled = false; }
   }
   async function saveNote(event) {
     event.preventDefault();
