@@ -27,7 +27,7 @@ jobs:
       - name: Collect short pretty worker tail and trigger read-only URLs
         continue-on-error: true
         run: |
-          timeout 35s npx wrangler tail hayirlievlad --format pretty --sampling-rate 1 > "$RUNNER_TEMP/tail.txt" 2> "$RUNNER_TEMP/stderr.txt" &
+          timeout 35s npx wrangler tail hayirlievlad --format pretty --sampling-rate 0.99 > "$RUNNER_TEMP/tail.txt" 2> "$RUNNER_TEMP/stderr.txt" &
           pid=$!
           sleep 12
           for p in / /api/auth/status; do
