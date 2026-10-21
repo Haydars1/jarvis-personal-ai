@@ -17,7 +17,7 @@ $env:JARVIS_URL = $JarvisUrl.TrimEnd("/")
 $env:ECU_ADAPTER_URL = "http://127.0.0.1:8765"
 $env:ECU_IDENTITY_FILE = $ReportPath
 Write-Host "ECU kimligi icin salt-okunur yerel kopru baslatiliyor."
-$adapter = Start-Process -FilePath $node.Source -ArgumentList @((Join-Path $root "ecu-identity-report-adapter.mjs")) -NoNewWindow -PassThru
+$adapter = Start-Process -FilePath $node.Source -ArgumentList @(("\"" + (Join-Path $root "ecu-identity-report-adapter.mjs") + "\"")) -NoNewWindow -PassThru
 try {
   Start-Sleep -Seconds 2
   if ($adapter.HasExited) { throw "Yerel rapor adaptoru acilamadi. 8765 portunu kontrol et." }
