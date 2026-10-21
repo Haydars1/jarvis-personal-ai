@@ -1,0 +1,18 @@
+name: Request validated production redeployment
+on:
+  push:
+    branches:
+      - ops/cloudflare-redeploy-check-20261021
+permissions:
+  contents: read
+  actions: write
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch the existing guarded main deployment workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run deploy-cloudflare.yml --ref main -R "$GITHUB_REPOSITORY"
+          echo 'Triggered existing production deployment with smoke checks and automatic rollback on failure.'
