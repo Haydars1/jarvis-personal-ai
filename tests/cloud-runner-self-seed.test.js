@@ -58,7 +58,7 @@ test('cloud runner targets the canonical deployed Worker hostname',()=>{
   const runner=read('.github/scripts/cloud-tool-runner.mjs');
   const reporter=read('.github/scripts/cloud-skill-summary.mjs');
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
-  const canonical='https://jarvis-personal-ai.haydojarvis.workers.dev';
+  const canonical='https://hayirlievlad.haydojarvis.workers.dev';
   const escaped=new RegExp(canonical.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
   assert.match(runner,escaped);
   assert.match(reporter,escaped);

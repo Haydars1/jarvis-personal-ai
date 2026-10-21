@@ -1,0 +1,72 @@
+name: HyperFrames Cloud MP4 Render
+run-name: HyperFrames video ${{ inputs.job_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: 'Server-generated unique video job ID'
+        required: true
+        type: string
+      brand:
+        required: true
+        type: string
+      title:
+        required: true
+        type: string
+      subtitle:
+        required: true
+        type: string
+      format:
+        required: true
+        type: choice
+        options:
+          - reels
+          - landscape
+      duration:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hyperframes-render-${{ inputs.job_id }}
+  cancel-in-progress: false
+
+jobs:
+  render-mp4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HYPERFRAMES_NO_UPDATE_CHECK: '1'
+      CI: 'true'
+      HF_JOB_ID: ${{ inputs.job_id }}
+      HF_BRAND: ${{ inputs.brand }}
+      HF_TITLE: ${{ inputs.title }}
+      HF_SUBTITLE: ${{ inputs.subtitle }}
+      HF_FORMAT: ${{ inputs.format }}
+      HF_DURATION: ${{ inputs.duration }}
+    steps:
+      - name: Checkout trusted JARVIS composition code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Configure Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned HyperFrames engine
+        run: npm install --no-save --no-audit --no-fund --package-lock=false hyperframes@0.8.167
+      - name: Validate and render authored title-card
+        run: node .github/scripts/hyperframes-render.mjs
+      - name: Upload finished MP4
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperframes-${{ inputs.job_id }}
+          path: .wrangler/hyperframes-render/final.mp4
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
