@@ -51,7 +51,7 @@
       field('ktHW','HW / donanım numarası','Thinkdiag bilgisi') +
       field('ktSW','SW / yazılım numarası','Thinkdiag bilgisi') +
       field('ktEcuType','ECU tipi (biliniyorsa)','EDC17 / MD1 / MG1') +
-      '</div><div class="ktActions"><button type="submit">ECU ARAŞTIR</button><button type="button" id="ktDeviceRead" class="softBtn">BAĞLI CİHAZDAN ECU ID AL</button><button type="button" id="ktChat" class="softBtn">SOHBETTE DEĞERLENDİR</button><a id="ktOfficial" href="' + OFFICIAL + '" target="_blank" rel="noopener noreferrer">KT200 II resmi protokol listesi ↗</a></div></form>' +
+      '</div><div class="ktActions"><button type="submit">ECU ARAŞTIR</button><button type="button" id="ktDeviceRead" class="softBtn">BAĞLI CİHAZDAN ECU ID AL</button><button type="button" id="ktFileRead" class="softBtn">ECU ID RAPORU SEÇ</button><input type="file" id="ktReportFile" accept=".txt,.json,text/plain,application/json" style="display:none"><button type="button" id="ktChat" class="softBtn">SOHBETTE DEĞERLENDİR</button><a id="ktOfficial" href="' + OFFICIAL + '" target="_blank" rel="noopener noreferrer">KT200 II resmi protokol listesi ↗</a></div></form>' +
       '<p class="ktWarning ktMuted"><strong>Güvenlik:</strong> Araç modeli ECU kimliğini kesinleştirmez. OBD / Bench / Boot önerisi, ECU ve HW/SW eşleşmeden onaylanmış sayılmaz. VR gerçek hafıza yedeği değildir.</p>' +
       '<p id="ktStatus" class="ktMuted" aria-live="polite">Araç bilgilerini girerek başla.</p><div id="ktResults"></div>' +
       '<details class="ktCard"><summary>Doğruladığım protokolü kaydet (isteğe bağlı)</summary>' +
@@ -66,6 +66,8 @@
     $('#ktForm').addEventListener('submit', event => { event.preventDefault(); lookup(); });
     $('#ktChat').addEventListener('click', openChat);
     $('#ktDeviceRead').addEventListener('click', getConnectedIdentity);
+    $('#ktFileRead').addEventListener('click', () => $('#ktReportFile').click());
+    $('#ktReportFile').addEventListener('change', importIdentityFile);
     $('#ktNoteForm').addEventListener('submit', saveNote);
     window.jarvisKt200Finder = { open: goPage, lookup };
   }
@@ -209,6 +211,32 @@
       status(data.results.length + ' yerel ECU adayı bulundu. OBD / Bench / Boot için protokol ve ECU kimliğini doğrula.');
       await googleResearch(info, target);
     } catch(err) { status('Araştırma tamamlanamadı: ' + err.message); }
+  }
+  async function importIdentityFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!/\\.(txt|json)$/i.test(file.name) || file.size > 150000) {
+      status('Yalnızca 150 KB altı TXT/JSON ECU ID raporları desteklenir. PDF için yerel bridge veya Jarvis sohbetine belge yüklemeyi kullan.');
+      event.target.value = '';
+      return;
+    }
+    try {
+      const content = await file.text();
+      const response = await fetch('/api/ecu/compatibility/parse-report',{
+        method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},
+        body:JSON.stringify({text:content})
+      });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || 'Rapor okunamadı');
+      const identity = result.identity || {};
+      if (identity.ecu_part_number) $('#ktPart').value = identity.ecu_part_number;
+      if (identity.hw) $('#ktHW').value = identity.hw;
+      if (identity.sw) $('#ktSW').value = identity.sw;
+      if (identity.ecu_type) $('#ktEcuType').value = identity.ecu_type;
+      status('Rapor alanları forma aktarıldı. Gerçek ECU HW/SW ve araç eşleşmesini teyit et.');
+      await lookup();
+    }catch(error){ status('Rapor içe aktarılamadı: ' + String(error?.message || error));}
+    finally{event.target.value='';}
   }
   async function getConnectedIdentity() {
     const btn = $('#ktDeviceRead');
