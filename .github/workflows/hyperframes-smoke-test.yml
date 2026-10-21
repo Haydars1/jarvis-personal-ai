@@ -1,0 +1,48 @@
+name: HyperFrames MP4 smoke test
+run-name: HyperFrames standalone smoke render
+
+on:
+  push:
+    branches:
+      - test/hyperframes-render-smoke-20261021
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HYPERFRAMES_NO_UPDATE_CHECK: '1'
+      CI: 'true'
+      HF_JOB_ID: '11111111-1111-4111-8111-111111111111'
+      HF_BRAND: '6006 PERFORMANCE'
+      HF_TITLE: 'Cloud rendering test'
+      HF_SUBTITLE: 'HyperFrames MP4 smoke check'
+      HF_FORMAT: 'reels'
+      HF_DURATION: '5'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install compatible HyperFrames CLI
+        run: npm install --no-save --no-audit --no-fund --package-lock=false hyperframes@0.8.167
+      - name: Check CLI environment
+        run: |
+          npx --no-install hyperframes doctor
+          command -v ffmpeg
+      - name: Render 5-second MP4 using real production runner
+        run: node .github/scripts/hyperframes-render.mjs
+      - name: Inspect the actual MP4
+        run: |
+          test -s .wrangler/hyperframes-render/final.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 .wrangler/hyperframes-render/final.mp4
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: hyperframes-smoke-mp4
+          path: .wrangler/hyperframes-render/final.mp4
+          compression-level: 0
+          retention-days: 1
