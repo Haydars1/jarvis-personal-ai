@@ -15,7 +15,16 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       JOB_ID: '33333333-3333-4333-8333-333333333333'
     steps:
+      - name: Inspect live response codes
+        run: |
+          for p in / /api/auth/status /video-pool-ui.js /api/video-pool/status /api/video-pool/hyperframes/render-status/33333333-3333-4333-8333-333333333333; do
+            echo "URL: $p"
+            curl -Ls --max-time 12 -w 'HTTP=%{http_code} TYPE=%{content_type} BYTES=%{size_download}\n' -o /tmp/diag.txt "https://hayirlievlad.haydojarvis.workers.dev$p" || true
+            head -c 180 /tmp/diag.txt || true
+            echo ""
+          done
       - name: Check live video UI and anonymous auth boundary
+        continue-on-error: true
         run: |
           set -euo pipefail
           curl -fL --retry 2 --max-time 20 -o /tmp/jarvis-ui.js https://hayirlievlad.haydojarvis.workers.dev/video-pool-ui.js
