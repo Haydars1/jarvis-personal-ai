@@ -17,6 +17,7 @@ import { createEcuChannelStore } from './application/ecu/channels.js';
 import { createThinkdiagImport } from './application/ecu/thinkdiag.js';
 import { createEcuDeviceBridge } from './application/ecu/device-bridge.js';
 import { createEcuPartnumberCatalog } from './application/ecu/partnumber-catalog.js';
+import { createEcuCompatibilityAssistant } from './application/ecu/compatibility-assistant.js';
 import { createEcuManualLibrary } from './application/ecu/manual-library.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
@@ -48,6 +49,7 @@ const cloudExecutionCore = createYouTubeLearningCapability(createCloudCapability
 const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(cloudExecutionCore));
 const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
 const partnumberCore = createEcuPartnumberCatalog(cloudToolCore);
+const compatibilityCore = createEcuCompatibilityAssistant(cloudToolCore);
 const manualLibraryCore = createEcuManualLibrary(partnumberCore);
 const handleMediaRescue = createMediaRescue(cloudToolCore);
 const mediaCore = {
@@ -75,6 +77,7 @@ function shouldFlushPush(req, response) {
 async function routeRequest(req, env, ctx) {
   const url = new URL(req.url);
   if (url.pathname.startsWith('/api/ecu/partnumbers/')) return partnumberCore.fetch(req, env, ctx);
+  if (url.pathname.startsWith('/api/ecu/compatibility/')) return compatibilityCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/ecu/manual-library/')) return manualLibraryCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/tools/cloud/')) return cloudToolCore.fetch(req, env, ctx);
   if (url.pathname.startsWith('/api/learning/')) return cloudToolCore.fetch(req, env, ctx);

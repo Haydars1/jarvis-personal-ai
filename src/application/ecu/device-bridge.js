@@ -4,6 +4,8 @@ const now=()=>Date.now();
 const uid=()=>crypto.randomUUID();
 
 const ACTIONS=Object.freeze({
+  read_ecu_identity:{label:'ECU kimliğini cihazdan oku',write:false,hazard:'low'},
+  import_ecu_identity:{label:'ECU kimliğini yerel rapordan al',write:false,hazard:'low'},
   read_dtc:{label:'DTC oku',write:false,hazard:'low'},
   clear_dtc:{label:'DTC temizle',write:true,hazard:'medium'},
   read_live_data:{label:'Canlı veri oku',write:false,hazard:'low'},
@@ -32,6 +34,7 @@ function parseJson(value,fallback={}){
 export function bridgeSupportsAction(capabilities,action){return Array.isArray(capabilities)&&capabilities.includes(String(action||''));}
 export function parseEcuDeviceIntent(text=''){
   const value=String(text||'').toLocaleLowerCase('tr-TR');
+  if(/(?:ecu|beyin|motor).*?(?:id|kimlik|tanımla).*?(?:oku|getir)|(?:id|kimlik).*?(?:ecu|beyin)/i.test(value))return 'read_ecu_identity';
   if(/(?:dtc|arıza\s*kod\w*).*?(?:sil|temizle)|(?:sil|temizle).*?(?:dtc|arıza\s*kod\w*)/i.test(value))return 'clear_dtc';
   if(/(?:dtc|arıza\s*kod\w*).*?(?:oku|tara|scan)|(?:oku|tara|scan).*?(?:dtc|arıza\s*kod\w*)/i.test(value))return 'read_dtc';
   if(/canlı\s*(?:veri|data)|live\s*data/i.test(value))return 'read_live_data';
