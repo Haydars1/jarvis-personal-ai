@@ -8,7 +8,7 @@ import { parseEcuIdentity } from '../src/application/ecu/ecu-identity-parser.js'
 const HOST = '127.0.0.1';
 const PORT = Number(process.env.ECU_ADAPTER_PORT || 8765);
 const REPORT = String(process.env.ECU_IDENTITY_FILE || '').trim();
-const MAX_BYTES = 256 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024;
 const MAX_AGE_MS = 4 * 60 * 60 * 1000;
 const ALLOWED = new Set(['.txt','.json','.pdf']);
 
