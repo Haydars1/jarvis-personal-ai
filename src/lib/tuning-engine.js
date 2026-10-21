@@ -549,7 +549,7 @@ export const VEHICLE_DB = {
 };
 
 // ---------- ECU-tip profilleri (benzinli vs dizel, beklenen sistemler) ----------
-const ECU_PROFILES = {
+export const ECU_PROFILES = {
   // Dizel ECU'lar — Bosch DAMOS kalibrasyon label beklentileri
   'EDC17': {
     fuel: 'diesel',
@@ -640,7 +640,7 @@ const ECU_PROFILES = {
   },
 };
 
-function detectEcuType(strings) {
+export function detectEcuType(strings) {
   const allText = strings.map(s => s.text).join(' ');
   for (const [ecuType, profile] of Object.entries(ECU_PROFILES)) {
     const re = new RegExp(ecuType.replace(/\+/g, '\\+'), 'i');

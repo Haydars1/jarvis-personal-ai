@@ -463,12 +463,50 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const key='ecu/'+upload_id+'/'+String(b.filename||'file.bin').replace(/[\\/]/g,'_');
    await filePut(env,key,fileData,{contentType:'application/octet-stream'});
    const vehicleInfo={make:b.make||'',model:b.model||'',year:b.year||'',ecuType:b.ecuType||'',systems:[...new Set(regions.map(r=>r.system))]};
-   const ts=Date.now();await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify(vehicleInfo),file_hash,fileData.length,key,ts,ts);
+   const ts=Date.now();
+   // --- Checksum validation on upload ---
+   let checksumStatus=null;
+   try{checksumStatus=mod.validateChecksums(fileData)}catch(_){}
+   // --- ECU type detection ---
+   const ecuProfile=regions._ecuProfile||{ecuType:'unknown',fuel:'unknown'};
+   // --- Auto-analyze: store full analysis_json if requested or by default ---
+   const analysisData={format:fmt,stats,regions:regions.map(r=>({system:r.system,actionCount:r.actions?.length||0,tierUsed:r.tierUsed||'unknown'})),ecuProfile,checksum:checksumStatus,systemCount:new Set(regions.map(r=>r.system)).size,totalActions:regions.reduce((s,r)=>s+(r.actions?.length||0),0)};
+   // --- Definition auto-match: find best matching definition set ---
+   let matchedDefinitionSet=null;
+   try{
+     const defSets=await qall(env,'SELECT id,filename,format,definition_count FROM ecu_definition_sets ORDER BY definition_count DESC LIMIT 5');
+     if(defSets.length){
+       const {matchDefinitions}=await import('./lib/ecu-definition-parser.js');
+       for(const ds of defSets){
+         const defs=await qall(env,'SELECT * FROM ecu_definitions WHERE def_set_id=?',ds.id);
+         if(defs.length){
+           const match=matchDefinitions(defs,fileData);
+           if(match&&match.matchScore>0.3){matchedDefinitionSet={id:ds.id,name:ds.filename,matchScore:match.matchScore,matchedMaps:match.matchedCount||0};break}
+         }
+       }
+     }
+   }catch(_defMatchErr){}
+   await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',upload_id,'owner',String(b.filename||'file.bin'),fmt.format,JSON.stringify(vehicleInfo),file_hash,fileData.length,key,ts,ts);
+   // Store analysis_json if column exists (migration may not have run yet)
+   try{await run(env,'UPDATE ecu_uploads SET analysis_json=?,analyzed_at=? WHERE id=?',JSON.stringify(analysisData),ts,upload_id)}catch(_){}
    // Enriched response with system info and stage1 package
    const systemNames=[...new Set(regions.map(r=>r.system))];
    const systemInfos=systemNames.map(s=>mod.getSystemInfo(s)).filter(Boolean);
    const stage1=mod.buildStage1Package(systemNames);
-   const ecuProfile=regions._ecuProfile||{ecuType:'unknown',fuel:'unknown'};
+   // --- VEHICLE_DB auto-match: try to identify vehicle from ECU type ---
+   let vehicleMatch=null;
+   try{
+     if(ecuProfile.ecuType&&ecuProfile.ecuType!=='unknown'){
+       const vdb=mod.VEHICLE_DB;
+       if(vdb){
+         const matches=[];
+         for(const entry of vdb){
+           if(entry.ecuTypes&&entry.ecuTypes.includes(ecuProfile.ecuType))matches.push({make:entry.make,model:entry.model,years:entry.years,ecuType:ecuProfile.ecuType});
+         }
+         if(matches.length)vehicleMatch=matches.slice(0,5);
+       }
+     }
+   }catch(_){}
    // --- Dosya hafıza sistemi: hash ile tanı veya yeni kayıt oluştur ---
    let fileMemory=null,previousMods=[];
    try{
@@ -488,7 +526,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
        fileMemory={known:false,timesUploaded:1,firstSeen:ts,previousMods:[],notes:'',tags:[]};
      }
    }catch(memErr){fileMemory={known:false,error:memErr.message}}
-   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:systemNames,systemInfos,stage1,vehicle:vehicleInfo,rulepackMatches:regions._rulepackMatches||[],ecuProfile,fileMemory});
+   return j({ok:true,upload_id,uploadId:upload_id,format:fmt.format,size:fileData.length,stats,regions,systems:systemNames,systemInfos,stage1,vehicle:vehicleInfo,rulepackMatches:regions._rulepackMatches||[],ecuProfile,fileMemory,checksum:checksumStatus,analysis:analysisData,matchedDefinitionSet,vehicleMatch});
  }catch(e){return j({error:e.message||'UPLOAD_FAILED',stack:e.stack?.split('\n').slice(0,3).join(' | ')},500)}}
 
  if(p==='/api/ecu/rulepacks'&&m==='GET'){try{
@@ -562,6 +600,8 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const original=new Uint8Array(await obj.arrayBuffer());
    const mod=await import('./lib/tuning-engine.js');
+   // --- System filter: only apply actions from specified systems ---
+   const systemFilter=Array.isArray(b.systems)&&b.systems.length?b.systems.map(s=>s.toLowerCase()):null;
    // Primary path: use full action objects sent from frontend (no re-scan needed)
    let toApply=[];
    const sentActions=Array.isArray(b.actions)?b.actions:[];
@@ -569,11 +609,9 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
      toApply=sentActions.filter(a=>{
        const o=Number(a.offset);
        if(!isFinite(o)||o<0||o>=original.length) return false;
-       // Map aksiyonları newByte gerektirmez — mapAction varsa kabul et
+       if(systemFilter&&a.system&&!systemFilter.includes(a.system.toLowerCase())) return false;
        if(a.mapAction) return true;
-       // Multi-byte aksiyonları newValue ile çalışır
        if(a.newValue!=null&&isFinite(Number(a.newValue))) return true;
-       // Tek-byte legacy
        return isFinite(Number(a.newByte));
      }).map(a=>{
        const base={id:a.id||'action',label:a.label||'',offset:Number(a.offset),risk:a.risk||'medium',system:a.system||''};
@@ -591,26 +629,59 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    // Fallback: re-scan and match by ID (legacy compatibility)
    if(!toApply.length){
      const regions=await mod.scanRegions(original);
-     const allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
+     let allActions=regions.flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
+     if(systemFilter)allActions=allActions.filter(a=>!a.system||systemFilter.includes(a.system.toLowerCase()));
      const selectedIds=Array.isArray(b.actionIds||b.proposals)?(b.actionIds||b.proposals):[];
      if(selectedIds.length)toApply=allActions.filter(a=>selectedIds.includes(a.id));
+     // If preset or stage name given, use all filtered actions
+     if(!toApply.length&&(b.preset||b.stageName||b.applyAll)&&allActions.length)toApply=allActions;
    }
    if(!toApply.length)return j({error:'NO_ACTIONS_SELECTED',debug:{sentCount:sentActions.length,bodyKeys:Object.keys(b),fileLen:original.length,sentSample:sentActions.slice(0,2).map(a=>({id:a.id,offset:a.offset,offsetType:typeof a.offset,newByte:a.newByte,newByteType:typeof a.newByte}))}},400);
+   // --- Collect undo data: original bytes at each action offset before apply ---
+   const undoMap=toApply.map(a=>{
+     const off=Number(a.offset);const size=Number(a.dataSize)||1;
+     const origBytes=[];
+     for(let i=0;i<size&&off+i<original.length;i++)origBytes.push(original[off+i]);
+     return {id:a.id||'action',offset:off,size,system:a.system||'',label:a.label||'',originalBytes:origBytes};
+   });
+   // --- Preview mode: return what would change without writing ---
+   if(b.preview){
+     const previewResult=await mod.applyActions(original,toApply);
+     const previewChanges=previewResult.applied.map((a,i)=>({
+       offset:a.offset,offsetHex:a.offsetHex,before:a.before,after:a.after,
+       label:a.label||'',id:a.id||'',system:toApply[i]?.system||'',
+       originalBytes:undoMap[i]?.originalBytes||[]
+     }));
+     const bySystem={};
+     for(const a of toApply){const sys=a.system||'Diğer';if(!bySystem[sys])bySystem[sys]={count:0,actions:[]};bySystem[sys].count++;bySystem[sys].actions.push({offset:a.offset,label:a.label||'',id:a.id||''})}
+     const checksumAfter=mod.validateChecksums(previewResult.tuned);
+     return j({ok:true,preview:true,totalActions:toApply.length,totalBytes:original.length,
+       changedBytes:previewResult.applied.length,changes:previewChanges,bySystem,
+       checksumBefore:mod.validateChecksums(original),checksumAfter,
+       sizeMatch:original.length===previewResult.tuned.length,
+       hashBefore:await mod.sha256Hex(original),hashAfter:previewResult.hash});
+   }
    const result=await mod.applyActions(original,toApply);
    const tuned_id=id();
+   const stageName=b.stageName||b.preset||'scan-v2';
    const outKey='ecu/'+tuned_id+'/tuned-'+String(upload.filename||'file.bin').replace(/[\\/]/g,'_');
    await filePut(env,outKey,result.tuned,{contentType:'application/octet-stream'});
-   await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,upload.id,'scan-v2',JSON.stringify(result.applied),result.hash,result.size,outKey,now());
+   // Store undo data alongside proposals for rollback capability
+   const proposalsData={applied:result.applied,undo:undoMap,stageName,systems:[...new Set(toApply.map(a=>a.system).filter(Boolean))]};
+   await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,upload.id,stageName,JSON.stringify(proposalsData),result.hash,result.size,outKey,now());
    // Dosya hafızasında son modifikasyonları güncelle
    try{
-     const modEntry={date:Date.now(),tunedId:tuned_id,actions:result.applied.map(a=>a.id||a.action||'unknown')};
+     const modEntry={date:Date.now(),tunedId:tuned_id,stageName,actions:result.applied.map(a=>a.id||a.action||'unknown'),systems:[...new Set(toApply.map(a=>a.system).filter(Boolean))]};
      const mem=await q1(env,'SELECT id,last_modifications FROM ecu_file_memory WHERE file_hash=?',upload.file_hash);
      if(mem){const mods=JSON.parse(mem.last_modifications||'[]');mods.push(modEntry);if(mods.length>20)mods.splice(0,mods.length-20);await run(env,'UPDATE ecu_file_memory SET last_modifications=?,last_seen_at=? WHERE id=?',JSON.stringify(mods),Date.now(),mem.id)}
    }catch(memErr){}
+   // Checksum validation on generated file
+   let checksumResult=null;
+   try{checksumResult=mod.validateChecksums(result.tuned)}catch(_){}
    // Build comparison data for auto-diff
    const comparison={totalBytes:original.length,changedBytes:result.applied.length,changes:result.applied.map(a=>({offset:a.offset,offsetHex:a.offsetHex,before:a.before,after:a.after,label:a.label||'',id:a.id||''})),bySystem:{}};
    for(const a of toApply){const sys=a.system||'Diğer';if(!comparison.bySystem[sys])comparison.bySystem[sys]={count:0,changes:[]};comparison.bySystem[sys].count++;comparison.bySystem[sys].changes.push({offset:a.offset,label:a.label||''})}
-   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied,comparison,checksum:result.checksum||null});
+   return j({ok:true,tunedId:tuned_id,tuned_id,size:result.size,hash:result.hash,applied:result.applied,appliedPatches:result.applied,comparison,checksum:checksumResult,undo:undoMap,stageName});
  }catch(e){return j({error:e.message||'GENERATE_FAILED'},500)}}
 
  if(p==='/api/ecu/checksum'&&m==='POST'){try{
@@ -630,14 +701,61 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p.startsWith('/api/ecu/download')){try{
    const u=new URL(req.url);
    const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   const fmt=u.searchParams.get('format')||'bin'; // bin | hex | srec | original
+   // --- Original file download ---
+   if(fmt==='original'&&uploadId){
+     const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+     if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+     const obj=await fileGet(env,upload.binary_data);
+     if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+     return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+String(upload.filename||'original.bin')+'"'}});
+   }
    if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
    const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
    if(!tuned)return j({error:'TUNED_FILE_NOT_FOUND'},404);
    const obj=await fileGet(env,tuned.tuned_binary_data);
    if(!obj)return j({error:'FILE_NOT_FOUND'},404);
    const upload=await q1(env,'SELECT filename FROM ecu_uploads WHERE id=?',tuned.upload_id);
-   const name=(upload?.filename||'tuned.bin').replace(/(\.[^.]+)$/,'_tuned$1');
-   return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+name+'"'}});
+   const baseName=(upload?.filename||'tuned.bin').replace(/(\.[^.]+)$/,'_tuned');
+   // --- Hex format download (Intel HEX) ---
+   if(fmt==='hex'){
+     const bytes=new Uint8Array(await obj.arrayBuffer());
+     let hex=':020000040000FA\n'; // Extended Linear Address Record
+     for(let addr=0;addr<bytes.length;addr+=16){
+       const count=Math.min(16,bytes.length-addr);
+       let line=':'+count.toString(16).toUpperCase().padStart(2,'0')+(addr&0xFFFF).toString(16).toUpperCase().padStart(4,'0')+'00';
+       let cksum=count+((addr>>8)&0xFF)+(addr&0xFF);
+       for(let i=0;i<count;i++){line+=bytes[addr+i].toString(16).toUpperCase().padStart(2,'0');cksum+=bytes[addr+i]}
+       cksum=((~cksum)+1)&0xFF;line+=cksum.toString(16).toUpperCase().padStart(2,'0');hex+=line+'\n';
+       // Extended address records every 64KB
+       if(addr>0&&(addr+16)%0x10000===0&&addr+16<bytes.length){
+         const seg=((addr+16)>>16)&0xFFFF;
+         let earLine=':02000004'+seg.toString(16).toUpperCase().padStart(4,'0');
+         let earCk=2+4+((seg>>8)&0xFF)+(seg&0xFF);earCk=((~earCk)+1)&0xFF;
+         earLine+=earCk.toString(16).toUpperCase().padStart(2,'0');hex+=earLine+'\n';
+       }
+     }
+     hex+=':00000001FF\n'; // EOF
+     return new Response(hex,{headers:{'content-type':'text/plain','content-disposition':'attachment; filename="'+baseName+'.hex"'}});
+   }
+   // --- S-Record format download (Motorola SREC) ---
+   if(fmt==='srec'){
+     const bytes=new Uint8Array(await obj.arrayBuffer());
+     let srec='S0030000FC\n'; // Header
+     for(let addr=0;addr<bytes.length;addr+=32){
+       const count=Math.min(32,bytes.length-addr);
+       const byteCount=count+5; // data + 4 addr + 1 cksum
+       let line='S3'+byteCount.toString(16).toUpperCase().padStart(2,'0')+addr.toString(16).toUpperCase().padStart(8,'0');
+       let cksum=byteCount+((addr>>24)&0xFF)+((addr>>16)&0xFF)+((addr>>8)&0xFF)+(addr&0xFF);
+       for(let i=0;i<count;i++){line+=bytes[addr+i].toString(16).toUpperCase().padStart(2,'0');cksum+=bytes[addr+i]}
+       cksum=((~cksum)&0xFF);line+=cksum.toString(16).toUpperCase().padStart(2,'0');srec+=line+'\n';
+     }
+     srec+='S70500000000FA\n'; // End record
+     return new Response(srec,{headers:{'content-type':'text/plain','content-disposition':'attachment; filename="'+baseName+'.srec"'}});
+   }
+   // --- Default binary download ---
+   return new Response(obj.body,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+baseName+'.bin"'}});
  }catch(e){return j({error:e.message||'DOWNLOAD_FAILED'},500)}}
 
  // === ECU DOSYA HAFIZA SİSTEMİ ===
@@ -1089,6 +1207,526 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    if(!info)return j({error:'SYSTEM_NOT_FOUND',available:['EGR','DPF','AdBlue/SCR','Lambda','Boost','Torque','Injection','MAF/MAP','Hız sınırı','RPM sınırı','Checksum','DTC','Pop&Bang','Start/Stop','Flap/Swirl','Cruise Control']},404);
    return j({ok:true,...info});
  }catch(e){return j({error:e.message||'SYSTEM_INFO_FAILED'},500)}}
+
+ // === ECU PROFİLLERİ — ECU_PROFILES verisini expose et ===
+ if(p==='/api/ecu/profiles'&&m==='GET'){try{
+   const mod=await import('./lib/tuning-engine.js');
+   const u=new URL(req.url);
+   const ecuType=u.searchParams.get('ecuType');
+   if(ecuType){
+     const profile=mod.ECU_PROFILES[ecuType];
+     if(!profile)return j({error:'ECU_TYPE_NOT_FOUND',available:Object.keys(mod.ECU_PROFILES)},404);
+     return j({ok:true,ecuType,profile});
+   }
+   const profiles={};for(const[k,v]of Object.entries(mod.ECU_PROFILES)){profiles[k]={fuel:v.fuel,systemCount:(v.systems||[]).length,systems:v.systems||[],damosLabelCount:(v.damosLabels||[]).length}}
+   return j({ok:true,profiles,totalTypes:Object.keys(mod.ECU_PROFILES).length,dieselTypes:Object.entries(mod.ECU_PROFILES).filter(([,v])=>v.fuel==='diesel').map(([k])=>k),gasolineTypes:Object.entries(mod.ECU_PROFILES).filter(([,v])=>v.fuel==='gasoline').map(([k])=>k)});
+ }catch(e){return j({error:e.message||'PROFILES_FAILED'},500)}}
+
+ // === ECU RAPOR EXPORT — yapılandırılmış analiz raporu ===
+ if(p==='/api/ecu/export-report'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const original=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   const fmt=mod.detectFileFormat(original);
+   const stats=mod.fileStats(original);
+   let normalized=null;
+   try{const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');const{normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');normalized=normalizeD1Definitions(importedDefs)}catch(_){}
+   const regions=await mod.scanRegions(original,normalized);
+   const systemNames=[...new Set(regions.map(r=>r.system))];
+   const systemInfos=systemNames.map(s=>mod.getSystemInfo(s)).filter(Boolean);
+   const stage1=mod.buildStage1Package(systemNames);
+   const ecuProfile=regions._ecuProfile||{ecuType:'unknown',fuel:'unknown'};
+   const checksumResult=mod.validateChecksums(original);
+   // Tuned outputs varsa onları da ekle
+   const tunedOutputs=await qall(env,'SELECT id,tuned_file_size,tuned_file_hash,proposals_applied,created_at FROM ecu_tuned_outputs WHERE upload_id=?',uploadId);
+   // Dosya hafızası
+   const fileMem=await q1(env,'SELECT * FROM ecu_file_memory WHERE file_hash=?',upload.file_hash);
+   const report={
+     meta:{generatedAt:Date.now(),version:'2.0',format:b.format||'json'},
+     file:{name:upload.filename,size:original.length,hash:upload.file_hash,format:fmt.format,stats:{entropy:stats.entropy,zeroPct:stats.zeroPct,ffPct:stats.ffPct}},
+     vehicle:JSON.parse(upload.vehicle_type||'{}'),
+     ecuProfile,
+     analysis:{totalRegions:regions.length,systems:systemNames,systemDetails:systemInfos,stage1Package:stage1,rulepackMatches:regions._rulepackMatches||[],tierBreakdown:{tier0:regions.filter(r=>r.tier===0).length,tier1:regions.filter(r=>r.tier===1).length,tier1b:regions.filter(r=>r.tier==='1b').length,tier2:regions.filter(r=>r.tier===2).length,tier3:regions.filter(r=>r.tier===3).length},regionsBySystem:{}},
+     checksum:checksumResult,
+     tunedOutputs:tunedOutputs.map(t=>({id:t.id,size:t.tuned_file_size,hash:t.tuned_file_hash,appliedCount:JSON.parse(t.proposals_applied||'[]').length,createdAt:t.created_at})),
+     fileMemory:fileMem?{timesUploaded:fileMem.times_uploaded,firstSeen:fileMem.first_seen_at,lastSeen:fileMem.last_seen_at,notes:fileMem.notes,tags:JSON.parse(fileMem.tags||'[]')}:null
+   };
+   for(const sys of systemNames){report.analysis.regionsBySystem[sys]=regions.filter(r=>r.system===sys).map(r=>({id:r.id,label:r.label||'',offset:r.offset,offsetHex:'0x'+r.offset.toString(16).toUpperCase(),tier:r.tier,actionCount:(r.actions||[]).length}))}
+   return j({ok:true,report});
+ }catch(e){return j({error:e.message||'EXPORT_REPORT_FAILED'},500)}}
+
+ // === ECU BATCH İŞLEMLERİ — birden fazla upload üzerinde toplu operasyon ===
+ if(p==='/api/ecu/batch'&&m==='POST'){try{
+   const b=await body(req);
+   const op=b.operation;
+   const uploadIds=Array.isArray(b.uploadIds)?b.uploadIds:[];
+   if(!op)return j({error:'OPERATION_REQUIRED',available:['analyze','delete','tag','export-hashes']},400);
+   if(!uploadIds.length)return j({error:'UPLOAD_IDS_REQUIRED'},400);
+   if(uploadIds.length>50)return j({error:'TOO_MANY_IDS',max:50},400);
+   const results=[];
+   if(op==='analyze'){
+     const mod=await import('./lib/tuning-engine.js');
+     let normalized=null;
+     try{const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');const{normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');normalized=normalizeD1Definitions(importedDefs)}catch(_){}
+     for(const uid of uploadIds){
+       try{
+         const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uid);
+         if(!upload){results.push({id:uid,ok:false,error:'NOT_FOUND'});continue}
+         const obj=await fileGet(env,upload.binary_data);
+         if(!obj){results.push({id:uid,ok:false,error:'FILE_NOT_FOUND'});continue}
+         const bytes=new Uint8Array(await obj.arrayBuffer());
+         const regions=await mod.scanRegions(bytes,normalized);
+         const systemNames=[...new Set(regions.map(r=>r.system))];
+         const ecuProfile=regions._ecuProfile||{ecuType:'unknown',fuel:'unknown'};
+         const ts=Date.now();
+         await run(env,'UPDATE ecu_uploads SET analysis_json=?,analyzed_at=? WHERE id=?',JSON.stringify({regions:regions.length,systems:systemNames,ecuProfile,tiers:{t0:regions.filter(r=>r.tier===0).length,t1:regions.filter(r=>r.tier===1).length,t2:regions.filter(r=>r.tier===2).length}}),ts,uid);
+         results.push({id:uid,ok:true,regions:regions.length,systems:systemNames,ecuProfile});
+       }catch(err){results.push({id:uid,ok:false,error:err.message})}
+     }
+   }else if(op==='delete'){
+     for(const uid of uploadIds){
+       try{await run(env,'DELETE FROM ecu_tuned_outputs WHERE upload_id=?',uid);await run(env,'DELETE FROM ecu_uploads WHERE id=?',uid);results.push({id:uid,ok:true})}catch(err){results.push({id:uid,ok:false,error:err.message})}
+     }
+   }else if(op==='tag'){
+     const tag=b.tag||'';
+     if(!tag)return j({error:'TAG_REQUIRED'},400);
+     for(const uid of uploadIds){
+       try{
+         const mem=await q1(env,'SELECT id,tags FROM ecu_file_memory fm INNER JOIN ecu_uploads u ON fm.file_hash=u.file_hash WHERE u.id=?',uid);
+         if(mem){const tags=JSON.parse(mem.tags||'[]');if(!tags.includes(tag)){tags.push(tag);await run(env,'UPDATE ecu_file_memory SET tags=? WHERE id=?',JSON.stringify(tags),mem.id)}results.push({id:uid,ok:true})}
+         else results.push({id:uid,ok:false,error:'NO_FILE_MEMORY'});
+       }catch(err){results.push({id:uid,ok:false,error:err.message})}
+     }
+   }else if(op==='export-hashes'){
+     for(const uid of uploadIds){
+       try{const u=await q1(env,'SELECT id,filename,file_hash,file_size FROM ecu_uploads WHERE id=?',uid);if(u)results.push({id:uid,ok:true,filename:u.filename,hash:u.file_hash,size:u.file_size});else results.push({id:uid,ok:false,error:'NOT_FOUND'})}catch(err){results.push({id:uid,ok:false,error:err.message})}
+     }
+   }else return j({error:'UNKNOWN_OPERATION',available:['analyze','delete','tag','export-hashes']},400);
+   return j({ok:true,operation:op,total:uploadIds.length,succeeded:results.filter(r=>r.ok).length,failed:results.filter(r=>!r.ok).length,results});
+ }catch(e){return j({error:e.message||'BATCH_FAILED'},500)}}
+
+ // === ECU DIFF RAPOR — orijinal ve tuned arasında byte-seviye fark ===
+ if(p==='/api/ecu/diff-report'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',tuned.upload_id);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const[origObj,tunedObj]=await Promise.all([fileGet(env,upload.binary_data),fileGet(env,tuned.tuned_binary_data)]);
+   if(!origObj||!tunedObj)return j({error:'FILE_NOT_FOUND'},404);
+   const[origBuf,tunedBuf]=await Promise.all([origObj.arrayBuffer(),tunedObj.arrayBuffer()]);
+   const orig=new Uint8Array(origBuf),mod=new Uint8Array(tunedBuf);
+   const maxLen=Math.max(orig.length,mod.length);
+   const limit=Number(u.searchParams.get('limit'))||500;
+   const changes=[];let totalChanged=0;
+   for(let i=0;i<maxLen&&changes.length<limit;i++){
+     const ob=i<orig.length?orig[i]:0,mb=i<mod.length?mod[i]:0;
+     if(ob!==mb){totalChanged++;changes.push({offset:i,offsetHex:'0x'+i.toString(16).toUpperCase(),original:ob,originalHex:'0x'+ob.toString(16).toUpperCase().padStart(2,'0'),modified:mb,modifiedHex:'0x'+mb.toString(16).toUpperCase().padStart(2,'0')})}
+   }
+   // Bölge bazlı grupla
+   const applied=JSON.parse(tuned.proposals_applied||'[]');
+   const changeRegions=[];let regionStart=-1,regionEnd=-1;
+   for(const c of changes){
+     if(regionStart===-1){regionStart=c.offset;regionEnd=c.offset}
+     else if(c.offset-regionEnd>16){changeRegions.push({start:regionStart,startHex:'0x'+regionStart.toString(16).toUpperCase(),end:regionEnd,byteCount:regionEnd-regionStart+1});regionStart=c.offset;regionEnd=c.offset}
+     else regionEnd=c.offset;
+   }
+   if(regionStart!==-1)changeRegions.push({start:regionStart,startHex:'0x'+regionStart.toString(16).toUpperCase(),end:regionEnd,byteCount:regionEnd-regionStart+1});
+   return j({ok:true,uploadId:tuned.upload_id,tunedId,originalSize:orig.length,tunedSize:mod.length,totalChangedBytes:totalChanged,changesShown:changes.length,truncated:totalChanged>limit,changes,changeRegions,appliedActions:applied});
+ }catch(e){return j({error:e.message||'DIFF_FAILED'},500)}}
+
+ // === ECU CLONE — tuned çıktıyı yeni başlangıç noktası olarak klonla ===
+ if(p==='/api/ecu/clone'&&m==='POST'){try{
+   const b=await body(req);
+   const tunedId=b.tunedId||b.tuned_id;
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   const origUpload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',tuned.upload_id);
+   if(!origUpload)return j({error:'ORIGINAL_UPLOAD_NOT_FOUND'},404);
+   const tunedObj=await fileGet(env,tuned.tuned_binary_data);
+   if(!tunedObj)return j({error:'TUNED_FILE_NOT_FOUND'},404);
+   const tunedBytes=new Uint8Array(await tunedObj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   const newId=id();
+   const newHash=await mod.sha256Hex(tunedBytes);
+   const newFilename='cloned-'+String(origUpload.filename||'file.bin');
+   const newKey='ecu/'+newId+'/'+newFilename.replace(/[\\/]/g,'_');
+   await filePut(env,newKey,tunedBytes,{contentType:'application/octet-stream'});
+   const vehicleInfo=JSON.parse(origUpload.vehicle_type||'{}');
+   const ts=Date.now();
+   await run(env,'INSERT INTO ecu_uploads(id,user_id,filename,format,vehicle_type,file_hash,file_size,binary_data,uploaded_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',newId,'owner',newFilename,origUpload.format||'bin',JSON.stringify(vehicleInfo),newHash,tunedBytes.length,newKey,ts,ts);
+   return j({ok:true,newUploadId:newId,filename:newFilename,size:tunedBytes.length,hash:newHash,clonedFrom:{tunedId,originalUploadId:tuned.upload_id}});
+ }catch(e){return j({error:e.message||'CLONE_FAILED'},500)}}
+
+ // === ECU ROLLBACK — tuned çıktıyı sil/geri al ===
+ if(p==='/api/ecu/rollback'&&m==='POST'){try{
+   const b=await body(req);
+   const tunedId=b.tunedId||b.tuned_id;
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   // Dosyayı sil
+   try{await fileDelete(env,tuned.tuned_binary_data)}catch(_){}
+   await run(env,'DELETE FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   // Dosya hafızasından son modifikasyonu kaldır
+   try{
+     const upload=await q1(env,'SELECT file_hash FROM ecu_uploads WHERE id=?',tuned.upload_id);
+     if(upload){
+       const mem=await q1(env,'SELECT id,last_modifications FROM ecu_file_memory WHERE file_hash=?',upload.file_hash);
+       if(mem){const mods=JSON.parse(mem.last_modifications||'[]').filter(m=>m.tunedId!==tunedId);await run(env,'UPDATE ecu_file_memory SET last_modifications=? WHERE id=?',JSON.stringify(mods),mem.id)}
+     }
+   }catch(_){}
+   return j({ok:true,deletedTunedId:tunedId,uploadId:tuned.upload_id});
+ }catch(e){return j({error:e.message||'ROLLBACK_FAILED'},500)}}
+
+ // === ECU ARAMA — uploads, tuned, history üzerinde birleşik arama ===
+ if(p==='/api/ecu/search'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const q=u.searchParams.get('q')||'';
+   const type=u.searchParams.get('type')||'all';
+   const limit=Math.min(Number(u.searchParams.get('limit'))||25,100);
+   const results={uploads:[],tuned:[],history:[],fileMemory:[]};
+   if(type==='all'||type==='uploads'){
+     const uploads=q?await qall(env,'SELECT id,filename,format,vehicle_type,file_hash,file_size,uploaded_at FROM ecu_uploads WHERE filename LIKE ? OR vehicle_type LIKE ? ORDER BY uploaded_at DESC LIMIT ?','%'+q+'%','%'+q+'%',limit):await qall(env,'SELECT id,filename,format,vehicle_type,file_hash,file_size,uploaded_at FROM ecu_uploads ORDER BY uploaded_at DESC LIMIT ?',limit);
+     results.uploads=uploads.map(u=>({...u,vehicle:JSON.parse(u.vehicle_type||'{}')}));
+   }
+   if(type==='all'||type==='tuned'){
+     results.tuned=await qall(env,'SELECT t.id,t.upload_id,t.tuned_file_size,t.tuned_file_hash,t.proposals_applied,t.created_at,u.filename FROM ecu_tuned_outputs t LEFT JOIN ecu_uploads u ON t.upload_id=u.id ORDER BY t.created_at DESC LIMIT ?',limit);
+     results.tuned=results.tuned.map(t=>({...t,appliedCount:JSON.parse(t.proposals_applied||'[]').length}));
+   }
+   if(type==='all'||type==='history'){
+     results.history=q?await qall(env,'SELECT * FROM ecu_action_history WHERE action_type LIKE ? OR details LIKE ? ORDER BY created_at DESC LIMIT ?','%'+q+'%','%'+q+'%',limit):await qall(env,'SELECT * FROM ecu_action_history ORDER BY created_at DESC LIMIT ?',limit);
+   }
+   if(type==='all'||type==='file-memory'){
+     results.fileMemory=q?await qall(env,'SELECT id,file_hash,filename,ecu_type,fuel_type,vehicle_make,vehicle_model,times_uploaded,tags,notes FROM ecu_file_memory WHERE filename LIKE ? OR ecu_type LIKE ? OR vehicle_make LIKE ? OR vehicle_model LIKE ? OR notes LIKE ? ORDER BY last_seen_at DESC LIMIT ?','%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%','%'+q+'%',limit):await qall(env,'SELECT id,file_hash,filename,ecu_type,fuel_type,vehicle_make,vehicle_model,times_uploaded,tags,notes FROM ecu_file_memory ORDER BY last_seen_at DESC LIMIT ?',limit);
+   }
+   const total=results.uploads.length+results.tuned.length+results.history.length+results.fileMemory.length;
+   return j({ok:true,query:q,type,total,results});
+ }catch(e){return j({error:e.message||'SEARCH_FAILED'},500)}}
+
+ // === ECU PRESETS — öntanımlı tuning paketleri ===
+ if(p==='/api/ecu/presets'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const fuel=u.searchParams.get('fuel');
+   const ecuType=u.searchParams.get('ecuType');
+   const mod=await import('./lib/tuning-engine.js');
+   const presets=[
+     {id:'stage1-diesel',name:'Stage 1 — Dizel',fuel:'diesel',description:'EGR Off + DPF Off + Tork limitleri kaldır',systems:['EGR','DPF','Torque','Boost'],riskLevel:'medium',estimatedHpGain:'20-40%',popular:true},
+     {id:'stage1-gasoline',name:'Stage 1 — Benzin',fuel:'gasoline',description:'Lambda ayar + Boost artır + Tork limitleri kaldır',systems:['Lambda','Boost','Torque'],riskLevel:'medium',estimatedHpGain:'15-30%',popular:true},
+     {id:'dpf-off',name:'DPF Off',fuel:'diesel',description:'Dizel Partikül Filtresi kapatma',systems:['DPF'],riskLevel:'medium',estimatedHpGain:'5-10%',popular:true},
+     {id:'egr-off',name:'EGR Off',fuel:'diesel',description:'Egzoz Gaz Geri Devir kapatma',systems:['EGR'],riskLevel:'low',estimatedHpGain:'3-5%',popular:true},
+     {id:'adblue-off',name:'AdBlue/SCR Off',fuel:'diesel',description:'AdBlue/SCR sistemi kapatma',systems:['AdBlue/SCR'],riskLevel:'medium',estimatedHpGain:'0-2%',popular:true},
+     {id:'pop-bang',name:'Pop & Bang',fuel:'gasoline',description:'Egzoz patlaması efekti',systems:['Pop&Bang'],riskLevel:'high',estimatedHpGain:'0%',popular:false},
+     {id:'speed-limit-off',name:'Hız Sınırı Kaldır',fuel:'all',description:'Elektronik hız sınırlayıcı kapatma',systems:['Hız sınırı'],riskLevel:'low',estimatedHpGain:'0%',popular:true},
+     {id:'rpm-limit-raise',name:'RPM Sınırı Yükselt',fuel:'all',description:'Motor devir sınırını yükselt',systems:['RPM sınırı'],riskLevel:'medium',estimatedHpGain:'0%',popular:false},
+     {id:'dtc-off',name:'DTC Off',fuel:'all',description:'Belirli hata kodlarını kapat',systems:['DTC'],riskLevel:'low',estimatedHpGain:'0%',popular:false},
+     {id:'full-delete-diesel',name:'Full Delete — Dizel',fuel:'diesel',description:'EGR + DPF + AdBlue + Lambda + Flap Off',systems:['EGR','DPF','AdBlue/SCR','Lambda','Flap/Swirl'],riskLevel:'high',estimatedHpGain:'25-45%',popular:false},
+     {id:'start-stop-off',name:'Start/Stop Devre Dışı',fuel:'all',description:'Otomatik start/stop fonksiyonunu kapat',systems:['Start/Stop'],riskLevel:'low',estimatedHpGain:'0%',popular:false},
+     {id:'flap-swirl-off',name:'Flap/Swirl Kapatma',fuel:'diesel',description:'Emme manifold klapesi kapatma',systems:['Flap/Swirl'],riskLevel:'low',estimatedHpGain:'2-5%',popular:false},
+   ];
+   let filtered=presets;
+   if(fuel&&fuel!=='all')filtered=filtered.filter(p=>p.fuel===fuel||p.fuel==='all');
+   if(ecuType){
+     const profile=mod.ECU_PROFILES[ecuType];
+     if(profile){
+       filtered=filtered.filter(p=>p.fuel===profile.fuel||p.fuel==='all');
+       filtered=filtered.map(p=>({...p,compatible:p.systems.every(s=>(profile.systems||[]).includes(s)),matchingSystems:p.systems.filter(s=>(profile.systems||[]).includes(s))}));
+     }
+   }
+   return j({ok:true,presets:filtered,total:filtered.length});
+ }catch(e){return j({error:e.message||'PRESETS_FAILED'},500)}}
+
+ // === ECU PRESETS POST — preset uygula ===
+ if(p==='/api/ecu/presets'&&m==='POST'){try{
+   const b=await body(req);
+   const presetId=b.presetId||b.preset_id;
+   const uploadId=b.uploadId||b.upload_id;
+   if(!presetId||!uploadId)return j({error:'PRESET_ID_AND_UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const original=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   let normalized=null;
+   try{const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');const{normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');normalized=normalizeD1Definitions(importedDefs)}catch(_){}
+   const regions=await mod.scanRegions(original,normalized);
+   // Preset'e göre sistemleri filtrele
+   const presetSystems={'stage1-diesel':['EGR','DPF','Torque','Boost'],'stage1-gasoline':['Lambda','Boost','Torque'],'dpf-off':['DPF'],'egr-off':['EGR'],'adblue-off':['AdBlue/SCR'],'pop-bang':['Pop&Bang'],'speed-limit-off':['Hız sınırı'],'rpm-limit-raise':['RPM sınırı'],'dtc-off':['DTC'],'full-delete-diesel':['EGR','DPF','AdBlue/SCR','Lambda','Flap/Swirl'],'start-stop-off':['Start/Stop'],'flap-swirl-off':['Flap/Swirl']};
+   const targetSystems=presetSystems[presetId];
+   if(!targetSystems)return j({error:'PRESET_NOT_FOUND',available:Object.keys(presetSystems)},404);
+   const matchingActions=regions.filter(r=>targetSystems.includes(r.system)).flatMap(r=>r.actions.map(a=>({...a,system:r.system})));
+   if(!matchingActions.length)return j({error:'NO_MATCHING_ACTIONS',preset:presetId,scannedSystems:[...new Set(regions.map(r=>r.system))]},404);
+   // Preview modu
+   if(b.preview)return j({ok:true,preview:true,presetId,matchingActions:matchingActions.length,systems:[...new Set(matchingActions.map(a=>a.system))],actions:matchingActions.map(a=>({id:a.id,label:a.label||'',system:a.system,offset:a.offset,offsetHex:'0x'+a.offset.toString(16).toUpperCase(),risk:a.risk||'medium'}))});
+   // Apply
+   const result=await mod.applyActions(original,matchingActions);
+   const tuned_id=id();
+   const outKey='ecu/'+tuned_id+'/tuned-'+String(upload.filename||'file.bin').replace(/[\\/]/g,'_');
+   await filePut(env,outKey,result.tuned,{contentType:'application/octet-stream'});
+   await run(env,'INSERT INTO ecu_tuned_outputs(id,upload_id,vehicle_id,proposals_applied,tuned_file_hash,tuned_file_size,tuned_binary_data,created_at) VALUES(?,?,?,?,?,?,?,?)',tuned_id,upload.id,'preset-'+presetId,JSON.stringify(result.applied),result.hash,result.size,outKey,now());
+   return j({ok:true,tunedId:tuned_id,presetId,size:result.size,hash:result.hash,applied:result.applied,checksum:result.checksum||null});
+ }catch(e){return j({error:e.message||'PRESET_APPLY_FAILED'},500)}}
+
+ // === ECU HEX GÖRÜNTÜLEYICI — binary dosyanın hex dump'ı ===
+ if(p==='/api/ecu/hex-view'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   const tunedId=u.searchParams.get('tunedId')||u.searchParams.get('tuned_id');
+   if(!uploadId&&!tunedId)return j({error:'UPLOAD_ID_OR_TUNED_ID_REQUIRED'},400);
+   let fileKey,fileName;
+   if(tunedId){const t=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);if(!t)return j({error:'TUNED_NOT_FOUND'},404);fileKey=t.tuned_binary_data;const u2=await q1(env,'SELECT filename FROM ecu_uploads WHERE id=?',t.upload_id);fileName=(u2?.filename||'tuned.bin')}
+   else{const up=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);if(!up)return j({error:'UPLOAD_NOT_FOUND'},404);fileKey=up.binary_data;fileName=up.filename}
+   const obj=await fileGet(env,fileKey);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   const offset=Math.max(0,Number(u.searchParams.get('offset'))||0);
+   const length=Math.min(Number(u.searchParams.get('length'))||256,4096);
+   const end=Math.min(offset+length,bytes.length);
+   const slice=bytes.slice(offset,end);
+   const lines=[];
+   for(let i=0;i<slice.length;i+=16){
+     const hex=[];const ascii=[];
+     for(let k=0;k<16;k++){if(i+k<slice.length){const b=slice[i+k];hex.push(b.toString(16).toUpperCase().padStart(2,'0'));ascii.push(b>=32&&b<127?String.fromCharCode(b):'.')}else{hex.push('  ');ascii.push(' ')}}
+     lines.push({address:offset+i,addressHex:'0x'+(offset+i).toString(16).toUpperCase().padStart(8,'0'),hex:hex.join(' '),ascii:ascii.join('')});
+   }
+   return j({ok:true,fileName,fileSize:bytes.length,offset,length:end-offset,totalSize:bytes.length,lines,hasMore:end<bytes.length});
+ }catch(e){return j({error:e.message||'HEX_VIEW_FAILED'},500)}}
+
+ // === ECU MAP TABLOLARI — dosyadaki tespit edilen harita tabloları ===
+ if(p==='/api/ecu/map-tables'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const uploadId=u.searchParams.get('uploadId')||u.searchParams.get('upload_id');
+   if(!uploadId)return j({error:'UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   let normalized=null;
+   try{const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');const{normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');normalized=normalizeD1Definitions(importedDefs)}catch(_){}
+   const regions=await mod.scanRegions(bytes,normalized);
+   // Map action'ları olan bölgeleri çıkar
+   const mapTables=[];
+   for(const r of regions){
+     for(const a of(r.actions||[])){
+       if(a.mapAction||a.elementCount>1){
+         const tbl={system:r.system,label:a.label||r.label||'',offset:a.offset,offsetHex:'0x'+a.offset.toString(16).toUpperCase(),elementCount:a.elementCount||1,elementSize:a.elementSize||1,dataSize:a.dataSize||1,mapAction:a.mapAction||null,tier:r.tier,id:a.id};
+         // Mevcut değerleri oku
+         if(a.offset>=0&&a.offset+((a.elementCount||1)*(a.elementSize||1))<=bytes.length){
+           const elCount=a.elementCount||1,elSize=a.elementSize||1;
+           const vals=[];for(let i=0;i<Math.min(elCount,64);i++){let v=0;const o=a.offset+i*elSize;for(let b=0;b<elSize;b++)v|=bytes[o+b]<<(8*b);vals.push(v)}
+           tbl.currentValues=vals;tbl.previewHex=vals.slice(0,16).map(v=>v.toString(16).toUpperCase().padStart(elSize*2,'0'));
+         }
+         mapTables.push(tbl);
+       }
+     }
+   }
+   return j({ok:true,uploadId,totalMaps:mapTables.length,mapTables,systemSummary:{},...(()=>{const s={};for(const m of mapTables){s[m.system]=(s[m.system]||0)+1}return{systemSummary:s}})()});
+ }catch(e){return j({error:e.message||'MAP_TABLES_FAILED'},500)}}
+
+ // === ARAÇ VERİTABANI ARAMA — VEHICLE_DB üzerinde arama ===
+ if(p==='/api/ecu/vehicle-db/search'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const q=(u.searchParams.get('q')||'').toLowerCase();
+   const make=u.searchParams.get('make');
+   const ecuType=u.searchParams.get('ecuType');
+   if(!q&&!make&&!ecuType)return j({error:'QUERY_REQUIRED',params:['q','make','ecuType']},400);
+   const mod=await import('./lib/tuning-engine.js');
+   const db=mod.VEHICLE_DB;
+   const results=[];
+   for(const entry of db){
+     const matchMake=!make||entry.make.toLowerCase()===make.toLowerCase();
+     const matchEcu=!ecuType||entry.ecuType===ecuType;
+     const matchQ=!q||entry.make.toLowerCase().includes(q)||entry.model.toLowerCase().includes(q)||entry.ecuType.toLowerCase().includes(q)||(entry.engine||'').toLowerCase().includes(q);
+     if(matchMake&&matchEcu&&matchQ)results.push(entry);
+   }
+   return j({ok:true,query:q||make||ecuType,total:results.length,results:results.slice(0,50),allMakes:[...new Set(db.map(e=>e.make))],allEcuTypes:[...new Set(db.map(e=>e.ecuType))]});
+ }catch(e){return j({error:e.message||'VEHICLE_SEARCH_FAILED'},500)}}
+
+ // === ECU FLASH HAZIRLAMA — dosyayı flash için son doğrulama ve paketleme ===
+ if(p==='/api/ecu/flash-prepare'&&m==='POST'){try{
+   const b=await body(req);
+   const tunedId=b.tunedId||b.tuned_id;
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',tuned.upload_id);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const[origObj,tunedObj]=await Promise.all([fileGet(env,upload.binary_data),fileGet(env,tuned.tuned_binary_data)]);
+   if(!origObj||!tunedObj)return j({error:'FILE_NOT_FOUND'},404);
+   const[origBuf,tunedBuf]=await Promise.all([origObj.arrayBuffer(),tunedObj.arrayBuffer()]);
+   const orig=new Uint8Array(origBuf),tunedBytes=new Uint8Array(tunedBuf);
+   const mod=await import('./lib/tuning-engine.js');
+   const checks={sizeMatch:orig.length===tunedBytes.length,checksum:mod.validateChecksums(tunedBytes),format:mod.detectFileFormat(tunedBytes),validate:mod.validateTunedFile(orig,tunedBytes)};
+   const applied=JSON.parse(tuned.proposals_applied||'[]');
+   let changedBytes=0;for(let i=0;i<Math.min(orig.length,tunedBytes.length);i++){if(orig[i]!==tunedBytes[i])changedBytes++}
+   const warnings=[];
+   if(!checks.sizeMatch)warnings.push('Dosya boyutu eşleşmiyor — flash araçları ret edebilir');
+   if(checks.checksum&&!checks.checksum.valid)warnings.push('Checksum geçersiz — ECU bu dosyayı kabul etmeyebilir');
+   if(changedBytes>orig.length*0.05)warnings.push('Toplam değişiklik oranı %5\'in üzerinde — dikkatli kontrol edin');
+   if(changedBytes===0)warnings.push('Hiçbir byte değişmemiş — bu dosya orijinal ile aynı');
+   return j({ok:true,ready:checks.sizeMatch&&(checks.checksum?.valid!==false)&&changedBytes>0,tunedId,uploadId:tuned.upload_id,filename:(upload.filename||'file.bin').replace(/(\.[^.]+)$/,'_tuned$1'),originalSize:orig.length,tunedSize:tunedBytes.length,changedBytes,changePercent:Number((changedBytes/orig.length*100).toFixed(3)),appliedActions:applied.length,checks,warnings,flashInfo:{tool:'K-TAG / KESS / CMD / PCMFlash / MPPS',protocol:checks.format?.format||'unknown',recommendation:warnings.length===0?'Dosya flash\'a hazır':'Uyarıları kontrol edin'}});
+ }catch(e){return j({error:e.message||'FLASH_PREPARE_FAILED'},500)}}
+
+ // === ECU STAGE 1 ÖNİZLEME — belirli upload için Stage 1 paketini önizle ===
+ if(p==='/api/ecu/stage1-preview'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.uploadId||b.upload_id;
+   if(!uploadId)return j({error:'UPLOAD_ID_REQUIRED'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'FILE_NOT_FOUND'},404);
+   const bytes=new Uint8Array(await obj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   let normalized=null;
+   try{const importedDefs=await qall(env,'SELECT * FROM ecu_definitions ORDER BY address ASC');const{normalizeD1Definitions}=await import('./lib/ecu-definition-parser.js');normalized=normalizeD1Definitions(importedDefs)}catch(_){}
+   const regions=await mod.scanRegions(bytes,normalized);
+   const systemNames=[...new Set(regions.map(r=>r.system))];
+   const ecuProfile=regions._ecuProfile||{ecuType:'unknown',fuel:'unknown'};
+   const stage1=mod.buildStage1Package(systemNames);
+   const systemInfos=systemNames.map(s=>mod.getSystemInfo(s)).filter(Boolean);
+   // Her sistem için action sayısı
+   const actionBreakdown={};
+   for(const r of regions){const sys=r.system;if(!actionBreakdown[sys])actionBreakdown[sys]={system:sys,regions:0,actions:0,info:mod.getSystemInfo(sys)};actionBreakdown[sys].regions++;actionBreakdown[sys].actions+=(r.actions||[]).length}
+   return j({ok:true,uploadId,vehicle:JSON.parse(upload.vehicle_type||'{}'),ecuProfile,stage1,detectedSystems:systemNames,systemInfos,actionBreakdown:Object.values(actionBreakdown),totalRegions:regions.length,totalActions:regions.reduce((s,r)=>s+(r.actions||[]).length,0)});
+ }catch(e){return j({error:e.message||'STAGE1_PREVIEW_FAILED'},500)}}
+
+ // === ECU TOPLU SİLME — birden fazla upload/tuned silme ===
+ if(p==='/api/ecu/bulk-delete'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadIds=Array.isArray(b.uploadIds)?b.uploadIds:[];
+   const tunedIds=Array.isArray(b.tunedIds)?b.tunedIds:[];
+   if(!uploadIds.length&&!tunedIds.length)return j({error:'NO_IDS_PROVIDED'},400);
+   if(uploadIds.length+tunedIds.length>100)return j({error:'TOO_MANY_IDS',max:100},400);
+   const results={deletedUploads:[],deletedTuned:[],errors:[]};
+   for(const tid of tunedIds){
+     try{const t=await q1(env,'SELECT tuned_binary_data FROM ecu_tuned_outputs WHERE id=?',tid);if(t){try{await fileDelete(env,t.tuned_binary_data)}catch(_){}await run(env,'DELETE FROM ecu_tuned_outputs WHERE id=?',tid);results.deletedTuned.push(tid)}else results.errors.push({id:tid,type:'tuned',error:'NOT_FOUND'})}catch(err){results.errors.push({id:tid,type:'tuned',error:err.message})}
+   }
+   for(const uid of uploadIds){
+     try{
+       const u=await q1(env,'SELECT binary_data FROM ecu_uploads WHERE id=?',uid);
+       if(u){
+         // Önce ilişkili tuned dosyaları sil
+         const related=await qall(env,'SELECT id,tuned_binary_data FROM ecu_tuned_outputs WHERE upload_id=?',uid);
+         for(const r of related){try{await fileDelete(env,r.tuned_binary_data)}catch(_){}await run(env,'DELETE FROM ecu_tuned_outputs WHERE id=?',r.id);results.deletedTuned.push(r.id)}
+         try{await fileDelete(env,u.binary_data)}catch(_){}
+         await run(env,'DELETE FROM ecu_uploads WHERE id=?',uid);
+         results.deletedUploads.push(uid);
+       }else results.errors.push({id:uid,type:'upload',error:'NOT_FOUND'});
+     }catch(err){results.errors.push({id:uid,type:'upload',error:err.message})}
+   }
+   return j({ok:true,...results,summary:{uploadsDeleted:results.deletedUploads.length,tunedDeleted:results.deletedTuned.length,errors:results.errors.length}});
+ }catch(e){return j({error:e.message||'BULK_DELETE_FAILED'},500)}}
+
+ // === ECU CHECKSUM OTO-DÜZELT — tuned dosyadaki checksum'ları otomatik düzelt ===
+ if(p==='/api/ecu/checksum/auto-correct'&&m==='POST'){try{
+   const b=await body(req);
+   const tunedId=b.tunedId||b.tuned_id;
+   if(!tunedId)return j({error:'TUNED_ID_REQUIRED'},400);
+   const tuned=await q1(env,'SELECT * FROM ecu_tuned_outputs WHERE id=?',tunedId);
+   if(!tuned)return j({error:'TUNED_NOT_FOUND'},404);
+   const tunedObj=await fileGet(env,tuned.tuned_binary_data);
+   if(!tunedObj)return j({error:'TUNED_FILE_NOT_FOUND'},404);
+   const tunedBytes=new Uint8Array(await tunedObj.arrayBuffer());
+   const mod=await import('./lib/tuning-engine.js');
+   // Önce mevcut checksum durumunu kontrol et
+   const beforeCheck=mod.validateChecksums(tunedBytes);
+   if(beforeCheck.valid)return j({ok:true,alreadyValid:true,checksum:beforeCheck});
+   // Checksum düzeltme — Bosch blok bazlı
+   const corrected=new Uint8Array(tunedBytes);
+   let correctedCount=0;
+   if(beforeCheck.blocks&&Array.isArray(beforeCheck.blocks)){
+     for(const block of beforeCheck.blocks){
+       if(!block.valid&&block.offset!=null&&block.length!=null&&block.checksumOffset!=null){
+         // Blok checksum'ını yeniden hesapla
+         let sum=0;
+         for(let i=block.offset;i<block.offset+block.length;i++){if(i!==block.checksumOffset&&i<corrected.length)sum=(sum+corrected[i])&0xFFFFFFFF}
+         const target=(0x100000000-sum)&0xFFFFFFFF;
+         if(block.checksumOffset+4<=corrected.length){
+           corrected[block.checksumOffset]=target&0xFF;
+           corrected[block.checksumOffset+1]=(target>>8)&0xFF;
+           corrected[block.checksumOffset+2]=(target>>16)&0xFF;
+           corrected[block.checksumOffset+3]=(target>>24)&0xFF;
+           correctedCount++;
+         }
+       }
+     }
+   }
+   if(correctedCount===0)return j({ok:false,error:'CHECKSUM_CORRECTION_NOT_POSSIBLE',detail:'Blok bilgisi yetersiz veya desteklenmeyen checksum formatı',before:beforeCheck});
+   // Düzeltilmiş dosyayı kaydet
+   const newHash=await mod.sha256Hex(corrected);
+   await filePut(env,tuned.tuned_binary_data,corrected,{contentType:'application/octet-stream'});
+   await run(env,'UPDATE ecu_tuned_outputs SET tuned_file_hash=?,tuned_file_size=? WHERE id=?',newHash,corrected.length,tunedId);
+   const afterCheck=mod.validateChecksums(corrected);
+   return j({ok:true,correctedBlocks:correctedCount,before:beforeCheck,after:afterCheck,newHash});
+ }catch(e){return j({error:e.message||'CHECKSUM_CORRECT_FAILED'},500)}}
+
+ // === DOSYA HAFIZA BİRLEŞTİR — birden fazla file memory kaydını birleştir ===
+ if(p==='/api/ecu/file-memory/merge'&&m==='POST'){try{
+   const b=await body(req);
+   const sourceIds=Array.isArray(b.sourceIds)?b.sourceIds:[];
+   const targetId=b.targetId;
+   if(sourceIds.length<1||!targetId)return j({error:'SOURCE_IDS_AND_TARGET_ID_REQUIRED'},400);
+   const target=await q1(env,'SELECT * FROM ecu_file_memory WHERE id=?',targetId);
+   if(!target)return j({error:'TARGET_NOT_FOUND'},404);
+   let mergedTags=JSON.parse(target.tags||'[]');
+   let mergedMods=JSON.parse(target.last_modifications||'[]');
+   let mergedUploads=JSON.parse(target.upload_ids||'[]');
+   let mergedNotes=target.notes||'';
+   let totalUploads=target.times_uploaded||1;
+   const merged=[];
+   for(const sid of sourceIds){
+     if(sid===targetId)continue;
+     const src=await q1(env,'SELECT * FROM ecu_file_memory WHERE id=?',sid);
+     if(!src){continue}
+     const srcTags=JSON.parse(src.tags||'[]');for(const t of srcTags){if(!mergedTags.includes(t))mergedTags.push(t)}
+     const srcMods=JSON.parse(src.last_modifications||'[]');mergedMods=mergedMods.concat(srcMods);
+     const srcUploads=JSON.parse(src.upload_ids||'[]');for(const u of srcUploads){if(!mergedUploads.includes(u))mergedUploads.push(u)}
+     if(src.notes&&src.notes.trim())mergedNotes+=(mergedNotes?'\n':'')+src.notes;
+     totalUploads+=src.times_uploaded||0;
+     merged.push(sid);
+   }
+   mergedMods.sort((a,b)=>(a.date||0)-(b.date||0));
+   if(mergedMods.length>50)mergedMods=mergedMods.slice(-50);
+   await run(env,'UPDATE ecu_file_memory SET tags=?,last_modifications=?,upload_ids=?,notes=?,times_uploaded=?,last_seen_at=? WHERE id=?',JSON.stringify(mergedTags),JSON.stringify(mergedMods),JSON.stringify(mergedUploads),mergedNotes,totalUploads,Date.now(),targetId);
+   // Kaynak kayıtları sil
+   for(const sid of merged){await run(env,'DELETE FROM ecu_file_memory WHERE id=?',sid)}
+   return j({ok:true,targetId,mergedSources:merged,resultTags:mergedTags,resultModCount:mergedMods.length,resultUploadCount:mergedUploads.length});
+ }catch(e){return j({error:e.message||'MERGE_FAILED'},500)}}
+
+ // === DOSYA HAFIZA EXPORT — tüm file memory verilerini dışa aktar ===
+ if(p==='/api/ecu/file-memory/export'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const format=u.searchParams.get('format')||'json';
+   const all=await qall(env,'SELECT * FROM ecu_file_memory ORDER BY last_seen_at DESC');
+   const entries=all.map(m=>({
+     id:m.id,fileHash:m.file_hash,filename:m.filename,fileSize:m.file_size,ecuType:m.ecu_type,fuelType:m.fuel_type,
+     vehicle:{make:m.vehicle_make,model:m.vehicle_model,year:m.vehicle_year},
+     detectedSystems:JSON.parse(m.detected_systems||'[]'),ecuProfileData:JSON.parse(m.ecu_profile_data||'{}'),
+     scanResultSummary:JSON.parse(m.scan_result_summary||'{}'),
+     timesUploaded:m.times_uploaded,firstSeen:m.first_seen_at,lastSeen:m.last_seen_at,
+     uploadIds:JSON.parse(m.upload_ids||'[]'),tags:JSON.parse(m.tags||'[]'),notes:m.notes||'',
+     lastModifications:JSON.parse(m.last_modifications||'[]')
+   }));
+   if(format==='csv'){
+     const header='id,fileHash,filename,fileSize,ecuType,fuelType,make,model,year,timesUploaded,tags,notes';
+     const rows=entries.map(e=>[e.id,e.fileHash,e.filename,e.fileSize,e.ecuType,e.fuelType,e.vehicle.make,e.vehicle.model,e.vehicle.year,e.timesUploaded,'"'+e.tags.join(',')+'"','"'+(e.notes||'').replace(/"/g,'""')+'"'].join(','));
+     return new Response(header+'\n'+rows.join('\n'),{headers:{'content-type':'text/csv','content-disposition':'attachment; filename="ecu-file-memory.csv"'}});
+   }
+   return j({ok:true,total:entries.length,exportedAt:Date.now(),entries});
+ }catch(e){return j({error:e.message||'EXPORT_FAILED'},500)}}
 
  // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
  if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
