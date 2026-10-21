@@ -94,21 +94,47 @@
     return div;
   }
   async function googleResearch(info, target) {
-    const query = ['site:kt200ii.com', 'KT200II', info.brand, info.model, info.engine, $('#ktEcuType').value, info.ecu_part_number, 'OBD BENCH'].filter(Boolean).join(' ').slice(0, 250);
+    const identificationQuery = [
+      info.brand, info.model, info.year, info.engine, info.power && info.power + ' PS', 'motor ECU Bosch Continental EDC17 MD1 MG1'
+    ].filter(Boolean).join(' ').slice(0, 250);
+    const protocolQuery = [
+      'site:kt200ii.com', 'KT200II', info.brand, info.model, info.engine,
+      $('#ktEcuType').value, info.ecu_part_number, 'OBD BENCH'
+    ].filter(Boolean).join(' ').slice(0, 250);
+    const queries = [identificationQuery, protocolQuery];
     try {
-      const res = await fetch('/api/google-search?num=5&q=' + encodeURIComponent(query), { credentials: 'same-origin' });
-      if (!res.ok) throw Error('Google bağlantısı yapılandırılmamış olabilir.');
-      const data = await res.json();
-      const rows = (data.results || []).filter(x => safeUrl(x.url));
-      if (!rows.length) throw Error('Kaynak sonucu yok.');
+      const responses = await Promise.all(queries.map(async query => {
+        const res = await fetch('/api/google-search?num=5&q=' + encodeURIComponent(query), { credentials: 'same-origin' });
+        if (!res.ok) throw Error('GOOGLE_NOT_CONFIGURED');
+        return res.json();
+      }));
+      const unique = new Map();
+      responses.flatMap(r => r.results || []).forEach(item => {
+        const url = safeUrl(item.url);
+        if (url && !unique.has(url)) unique.set(url, item);
+      });
+      const rows = [...unique.values()].slice(0, 8);
+      if (!rows.length) throw Error('NO_WEB_RESULTS');
       const block = document.createElement('div');
       block.className = 'ktCard';
-      block.innerHTML = '<h3>İnternette bulunan kaynaklar</h3><p class="ktMuted">Bağlantılar araştırma amaçlıdır. Arama özeti protokol desteğinin kanıtı değildir.</p>';
+      block.innerHTML = '<h3>İnternet araştırması · Kaynaklar</h3><p class="ktMuted">Aşağıdakiler arama sonuçlarından elde edilen araştırma ipuçlarıdır. ECU eşleşmesi veya KT200 II okuma desteği kesinleşmiş değildir.</p>';
+      const patterns = /\\b(?:EDC(?:15|16|17)[A-Z0-9.]*|MD1[A-Z0-9.]+|MG1[A-Z0-9.]+|MED17[A-Z0-9.]*|SIMOS\\s*[0-9.]+)\\b/gi;
+      const hints = new Map();
       rows.forEach(item => {
         const link = document.createElement('p');
         link.innerHTML = '<a href="' + escapeHtml(safeUrl(item.url)) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(item.title || item.url) + ' ↗</a>';
         block.appendChild(link);
+        for (const match of String(item.title || '') .concat(' ', item.snippet || '').matchAll(patterns)) {
+          const family = match[0].trim().toUpperCase();
+          if (!hints.has(family)) hints.set(family, safeUrl(item.url));
+        }
       });
+      if (hints.size) {
+        const hintBox = document.createElement('p');
+        hintBox.className = 'ktMuted';
+        hintBox.textContent = 'Kaynaklarda geçen ECU tipleri (teyitsiz): ' + [...hints.keys()].slice(0, 10).join(', ') + '. Parça numarası ve HW/SW ile doğrula.';
+        block.insertBefore(hintBox, block.children[2] || null);
+      }
       target.appendChild(block);
     } catch {
       const infoNode = document.createElement('p');
