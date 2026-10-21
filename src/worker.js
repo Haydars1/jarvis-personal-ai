@@ -12,6 +12,9 @@ import { addChat, chatHistory, rememberExplicit } from './lib/chat.js';
 import { aiFallback, aiRouterStatus, aiDiagnostics, aiRouterMark } from './lib/ai-router.js';
 import { obdBridgeRouter } from './lib/obd-bridge.js';
 import { thinkdiagRouter } from './lib/thinkdiag-import.js';
+import { lookupDTC, searchDTCs, getTuningRelatedDTCs, getDTCSystems, getFlashProtocol, listFlashProtocols, getSafetyLimits, getAllSafetyLimits, batchLookupDTCs, analyzeDTCPattern } from './lib/dtc-database.js';
+import { listChecksumAlgorithms, computeChecksum, detectChecksumAlgo, analyzeBinary, computeEntropy, entropyMap, extractStrings, detectSections, crc32, crc16, add32, add32le, add16, add16le, xor32, siemensChecksum, simosChecksum, delphiChecksum, marelliChecksum, densoChecksum, correctComplement } from './lib/ecu-checksum-extended.js';
+import { createProject, getProject, listProjects, updateProject, deleteProject, addUploadToProject, addTunedToProject, startSession, endSession, addSessionOperation, addSessionChanges, getSession, listSessions, addNote, listNotes, deleteNote, projectStats, ensureProjectTables } from './lib/tuning-projects.js';
 
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
@@ -1727,6 +1730,402 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    }
    return j({ok:true,total:entries.length,exportedAt:Date.now(),entries});
  }catch(e){return j({error:e.message||'EXPORT_FAILED'},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === DTC DATABASE — Arıza kodu arama, analiz, toplu sorgulama ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Tek DTC sorgu ---
+ if(p==='/api/ecu/dtc/lookup'&&m==='GET'){
+   const u=new URL(req.url);const code=u.searchParams.get('code');
+   if(!code)return j({error:'MISSING_CODE',hint:'?code=P0420'},400);
+   const result=lookupDTC(code);
+   if(!result)return j({error:'DTC_NOT_FOUND',code},404);
+   return j({ok:true,...result});
+ }
+
+ // --- DTC arama (keyword) ---
+ if(p==='/api/ecu/dtc/search'&&m==='GET'){
+   const u=new URL(req.url);const q=u.searchParams.get('q')||'';
+   const system=u.searchParams.get('system')||undefined;
+   const severity=u.searchParams.get('severity')||undefined;
+   const limit=parseInt(u.searchParams.get('limit')||'50');
+   const results=searchDTCs(q,{system,severity,limit});
+   return j({ok:true,query:q,total:results.length,results});
+ }
+
+ // --- Toplu DTC sorgu ---
+ if(p==='/api/ecu/dtc/batch'&&m==='POST'){try{
+   const b=await body(req);const codes=b.codes||[];
+   if(!Array.isArray(codes)||!codes.length)return j({error:'MISSING_CODES'},400);
+   const results=batchLookupDTCs(codes);
+   return j({ok:true,total:results.length,results});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- DTC pattern analiz ---
+ if(p==='/api/ecu/dtc/analyze'&&m==='POST'){try{
+   const b=await body(req);const codes=b.codes||[];
+   if(!Array.isArray(codes)||!codes.length)return j({error:'MISSING_CODES'},400);
+   const analysis=analyzeDTCPattern(codes);
+   return j({ok:true,...analysis});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Tuning-ilişkili DTC'ler ---
+ if(p==='/api/ecu/dtc/tuning-related'&&m==='GET'){
+   const u=new URL(req.url);const op=u.searchParams.get('operation')||'';
+   if(!op)return j({error:'MISSING_OPERATION',hint:'?operation=dpf_delete'},400);
+   const codes=getTuningRelatedDTCs(op);
+   return j({ok:true,operation:op,total:codes.length,codes});
+ }
+
+ // --- DTC sistem kategorileri ---
+ if(p==='/api/ecu/dtc/systems'&&m==='GET'){
+   const systems=getDTCSystems();
+   return j({ok:true,systems});
+ }
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === FLASH PROTOCOL — ECU flash protokol bilgileri ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Tek ECU tipi flash protokol ---
+ if(p==='/api/ecu/flash-protocol'&&m==='GET'){
+   const u=new URL(req.url);const ecuType=u.searchParams.get('ecu_type')||'';
+   if(!ecuType)return j({error:'MISSING_ECU_TYPE',hint:'?ecu_type=MED17.5.2'},400);
+   const proto=getFlashProtocol(ecuType);
+   if(!proto)return j({error:'PROTOCOL_NOT_FOUND',ecuType},404);
+   return j({ok:true,...proto});
+ }
+
+ // --- Tüm flash protokoller ---
+ if(p==='/api/ecu/flash-protocols'&&m==='GET'){
+   const protocols=listFlashProtocols();
+   return j({ok:true,total:protocols.length,protocols});
+ }
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === SAFETY LIMITS — Tuning güvenlik sınırları ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Sistem/yakıt bazlı güvenlik limitleri ---
+ if(p==='/api/ecu/safety-limits'&&m==='GET'){
+   const u=new URL(req.url);
+   const system=u.searchParams.get('system')||'';
+   const fuelType=u.searchParams.get('fuel_type')||'diesel';
+   if(!system)return j({error:'MISSING_SYSTEM',hint:'?system=boost&fuel_type=diesel'},400);
+   const limits=getSafetyLimits(system,fuelType);
+   if(!limits)return j({error:'LIMITS_NOT_FOUND',system,fuelType},404);
+   return j({ok:true,system,fuelType,limits});
+ }
+
+ // --- Tüm güvenlik limitleri ---
+ if(p==='/api/ecu/safety-limits/all'&&m==='GET'){
+   const all=getAllSafetyLimits();
+   return j({ok:true,...all});
+ }
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === CHECKSUM ALGORITHMS — Genişletilmiş checksum hesaplama ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Mevcut algoritmaları listele ---
+ if(p==='/api/ecu/checksum/algorithms'&&m==='GET'){
+   const algos=listChecksumAlgorithms();
+   return j({ok:true,total:algos.length,algorithms:algos});
+ }
+
+ // --- Genel checksum hesaplama ---
+ if(p==='/api/ecu/checksum/compute'&&m==='POST'){try{
+   const b=await body(req);
+   const uploadId=b.upload_id;const algo=b.algorithm;
+   if(!uploadId||!algo)return j({error:'MISSING_PARAMS',hint:'upload_id + algorithm required'},400);
+   const upload=await q1(env,'SELECT binary_data FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_NOT_FOUND'},404);
+   const buf=await fileObj.arrayBuffer();
+   const data=new Uint8Array(buf);
+   const offset=parseInt(b.offset||'0');
+   const length=parseInt(b.length||String(data.length));
+   const result=computeChecksum(algo,data,offset,length);
+   return j({ok:true,algorithm:algo,uploadId,offset,length,checksum:result,hex:'0x'+result.toString(16).toUpperCase().padStart(8,'0')});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- ECU tipine göre otomatik checksum algoritma tespiti ---
+ if(p==='/api/ecu/checksum/detect'&&m==='GET'){
+   const u=new URL(req.url);const ecuType=u.searchParams.get('ecu_type')||'';
+   if(!ecuType)return j({error:'MISSING_ECU_TYPE'},400);
+   const detected=detectChecksumAlgo(ecuType);
+   return j({ok:true,ecuType,detected});
+ }
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === BINARY ANALYSIS — Gelişmiş binary analiz (entropy, strings, sections) ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ if(p==='/api/ecu/binary-analysis'&&m==='POST'){try{
+   const b=await body(req);const uploadId=b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT binary_data,filename FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_NOT_FOUND'},404);
+   const buf=await fileObj.arrayBuffer();
+   const data=new Uint8Array(buf);
+   const report=analyzeBinary(data);
+   return j({ok:true,uploadId,filename:upload.filename,...report});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Entropy haritası ---
+ if(p==='/api/ecu/entropy-map'&&m==='POST'){try{
+   const b=await body(req);const uploadId=b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT binary_data FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_NOT_FOUND'},404);
+   const buf=await fileObj.arrayBuffer();
+   const data=new Uint8Array(buf);
+   const windowSize=parseInt(b.window_size||'4096');
+   const map=entropyMap(data,windowSize);
+   return j({ok:true,uploadId,windowSize,totalPoints:map.length,map});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- String çıkarma ---
+ if(p==='/api/ecu/strings'&&m==='POST'){try{
+   const b=await body(req);const uploadId=b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT binary_data FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_NOT_FOUND'},404);
+   const buf=await fileObj.arrayBuffer();
+   const data=new Uint8Array(buf);
+   const minLen=parseInt(b.min_length||'6');
+   const strings=extractStrings(data,minLen);
+   return j({ok:true,uploadId,minLength:minLen,total:strings.length,strings:strings.slice(0,500)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Section tespiti ---
+ if(p==='/api/ecu/sections'&&m==='POST'){try{
+   const b=await body(req);const uploadId=b.upload_id;
+   if(!uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT binary_data FROM ecu_uploads WHERE id=?',uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_NOT_FOUND'},404);
+   const buf=await fileObj.arrayBuffer();
+   const data=new Uint8Array(buf);
+   const sections=detectSections(data);
+   return j({ok:true,uploadId,totalSections:sections.length,sections});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === TUNING PROJECTS — Proje yönetimi, session tracking, notlar ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Proje listele ---
+ if(p==='/api/ecu/projects'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const status=u.searchParams.get('status')||undefined;
+   const limit=parseInt(u.searchParams.get('limit')||'50');
+   const offset=parseInt(u.searchParams.get('offset')||'0');
+   const projects=await listProjects(env,{status,limit,offset});
+   return j({ok:true,total:projects.length,projects});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Proje oluştur ---
+ if(p==='/api/ecu/projects'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.name)return j({error:'MISSING_NAME'},400);
+   const project=await createProject(env,b);
+   return j({ok:true,project});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Tek proje getir ---
+ if(p.startsWith('/api/ecu/projects/')&&!p.includes('/sessions')&&!p.includes('/notes')&&!p.includes('/stats')&&!p.includes('/uploads')&&!p.includes('/tuned')&&m==='GET'){try{
+   const projectId=p.split('/api/ecu/projects/')[1];
+   if(!projectId)return j({error:'MISSING_ID'},400);
+   const project=await getProject(env,projectId);
+   if(!project)return j({error:'PROJECT_NOT_FOUND'},404);
+   return j({ok:true,project});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Proje güncelle ---
+ if(p.match(/^\/api\/ecu\/projects\/[^/]+$/)&&m==='PUT'){try{
+   const projectId=p.split('/api/ecu/projects/')[1];
+   const b=await body(req);
+   const updated=await updateProject(env,projectId,b);
+   if(!updated)return j({error:'PROJECT_NOT_FOUND'},404);
+   return j({ok:true,project:updated});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Proje sil ---
+ if(p.match(/^\/api\/ecu\/projects\/[^/]+$/)&&m==='DELETE'){try{
+   const projectId=p.split('/api/ecu/projects/')[1];
+   await deleteProject(env,projectId);
+   return j({ok:true,deleted:projectId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Proje istatistikleri ---
+ if(p.match(/^\/api\/ecu\/projects\/[^/]+\/stats$/)&&m==='GET'){try{
+   const projectId=p.split('/')[4];
+   const stats=await projectStats(env,projectId);
+   if(!stats)return j({error:'PROJECT_NOT_FOUND'},404);
+   return j({ok:true,...stats});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Projeye upload ekle ---
+ if(p.match(/^\/api\/ecu\/projects\/[^/]+\/uploads$/)&&m==='POST'){try{
+   const projectId=p.split('/')[4];
+   const b=await body(req);
+   if(!b.upload_id)return j({error:'MISSING_UPLOAD_ID'},400);
+   const ok=await addUploadToProject(env,projectId,b.upload_id);
+   if(!ok)return j({error:'PROJECT_NOT_FOUND'},404);
+   return j({ok:true,projectId,uploadId:b.upload_id});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Projeye tuned dosya ekle ---
+ if(p.match(/^\/api\/ecu\/projects\/[^/]+\/tuned$/)&&m==='POST'){try{
+   const projectId=p.split('/')[4];
+   const b=await body(req);
+   if(!b.tuned_id)return j({error:'MISSING_TUNED_ID'},400);
+   const ok=await addTunedToProject(env,projectId,b.tuned_id);
+   if(!ok)return j({error:'PROJECT_NOT_FOUND'},404);
+   return j({ok:true,projectId,tunedId:b.tuned_id});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === TUNING SESSIONS — Oturum takibi ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Session listele ---
+ if(p==='/api/ecu/sessions'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const projectId=u.searchParams.get('project_id')||null;
+   const status=u.searchParams.get('status')||undefined;
+   const limit=parseInt(u.searchParams.get('limit')||'50');
+   const sessions=await listSessions(env,projectId,{status,limit});
+   return j({ok:true,total:sessions.length,sessions});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Session başlat ---
+ if(p==='/api/ecu/sessions'&&m==='POST'){try{
+   const b=await body(req);
+   const session=await startSession(env,b.project_id||null,b.session_type||'tuning');
+   return j({ok:true,session});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Tek session getir ---
+ if(p.match(/^\/api\/ecu\/sessions\/[^/]+$/)&&m==='GET'){try{
+   const sessionId=p.split('/api/ecu/sessions/')[1];
+   const session=await getSession(env,sessionId);
+   if(!session)return j({error:'SESSION_NOT_FOUND'},404);
+   return j({ok:true,session});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Session bitir ---
+ if(p.match(/^\/api\/ecu\/sessions\/[^/]+\/end$/)&&m==='POST'){try{
+   const sessionId=p.split('/')[4];
+   const b=await body(req);
+   const session=await endSession(env,sessionId,b);
+   if(!session)return j({error:'SESSION_NOT_FOUND'},404);
+   return j({ok:true,session});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Session'a operasyon ekle ---
+ if(p.match(/^\/api\/ecu\/sessions\/[^/]+\/operations$/)&&m==='POST'){try{
+   const sessionId=p.split('/')[4];
+   const b=await body(req);
+   const ok=await addSessionOperation(env,sessionId,b);
+   if(!ok)return j({error:'SESSION_NOT_FOUND'},404);
+   return j({ok:true,sessionId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Session'a değişiklik ekle ---
+ if(p.match(/^\/api\/ecu\/sessions\/[^/]+\/changes$/)&&m==='POST'){try{
+   const sessionId=p.split('/')[4];
+   const b=await body(req);
+   const ok=await addSessionChanges(env,sessionId,b.changes||[]);
+   if(!ok)return j({error:'SESSION_NOT_FOUND'},404);
+   return j({ok:true,sessionId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === TUNING NOTES — Proje ve session notları ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Notları listele ---
+ if(p==='/api/ecu/notes'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const filters={
+     project_id:u.searchParams.get('project_id')||undefined,
+     session_id:u.searchParams.get('session_id')||undefined,
+     upload_id:u.searchParams.get('upload_id')||undefined,
+     note_type:u.searchParams.get('note_type')||undefined,
+     limit:parseInt(u.searchParams.get('limit')||'100')
+   };
+   const notes=await listNotes(env,filters);
+   return j({ok:true,total:notes.length,notes});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Not ekle ---
+ if(p==='/api/ecu/notes'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.content)return j({error:'MISSING_CONTENT'},400);
+   const note=await addNote(env,b);
+   return j({ok:true,note});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Not sil ---
+ if(p.match(/^\/api\/ecu\/notes\/[^/]+$/)&&m==='DELETE'){try{
+   const noteId=p.split('/api/ecu/notes/')[1];
+   await deleteNote(env,noteId);
+   return j({ok:true,deleted:noteId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ECU SYSTEM OVERVIEW — Tüm ECU sistemi durum özeti ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ if(p==='/api/ecu/overview'&&m==='GET'){try{
+   const uploads=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_uploads');
+   const tuned=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuned_outputs');
+   const history=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuning_history');
+   const defSets=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_definition_sets');
+   const defs=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_definitions');
+   const memory=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_file_memory');
+   let projectCount=0;try{const pc=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuning_projects');projectCount=pc?.cnt||0}catch(e){}
+   let sessionCount=0;try{const sc=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuning_sessions');sessionCount=sc?.cnt||0}catch(e){}
+   const checksumAlgos=listChecksumAlgorithms();
+   const flashProtos=listFlashProtocols();
+   const safetyAll=getAllSafetyLimits();
+   const dtcSystems=getDTCSystems();
+   return j({ok:true,overview:{
+     uploads:uploads?.cnt||0,
+     tunedOutputs:tuned?.cnt||0,
+     tuningHistory:history?.cnt||0,
+     definitionSets:defSets?.cnt||0,
+     definitions:defs?.cnt||0,
+     fileMemory:memory?.cnt||0,
+     projects:projectCount,
+     sessions:sessionCount,
+     checksumAlgorithms:checksumAlgos.length,
+     flashProtocols:flashProtos.length,
+     safetyLimitSystems:Object.keys(safetyAll).length,
+     dtcSystems:dtcSystems.length,
+     capabilities:[
+       'binary_upload','multi_format_download','5_tier_detection',
+       'definition_matching','a2l_xdf_parsing','checksum_correction',
+       'extended_checksums','binary_analysis','entropy_mapping',
+       'string_extraction','section_detection','dtc_database',
+       'flash_protocols','safety_limits','project_management',
+       'session_tracking','notes','file_memory','vehicle_db',
+       'hex_view','map_tables','batch_operations','diff_reports',
+       'stage1_preview','obd_bridge','thinkdiag_import'
+     ]
+   }});
+ }catch(e){return j({error:e.message},500)}}
 
  // === OBD-II BRIDGE (ELM327 decode, live sessions, DTC) ===
  if(p.startsWith('/api/obd/')){const obdRes=await obdBridgeRouter(req,env,p,m);if(obdRes)return obdRes}
