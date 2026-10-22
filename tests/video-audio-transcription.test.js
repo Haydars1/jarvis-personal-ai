@@ -128,3 +128,13 @@ test('audio mode must not be an arbitrary value', async () => {
   assert.equal(res.status, 400);
   assert.equal((await res.json()).error, 'INVALID_SAVE');
 });
+
+test('silence in one segment does not stop the multi-part transcription workflow', async () => {
+  const { handler, env, saved } = setup({ ai: async () => ({ text: '' }) });
+  const res = await handler.fetch(post({ data: fixtureWav(), save: false }), env);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.silent, true);
+  assert.equal(body.transcript, '');
+  assert.equal(saved(), null);
+});
