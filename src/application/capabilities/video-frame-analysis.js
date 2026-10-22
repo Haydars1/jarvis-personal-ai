@@ -16,7 +16,8 @@ export function createVideoFrameAnalysis(core) {
       if (raw.length > max) return jsonResponse({ error: 'REQUEST_TOO_LARGE' }, 413);
       let body;
       try { body = JSON.parse(raw); } catch { return jsonResponse({ error: 'INVALID_JSON' }, 400); }
-      if (!body || !Array.isArray(body.frames) || !body.frames.length || body.frames.length > 6)
+      if (!body || (body.save !== undefined && typeof body.save !== 'boolean')) return jsonResponse({ error: 'INVALID_SAVE' }, 400);
+      if (!Array.isArray(body.frames) || !body.frames.length || body.frames.length > 6)
         return jsonResponse({ error: 'INVALID_FRAMES' }, 400);
       if (body.frames.some(f => !f || f.mime !== 'image/jpeg' || typeof f.data !== 'string' ||
         f.data.length < 500 || f.data.length > 550000 || f.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(f.data) ||
@@ -24,6 +25,9 @@ export function createVideoFrameAnalysis(core) {
         return jsonResponse({ error: 'INVALID_FRAME' }, 400);
       try {
         const vision = await analyzeFrames(env, { frames: body.frames, intent: 'skill-discovery' });
+        if (body.save === false) return jsonResponse({ ok: true, saved: false,
+          screen_text: vision.text, analyzed_frames: body.frames.length,
+          vision: { provider: vision.provider, model: vision.model } }, 200);
         const requestBody = {
           title: String(body.title || 'Video öğrenme').slice(0, 200),
           transcript: String(body.transcript || '').slice(0, 40000),
