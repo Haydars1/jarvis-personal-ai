@@ -73,7 +73,7 @@ async function healthyGemini(env) {
   return rows[0] || null;
 }
 
-async function analyzeFrames(env, body) {
+export async function analyzeFrames(env, body) {
   const frames = (Array.isArray(body?.frames) ? body.frames : []).slice(0, 6)
     .map(frame => ({
       timestamp_sec: Math.max(0, Number(frame?.timestamp_sec) || 0),
