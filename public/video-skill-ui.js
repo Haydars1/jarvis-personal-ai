@@ -149,7 +149,7 @@
 
   function bodyText() {
     return {
-      title: fileInput.files?.[0]?.name || 'Video notları',
+      title: fileInput.files?.[0]?.name || subtitleInput.files?.[0]?.name || 'Video notları',
       transcript: transcript.value.trim(),
       notes: notes.value.trim()
     };
