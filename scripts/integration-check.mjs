@@ -86,6 +86,16 @@ try {
   assert.ok(recentIntakes.records.some(record => record.id === intake.record.id));
   await call('/api/learning/video-skills/from-frames', 400, { frames: [] });
   await call('/api/learning/video-skills/from-frames', 422, { frames: [{ mime: 'image/jpeg', timestamp_sec: 1, data: 'A'.repeat(1200) }] });
+  await call('/api/learning/video-skills/from-audio', 400, { data: 'invalid' });
+  const audioFixture = Buffer.alloc(44 + 32000);
+  audioFixture.write('RIFF', 0); audioFixture.writeUInt32LE(36 + 32000, 4);
+  audioFixture.write('WAVE', 8); audioFixture.write('fmt ', 12);
+  audioFixture.writeUInt32LE(16, 16); audioFixture.writeUInt16LE(1, 20);
+  audioFixture.writeUInt16LE(1, 22); audioFixture.writeUInt32LE(16000, 24);
+  audioFixture.writeUInt32LE(32000, 28); audioFixture.writeUInt16LE(2, 32);
+  audioFixture.writeUInt16LE(16, 34); audioFixture.write('data', 36);
+  audioFixture.writeUInt32LE(32000, 40);
+  await call('/api/learning/video-skills/from-audio', 422, { data: audioFixture.toString('base64') });
 
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
