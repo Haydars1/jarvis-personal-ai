@@ -73,7 +73,11 @@ export function createVideoAudioTranscription(core) {
       try {
         const result = await transcribeAudio(env, { data: input.data, language: input.language });
         const spoken = String(result.text || '').trim();
-        if (!spoken) return jsonResponse({ error: 'AUDIO_NO_SPEECH_DETECTED' }, 422);
+        if (!spoken) {
+          if (!input.save) return jsonResponse({ ok: true, saved: false, silent: true,
+            transcript: '', transcribed_audio_seconds: input.seconds, transcription_model: result.model });
+          return jsonResponse({ error: 'AUDIO_NO_SPEECH_DETECTED' }, 422);
+        }
         if (!input.save) return jsonResponse({ ok: true, saved: false, transcribed_audio_seconds: input.seconds, transcript: spoken.slice(0, 49000), transcription_model: result.model }, 200);
         const saved = await core.fetch(new Request(new URL('/api/learning/video-skills', req.url), {
           method: 'POST',
