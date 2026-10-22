@@ -23,7 +23,7 @@ function openVocabularyNames(text, knownNames) {
   const names = [];
   const seen = new Set(knownNames.map(name => name.toLocaleLowerCase('tr-TR')));
   for (const line of text.split(/\r?\n/)) {
-    const match = line.match(/^\s*(?:ARAÇ|TOOL|SKILL|PLUGIN)\s*:\s*([^|:]{2,70})(?:\s*\|\s*(?:KANIT|EVIDENCE)\s*:\s*(.{2,240}))?\s*$/iu);
+    const match = line.match(/^\s*(?:\[(?:\d+(?:[.,]\d+)?|\d{1,2}:\d{2}(?::\d{2})?)\]\s*)?(?:[-*]\s*)?(?:ARAÇ|TOOL|SKILL|PLUGIN)\s*:\s*([^|:]{2,70})(?:\s*\|\s*(?:KANIT|EVIDENCE)\s*:\s*(.{2,240}))?\s*$/iu);
     if (!match) continue;
     const name = match[1].trim();
     if (!/^[\p{L}\p{N}][\p{L}\p{N} .+_/#-]{1,69}$/u.test(name)) continue;
