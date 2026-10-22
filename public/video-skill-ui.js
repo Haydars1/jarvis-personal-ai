@@ -9,6 +9,7 @@
   const analyzeButton = byId('skillVideoAnalyze');
   const saveButton = byId('skillVideoSaveNotes');
   const transcript = byId('skillVideoTranscript');
+  const subtitleInput = byId('skillSubtitleFile');
   const notes = byId('skillVideoNotes');
   const setStatus = value => { status.textContent = String(value || ''); };
 
@@ -121,6 +122,30 @@
     }
     if (!history.childNodes.length) history.textContent = 'Henüz video kaydı bulunmuyor.';
   }
+
+  function extractSubtitleText(source) {
+    return String(source || '').replace(/^\uFEFF/, '').split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(line => line && !/^(WEBVTT|Kind:|Language:|STYLE|REGION|NOTE\b)/i.test(line)
+        && !/^\d+$/.test(line)
+        && !/^(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}\s*-->/.test(line))
+      .map(line => line.replace(/<[^>]*>/g, '').trim())
+      .filter(Boolean).join(' ').slice(0, 40000);
+  }
+  subtitleInput.addEventListener('change', async () => {
+    const file = subtitleInput.files?.[0];
+    if (!file) return;
+    try {
+      if (!/\.(srt|vtt|txt)$/i.test(file.name) || file.size > 120000)
+        throw new Error('Yalnız .srt/.vtt/.txt ve en fazla 120 KB');
+      const parsed = extractSubtitleText(await file.text());
+      if (!parsed) throw new Error('Altyazıdan metin çıkarılamadı');
+      transcript.value = parsed;
+      setStatus('Altyazı aktarıldı (' + parsed.length + ' karakter). Analiz veya kaydet butonuna bas.');
+    } catch (error) {
+      setStatus('Altyazı alınamadı: ' + error.message);
+    }
+  });
 
   function bodyText() {
     return {
