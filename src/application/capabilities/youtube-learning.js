@@ -89,6 +89,7 @@ export async function analyzeFrames(env, body) {
   const prompt = [
     'Bu kareler JARVIS YT Öğretisi için teknik eğitim videosundan alınmıştır.',
     'İnsan kimliğiyle ilgilenme. Ekrandaki teknik bilgiyi çıkar: yazılar, menüler, ECU/WinOLS haritaları, tablolar, grafikler, hata kodları, ölçüm değerleri, bağlantı şemaları, kullanılan yazılım adımları ve görünür uyarılar.',
+    'Araç, ürün, yazılım, eklenti ve CI/CD aşamalarının ekrandaki isimlerini aynen çıkar; sırf görünmelerinden kurulmuş veya çalışıyor sonucunu çıkarma.',
     'Her kare için yalnız doğrulanabilir gördüğün bilgiyi Türkçe yaz. Emin olmadığını uydurma.',
     'Çıktıyı her satırda [saniye] açıklama biçiminde ver.'
   ].join(' ');
