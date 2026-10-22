@@ -69,3 +69,33 @@ test('analyzed observations are persisted as candidates without video bytes', as
     globalThis.fetch = previousFetch;
   }
 });
+
+test('batched vision mode produces observations without saving a learning record or source image', async () => {
+  const { handler, saved } = setup();
+  const env = { CREDENTIAL_MASTER_KEY: 'test-only-credential-secret-at-least-24-chars' };
+  const encrypted_secret = await encryptCredential(env, 'test-key-for-vision');
+  env.DB = { prepare: () => ({
+    bind: () => ({ all: async () => ({ results: [{ provider: 'gemini', label: 'Mock', encrypted_secret, model: 'vision-mock' }] }) })
+  }) };
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => jsonResponse({
+    candidates: [{ content: { parts: [{ text: '[12.0] ARAÇ: Graphify | KANIT: araç paneli' }] } }]
+  });
+  try {
+    const res = await handler.fetch(request({ frames: [frame], save: false }), env);
+    assert.equal(res.status, 200);
+    const payload = await res.json();
+    assert.equal(payload.saved, false);
+    assert.equal(payload.analyzed_frames, 1);
+    assert.match(payload.screen_text, /Graphify/);
+    assert.equal(saved(), null);
+    assert.ok(!JSON.stringify(payload).includes(frame.data));
+  } finally { globalThis.fetch = previousFetch; }
+});
+test('rejects nonboolean save and empty batches without model calls', async () => {
+  const { handler, saved } = setup();
+  const res = await handler.fetch(request({ frames: [frame], save: 'false' }), {});
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error, 'INVALID_SAVE');
+  assert.equal(saved(), null);
+});
