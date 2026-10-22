@@ -180,6 +180,21 @@
         </div>
       </details>
 
+      <!-- YEREL VİDEODAN SKILL KEŞFİ -->
+      <details class="settingsBlock">
+        <summary>🎞 Video → Skill / Plugin Keşfi</summary>
+        <div class="settingsBody">
+          <p class="muted">MP4 veya MOV seç. Video cihazında kalır; yalnız seçilmiş 6 küçük görüntü karesi bağlı Gemini hesabıyla analiz edilir. Ses otomatik çözümlenmez. Öneriler inceleme adaylarıdır, otomatik kurulmaz.</p>
+          <input type="file" id="skillVideoFile" accept="video/*,.mp4,.mov,.m4v,.webm">
+          <textarea id="skillVideoTranscript" rows="2" placeholder="İstersen konuşma metni veya altyazı yapıştır"></textarea>
+          <textarea id="skillVideoNotes" rows="2" placeholder="Ek notlar: neyi entegre etmek istiyorsun?"></textarea>
+          <div class="row" style="flex-wrap:wrap"><button id="skillVideoAnalyze">KARELERİ İNCELE VE KAYDET</button><button id="skillVideoSaveNotes" class="ghost">METİN NOTLARINI KAYDET</button></div>
+          <div id="skillVideoStatus" role="status" aria-live="polite" class="muted"></div>
+          <div id="skillVideoCandidates"></div>
+          <h3>Son analizler</h3>
+          <div id="skillVideoHistory" class="muted"></div>
+        </div>
+      </details>
       <!-- VİDEO OLUŞTUR -->
       <details class="settingsBlock">
         <summary>🎬 Video & Görsel Stüdyosu</summary>
@@ -923,6 +938,7 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="/app.js" defer></script>
+<script src="/video-skill-ui.js" defer></script>
 <script src="/credential-autotest.js" defer></script>
 <script src="/integrations-ui.js" defer></script>
 <script src="/ecu-tuning-ui.js" defer></script>
