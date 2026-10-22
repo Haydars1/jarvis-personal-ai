@@ -18,10 +18,36 @@ const CATALOG = Object.freeze([
 
 export const VIDEO_SKILL_CATALOG = Object.freeze(CATALOG.map(({ pattern, ...metadata }) => Object.freeze(metadata)));
 
+// Vision may report names outside the curated catalog. All remain unverified.
+function openVocabularyNames(text, knownNames) {
+  const names = [];
+  const seen = new Set(knownNames.map(name => name.toLocaleLowerCase('tr-TR')));
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^\s*(?:ARAÇ|TOOL|SKILL|PLUGIN)\s*:\s*([^|:]{2,70})(?:\s*\|\s*(?:KANIT|EVIDENCE)\s*:\s*(.{2,240}))?\s*$/iu);
+    if (!match) continue;
+    const name = match[1].trim();
+    if (!/^[\p{L}\p{N}][\p{L}\p{N} .+_/#-]{1,69}$/u.test(name)) continue;
+    const normalized = name.toLocaleLowerCase('tr-TR');
+    if (seen.has(normalized) || /^(bilinmiyor|unknown|none|yok|belirsiz)$/iu.test(name)) continue;
+    seen.add(normalized);
+    names.push({
+      id: 'proposed:' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50),
+      name, capability: 'unclassified', risk: 'unassessed',
+      evidence: (match[2] || line.trim()).slice(0, 240),
+      evidence_type: 'reported-tool-name',
+      jarvis: { status: 'candidate', next_step: 'Verify the official publisher, purpose, license and API before implementing', installed: false },
+      chatgpt: { status: 'connector-check-required', installed: null },
+      execution_enabled: false, verification: 'tool-name-observed-not-validated'
+    });
+    if (names.length >= 12) break;
+  }
+  return names;
+}
+
 export function discoverVideoSkills(input = {}) {
   const text = [input.transcript, input.screen_text, input.notes].filter(x => typeof x === 'string').join('\n');
   if (!text.trim()) return [];
-  return CATALOG.flatMap(item => {
+  const curated = CATALOG.flatMap(item => {
     const match = item.pattern.exec(text);
     if (!match) return [];
     const offset = match.index || 0;
@@ -34,4 +60,6 @@ export function discoverVideoSkills(input = {}) {
       execution_enabled: false, verification: 'name-detected-not-functionally-tested'
     }];
   });
+  const generic = openVocabularyNames(text, curated.map(item => item.name));
+  return [...curated, ...generic];
 }
