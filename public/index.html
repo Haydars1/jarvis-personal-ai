@@ -190,6 +190,8 @@
           <label class="muted" for="skillSubtitleFile">Altyazı dosyası (.srt, .vtt veya .txt)</label>
           <input type="file" id="skillSubtitleFile" accept=".srt,.vtt,.txt,text/plain,text/vtt">
           <textarea id="skillVideoNotes" rows="2" placeholder="Ek notlar: neyi entegre etmek istiyorsun?"></textarea>
+          <label class="muted" for="skillVideoFrameCount">Ekran analizi yoğunluğu</label>
+          <select id="skillVideoFrameCount"><option value="6">Standart: en fazla 6 kare (1 Gemini çağrısı)</option><option value="24">Ayrıntılı: en fazla 24 kare (4 Gemini çağrısı, onay gerekir)</option></select>
           <div class="row" style="flex-wrap:wrap"><button id="skillVideoAnalyze">KARELERİ İNCELE VE KAYDET</button><button id="skillVideoSaveNotes" class="ghost">METİN NOTLARINI KAYDET</button></div>
           <label class="muted" for="skillVideoAudioFile">İstersen ayrı ses dosyası seç (.wav, .mp3, .m4a)</label>
           <input type="file" id="skillVideoAudioFile" accept="audio/*,.wav,.mp3,.m4a,.aac">
