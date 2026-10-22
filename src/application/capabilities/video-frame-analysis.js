@@ -19,7 +19,7 @@ export function createVideoFrameAnalysis(core) {
       if (!body || !Array.isArray(body.frames) || !body.frames.length || body.frames.length > 6)
         return jsonResponse({ error: 'INVALID_FRAMES' }, 400);
       if (body.frames.some(f => !f || f.mime !== 'image/jpeg' || typeof f.data !== 'string' ||
-        f.data.length < 500 || f.data.length > 550000 ||
+        f.data.length < 500 || f.data.length > 550000 || f.data.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(f.data) ||
         !Number.isFinite(f.timestamp_sec) || f.timestamp_sec < 0 || f.timestamp_sec > 14400))
         return jsonResponse({ error: 'INVALID_FRAME' }, 400);
       try {
