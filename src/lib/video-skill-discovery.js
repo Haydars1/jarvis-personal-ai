@@ -1,0 +1,37 @@
+// Video observations are untrusted evidence, not executable instructions.
+const CATALOG = Object.freeze([
+  { id: 'jenkins', name: 'Jenkins', capability: 'ci-cd', risk: 'medium', pattern: /\bjenkins\b|\bjenkinsfile\b/iu, next: 'Compare with existing GitHub Actions before adding Jenkins infrastructure' },
+  { id: 'github-actions', name: 'GitHub Actions', capability: 'ci-cd', risk: 'medium', pattern: /github\s*actions?|\.github\/workflows/iu, next: 'Reuse existing repository workflows' },
+  { id: 'docker', name: 'Docker', capability: 'containers', risk: 'medium', pattern: /\bdocker\b|\bdockerfile\b/iu, next: 'Check container and runner compatibility' },
+  { id: 'kubernetes', name: 'Kubernetes', capability: 'orchestration', risk: 'high', pattern: /\bkubernetes\b|\bk8s\b/iu, next: 'Requires managed cluster and separate permissions' },
+  { id: 'n8n', name: 'n8n', capability: 'workflow-automation', risk: 'medium', pattern: /\bn8n\b/iu, next: 'Compare with existing automation runner' },
+  { id: 'openhands', name: 'OpenHands', capability: 'coding-agent', risk: 'high', pattern: /\bopenhands\b/iu, next: 'Sandbox execution and review all changes' },
+  { id: 'ollama', name: 'Ollama', capability: 'local-llm', risk: 'medium', pattern: /\bollama\b/iu, next: 'Connect an authorized local inference endpoint' },
+  { id: 'playwright', name: 'Playwright', capability: 'browser-automation', risk: 'medium', pattern: /\bplaywright\b/iu, next: 'Restrict domains and permissions' },
+  { id: 'codex', name: 'Codex', capability: 'coding-agent', risk: 'medium', pattern: /\bcodex\b/iu, next: 'Use an authorized coding connector or agent' },
+  { id: 'ffmpeg', name: 'FFmpeg', capability: 'media-processing', risk: 'low', pattern: /\bffmpeg\b/iu, next: 'Process media in an isolated runner' },
+  { id: 'whisper', name: 'Whisper', capability: 'speech-to-text', risk: 'low', pattern: /\bwhisper\b/iu, next: 'Prefer the existing transcription route' },
+  { id: 'winols', name: 'WinOLS', capability: 'ecu-file-analysis', risk: 'high', pattern: /\bwinols\b/iu, next: 'Verify license and ECU safety' },
+  { id: 'kt200', name: 'KT200', capability: 'ecu-device', risk: 'high', pattern: /\bkt200(?:\s*ii|\s*2)?\b/iu, next: 'Use an authorized local device bridge' },
+  { id: 'cloudflare-workers', name: 'Cloudflare Workers', capability: 'serverless', risk: 'medium', pattern: /\bcloudflare\s*workers?\b|\bwrangler\b/iu, next: 'Reuse existing Worker runtime' }
+]);
+
+export const VIDEO_SKILL_CATALOG = Object.freeze(CATALOG.map(({ pattern, ...metadata }) => Object.freeze(metadata)));
+
+export function discoverVideoSkills(input = {}) {
+  const text = [input.transcript, input.screen_text, input.notes].filter(x => typeof x === 'string').join('\n');
+  if (!text.trim()) return [];
+  return CATALOG.flatMap(item => {
+    const match = item.pattern.exec(text);
+    if (!match) return [];
+    const offset = match.index || 0;
+    const excerpt = text.slice(Math.max(0, offset - 70), Math.min(text.length, offset + 120)).replace(/\s+/g, ' ').trim();
+    return [{
+      id: item.id, name: item.name, capability: item.capability, risk: item.risk,
+      evidence: excerpt, evidence_type: input.transcript ? 'video-text' : 'screen-or-notes',
+      jarvis: { status: 'candidate', next_step: item.next, installed: false },
+      chatgpt: { status: 'connector-check-required', installed: null },
+      execution_enabled: false, verification: 'name-detected-not-functionally-tested'
+    }];
+  });
+}
