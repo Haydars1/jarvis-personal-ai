@@ -4,9 +4,9 @@
 
 In hayırlıevlad, open **Ayarlar → Video → Skill / Plugin Keşfi**. Select a locally accessible MP4/MOV/WebM. Browser samples up to six JPEG stills from the video; only those stills are sent to the configured Gemini vision model through an authenticated Cloudflare Worker request. **The MP4 itself is never uploaded** in this flow. This requires an enabled, tested Gemini provider; an unsupported video codec or missing provider produces an explicit error.
 
-User may optionally provide transcript/subtitles or contextual notes. **Audio is not automatically transcribed** by this browser workflow. The separate **METİN NOTLARINI KAYDET** option creates a text-only source without frame analysis. Do not paste passwords or API keys into notes.
+User may optionally select an `.srt`, `.vtt` or `.txt` subtitle file, or provide a transcript and contextual notes. The subtitle file is read locally and its parsed text is sent only after the user clicks an analysis/save action. **Audio is not automatically transcribed** by this browser workflow. The separate **METİN NOTLARINI KAYDET** option creates a text-only source without frame analysis. Do not paste passwords or API keys into notes.
 
-The server returns visible tool-name evidence, writes searchable text chunks to existing D1 learning memory, and marks matching skills as **candidates, not installed or tested**. It never executes video instructions, installs plugins, runs privileged tools or deploys.
+The server detects curated tool names and additionally accepts explicitly named `ARAÇ: <name> | KANIT: <evidence>` vision observations as unverified candidates; it writes searchable text chunks to existing D1 learning memory, and marks matching skills as **candidates, not installed or tested**. It never executes video instructions, installs plugins, runs privileged tools or deploys.
 
 ## API
 
@@ -24,4 +24,4 @@ The server returns visible tool-name evidence, writes searchable text chunks to 
 
 ## Testing
 
-`npm run check` covers code syntax, name extraction tests, owner session validation, malformed frame payloads, absent vision provider and mocked successful frame analysis. GitHub Actions must pass before considering the branch mergeable.
+`npm run check` covers code syntax, name extraction tests, owner session validation, malformed frame payloads, absent vision provider and mocked successful frame analysis. The repository reliability workflow additionally exercises the actual browser Settings panel: subtitle-file import, text-only save, candidate list and history. GitHub Actions must pass before considering the branch mergeable.
