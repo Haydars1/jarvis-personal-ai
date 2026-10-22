@@ -79,6 +79,14 @@ try {
   assert.equal(result.job.status, 'completed');
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
+  const intake = await (await call('/api/learning/video-skills', 201, { title: 'Jenkins eğitimi', notes: 'Jenkins Docker CI öğrenimi' })).json();
+  assert.equal(intake.record.status, 'analyzed-not-installed');
+  assert.ok(intake.record.candidates.some(skill => skill.id === 'jenkins'));
+  const recentIntakes = await (await call('/api/learning/video-skills', 200)).json();
+  assert.ok(recentIntakes.records.some(record => record.id === intake.record.id));
+  await call('/api/learning/video-skills/from-frames', 400, { frames: [] });
+  await call('/api/learning/video-skills/from-frames', 422, { frames: [{ mime: 'image/jpeg', timestamp_sec: 1, data: 'A'.repeat(1200) }] });
+
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
