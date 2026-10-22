@@ -99,7 +99,9 @@
       const decoded = await getDecodedAudio(file);
       const requested = Number(range.value) === 120 ? 120 : 30;
       const totalSeconds = Math.min(requested, decoded.duration);
-      const count = Math.ceil(totalSeconds / 30);
+      let count = Math.ceil(totalSeconds / 30);
+      // Skip a tiny trailing slice which would otherwise fail the minimum audio validation.
+      if (count > 1 && totalSeconds - (count - 1) * 30 < 0.25) count--;
       if (!count) throw new Error('Ses bulunamadı');
       if (count > 1 && !window.confirm('Bu işlem ' + count +
         ' ayrı Cloudflare Whisper çağrısı yapacak; kullanım kotası tüketilebilir. Devam edilsin mi?')) {
