@@ -191,6 +191,10 @@
           <input type="file" id="skillSubtitleFile" accept=".srt,.vtt,.txt,text/plain,text/vtt">
           <textarea id="skillVideoNotes" rows="2" placeholder="Ek notlar: neyi entegre etmek istiyorsun?"></textarea>
           <div class="row" style="flex-wrap:wrap"><button id="skillVideoAnalyze">KARELERİ İNCELE VE KAYDET</button><button id="skillVideoSaveNotes" class="ghost">METİN NOTLARINI KAYDET</button></div>
+          <label class="muted" for="skillVideoAudioFile">İstersen ayrı ses dosyası seç (.wav, .mp3, .m4a)</label>
+          <input type="file" id="skillVideoAudioFile" accept="audio/*,.wav,.mp3,.m4a,.aac">
+          <p class="muted">Konuşma tanıma: videodan (tarayıcın destekliyorsa) veya ses dosyasından ilk 30 saniye alınır, kısa WAV örneği Cloudflare Whisper ile işlenir. Ses yalnız butona basınca gönderilir; AI kullanım kotası tüketilebilir. MP4 dosyasının tamamı gönderilmez.</p>
+          <button id="skillVideoTranscribe" class="ghost">SESİ ÇÖZ VE KAYDET (İLK 30 SN)</button>
           <div id="skillVideoStatus" role="status" aria-live="polite" class="muted"></div>
           <div id="skillVideoCandidates"></div>
           <button id="skillVideoCopyForChatGPT" class="ghost" disabled>CHATGPT İÇİN ARAÇ LİSTESİNİ KOPYALA</button>
