@@ -208,6 +208,12 @@
     } catch (error) { setStatus('Kaydetme başarısız: ' + error.message); }
     finally { busy(false); }
   });
+  window.addEventListener('video-skill-saved', event => {
+    if (event.detail?.record) {
+      showRecord(event.detail.record);
+      refreshHistory().catch(() => {});
+    }
+  });
   fileInput.closest('details')?.addEventListener('toggle', event => {
     if (event.target.open) refreshHistory().catch(error => setStatus('Kaynak listesi: ' + error.message));
   });
