@@ -10,6 +10,7 @@
   const history = byId('skillVideoHistory');
   const analyzeButton = byId('skillVideoAnalyze');
   const saveButton = byId('skillVideoSaveNotes');
+  const frameCount = byId('skillVideoFrameCount');
   const transcript = byId('skillVideoTranscript');
   const subtitleInput = byId('skillSubtitleFile');
   const notes = byId('skillVideoNotes');
@@ -43,7 +44,7 @@
     });
   }
 
-  async function sampleFrames(file) {
+  async function sampleFrames(file, requested = 6) {
     if (!file || !file.type.startsWith('video/') && !/\.(mp4|mov|m4v|webm)$/i.test(file.name))
       throw new Error('VIDEO_FILE_REQUIRED');
     if (file.size > 500 * 1024 * 1024) throw new Error('VIDEO_FILE_TOO_LARGE_FOR_DEVICE');
@@ -60,7 +61,7 @@
       const duration = video.duration;
       if (!Number.isFinite(duration) || duration <= 0 || !video.videoWidth || !video.videoHeight)
         throw new Error('VIDEO_METADATA_UNSUPPORTED');
-      const count = Math.min(6, Math.max(1, Math.ceil(duration / 4)));
+      const count = Math.min(requested, Math.max(1, Math.floor(duration * 4)));
       const width = Math.min(640, video.videoWidth);
       const height = Math.round(width * video.videoHeight / video.videoWidth);
       const canvas = document.createElement('canvas');
@@ -186,11 +187,38 @@
     try {
       const file = fileInput.files?.[0];
       if (!file) throw new Error('Önce video seç.');
-      const frames = await sampleFrames(file);
-      setStatus('Kareler AI ile inceleniyor; MP4 aktarılmıyor…');
-      const result = await call('/api/learning/video-skills/from-frames', { ...bodyText(), frames });
-      showRecord(result.record, result.vision);
-      setStatus('Analiz kaydedildi: ' + result.analyzed_frames + ' kare. Yeni eklenti kurulmadı.');
+      const requested = frameCount.value === '24' ? 24 : 6;
+      if (requested > 6 && !window.confirm(
+        'Ayrıntılı tarama en fazla 4 Gemini AI çağrısı yapabilir ve kullanım kotası tüketebilir. Devam edilsin mi?'
+      )) { setStatus('Ayrıntılı tarama iptal edildi; AI çağrısı yapılmadı.'); return; }
+      const frames = await sampleFrames(file, requested);
+      let record;
+      let provider = null;
+      if (frames.length <= 6) {
+        setStatus('Görüntü kareleri AI ile inceleniyor; MP4 aktarılmıyor…');
+        const result = await call('/api/learning/video-skills/from-frames', { ...bodyText(), frames });
+        record = result.record;
+        provider = result.vision;
+      } else {
+        const observations = [];
+        for (let offset = 0; offset < frames.length; offset += 6) {
+          const part = Math.floor(offset / 6) + 1;
+          setStatus('Görüntü analizi: bölüm ' + part + '/' + Math.ceil(frames.length / 6) + '…');
+          const result = await call('/api/learning/video-skills/from-frames', {
+            frames: frames.slice(offset, offset + 6), save: false
+          });
+          if (result.screen_text) observations.push(String(result.screen_text));
+          provider = result.vision;
+        }
+        if (!observations.length) throw new Error('Karelerden doğrulanabilir bilgi çıkarılamadı');
+        setStatus('Tüm karelerin bilgisi tek öğrenme kaydında birleştiriliyor…');
+        const saved = await call('/api/learning/video-skills', {
+          ...bodyText(), screen_text: observations.join('\n').slice(0, 49000)
+        });
+        record = saved.record;
+      }
+      showRecord(record, provider);
+      setStatus('Analiz kaydedildi: ' + frames.length + ' kare. Yeni eklenti kurulmadı.');
       await refreshHistory();
     } catch (error) { setStatus('Analiz başarısız: ' + error.message + '. Gemini görsel bağlantısını ve video formatını kontrol et. Metin notlarını ayrıca kaydedebilirsin.'); }
     finally { busy(false); }
