@@ -117,6 +117,22 @@ try {
       await page.locator('#app').waitFor({ state: 'visible' });
       await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
+      // Exercise the actual browser UI, not only the Worker API.
+      await page.locator('[data-page="settings"]:visible').first().click();
+      const videoSkillsPanel = page.locator('details.settingsBlock').filter({ has: page.locator('#skillVideoAnalyze') });
+      await videoSkillsPanel.locator('summary').click();
+      await page.locator('#skillSubtitleFile').setInputFiles({
+        name: 'jenkins-caption.srt', mimeType: 'text/plain',
+        buffer: Buffer.from('1\n00:00:01,000 --> 00:00:03,000\nJenkins ve Docker ile test yapalım\n')
+      });
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Altyazı aktarıldı' }).waitFor();
+      assert.match(await page.locator('#skillVideoTranscript').inputValue(), /Jenkins ve Docker/);
+      await page.locator('#skillVideoSaveNotes').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Metin kaydedildi' }).waitFor();
+      await page.locator('#skillVideoCandidates').filter({ hasText: 'Jenkins' }).waitFor();
+      await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins' }).waitFor();
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/video-skill-ui.png', fullPage: true });
+
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
