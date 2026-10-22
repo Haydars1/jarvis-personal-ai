@@ -34,3 +34,10 @@ test('caps the number of unverified tools extracted from a clip', () => {
   const names = Array.from({ length: 30 }, (_, i) => 'PLUGIN: Utility' + i).join('\n');
   assert.equal(discoverVideoSkills({ screen_text: names }).length, 12);
 });
+
+test('distinct Turkish-language tool names keep distinct candidate identifiers', () => {
+  const found = discoverVideoSkills({ screen_text: 'ARAÇ: Ölçüm Aracı | KANIT: sekme adı\nARAÇ: İleri Çözüm | KANIT: menü adı' });
+  assert.equal(found.length, 2);
+  assert.ok(found.every(x => x.id.startsWith('proposed:')));
+  assert.notEqual(found[0].id, found[1].id);
+});
