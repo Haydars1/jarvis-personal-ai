@@ -5,6 +5,8 @@
   if (!fileInput) return;
   const status = byId('skillVideoStatus');
   const candidates = byId('skillVideoCandidates');
+  const copyButton = byId('skillVideoCopyForChatGPT');
+  let lastRecord = null;
   const history = byId('skillVideoHistory');
   const analyzeButton = byId('skillVideoAnalyze');
   const saveButton = byId('skillVideoSaveNotes');
@@ -87,6 +89,8 @@
   }
 
   function showRecord(record, vision) {
+    lastRecord = record;
+    copyButton.disabled = !(record?.candidates?.length);
     candidates.replaceChildren();
     const heading = document.createElement('p');
     heading.textContent = (record.candidates || []).length + ' araç adayı bulundu. Hiçbiri otomatik kurulmadı.';
@@ -118,6 +122,9 @@
       const item = document.createElement('div');
       item.className = 'learnItem';
       item.textContent = record.title + ' · ' + (record.candidates || []).length + ' aday · kurulum yapılmadı';
+      item.style.cursor = 'pointer';
+      item.title = 'Araç adaylarını görüntüle';
+      item.addEventListener('click', () => showRecord(record));
       history.appendChild(item);
     }
     if (!history.childNodes.length) history.textContent = 'Henüz video kaydı bulunmuyor.';
@@ -144,6 +151,24 @@
       setStatus('Altyazı aktarıldı (' + parsed.length + ' karakter). Analiz veya kaydet butonuna bas.');
     } catch (error) {
       setStatus('Altyazı alınamadı: ' + error.message);
+    }
+  });
+
+  copyButton.addEventListener('click', async () => {
+    if (!lastRecord?.candidates?.length) return;
+    const lines = [
+      'Bu araçlar bir videoda isim olarak tespit edildi; hiçbirinin kurulumu veya çalıştığı doğrulanmadı.',
+      'Lütfen ChatGPT eklentilerinde mevcut bağlantılarla eşleştir; resmi bir eklenti varsa göster.',
+      'Eksik bağlantıları benim onayım olmadan kurma ve canlı sisteme müdahale etme.',
+      ...lastRecord.candidates.map(skill =>
+        '- ' + skill.name + ' | kanıt: ' + String(skill.evidence || '').slice(0, 180) + ' | risk: ' + skill.risk)
+    ];
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Pano izni kullanılamıyor');
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setStatus('Araç listesi kopyalandı. ChatGPT sohbetine yapıştırabilirsin; otomatik gönderim yapılmadı.');
+    } catch (error) {
+      setStatus('Kopyalama başarısız: ' + error.message);
     }
   });
 
