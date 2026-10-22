@@ -23,7 +23,7 @@ export function createVideoFrameAnalysis(core) {
         !Number.isFinite(f.timestamp_sec) || f.timestamp_sec < 0 || f.timestamp_sec > 14400))
         return jsonResponse({ error: 'INVALID_FRAME' }, 400);
       try {
-        const vision = await analyzeFrames(env, { frames: body.frames });
+        const vision = await analyzeFrames(env, { frames: body.frames, intent: 'skill-discovery' });
         const requestBody = {
           title: String(body.title || 'Video öğrenme').slice(0, 200),
           transcript: String(body.transcript || '').slice(0, 40000),
