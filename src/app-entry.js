@@ -7,6 +7,7 @@ import { createYouTubeLearningCapability } from './application/capabilities/yout
 import { createSkillSeeding } from './application/capabilities/skill-seeding.js';
 import { createVideoSkillIntake } from './application/capabilities/video-skill-intake.js';
 import { createVideoFrameAnalysis } from './application/capabilities/video-frame-analysis.js';
+import { createVideoAudioTranscription } from './application/capabilities/video-audio-transcription.js';
 import { createNativeSkillFirstChat } from './application/capabilities/native-skill-executor.js';
 import { createCodeGraphChatRuntime } from './application/code-graph/chat-runtime.js';
 import { createCodeGraphJobPresenter } from './application/code-graph/job-presenter.js';
@@ -47,7 +48,7 @@ const socialCore = createSocialNativeDraft(createSocialGrowth(osCore));
 const videoCore = createVideoFailover(socialCore);
 const outputCore = createChatOutput(videoCore);
 const capabilityCore = createCapabilityRuntime(outputCore);
-const cloudExecutionCore = createVideoFrameAnalysis(createVideoSkillIntake(createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore))));
+const cloudExecutionCore = createVideoAudioTranscription(createVideoFrameAnalysis(createVideoSkillIntake(createYouTubeLearningCapability(createCloudCapabilityExecution(capabilityCore)))));
 const baseCloudToolCore = createRepositoryCatalog(createSkillSeeding(cloudExecutionCore));
 const cloudToolCore = createCodeGraphJobPresenter(baseCloudToolCore);
 const partnumberCore = createEcuPartnumberCatalog(cloudToolCore);
