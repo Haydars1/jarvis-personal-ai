@@ -41,3 +41,12 @@ test('distinct Turkish-language tool names keep distinct candidate identifiers',
   assert.ok(found.every(x => x.id.startsWith('proposed:')));
   assert.notEqual(found[0].id, found[1].id);
 });
+
+test('reads exact tool names with video timestamps and never treats them as installed', () => {
+  const found = discoverVideoSkills({
+    screen_text: '[12.0] ARAÇ: Graphify | KANIT: grafik paneli\n[1:23] TOOL: Jenkins | EVIDENCE: pipeline ekranı'
+  });
+  assert.ok(found.some(x => x.name === 'Graphify'));
+  assert.ok(found.some(x => x.name === 'Jenkins'));
+  assert.ok(found.every(x => x.execution_enabled === false && x.jarvis.installed === false));
+});
