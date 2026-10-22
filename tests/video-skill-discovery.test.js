@@ -50,3 +50,15 @@ test('reads exact tool names with video timestamps and never treats them as inst
   assert.ok(found.some(x => x.name === 'Jenkins'));
   assert.ok(found.every(x => x.execution_enabled === false && x.jarvis.installed === false));
 });
+
+test('maps existing repository code without falsely claiming installation', () => {
+  const candidates = discoverVideoSkills({
+    transcript: 'Jenkins GitHub Actions Whisper Cloudflare Workers'
+  });
+  const names = new Map(candidates.map(x => [x.id, x]));
+  assert.equal(names.get('jenkins').repo_capability.match, 'existing-alternative');
+  assert.equal(names.get('github-actions').repo_capability.match, 'repository-code-present');
+  assert.equal(names.get('whisper').repo_capability.source_path, 'src/application/capabilities/youtube-learning.js');
+  assert.equal(names.get('cloudflare-workers').repo_capability.source_path, 'src/app-entry.js');
+  assert.ok(candidates.every(x => x.jarvis.installed === false && x.execution_enabled === false));
+});
