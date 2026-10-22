@@ -111,6 +111,12 @@
       evidence.textContent = 'Kanıt: ' + skill.evidence;
       const next = document.createElement('small');
       next.textContent = 'Durum: aday / yüklenmedi. ' + skill.jarvis.next_step;
+      if (skill.repo_capability) {
+        const match = document.createElement('small');
+        match.textContent = 'Projede ilgili kod: ' + skill.repo_capability.name +
+          ' (' + skill.repo_capability.source_path + '). ' + skill.repo_capability.note;
+        item.append(match);
+      }
       item.append(title, evidence, next);
       candidates.appendChild(item);
     }
