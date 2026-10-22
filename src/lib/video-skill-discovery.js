@@ -31,7 +31,7 @@ function openVocabularyNames(text, knownNames) {
     if (seen.has(normalized) || /^(bilinmiyor|unknown|none|yok|belirsiz)$/iu.test(name)) continue;
     seen.add(normalized);
     names.push({
-      id: 'proposed:' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50),
+      id: 'proposed:' + [...normalized].map(char => /[a-z0-9]/.test(char) ? char : '-' + char.codePointAt(0).toString(16)).join('').slice(0, 140),
       name, capability: 'unclassified', risk: 'unassessed',
       evidence: (match[2] || line.trim()).slice(0, 240),
       evidence_type: 'reported-tool-name',
