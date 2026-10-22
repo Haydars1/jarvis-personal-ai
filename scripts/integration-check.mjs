@@ -130,7 +130,7 @@ try {
       await page.locator('#skillVideoSaveNotes').click();
       await page.locator('#skillVideoStatus').filter({ hasText: 'Metin kaydedildi' }).waitFor();
       await page.locator('#skillVideoCandidates').filter({ hasText: 'Jenkins' }).waitFor();
-      await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins' }).waitFor();
+      await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins-caption.srt' }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/video-skill-ui.png', fullPage: true });
 
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
