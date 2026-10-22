@@ -45,7 +45,7 @@ export async function queueChannelVideoLearning(env, job, result, parentSourceId
   return queued;
 }
 
-async function transcribeAudio(env, body) {
+export async function transcribeAudio(env, body) {
   if (!env.AI) throw new Error('CLOUDFLARE_AI_UNAVAILABLE');
   const audio = String(body?.data || '').trim();
   if (!audio || audio.length > 9_000_000) throw new Error('AUDIO_CHUNK_INVALID');
