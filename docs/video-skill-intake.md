@@ -1,18 +1,27 @@
-# Video → skill intake (proposal-only)
+# Video → Skill / Plugin Intake
 
-Videos sent to ChatGPT do not automatically transfer to this app. This authenticated endpoint accepts *video-derived text* (transcript, frame observations or notes), stores it in the existing searchable video learning memory, and creates skill/plugin candidates with evidence. It does not accept raw MP4 uploads.
+## Owner workflow
 
-`POST /api/learning/video-skills`
+In hayırlıevlad, open **Ayarlar → Video → Skill / Plugin Keşfi**. Select a locally accessible MP4/MOV/WebM. Browser samples up to six JPEG stills from the video; only those stills are sent to the configured Gemini vision model through an authenticated Cloudflare Worker request. **The MP4 itself is never uploaded** in this flow. This requires an enabled, tested Gemini provider; an unsupported video codec or missing provider produces an explicit error.
 
-```json
-{
-  "title": "Jenkins: Build, Test, Deploy",
-  "screen_text": "Jenkins Jenkinsfile Build Test Deploy Docker Kubernetes"
-}
-```
+User may optionally provide transcript/subtitles or contextual notes. **Audio is not automatically transcribed** by this browser workflow. The separate **METİN NOTLARINI KAYDET** option creates a text-only source without frame analysis. Do not paste passwords or API keys into notes.
 
-`GET /api/learning/video-skills` lists the recent records.
+The server returns visible tool-name evidence, writes searchable text chunks to existing D1 learning memory, and marks matching skills as **candidates, not installed or tested**. It never executes video instructions, installs plugins, runs privileged tools or deploys.
 
-Every candidate starts as **not installed / not tested**. Names displayed in videos are not trustable instructions. Before implementation, independently verify an official API, permissions, licensing, costs, applicability and passing tests. No automatic execution or production deploy is performed. ChatGPT plugin connections can only be activated with explicit user action inside ChatGPT. Existing GitHub Actions can do the CI work shown in the example Jenkins video; Jenkins is not automatically needed.
+## API
 
-The API is protected by the app owner session and limits input sizes. This endpoint does not silently forward private video bytes from ChatGPT to another server.
+- `POST /api/learning/video-skills/from-frames`: owner session, JSON with `frames` array of 1–6 JPEG objects `{mime: 'image/jpeg', timestamp_sec: 1.3, data: '<base64>'}` and optional `title`, `notes`, `transcript`. Request capped at 4MB; each encoded frame capped at 550KB. Uses existing Gemini frame recognition then calls the authenticated text-intake handler. Frames are not retained in D1.
+- `POST /api/learning/video-skills`: owner-session authenticated text intake `{title, transcript, screen_text, notes, source_url}`.
+- `GET /api/learning/video-skills`: list latest owner video-derived candidate records.
+
+## Safety and integration status
+
+- Video contents are untrusted. Detecting a name does not verify a vendor, connection, plugin API, license, permissions or real functionality.
+- ChatGPT plugins **cannot** be silently installed by the Jarvis backend. Connections require an explicit ChatGPT UI action. ChatGPT uploads are **not** automatically synchronized into this app.
+- Video recognition calls the configured Gemini provider and may consume its usage quota; no provider is purchased or connected by this change.
+- For the Jenkins example prefer the repository's existing GitHub Actions over installing a second CI server, unless there is a genuine Jenkins-specific requirement.
+- No changes to `main`, production deployment, credentials or vehicle actions are included in this PR.
+
+## Testing
+
+`npm run check` covers code syntax, name extraction tests, owner session validation, malformed frame payloads, absent vision provider and mocked successful frame analysis. GitHub Actions must pass before considering the branch mergeable.
