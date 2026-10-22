@@ -96,3 +96,35 @@ test('does not claim learning from silent audio', async () => {
   assert.equal(res.status, 422);
   assert.equal(saved(), null);
 });
+
+test('offers an authenticated, non-billable capability check without exposing keys', async () => {
+  const { handler } = setup({ ai: async () => ({ text: 'unused' }) });
+  const env = { AI: { run: async () => { throw Error('should not invoke'); } },
+    DB: { prepare: () => ({ bind: () => ({ all: async () => ({ results: [{ id: 'configured-provider' }] }) }) }) }
+  };
+  const res = await handler.fetch(new Request('https://app.test/api/learning/video-skills/providers'), env);
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.cloudflare_ai_bound, true);
+  assert.equal(data.gemini_configured, true);
+  assert.ok(!JSON.stringify(data).includes('configured-provider'));
+  const { handler: denied } = setup({ authed: false });
+  assert.equal((await denied.fetch(new Request('https://app.test/api/learning/video-skills/providers'), env)).status, 401);
+});
+
+test('chunk mode transcribes but does not persist until client explicitly saves combined notes', async () => {
+  const { handler, env, saved } = setup({ ai: async () => ({ text: 'Jenkins Build Test Deploy' }) });
+  const res = await handler.fetch(post({ data: fixtureWav(), save: false }), env);
+  assert.equal(res.status, 200);
+  const payload = await res.json();
+  assert.equal(payload.saved, false);
+  assert.equal(payload.transcript, 'Jenkins Build Test Deploy');
+  assert.equal(saved(), null);
+});
+
+test('audio mode must not be an arbitrary value', async () => {
+  const { handler, env } = setup({ ai: async () => ({ text: 'unused' }) });
+  const res = await handler.fetch(post({ data: fixtureWav(), save: 'false' }), env);
+  assert.equal(res.status, 400);
+  assert.equal((await res.json()).error, 'INVALID_SAVE');
+});
