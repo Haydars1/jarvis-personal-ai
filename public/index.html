@@ -187,6 +187,8 @@
           <p class="muted">MP4 veya MOV seç. Video cihazında kalır; yalnız seçilmiş 6 küçük görüntü karesi bağlı Gemini hesabıyla analiz edilir. Ses otomatik çözümlenmez. Öneriler inceleme adaylarıdır, otomatik kurulmaz.</p>
           <input type="file" id="skillVideoFile" accept="video/*,.mp4,.mov,.m4v,.webm">
           <textarea id="skillVideoTranscript" rows="2" placeholder="İstersen konuşma metni veya altyazı yapıştır"></textarea>
+          <label class="muted" for="skillSubtitleFile">Altyazı dosyası (.srt, .vtt veya .txt)</label>
+          <input type="file" id="skillSubtitleFile" accept=".srt,.vtt,.txt,text/plain,text/vtt">
           <textarea id="skillVideoNotes" rows="2" placeholder="Ek notlar: neyi entegre etmek istiyorsun?"></textarea>
           <div class="row" style="flex-wrap:wrap"><button id="skillVideoAnalyze">KARELERİ İNCELE VE KAYDET</button><button id="skillVideoSaveNotes" class="ghost">METİN NOTLARINI KAYDET</button></div>
           <div id="skillVideoStatus" role="status" aria-live="polite" class="muted"></div>
