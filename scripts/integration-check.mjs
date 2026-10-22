@@ -133,6 +133,8 @@ try {
       await page.locator('#skillVideoStatus').filter({ hasText: 'Metin kaydedildi' }).waitFor();
       await page.locator('#skillVideoCandidates').filter({ hasText: 'Jenkins' }).waitFor();
       assert.equal(await page.locator('#skillVideoCopyForChatGPT').isEnabled(), true);
+      await page.locator('#skillVideoTranscribe').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Video veya ses dosyası seç.' }).waitFor();
       await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins-caption.srt' }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/video-skill-ui.png', fullPage: true });
 
