@@ -166,6 +166,29 @@ try {
       assert.equal(sampledWav, true);
       assert.match(await page.locator('#skillVideoTranscript').inputValue(), /Jenkins Docker eğitim/);
       await page.unroute('**/api/learning/video-skills/from-audio');
+      let audioChunkCalls = 0;
+      await page.route('**/api/learning/video-skills/from-audio', async route => {
+        audioChunkCalls++;
+        assert.equal(route.request().postDataJSON().save, false);
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          ok: true, saved: false, transcribed_audio_seconds: audioChunkCalls === 1 ? 30 : 5,
+          transcript: 'Jenkins pipeline bölüm ' + audioChunkCalls, transcription_model: 'mock-whisper'
+        }) });
+      });
+      const longWav = Buffer.alloc(44 + 32000 * 35);
+      browserWav.copy(longWav, 0, 0, 44);
+      longWav.writeUInt32LE(36 + 32000 * 35, 4);
+      longWav.writeUInt32LE(32000 * 35, 40);
+      await page.locator('#skillVideoAudioRange').selectOption('120');
+      await page.locator('#skillVideoAudioFile').setInputFiles({
+        name: 'long-audio.wav', mimeType: 'audio/wav', buffer: longWav
+      });
+      page.once('dialog', dialog => dialog.accept());
+      await page.locator('#skillVideoTranscribe').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: '2 bölümde işlendi' }).waitFor({ timeout: 20000 });
+      assert.equal(audioChunkCalls, 2);
+      assert.match(await page.locator('#skillVideoTranscript').inputValue(), /\[0:30\]/);
+      await page.unroute('**/api/learning/video-skills/from-audio');
       await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins-caption.srt' }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/video-skill-ui.png', fullPage: true });
 
