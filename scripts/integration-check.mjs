@@ -82,6 +82,8 @@ try {
   const intake = await (await call('/api/learning/video-skills', 201, { title: 'Jenkins eğitimi', notes: 'Jenkins Docker CI öğrenimi' })).json();
   assert.equal(intake.record.status, 'analyzed-not-installed');
   assert.ok(intake.record.candidates.some(skill => skill.id === 'jenkins'));
+  const providerAvailability = await (await call('/api/learning/video-skills/providers', 200)).json();
+  assert.equal(typeof providerAvailability.cloudflare_ai_bound, 'boolean');
   const recentIntakes = await (await call('/api/learning/video-skills', 200)).json();
   assert.ok(recentIntakes.records.some(record => record.id === intake.record.id));
   await call('/api/learning/video-skills/from-frames', 400, { frames: [] });
@@ -139,7 +141,7 @@ try {
       let sampledWav = false;
       await page.route('**/api/learning/video-skills/from-audio', async route => {
         const requestBody = route.request().postDataJSON();
-        assert.equal(requestBody.title, 'audio-fixture.wav');
+        assert.equal(requestBody.save, false);
         assert.ok(requestBody.data?.startsWith('UklGR'));
         sampledWav = true;
         await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
@@ -160,7 +162,7 @@ try {
         name: 'audio-fixture.wav', mimeType: 'audio/wav', buffer: browserWav
       });
       await page.locator('#skillVideoTranscribe').click();
-      await page.locator('#skillVideoStatus').filter({ hasText: 'çözümlendi ve kaydedildi' }).waitFor();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'işlendi ve tek kayda eklendi' }).waitFor();
       assert.equal(sampledWav, true);
       assert.match(await page.locator('#skillVideoTranscript').inputValue(), /Jenkins Docker eğitim/);
       await page.unroute('**/api/learning/video-skills/from-audio');
