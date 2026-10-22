@@ -52,7 +52,7 @@ test('validates short 16-kHz mono PCM WAV and rejects forged headers', () => {
   corrupt.writeUInt16LE(2, 22);
   assert.throws(() => validateWavInput({ data: corrupt.toString('base64') }), /INVALID_AUDIO_FORMAT/);
   assert.throws(() => validateWavInput({ data: 'AAAA' }), /INVALID_AUDIO_DATA/);
-  assert.throws(() => validateWavInput({ data: fixtureWav(31) }), /INVALID_AUDIO_SIZE|INVALID_AUDIO_DATA/);
+  assert.throws(() => validateWavInput({ data: fixtureWav(31) }), /INVALID_AUDIO_DURATION|INVALID_AUDIO_SIZE|INVALID_AUDIO_DATA/);
 });
 test('denies unauthenticated audio before external model invocation', async () => {
   let called = false;
