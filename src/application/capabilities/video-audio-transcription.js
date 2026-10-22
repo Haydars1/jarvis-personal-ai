@@ -1,4 +1,4 @@
-import { jsonResponse } from '../../lib/runtime.js';
+import { jsonResponse, queryAll } from '../../lib/runtime.js';
 import { transcribeAudio } from './youtube-learning.js';
 
 const MAX_WAV_BASE64 = 1_400_000;
@@ -23,6 +23,7 @@ export function validateWavInput(body) {
   const bytes = head.getUint32(40, true);
   if (!bytes || bytes % 2 || bytes !== binary.length - 44 || bytes > 960000)
     throw new Error('INVALID_AUDIO_DURATION');
+  if (body.save !== undefined && typeof body.save !== 'boolean') throw new Error('INVALID_SAVE');
   for (const key of ['title', 'notes', 'transcript', 'language']) {
     if (body[key] !== undefined && typeof body[key] !== 'string') throw new Error('INVALID_' + key.toUpperCase());
   }
@@ -34,7 +35,8 @@ export function validateWavInput(body) {
     notes: String(body.notes || '').trim(),
     transcript: String(body.transcript || '').trim(),
     language: String(body.language || '').trim().slice(0, 12),
-    seconds: bytes / 32000
+    seconds: bytes / 32000,
+    save: body.save !== false
   };
 }
 
@@ -42,12 +44,22 @@ export function createVideoAudioTranscription(core) {
   if (!core?.fetch) throw new Error('VIDEO_AUDIO_CORE_REQUIRED');
   return {
     async fetch(req, env, ctx) {
-      if (new URL(req.url).pathname !== '/api/learning/video-skills/from-audio') return core.fetch(req, env, ctx);
-      if (req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
+      const pathname = new URL(req.url).pathname;
+      const providerCheck = pathname === '/api/learning/video-skills/providers';
+      if (pathname !== '/api/learning/video-skills/from-audio' && !providerCheck) return core.fetch(req, env, ctx);
+      if (providerCheck ? req.method !== 'GET' : req.method !== 'POST') return jsonResponse({ error: 'METHOD_NOT_ALLOWED' }, 405);
       const auth = await core.fetch(new Request(new URL('/api/auth/status', req.url), { headers: req.headers }), env, ctx);
       let authenticated = false;
       try { authenticated = auth.ok && (await auth.json()).authenticated === true; } catch {}
       if (!authenticated) return jsonResponse({ error: 'AUTH_REQUIRED' }, 401);
+      if (providerCheck) {
+        let geminiConfigured = false;
+        try {
+          const creds = await queryAll(env, "SELECT id FROM credentials WHERE enabled=1 AND last_status='ok' AND lower(provider)='gemini' LIMIT 1");
+          geminiConfigured = creds.length > 0;
+        } catch { return jsonResponse({ cloudflare_ai_bound: !!env.AI?.run, gemini_configured: null, note: 'Provider database not readable' }); }
+        return jsonResponse({ cloudflare_ai_bound: !!env.AI?.run, gemini_configured: geminiConfigured, note: 'Configuration check only; no model call or quota usage' });
+      }
       if (Number(req.headers.get('content-length') || 0) > MAX_BODY)
         return jsonResponse({ error: 'REQUEST_TOO_LARGE' }, 413);
       const raw = await req.text();
@@ -62,6 +74,7 @@ export function createVideoAudioTranscription(core) {
         const result = await transcribeAudio(env, { data: input.data, language: input.language });
         const spoken = String(result.text || '').trim();
         if (!spoken) return jsonResponse({ error: 'AUDIO_NO_SPEECH_DETECTED' }, 422);
+        if (!input.save) return jsonResponse({ ok: true, saved: false, transcribed_audio_seconds: input.seconds, transcript: spoken.slice(0, 49000), transcription_model: result.model }, 200);
         const saved = await core.fetch(new Request(new URL('/api/learning/video-skills', req.url), {
           method: 'POST',
           headers: { 'content-type': 'application/json', cookie: req.headers.get('cookie') || '' },
