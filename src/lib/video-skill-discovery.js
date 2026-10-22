@@ -18,6 +18,34 @@ const CATALOG = Object.freeze([
 
 export const VIDEO_SKILL_CATALOG = Object.freeze(CATALOG.map(({ pattern, ...metadata }) => Object.freeze(metadata)));
 
+const REPOSITORY_CAPABILITIES = Object.freeze({
+  jenkins: {
+    match: 'existing-alternative',
+    name: 'GitHub Actions',
+    source_path: '.github/workflows/video-skill-validation.yml',
+    note: 'Existing CI workflow covers test/build automation; this does not mean Jenkins itself is installed.'
+  },
+  'github-actions': {
+    match: 'repository-code-present',
+    name: 'GitHub Actions',
+    source_path: '.github/workflows/video-skill-validation.yml',
+    note: 'Workflow is present in repository; live permissions and run success need independent checks.'
+  },
+  whisper: {
+    match: 'repository-code-present',
+    name: 'Cloudflare Whisper route',
+    source_path: 'src/application/capabilities/youtube-learning.js',
+    note: 'Transcription implementation is in code; live AI binding and model functionality require verification.'
+  },
+  'cloudflare-workers': {
+    match: 'repository-code-present',
+    name: 'Cloudflare Worker runtime',
+    source_path: 'src/app-entry.js',
+    note: 'Worker entry code is present; production deployment is a separate state.'
+  }
+});
+
+
 // Vision may report names outside the curated catalog. All remain unverified.
 function openVocabularyNames(text, knownNames) {
   const names = [];
@@ -54,6 +82,7 @@ export function discoverVideoSkills(input = {}) {
     const excerpt = text.slice(Math.max(0, offset - 70), Math.min(text.length, offset + 120)).replace(/\s+/g, ' ').trim();
     return [{
       id: item.id, name: item.name, capability: item.capability, risk: item.risk,
+      repo_capability: REPOSITORY_CAPABILITIES[item.id] || null,
       evidence: excerpt, evidence_type: input.transcript ? 'video-text' : 'screen-or-notes',
       jarvis: { status: 'candidate', next_step: item.next, installed: false },
       chatgpt: { status: 'connector-check-required', installed: null },
