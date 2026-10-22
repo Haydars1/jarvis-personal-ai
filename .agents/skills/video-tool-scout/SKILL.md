@@ -16,6 +16,7 @@ Use this workflow when a user sends a video, subtitle/transcript, or screenshots
 ## Route candidates
 
 1. Run the existing `/api/learning/video-skills` workflow for text, or the owner-authenticated `/api/learning/video-skills/from-frames` workflow for up to six browser-sampled JPEG frames.
+   For explicitly requested speech analysis, use owner-authenticated `/api/learning/video-skills/from-audio` with at most 30 seconds of local PCM WAV. Never auto-send audio on selection or claim all MP4 containers can be decoded. This calls Cloudflare Whisper and may use quota.
 2. Check for an existing Jarvis native adapter, worker capability, GitHub Action or local bridge before proposing another service.
 3. Check available ChatGPT plugins via plugin discovery. Existing connections should be reused. Installing or connecting a missing ChatGPT plugin requires an explicit user action; repo code cannot enable it.
 4. For a genuinely missing capability, verify vendor identity, official API, authentication, licensing, cost, data handling and allowed use.
