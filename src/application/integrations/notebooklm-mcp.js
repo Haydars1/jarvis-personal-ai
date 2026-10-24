@@ -68,11 +68,31 @@ async function callTool(env, tool, args, transport = fetch) {
     };
     if (session) headers['mcp-session-id'] = session;
     const request = { jsonrpc: '2.0', method, ...(params ? { params } : {}), ...(notification ? {} : { id: nextId++ }) };
-    const response = await requester(endpoint, {
-      method: 'POST', headers, body: JSON.stringify(request), signal: AbortSignal.timeout(30000),
-      redirect: 'error'
-    });
-    if (!response.ok) throw new Error(`NOTEBOOKLM_HTTP_${response.status}`);
+    let response;
+    // Render Free wakes after 15 min idle (~1 min cold start). Only retry the
+    // initialize request: replaying a chat_ask after an uncertain timeout can
+    // duplicate a Google NotebookLM conversation turn.
+    for (let attempt = 0; attempt < 7; attempt++) {
+      try {
+        response = await requester(endpoint, {
+          method: 'POST', headers, body: JSON.stringify(request),
+          signal: AbortSignal.timeout(140000), redirect: 'error'
+        });
+        if (response.ok) break;
+        if (method !== 'initialize' || ![502, 503, 504].includes(response.status) || attempt === 6) {
+          throw new Error(`NOTEBOOKLM_HTTP_${response.status}`);
+        }
+        const body = await response.clone().text().catch(() => '');
+        if (body.includes('NOTEBOOKLM_GOOGLE_AUTH_NOT_CONFIGURED')) {
+          throw new Error('NOTEBOOKLM_GOOGLE_AUTH_NOT_CONFIGURED');
+        }
+      } catch (error) {
+        if (method !== 'initialize' || attempt === 6 ||
+            !['TimeoutError', 'AbortError'].includes(error?.name)) throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    }
+    if (!response?.ok) throw new Error('NOTEBOOKLM_REMOTE_NOT_READY');
     const returnedSession = response.headers.get('mcp-session-id');
     if (returnedSession) session = returnedSession;
     if (notification || response.status === 202) return null;
