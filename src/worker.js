@@ -1,4 +1,5 @@
 import { ecuPermanentStudyContext } from './application/ecu/manual-study-context.js';
+import { ensureRateLimitTable, rateLimit, clientIP, rateLimitResponse, rateLimitCleanup } from './lib/rate-limit.js';
 // --- Module imports (extracted from monolith) ---
 import { te, td, nativeFetch, fetchT, withTimeout, now, id, j, txt, parseCookies, safeJsonParse, body, privateHost } from './lib/core.js';
 import { q1, qall, run, kvGet, kvSet, log } from './lib/d1.js';
@@ -118,7 +119,7 @@ async function state(env){
       selfUpdate:{connected:status.selfUpdate.connected,provider:'GitHub + Cloudflare CI'}},
     settings:await kvGet(env,'settings',{name:'Heido',language:'tr-TR',assistantName:'JARVIS'})}
 }
-async function ddg(q,ms=3500){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 JARVIS/4.0'}},ms);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<8)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
+async function ddg(q,ms=3500){const r=await fetchT('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q),{headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}},ms);if(!r.ok)throw Error('SEARCH_'+r.status);const h=await r.text(),out=[],re=/<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/g;const clean=s=>s.replace(/<[^>]+>/g,' ').replace(/&amp;/g,'&').replace(/&#x27;/g,"'").replace(/\s+/g,' ').trim();let m;while((m=re.exec(h))&&out.length<5)out.push({title:clean(m[2]),url:m[1].replace(/&amp;/g,'&'),snippet:clean(m[3])});return out}
 async function sportsDbLookup(text,ms=2800){
  const l=String(text||'').toLocaleLowerCase('tr-TR');
  let team=null;if(/galatasaray|\bgs\b/.test(l))team='Galatasaray';else if(/fenerbahçe|fenerbahce|\bfb\b/.test(l))team='Fenerbahce';else if(/beşiktaş|besiktas|\bbjk\b/.test(l))team='Besiktas';else if(/trabzonspor/.test(l))team='Trabzonspor';
@@ -134,22 +135,26 @@ async function sportsDbLookup(text,ms=2800){
  return events.map(e=>({title:[e.dateEvent,e.strEvent,e.intHomeScore!=null&&e.intAwayScore!=null?e.intHomeScore+'-'+e.intAwayScore:null].filter(Boolean).join(' | '),url:'https://www.thesportsdb.com/event/'+(e.idEvent||''),snippet:[e.strLeague,e.strSeason,e.strVenue,e.strStatus,e.strTime].filter(Boolean).join(' - '),source:'TheSportsDB'}));
 }
 async function liveResearch(text,ms=3000){
- const queries=[liveSearchQuery(text)],mediaQueries=mediaSearchQueries(text);
+ const queries=[liveSearchQuery(text)];
+ // Throttled: max 2 DDG queries per message (was 5-8, caused Cloudflare abuse flag)
  if(isSportsQuestion(text)){
   const d=todayTR(),team=sportsTeamName(text);
-  queries.push(String(text||'')+' '+d+' maç sonucu özet goller');
-  queries.push((team||String(text||''))+' '+d+' gol atanlar kaçıncı dakika');
-  queries.push((team||String(text||''))+' '+d+' maç özeti önemli anlar');
-  queries.push((team||String(text||''))+' '+d+' TFF maç sonucu');
-  queries.push((team||String(text||''))+' '+d+' Mackolik Sofascore maç sonucu');
+  queries.push((team||String(text||''))+' '+d+' maç sonucu özet goller');
  }
  const seen=new Set(),out=[],per=Math.max(1200,Math.min(ms,2200));
- const jobs=queries.map(q=>ddg(q,per).catch(()=>[])).concat(mediaQueries.map(q=>ddg(q,per).then(xs=>xs.map(x=>({...x,kind:'media'}))).catch(()=>[])));
- if(isSportsQuestion(text))jobs.unshift(sportsDbLookup(text,per).catch(()=>[]));
- const settled=await withTimeout(Promise.allSettled(jobs),Math.max(2200,ms+500),'LIVE_RESEARCH_TIMEOUT').catch(()=>[]);
- for(const r of settled){for(const x of (r.value||[])){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(isMediaResult(x)?{...x,kind:x.kind||'media'}:x)}}}
+ // Sequential DDG with delay between calls — no more parallel burst
+ if(isSportsQuestion(text)){const sp=await sportsDbLookup(text,per).catch(()=>[]);for(const x of sp)if(x?.title){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}}
+ for(const q of queries){
+  try{const res=await ddg(q,per);for(const x of res){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push(x)}}}catch{}
+  if(queries.indexOf(q)<queries.length-1)await new Promise(r=>setTimeout(r,300)); // 300ms delay between queries
+ }
+ // Single media query if needed
+ const mediaQueries=mediaSearchQueries(text);
+ if(mediaQueries.length>0){
+  try{const res=await ddg(mediaQueries[0],per);for(const x of res){const k=(String(x.title||'')+'|'+String(x.url||'')).toLowerCase();if(x?.title&&!seen.has(k)){seen.add(k);out.push({...x,kind:'media'})}}}catch{}
+ }
  const media=out.filter(x=>x.kind==='media'),regular=out.filter(x=>x.kind!=='media');
- return regular.concat(media).slice(0,isSportsQuestion(text)?14:10);
+ return regular.concat(media).slice(0,isSportsQuestion(text)?10:8);
 }
 async function behaviorSkills(env){
  const saved=await kvGet(env,'behavior_skills',[]);
@@ -435,9 +440,9 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  if(p==='/api/auth/passkey/auth/verify'&&m==='POST'){const x=await verifyAuthentication(req,env);return x.ok?j({ok:true,verified:true},200,{'set-cookie':x.cookie}):j({error:x.error||'PASSKEY_VERIFY_FAILED'},400)}
  if(p==='/api/auth/status'){const cfg=!!(await kvGet(env,'auth',null));return j({configured:cfg,authenticated:await isAuthed(req,env),passkeys:await passkeyCount(env)})}
  if(p==='/api/auth/setup'&&m==='POST'){if(await kvGet(env,'auth',null))return j({error:'ALREADY_CONFIGURED'},409);const b=await body(req),pw=String(b.password||'');if(pw.length<8)return j({error:'PASSWORD_MIN_8'},400);const salt=id(),auth={salt,hash:await hashPassword(pw,salt)};await kvSet(env,'auth',auth);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});return j({ok:true},200,{'set-cookie':cookie(tok)})}
- if(p==='/api/auth/login'&&m==='POST'){const auth=await kvGet(env,'auth',null),b=await body(req);if(!auth)return j({error:'NOT_CONFIGURED'},400);if(await hashPassword(String(b.password||''),auth.salt)!==auth.hash)return j({error:'INVALID_PASSWORD'},403);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});return j({ok:true},200,{'set-cookie':cookie(tok)})}
+ if(p==='/api/auth/login'&&m==='POST'){const rl=await rateLimit(env,clientIP(req),'auth-login',5,300000);if(!rl.allowed)return rateLimitResponse(rl.retryAfter);const auth=await kvGet(env,'auth',null),b=await body(req);if(!auth)return j({error:'NOT_CONFIGURED'},400);if(await hashPassword(String(b.password||''),auth.salt)!==auth.hash)return j({error:'INVALID_PASSWORD'},403);const tok=await sign(env.JARVIS_SECRET||'CHANGE_ME',{sub:'owner',exp:now()+2592e6});return j({ok:true},200,{'set-cookie':cookie(tok)})}
  if(p==='/api/auth/logout'&&m==='POST')return j({ok:true},200,{'set-cookie':cookie('',0)});
- if(p==='/api/runtime/report'&&m==='POST'){const b=await body(req),message=String(b.message||b.error||'UNKNOWN').slice(0,3000),context=String(b.context||'ios').slice(0,200),userText=String(b.userText||'').slice(0,1000);await recordRuntimeError(env,Error(message),context+(userText?' | user: '+userText:''));await log(env,'runtime','Uygulama hatası raporlandı',{context,message:message.slice(0,500),userText});return j({ok:true,queued:true})}
+ if(p==='/api/runtime/report'&&m==='POST'){const rl=await rateLimit(env,clientIP(req),'runtime-report',5,60000);if(!rl.allowed)return rateLimitResponse(rl.retryAfter);const b=await body(req),message=String(b.message||b.error||'UNKNOWN').slice(0,3000),context=String(b.context||'ios').slice(0,200),userText=String(b.userText||'').slice(0,1000);await recordRuntimeError(env,Error(message),context+(userText?' | user: '+userText:''));await log(env,'runtime','Uygulama hatası raporlandı',{context,message:message.slice(0,500),userText});return j({ok:true,queued:true})}
   if(p.startsWith('/api/')&&!(await isAuthed(req,env)))return j({error:'AUTH_REQUIRED'},401);
  if(p==='/api/auth/passkey/register/options'&&m==='POST')return j(await registrationOptions(req,env));
  if(p==='/api/auth/passkey/register/verify'&&m==='POST'){const x=await verifyRegistration(req,env);return x.ok?j(x):j({error:x.error||'PASSKEY_VERIFY_FAILED'},400)}
@@ -5745,4 +5750,4 @@ async function runScheduledJobs(env){
   }catch{}
 }
 
-export default {async fetch(req,env,ctx){try{const u=new URL(req.url);if(u.pathname==='/api/version')return j({ok:true,version:'fast-chat-2026-09-13-2',ts:now()});if(u.pathname.startsWith('/api/')){if(!env.DB)return j({error:'D1_NOT_BOUND',detail:'Cloudflare D1 binding DB is missing.'},500);return await router(req,env,ctx)}return env.ASSETS.fetch(req)}catch(e){console.error(e);if(env.DB)await recordRuntimeError(env,e,new URL(req.url).pathname);return j({error:'SERVER_ERROR',detail:e.message},500)}},async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([selfHeal(env),runScheduledJobs(env)]))}};
+export default {async fetch(req,env,ctx){try{const u=new URL(req.url);if(u.pathname==='/api/version')return j({ok:true,version:'fast-chat-2026-09-13-2',ts:now()});if(u.pathname.startsWith('/api/')){if(!env.DB)return j({error:'D1_NOT_BOUND',detail:'Cloudflare D1 binding DB is missing.'},500);const ip=clientIP(req),gl=await rateLimit(env,ip,'global-api',60,60000);if(!gl.allowed)return rateLimitResponse(gl.retryAfter);return await router(req,env,ctx)}return env.ASSETS.fetch(req)}catch(e){console.error(e);if(env.DB)await recordRuntimeError(env,e,new URL(req.url).pathname);return j({error:'SERVER_ERROR',detail:e.message},500)}},async scheduled(event,env,ctx){ctx.waitUntil(Promise.all([ensureRateLimitTable(env),rateLimitCleanup(env),selfHeal(env),runScheduledJobs(env)]))}};
