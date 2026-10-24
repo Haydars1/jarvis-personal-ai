@@ -49,3 +49,24 @@ test('rejects blank question without contacting server', async () => {
   const response = await bridge.fetch(new Request(base + '/api/notebooklm/ask', { method: 'POST', body: JSON.stringify({notebook:'ECU',question:''}) }), env);
   assert.equal(response.status, 400);
 });
+
+test('uses private Cloudflare service binding when present, without public URL', async () => {
+  const names = [];
+  const service = { fetch: async (url, init) => {
+    assert.match(String(url), /^https:\/\/notebooklm\.service\.invalid\/mcp$/);
+    assert.equal(init.headers.authorization, 'Bearer unit-test-token');
+    const payload = JSON.parse(init.body);
+    names.push(payload.method);
+    if (payload.method === 'notifications/initialized') return new Response(null, { status: 202 });
+    if (payload.method === 'initialize') return Response.json({jsonrpc:'2.0',id:payload.id,result:{}});
+    return Response.json({jsonrpc:'2.0',id:payload.id,result:{content:[{type:'text',text:'Cloudflare ready'}]}});
+  }};
+  const bridge = createNotebookLmMcpIntegration(mk(), {transport: () => { throw new Error('PUBLIC_NETWORK_CALLED'); }});
+  const cloud = {...env, NOTEBOOKLM_MCP_URL:undefined, NOTEBOOKLM_MCP_SERVICE:service};
+  const status = await (await bridge.fetch(new Request(base + '/api/notebooklm/status'), cloud)).json();
+  assert.equal(status.configured, true);
+  assert.equal(status.backend, 'cloudflare-container');
+  const result = await bridge.fetch(new Request(base + '/api/notebooklm/notebooks'), cloud);
+  assert.equal(result.status, 200);
+  assert.deepEqual(names,['initialize','notifications/initialized','tools/call']);
+});
