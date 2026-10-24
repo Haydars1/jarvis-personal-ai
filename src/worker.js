@@ -15,6 +15,39 @@ import { thinkdiagRouter } from './lib/thinkdiag-import.js';
 import { lookupDTC, searchDTCs, getTuningRelatedDTCs, getDTCSystems, getFlashProtocol, listFlashProtocols, getSafetyLimits, getAllSafetyLimits, batchLookupDTCs, analyzeDTCPattern } from './lib/dtc-database.js';
 import { listChecksumAlgorithms, computeChecksum, detectChecksumAlgo, analyzeBinary, computeEntropy, entropyMap, extractStrings, detectSections, crc32, crc16, add32, add32le, add16, add16le, xor32, siemensChecksum, simosChecksum, delphiChecksum, marelliChecksum, densoChecksum, correctComplement } from './lib/ecu-checksum-extended.js';
 import { createProject, getProject, listProjects, updateProject, deleteProject, addUploadToProject, addTunedToProject, startSession, endSession, addSessionOperation, addSessionChanges, getSession, listSessions, addNote, listNotes, deleteNote, projectStats, ensureProjectTables } from './lib/tuning-projects.js';
+import { interpolate2D, interpolate3D, smooth2D, smooth3D, scaleMap, offsetMap, fillRegion, scaleRegion, clampMap, diffMaps, mapStats, rescaleXAxis, rescaleYAxis, copyRegion, pasteRegion, getMapTemplate, listMapTemplates, ensureMapTables, storeMap, getStoredMap, listStoredMaps, updateStoredMap, deleteStoredMap } from './lib/tuning-maps.js';
+import { STANDARD_PIDS, getPID, searchPIDs, getPIDsByCategory, listPIDCategories, convertUnit, listConversions, GAUGE_CONFIGS, getGaugeConfig, DASHBOARD_PRESETS, getDashboardPreset, listDashboardPresets, DEFAULT_ALARMS, checkAlarms, getAlarmConfig, listAlarms, ensureLogTables, startLog, appendLogData, endLog, getLog, listLogs, deleteLog } from './lib/ecu-live-data.js';
+import { OBD_MONITORS, parseMonitorStatus, readinessSummary, FREEZE_FRAME_PIDS, parseFreezeFrame, DRIVE_CYCLES, getDriveCycle, listDriveCycles, EMISSIONS_STANDARDS, checkEmissions, listEmissionsStandards, emissionsAdvisor, ensureReadinessTables, saveReadiness, getReadinessHistory, OBD_MODES, getOBDMode, listOBDModes } from './lib/ecu-readiness.js';
+import { OBD2_CONNECTOR, ECU_PINOUTS, PIN_TYPE_COLORS, getEcuPinout, listEcuPinouts, searchEcuPinouts, getPinsByType, getEcuPinTypes, getFlashPins, verifyWiring, getOBD2Pin, getOBD2Protocol } from './lib/ecu-wiring.js';
+import { parseIntelHex, generateIntelHex, parseSRecord, generateSRecord, detectFormat, convertFile, validateHexFile, compareFiles, SUPPORTED_FORMATS, listFormats } from './lib/file-converter.js';
+import { parseCANFrame, decodeUDS, decodeKWP2000, parseISOTP, reassembleISOTP, parseCANLog, UDS_SERVICES, UDS_NRC, KWP2000_SERVICES, ISOTP_FRAME_TYPES, FLASH_SEQUENCES, getFlashSequence as getUDSFlashSequence, listFlashSequences as listUDSFlashSequences, listUDSServices, getUDSService, listDIDs, getDID, listKWP2000Services, COMMON_DIDS } from './lib/ecu-protocol.js';
+import { decodeVIN, validateCheckDigit, searchManufacturer, getManufacturersByCountry, batchDecodeVIN, vinDecoderStats, WMI_DATABASE } from './lib/vin-decoder.js';
+import { correctFlowForPressure, calcDutyCycle, sizeInjectors, calcAFR, lambdaToAFR, afrToLambda, calcBoost, calcWastegateDuty, calcMAFScale, sizeFuelPump, estimateVE, listInjectors, getInjector, listFuelTypes, getFuelType, fuelCalcStats, FUEL_DENSITY, INJECTOR_DATABASE } from './lib/fuel-injection.js';
+import { calcAirflow, calcPressureRatio, calcCompressorTemp, calcIntercooler, selectAR, sizeTurbo, checkSurgeChoke, calcTwinTurbo, listTurbos, getTurbo, searchTurbos, turboCalcStats, TURBO_DATABASE } from './lib/turbo-calc.js';
+import { calcExhaustFlow, sizeExhaustPipe, calcBackpressure, calcHeaderSize, sizeCat, checkEGT, listPipeSizes, listCats, getCat, exhaustCalcStats, PIPE_SIZES, CAT_DATABASE } from './lib/exhaust-calc.js';
+import { calcDisplacement, calcCompressionRatio, calcDynamicCR, calcMeanPistonSpeed, convertTorqueHP, calcBMEP, calcEfficiency, calcRodRatio, estimateCylinderPressure, listEngineConfigs, getEngineConfig, searchEngineConfigs, engineMathStats, ENGINE_CONFIGS } from './lib/engine-math.js';
+import { calcTimingEvents, calcValveFloat, compareCams, recommendCam, listCams, getCam, searchCams, camCalcStats, CAM_DATABASE } from './lib/camshaft-calc.js';
+import { calcSpeedAtRPM, calcRPMAtSpeed, calcWheelHP, estimateCrankHP, analyzeGearRatios, estimate0to100, calcMaxSpeeds, listTransmissions, getTransmission, searchTransmissions, listTireSizes, listDrivetrainTypes, drivetrainCalcStats, TRANSMISSION_DATABASE, TIRE_DATABASE, DRIVETRAIN_LOSS } from './lib/drivetrain-calc.js';
+import { calcHeatRejection, calcCoolantFlow, sizeRadiator, calcBoilingPoint, sizeFan, calcWaterPump, recommendThermostat, listCoolantTypes, listRadiators, getRadiator, listFans, listThermostats, coolingCalcStats, COOLANT_TYPES, RADIATOR_DATABASE, FAN_DATABASE, THERMOSTAT_RATINGS } from './lib/cooling-calc.js';
+import { calcKnockFrequency, assessDetonationRisk, calcTimingRetard, recommendTimingMap, analyzeKnockWindow, listOctanes, getOctane, listKnockSensors, getKnockSensor, searchKnockSensors, knockCalcStats, OCTANE_DATABASE, KNOCK_SENSOR_DATABASE } from './lib/knock-calc.js';
+import { calcPIDTuning, generateLambdaMap, calibrateSensor, freeAirCalibration, estimateEthanolContent, listFuelStoich, getFuelStoich, listWidebandSensors, getWidebandSensor, searchWidebandSensors, listLambdaTargets, getLambdaTarget, lambdaCalcStats, STOICH_DATABASE, WIDEBAND_SENSOR_DATABASE, LAMBDA_TARGETS } from './lib/lambda-calc.js';
+import { estimateMBT, calcKnockLimitedTiming, generateTimingCurve, calcDwellTime, recommendSparkPlugGap, calcSparkEnergy, generateIgnitionTable, listCoils, getCoil, searchCoils, listSparkPlugs, getSparkPlug, searchSparkPlugs, ignitionCalcStats, COIL_DATABASE, SPARK_PLUG_DATABASE } from './lib/ignition-calc.js';
+import { calcViscosityAtTemp, calcOilPressure, sizeOilCooler, calcPumpFlow, interpretOilAnalysis, recommendOilSpec, listOils, getOil, listPumps, getPump, listCoolers, getCooler, searchOils, oilCalcStats, OIL_DATABASE, PUMP_DATABASE, COOLER_DATABASE } from './lib/oil-calc.js';
+import { estimateN2OGain, calcTimingRetard as calcN2OTimingRetard, calcFuelEnrichment, calcBottlePressure, calcBottleDuration, calcPurge, safetyChecklist, listJets, getJet, searchJets, listBottles, getBottle, nitrousCalcStats, JET_DATABASE, BOTTLE_DATABASE } from './lib/nitrous-calc.js';
+import { calcRunnerLength, calcRunnerDiameter, calcPlenumVolume, sizeThrottleBody, estimateAirflow, analyzeVariableIntake, estimatePortFlow, listManifolds, getManifold, searchManifolds, listThrottleBodies, getThrottleBody, searchThrottleBodies, intakeCalcStats, MANIFOLD_DATABASE, THROTTLE_BODY_DATABASE } from './lib/intake-calc.js';
+import { startDatalogSession, appendDatalogSamples, endDatalogSession, getDatalogSession, listDatalogSessions, deleteDatalogSession, exportDatalogSession, analyzeLogData, detectAnomalies, correlateChannels, toCSV, toMegaLogViewer, toVCDS, calcSampleBudget, listLogProfiles, getLogProfile, listTriggerTypes, dataloggerStats, LOG_PROFILES, TRIGGER_TYPES } from './lib/datalogger.js';
+import { calcBlendProperties, calcInjectorRequirement, calcFuelPumpRequirement, calcTimingAdvance, calcColdStartEnrichment, calibrateSensorFrequency, calcSensorVoltage, calcE85Conversion, listFuelBlends, getFuelBlend, listEthanolSensors, getEthanolSensor, searchEthanolSensors, flexfuelCalcStats, FUEL_BLENDS, ETHANOL_SENSOR_DATABASE } from './lib/flexfuel-calc.js';
+import { validateSensorReading, validateMultipleSensors, diagnoseFromReadings, calcEngineHealthScore, analyzeFuelTrims, interpretO2Sensor, generateMaintenanceSchedule, listSensorRanges, getSensorRange, listDiagnosticPatterns, getDiagnosticPattern, classifyDTC as classifyDTCSeverity, ecuDiagnosticsStats, SENSOR_RANGES, DIAGNOSTIC_PATTERNS, DTC_SEVERITY } from './lib/ecu-diagnostics.js';
+import { calcShiftPoints, calcLinePressure, calcTorqueConverterSlip, calcLaunchControl, optimizeShiftSchedule, calcClutchWear, recommendFluid, listTransmissionTypes, getTransmissionType, searchTransmissionTypes, listTorqueConverters, getTorqueConverter, listShiftProfiles, getShiftProfile, tcuTuningStats, TRANSMISSION_TYPES as TCU_TRANS_TYPES, TORQUE_CONVERTERS, SHIFT_PROFILES } from './lib/tcu-tuning.js';
+import { calcCrawlRatio, calcSpeedAtRPM as calcDiffSpeed, calcRPMAtSpeed as calcDiffRPM, calcTorqueSplit, calcDiffTemp, recommendDiffRatio, recommendDiffFluid as recDiffFluid, calcTransferCaseGearing, listDiffTypes, getDiffType, searchDiffTypes, listDiffRatios, getDiffRatio, listTransferCases, getTransferCase, searchTransferCases, listDiffFluids, differentialCalcStats, DIFF_TYPES, DIFF_RATIOS, TRANSFER_CASES, DIFF_FLUIDS } from './lib/differential-calc.js';
+import { calcSpringRate, calcDamperRatio, calcRideHeight, calcSwayBarEffect, calcCornerWeight, calcBumpSteer, calcAntiSquat, recommendAlignment, listSpringTypes, getSpringType, listDamperTypes, getDamperType, searchDamperTypes, listSwayBarSizes, listAlignmentSpecs, getAlignmentSpec, suspensionCalcStats, SPRING_TYPES, DAMPER_TYPES, SWAY_BAR_SIZES, ALIGNMENT_SPECS } from './lib/suspension-calc.js';
+import { calcBrakeForce, calcStoppingDistance, calcBrakeBias, calcRotorTemp, calcKineticEnergy, calcPedalRatio, calcBrakeLineLength, recommendBrakeFluid, listPadCompounds, getPadCompound, searchPadCompounds, listRotorTypes, getRotorType, listBrakeFluids, getBrakeFluid, listCaliperTypes, getCaliperType, brakeCalcStats, PAD_COMPOUNDS, ROTOR_TYPES, BRAKE_FLUIDS, CALIPER_TYPES } from './lib/brake-calc.js';
+import { calcTireDiameter, compareTireSizes, calcOffset, compareOffsets, calcSpeedoCorrection, calcLoadIndex, calcSpeedRating, calcStretchFit, listBoltPatterns, getBoltPattern, searchBoltPatterns, listTireTypes, getTireType, wheelTireCalcStats, BOLT_PATTERNS, TIRE_TYPES } from './lib/wheel-tire-calc.js';
+import { calcDragForce, calcTopSpeed, calcDownforce, calcAeroBalance, calcSpeedEffect, calcAltitudeEffect, calcCdFromCoasting, listDragProfiles, getDragProfile, searchDragProfiles, listWingProfiles, getWingProfile, aeroCalcStats, DRAG_PROFILES, WING_PROFILES } from './lib/aero-calc.js';
+import { calcLongitudinalTransfer, calcLateralTransfer, estimateCGHeight, analyzeDistribution, calcBallast, calcPayloadEffect, calcPowerToWeight, analyzeWeightReduction, listWeightClasses, getWeightClass, searchWeightClasses, listLayoutTypes, getLayoutType, weightDistCalcStats, WEIGHT_CLASSES, LAYOUT_TYPES } from './lib/weight-dist-calc.js';
+import { calcCompressorOutletTemp, calcIntercoolerEfficiency, sizeIntercoolerCore, calcPressureDrop, sizeWaterToAir, recommendPipingDiameter, calcWaterInjection, analyzeHeatSoak, listIntercoolerTypes, getIntercoolerType, listCoreSizes, getCoreSize, listPipingMaterials, getPipingMaterial, intercoolerCalcStats, INTERCOOLER_TYPES, PIPING_MATERIALS, CORE_SIZES } from './lib/intercooler-calc.js';
+import { calcVoltageDrop, recommendWireGauge, sizeAlternator, analyzeBattery, sizeFuseRelay, auditElectricalSystem, calcBig3Upgrade, listWireGauges, getWireGauge, listBatteryTypes, getBatteryType, listCommonLoads, getCommonLoad, searchCommonLoads, electricalCalcStats, WIRE_GAUGES, BATTERY_TYPES, COMMON_LOADS } from './lib/electrical-calc.js';
+import { estimateEmissions, checkCompliance, estimateCO2, calcEGRImpact, estimateCatHealth, compareFuelEmissions, assessModImpact, listEmissionStandards, getEmissionStandard, listFuelProperties, getFuelProperty, listCatalystTypes, getCatalystType, emissionsCalcStats, EMISSION_STANDARDS, FUEL_PROPERTIES, CATALYST_TYPES } from './lib/emissions-calc.js';
 
 async function createSelfChange(env,request,origin='user'){
   const c=await githubCredential(env);if(!c)return {ok:false,need:'github',message:'Self Update için GitHub bağlantısı gerekiyor. Credential Manager’da GitHub token + owner/repo ekle.'};
@@ -2085,6 +2118,2689 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
  }catch(e){return j({error:e.message},500)}}
 
  // ═══════════════════════════════════════════════════════════════════════════
+ // === TUNING MAPS — 2D/3D Kalibrasyon Harita Motoru ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Map Templates ---
+ if(p==='/api/ecu/maps/templates'&&m==='GET'){try{
+   return j({ok:true,templates:listMapTemplates()});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/maps/templates/')&&m==='GET'){try{
+   const tName=p.split('/api/ecu/maps/templates/')[1];
+   const tpl=getMapTemplate(tName);
+   if(!tpl)return j({error:'TEMPLATE_NOT_FOUND'},404);
+   return j({ok:true,template:tpl});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Map Operations (stateless compute) ---
+ if(p==='/api/ecu/maps/interpolate'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   if(b.map.y_axis){
+     const val=interpolate3D(b.map,b.x,b.y);
+     return j({ok:true,value:val,type:'3d'});
+   }else{
+     const val=interpolate2D(b.map,b.x);
+     return j({ok:true,value:val,type:'2d'});
+   }
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/smooth'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.values&&!b.matrix)return j({error:'MISSING_DATA'},400);
+   if(b.matrix){
+     const result=smooth3D(b.matrix,b.passes||1,b.weight||0.5);
+     return j({ok:true,result,type:'3d'});
+   }else{
+     const result=smooth2D(b.values,b.passes||1,b.weight||0.5);
+     return j({ok:true,result,type:'2d'});
+   }
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/scale'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=scaleMap(b.map,b.percentage||100);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/offset'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=offsetMap(b.map,b.offset||0);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/clamp'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=clampMap(b.map,b.min??-Infinity,b.max??Infinity);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/fill-region'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=fillRegion(b.map,b.value??0,b.region);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/scale-region'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=scaleRegion(b.map,b.percentage||100,b.region);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/diff'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.original||!b.modified)return j({error:'MISSING_MAPS'},400);
+   const result=diffMaps(b.original,b.modified);
+   return j({ok:true,diff:result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/stats'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   const result=mapStats(b.map);
+   return j({ok:true,stats:result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/rescale-axis'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   let result=b.map;
+   if(b.newXValues)result=rescaleXAxis(result,b.newXValues);
+   if(b.newYValues)result=rescaleYAxis(result,b.newYValues);
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/copy-paste'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.map)return j({error:'MISSING_MAP'},400);
+   if(b.action==='copy'){
+     const clipboard=copyRegion(b.map,b.region);
+     return j({ok:true,clipboard});
+   }else if(b.action==='paste'){
+     if(!b.clipboard)return j({error:'MISSING_CLIPBOARD'},400);
+     const result=pasteRegion(b.map,b.clipboard,b.xStart||0,b.yStart||0);
+     return j({ok:true,result});
+   }
+   return j({error:'INVALID_ACTION — use copy or paste'},400);
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Stored Maps (D1 CRUD) ---
+ if(p==='/api/ecu/maps/stored'&&m==='GET'){try{
+   await ensureMapTables(env);
+   const sp=new URL(req.url).searchParams;
+   const maps=await listStoredMaps(env,{upload_id:sp.get('upload_id'),project_id:sp.get('project_id'),category:sp.get('category'),limit:parseInt(sp.get('limit'))||50});
+   return j({ok:true,maps});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/maps/stored'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.name)return j({error:'MISSING_NAME'},400);
+   const map=await storeMap(env,b);
+   return j({ok:true,map});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/maps/stored/')&&m==='GET'){try{
+   const mapId=p.split('/api/ecu/maps/stored/')[1];
+   const map=await getStoredMap(env,mapId);
+   if(!map)return j({error:'MAP_NOT_FOUND'},404);
+   return j({ok:true,map});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/maps/stored/')&&m==='PUT'){try{
+   const mapId=p.split('/api/ecu/maps/stored/')[1];
+   const b=await body(req);
+   const map=await updateStoredMap(env,mapId,b);
+   if(!map)return j({error:'MAP_NOT_FOUND'},404);
+   return j({ok:true,map});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/maps/stored/')&&m==='DELETE'){try{
+   const mapId=p.split('/api/ecu/maps/stored/')[1];
+   await deleteStoredMap(env,mapId);
+   return j({ok:true,deleted:mapId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ECU LIVE DATA — PID, Gauge, Logging, Alarms ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- PID Lookup ---
+ if(p==='/api/ecu/live/pids'&&m==='GET'){try{
+   const sp=new URL(req.url).searchParams;
+   const q=sp.get('q')||sp.get('search');
+   const cat=sp.get('category');
+   if(q){return j({ok:true,pids:searchPIDs(q)})}
+   if(cat){return j({ok:true,pids:getPIDsByCategory(cat)})}
+   return j({ok:true,pids:Object.entries(STANDARD_PIDS).map(([code,pid])=>({code,...pid})),total:Object.keys(STANDARD_PIDS).length});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/live/pids/categories'&&m==='GET'){try{
+   return j({ok:true,categories:listPIDCategories()});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/live/pids/')&&m==='GET'){try{
+   const code=p.split('/api/ecu/live/pids/')[1].toUpperCase();
+   const pid=getPID(code);
+   if(!pid)return j({error:'PID_NOT_FOUND'},404);
+   const gauge=getGaugeConfig(pid.shortName);
+   const alarm=getAlarmConfig(code);
+   return j({ok:true,code,pid,gauge,alarm});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Unit Conversion ---
+ if(p==='/api/ecu/live/convert'&&m==='POST'){try{
+   const b=await body(req);
+   if(b.value===undefined||!b.from||!b.to)return j({error:'MISSING value/from/to'},400);
+   const result=convertUnit(b.value,b.from,b.to);
+   if(result===null)return j({error:'UNSUPPORTED_CONVERSION'},400);
+   return j({ok:true,original:b.value,from:b.from,to:b.to,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/live/conversions'&&m==='GET'){try{
+   const unit=new URL(req.url).searchParams.get('unit');
+   if(!unit)return j({error:'MISSING_UNIT'},400);
+   return j({ok:true,unit,convertibleTo:listConversions(unit)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Gauge Configs ---
+ if(p==='/api/ecu/live/gauges'&&m==='GET'){try{
+   return j({ok:true,gauges:Object.entries(GAUGE_CONFIGS).map(([key,cfg])=>({key,...cfg}))});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Dashboard Presets ---
+ if(p==='/api/ecu/live/dashboards'&&m==='GET'){try{
+   return j({ok:true,presets:listDashboardPresets()});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.startsWith('/api/ecu/live/dashboards/')&&m==='GET'){try{
+   const presetName=p.split('/api/ecu/live/dashboards/')[1];
+   const preset=getDashboardPreset(presetName);
+   if(!preset)return j({error:'PRESET_NOT_FOUND'},404);
+   // enrich with PID details
+   const pidDetails=preset.pids.map(code=>({code,...(getPID(code)||{}),gauge:getGaugeConfig(getPID(code)?.shortName),alarm:getAlarmConfig(code)}));
+   return j({ok:true,preset:{...preset,pidDetails}});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Alarms ---
+ if(p==='/api/ecu/live/alarms'&&m==='GET'){try{
+   return j({ok:true,alarms:listAlarms()});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/live/alarms/check'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.readings||!Array.isArray(b.readings))return j({error:'MISSING_READINGS'},400);
+   const results=b.readings.map(r=>({code:r.code,value:r.value,...checkAlarms(r.code,r.value)}));
+   const warnings=results.filter(r=>r.status==='warning');
+   const criticals=results.filter(r=>r.status==='critical');
+   return j({ok:true,results,summary:{total:results.length,ok:results.filter(r=>r.status==='ok').length,warnings:warnings.length,critical:criticals.length}});
+ }catch(e){return j({error:e.message},500)}}
+
+ // --- Data Logging ---
+ if(p==='/api/ecu/live/logs'&&m==='GET'){try{
+   const sp=new URL(req.url).searchParams;
+   const logs=await listLogs(env,{session_id:sp.get('session_id'),upload_id:sp.get('upload_id'),status:sp.get('status'),limit:parseInt(sp.get('limit'))||50});
+   return j({ok:true,logs});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/live/logs'&&m==='POST'){try{
+   const b=await body(req);
+   const log=await startLog(env,b);
+   return j({ok:true,log});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.match(/^\/api\/ecu\/live\/logs\/[^/]+$/)&&m==='GET'){try{
+   const logId=p.split('/api/ecu/live/logs/')[1];
+   const logEntry=await getLog(env,logId);
+   if(!logEntry)return j({error:'LOG_NOT_FOUND'},404);
+   return j({ok:true,log:logEntry});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.match(/^\/api\/ecu\/live\/logs\/[^/]+\/append$/)&&m==='POST'){try{
+   const logId=p.split('/api/ecu/live/logs/')[1].replace('/append','');
+   const b=await body(req);
+   const ok=await appendLogData(env,logId,b.data_points||b.dataPoints||[]);
+   if(!ok)return j({error:'LOG_NOT_FOUND'},404);
+   return j({ok:true,appended:true});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.match(/^\/api\/ecu\/live\/logs\/[^/]+\/end$/)&&m==='POST'){try{
+   const logId=p.split('/api/ecu/live/logs/')[1].replace('/end','');
+   const result=await endLog(env,logId);
+   if(!result)return j({error:'LOG_NOT_FOUND'},404);
+   return j({ok:true,log:result});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p.match(/^\/api\/ecu\/live\/logs\/[^/]+$/)&&m==='DELETE'){try{
+   const logId=p.split('/api/ecu/live/logs/')[1];
+   await deleteLog(env,logId);
+   return j({ok:true,deleted:logId});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ECU READINESS & EMISSIONS — Monitor durumu, emisyon, drive cycle ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List all OBD monitor definitions
+ if(p==='/api/ecu/readiness/monitors'&&m==='GET'){
+   return j({ok:true,monitors:OBD_MONITORS})}
+
+ // Parse Mode 01 PID 01 bytes → monitor status
+ if(p==='/api/ecu/readiness/parse'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.bytes||!Array.isArray(d.bytes))return j({error:'bytes array required (4 bytes from PID 01)'},400);
+   const parsed=parseMonitorStatus(d.bytes);
+   return j({ok:true,status:parsed});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Readiness summary (parse + summary in one call)
+ if(p==='/api/ecu/readiness/summary'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.bytes||!Array.isArray(d.bytes))return j({error:'bytes array required (4 bytes from PID 01)'},400);
+   const parsed=parseMonitorStatus(d.bytes);
+   const summary=readinessSummary(parsed);
+   return j({ok:true,parsed,summary});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Parse freeze frame data
+ if(p==='/api/ecu/readiness/freeze-frame'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data||typeof d.data!=='object')return j({error:'data object required: {pidHex: [byte, byte, ...]}'},400);
+   const ff=parseFreezeFrame(d.data);
+   return j({ok:true,freezeFrame:ff,supportedPids:FREEZE_FRAME_PIDS});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List all drive cycles
+ if(p==='/api/ecu/readiness/drive-cycles'&&m==='GET'){
+   return j({ok:true,driveCycles:listDriveCycles()})}
+
+ // Get drive cycle for specific make
+ if(p.startsWith('/api/ecu/readiness/drive-cycles/')&&m==='GET'){
+   const make=decodeURIComponent(p.split('/api/ecu/readiness/drive-cycles/')[1]);
+   const dc=getDriveCycle(make);
+   if(!dc)return j({error:'DRIVE_CYCLE_NOT_FOUND',available:listDriveCycles().map(d=>d.id)},404);
+   return j({ok:true,driveCycle:dc})}
+
+ // List emissions standards
+ if(p==='/api/ecu/readiness/emissions/standards'&&m==='GET'){
+   return j({ok:true,standards:listEmissionsStandards()})}
+
+ // Check readings against emissions standard
+ if(p==='/api/ecu/readiness/emissions/check'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.readings||!d.standard)return j({error:'readings object and standard required'},400);
+   const result=checkEmissions(d.readings,d.standard,d.fuelType||'gasoline');
+   return j({ok:true,result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Full pre-check advisor
+ if(p==='/api/ecu/readiness/advisor'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.monitorStatus)return j({error:'monitorStatus required (parsed monitor status object)'},400);
+   const advice=emissionsAdvisor(d.monitorStatus,d.dtcList||[]);
+   return j({ok:true,advice});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Save readiness snapshot to D1
+ if(p==='/api/ecu/readiness/save'&&m==='POST'){try{
+   const d=await body(req);
+   await ensureReadinessTables(env);
+   const saved=await saveReadiness(env,d);
+   return j({ok:true,saved});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Get readiness history
+ if(p==='/api/ecu/readiness/history'&&m==='GET'){try{
+   await ensureReadinessTables(env);
+   const vehicleId=u.searchParams.get('vehicle_id');
+   const uploadId=u.searchParams.get('upload_id');
+   const limit=parseInt(u.searchParams.get('limit')||'50');
+   const rows=await getReadinessHistory(env,{vehicle_id:vehicleId,upload_id:uploadId,limit});
+   return j({ok:true,history:rows});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List all OBD modes
+ if(p==='/api/ecu/obd/modes'&&m==='GET'){
+   return j({ok:true,modes:listOBDModes()})}
+
+ // Get single OBD mode
+ if(p.startsWith('/api/ecu/obd/modes/')&&m==='GET'){
+   const code=p.split('/api/ecu/obd/modes/')[1];
+   const mode=getOBDMode(code);
+   if(!mode)return j({error:'OBD_MODE_NOT_FOUND'},404);
+   return j({ok:true,mode})}
+
+ // === ECU WIRING & PINOUT DATABASE — Konnektör pinout, OBD-II, doğrulama ===
+
+ // List all ECU families
+ if(p==='/api/ecu/wiring/families'&&m==='GET'){
+   return j({ok:true,families:listEcuPinouts()})}
+
+ // Search ECU pinouts by vehicle/variant/family
+ if(p==='/api/ecu/wiring/search'&&m==='GET'){
+   const query=u.searchParams.get('q');
+   if(!query)return j({error:'q parameter required'},400);
+   return j({ok:true,results:searchEcuPinouts(query)})}
+
+ // Get full ECU pinout by ID
+ if(p.startsWith('/api/ecu/wiring/pinout/')&&m==='GET'){
+   const ecuId=p.split('/api/ecu/wiring/pinout/')[1];
+   const pinout=getEcuPinout(ecuId);
+   if(!pinout)return j({error:'ECU_NOT_FOUND',available:listEcuPinouts().map(f=>f.id)},404);
+   return j({ok:true,pinout})}
+
+ // Get pins by type for an ECU
+ if(p.startsWith('/api/ecu/wiring/pins-by-type/')&&m==='GET'){
+   const parts=p.split('/api/ecu/wiring/pins-by-type/')[1].split('/');
+   const ecuId=parts[0],pinType=parts[1];
+   if(!pinType)return j({error:'Usage: /api/ecu/wiring/pins-by-type/{ecuId}/{pinType}'},400);
+   const pins=getPinsByType(ecuId,pinType);
+   return j({ok:true,ecuId,pinType,pins})}
+
+ // Get all pin types for an ECU
+ if(p.startsWith('/api/ecu/wiring/pin-types/')&&m==='GET'){
+   const ecuId=p.split('/api/ecu/wiring/pin-types/')[1];
+   const types=getEcuPinTypes(ecuId);
+   if(!types.length)return j({error:'ECU_NOT_FOUND'},404);
+   return j({ok:true,ecuId,pinTypes:types})}
+
+ // Get flash interface info
+ if(p.startsWith('/api/ecu/wiring/flash-pins/')&&m==='GET'){
+   const ecuId=p.split('/api/ecu/wiring/flash-pins/')[1];
+   const info=getFlashPins(ecuId);
+   if(!info)return j({error:'ECU_NOT_FOUND'},404);
+   return j({ok:true,...info})}
+
+ // Verify wiring connections
+ if(p==='/api/ecu/wiring/verify'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.ecuId||!d.connections)return j({error:'ecuId and connections[] required'},400);
+   const result=verifyWiring(d.ecuId,d.connections);
+   if(result.error)return j({error:result.error},404);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // OBD-II connector reference
+ if(p==='/api/ecu/wiring/obd2'&&m==='GET'){
+   return j({ok:true,connector:OBD2_CONNECTOR})}
+
+ // OBD-II single pin
+ if(p.startsWith('/api/ecu/wiring/obd2/pin/')&&m==='GET'){
+   const num=parseInt(p.split('/api/ecu/wiring/obd2/pin/')[1]);
+   const pin=getOBD2Pin(num);
+   if(!pin)return j({error:'PIN_NOT_FOUND',validPins:'1-16'},404);
+   return j({ok:true,pin:num,...pin})}
+
+ // OBD-II protocol pinout
+ if(p.startsWith('/api/ecu/wiring/obd2/protocol/')&&m==='GET'){
+   const proto=p.split('/api/ecu/wiring/obd2/protocol/')[1];
+   const info=getOBD2Protocol(proto);
+   if(!info)return j({error:'PROTOCOL_NOT_FOUND',available:Object.keys(OBD2_CONNECTOR.protocols)},404);
+   return j({ok:true,protocol:proto,...info})}
+
+ // Pin type color/icon reference
+ if(p==='/api/ecu/wiring/pin-colors'&&m==='GET'){
+   return j({ok:true,pinTypeColors:PIN_TYPE_COLORS})}
+
+ // === TUNING FILE FORMAT CONVERTER — Intel HEX ↔ S-Record ↔ BIN ===
+
+ // List supported formats
+ if(p==='/api/ecu/converter/formats'&&m==='GET'){
+   return j({ok:true,formats:listFormats()})}
+
+ // Detect file format
+ if(p==='/api/ecu/converter/detect'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.content)return j({error:'content (string or base64) required'},400);
+   let input=d.content;
+   if(d.encoding==='base64'){
+     const bin=Uint8Array.from(atob(d.content),c=>c.charCodeAt(0));
+     input=bin;
+   }
+   const result=detectFormat(input);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Validate hex/srec file
+ if(p==='/api/ecu/converter/validate'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.content)return j({error:'content (hex file text) required'},400);
+   const result=validateHexFile(d.content);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Convert file format
+ if(p==='/api/ecu/converter/convert'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.from||!d.to)return j({error:'from and to format required (ihex/srec/bin)'},400);
+   if(!d.content)return j({error:'content required'},400);
+   let input=d.content;
+   if(d.encoding==='base64'){
+     input=Uint8Array.from(atob(d.content),c=>c.charCodeAt(0));
+   }
+   const opts={startAddress:d.startAddress||0,bytesPerLine:d.bytesPerLine||16,header:d.header||'ECU_DATA'};
+   const result=convertFile(input,d.from,d.to,opts);
+   if(result.output instanceof Uint8Array){
+     result.output=btoa(String.fromCharCode(...result.output));
+     result.outputEncoding='base64';
+   }
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Parse Intel HEX file
+ if(p==='/api/ecu/converter/parse-ihex'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.content)return j({error:'content (Intel HEX text) required'},400);
+   const parsed=parseIntelHex(d.content);
+   const resp={ok:true,startAddress:'0x'+parsed.startAddress.toString(16).toUpperCase(),endAddress:'0x'+parsed.endAddress.toString(16).toUpperCase(),dataSize:parsed.data.length,records:parsed.records,entryPoint:parsed.entryPoint,errors:parsed.errors};
+   if(d.includeData){resp.data=btoa(String.fromCharCode(...parsed.data));resp.dataEncoding='base64'}
+   return j(resp);
+ }catch(e){return j({error:e.message},500)}}
+
+ // Parse S-Record file
+ if(p==='/api/ecu/converter/parse-srec'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.content)return j({error:'content (S-Record text) required'},400);
+   const parsed=parseSRecord(d.content);
+   const resp={ok:true,startAddress:'0x'+parsed.startAddress.toString(16).toUpperCase(),endAddress:'0x'+parsed.endAddress.toString(16).toUpperCase(),dataSize:parsed.data.length,records:parsed.records,entryPoint:parsed.entryPoint,header:parsed.header,errors:parsed.errors};
+   if(d.includeData){resp.data=btoa(String.fromCharCode(...parsed.data));resp.dataEncoding='base64'}
+   return j(resp);
+ }catch(e){return j({error:e.message},500)}}
+
+ // Generate Intel HEX from binary
+ if(p==='/api/ecu/converter/generate-ihex'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data)return j({error:'data (base64 binary) required'},400);
+   const bin=Uint8Array.from(atob(d.data),c=>c.charCodeAt(0));
+   const hex=generateIntelHex(bin,d.startAddress||0,d.bytesPerLine||16);
+   return j({ok:true,output:hex,records:hex.split('\n').filter(l=>l.startsWith(':')).length,size:hex.length});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Generate S-Record from binary
+ if(p==='/api/ecu/converter/generate-srec'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data)return j({error:'data (base64 binary) required'},400);
+   const bin=Uint8Array.from(atob(d.data),c=>c.charCodeAt(0));
+   const srec=generateSRecord(bin,d.startAddress||0,d.bytesPerLine||16,d.header||'ECU_DATA');
+   return j({ok:true,output:srec,records:srec.split('\n').filter(l=>/^S[123]/i.test(l)).length,size:srec.length});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Compare two files
+ if(p==='/api/ecu/converter/compare'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.file1||!d.file2)return j({error:'file1 and file2 required with {content, format, encoding?}'},400);
+   let input1=d.file1.content,input2=d.file2.content;
+   if(d.file1.encoding==='base64') input1=Uint8Array.from(atob(d.file1.content),c=>c.charCodeAt(0));
+   if(d.file2.encoding==='base64') input2=Uint8Array.from(atob(d.file2.content),c=>c.charCodeAt(0));
+   const result=compareFiles(input1,d.file1.format||'bin',input2,d.file2.format||'bin');
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Convert uploaded ECU file (from ecu_uploads)
+ if(p==='/api/ecu/converter/convert-upload'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.uploadId||!d.toFormat)return j({error:'uploadId and toFormat required'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',[d.uploadId]);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const fileObj=await fileGet(env,upload.binary_data);
+   if(!fileObj)return j({error:'FILE_DATA_NOT_FOUND'},404);
+   const ab=await fileObj.arrayBuffer();
+   const bin=new Uint8Array(ab);
+   const detected=detectFormat(bin);
+   const fromFmt=d.fromFormat||detected.format||'bin';
+   const opts={startAddress:d.startAddress||0,bytesPerLine:d.bytesPerLine||16,header:d.header||upload.filename||'ECU_DATA'};
+   const result=convertFile(bin,fromFmt,d.toFormat,opts);
+   if(result.output instanceof Uint8Array){
+     result.output=btoa(String.fromCharCode(...result.output));
+     result.outputEncoding='base64';
+   }
+   return j({ok:true,uploadId:d.uploadId,filename:upload.filename,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ECU PROTOCOL ANALYZER — CAN / UDS / KWP2000 / ISO-TP ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Parse a single CAN frame
+ if(p==='/api/ecu/protocol/can-frame'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.frame)return j({error:'frame hex string required (e.g. "7E8 06 41 0C 1A F8 00 00")'},400);
+   const result=parseCANFrame(d.frame);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Parse CAN bus log (multiple frames)
+ if(p==='/api/ecu/protocol/can-log'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.log)return j({error:'log (CAN log text) required'},400);
+   const opts={};
+   if(d.filterArbitrationId)opts.filterArbitrationId=parseInt(d.filterArbitrationId,16);
+   if(d.filterOBD)opts.filterOBD=true;
+   const result=parseCANLog(d.log,opts);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Decode UDS message
+ if(p==='/api/ecu/protocol/uds-decode'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data)return j({error:'data (byte array or hex string) required'},400);
+   let bytes=d.data;
+   if(typeof bytes==='string')bytes=bytes.trim().split(/\s+/).map(b=>parseInt(b,16));
+   const result=decodeUDS(bytes);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Decode KWP2000 message
+ if(p==='/api/ecu/protocol/kwp2000-decode'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data)return j({error:'data (byte array or hex string) required'},400);
+   let bytes=d.data;
+   if(typeof bytes==='string')bytes=bytes.trim().split(/\s+/).map(b=>parseInt(b,16));
+   const result=decodeKWP2000(bytes);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Parse ISO-TP frame
+ if(p==='/api/ecu/protocol/isotp-frame'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.data)return j({error:'data (byte array or hex string) required'},400);
+   let bytes=d.data;
+   if(typeof bytes==='string')bytes=bytes.trim().split(/\s+/).map(b=>parseInt(b,16));
+   const result=parseISOTP(bytes);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Reassemble ISO-TP multi-frame message
+ if(p==='/api/ecu/protocol/isotp-reassemble'&&m==='POST'){try{
+   const d=await body(req);
+   if(!d.frames||!Array.isArray(d.frames))return j({error:'frames (array of byte arrays or hex strings) required'},400);
+   const parsed=d.frames.map(f=>{
+     if(typeof f==='string')return f.trim().split(/\s+/).map(b=>parseInt(b,16));
+     return f;
+   });
+   const result=reassembleISOTP(parsed);
+   if(result.complete&&result.data.length>0){
+     result.udsDecoded=decodeUDS(result.data);
+   }
+   return j({ok:true,...result,dataHex:result.data.map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ')});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List all UDS services
+ if(p==='/api/ecu/protocol/uds-services'&&m==='GET'){
+   return j({ok:true,services:listUDSServices()})}
+
+ // Get specific UDS service info
+ if(p.startsWith('/api/ecu/protocol/uds-services/')&&m==='GET'){
+   const sid=p.split('/').pop();
+   const svc=getUDSService(sid);
+   if(!svc)return j({error:'SERVICE_NOT_FOUND'},404);
+   return j({ok:true,sid,service:svc})}
+
+ // List UDS NRC (Negative Response Codes)
+ if(p==='/api/ecu/protocol/uds-nrc'&&m==='GET'){
+   const nrcs=Object.entries(UDS_NRC).map(([code,name])=>({code:'0x'+parseInt(code).toString(16).toUpperCase(),name}));
+   return j({ok:true,nrcs})}
+
+ // List common DIDs
+ if(p==='/api/ecu/protocol/dids'&&m==='GET'){
+   return j({ok:true,dids:listDIDs()})}
+
+ // Get specific DID info
+ if(p.startsWith('/api/ecu/protocol/dids/')&&m==='GET'){
+   const didVal=p.split('/').pop();
+   const name=getDID(didVal);
+   if(!name)return j({error:'DID_NOT_FOUND'},404);
+   return j({ok:true,did:didVal,name})}
+
+ // List KWP2000 services
+ if(p==='/api/ecu/protocol/kwp2000-services'&&m==='GET'){
+   return j({ok:true,services:listKWP2000Services()})}
+
+ // List flash sequences (UDS/KWP2000 programming procedures)
+ if(p==='/api/ecu/protocol/flash-sequences'&&m==='GET'){
+   return j({ok:true,sequences:listUDSFlashSequences()})}
+
+ // Get specific flash sequence
+ if(p.startsWith('/api/ecu/protocol/flash-sequences/')&&m==='GET'){
+   const seqName=p.split('/').pop();
+   const seq=getUDSFlashSequence(seqName);
+   if(!seq)return j({error:'SEQUENCE_NOT_FOUND'},404);
+   return j({ok:true,id:seqName,...seq})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === VIN DECODER — ISO 3779/3780 VIN çözücü ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Decode a VIN
+ if(p==='/api/ecu/vin/decode'&&m==='POST'){try{
+   const b=await body(req);
+   const vin=String(b.vin||'').trim().toUpperCase();
+   if(!vin)return j({error:'EMPTY_VIN'},400);
+   const result=decodeVIN(vin);
+   if(result.error)return j(result,400);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Decode VIN via GET
+ if(p.startsWith('/api/ecu/vin/decode/')&&m==='GET'){try{
+   const vin=p.split('/').pop().toUpperCase();
+   const result=decodeVIN(vin);
+   if(result.error)return j(result,400);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Validate VIN check digit
+ if(p==='/api/ecu/vin/validate'&&m==='POST'){try{
+   const b=await body(req);
+   const vin=String(b.vin||'').trim().toUpperCase();
+   if(!vin)return j({error:'EMPTY_VIN'},400);
+   return j({ok:true,...validateCheckDigit(vin)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Search manufacturers by name
+ if(p==='/api/ecu/vin/manufacturers/search'&&m==='GET'){try{
+   const query=new URL(req.url).searchParams.get('q')||'';
+   if(!query)return j({error:'EMPTY_QUERY'},400);
+   return j({ok:true,results:searchManufacturer(query)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Get manufacturers by country
+ if(p==='/api/ecu/vin/manufacturers/country'&&m==='GET'){try{
+   const country=new URL(req.url).searchParams.get('country')||'';
+   if(!country)return j({error:'EMPTY_COUNTRY'},400);
+   return j({ok:true,results:getManufacturersByCountry(country)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Batch decode VINs
+ if(p==='/api/ecu/vin/batch'&&m==='POST'){try{
+   const b=await body(req);
+   const vins=b.vins;
+   if(!Array.isArray(vins)||!vins.length)return j({error:'EMPTY_VINS_ARRAY'},400);
+   return j({ok:true,...batchDecodeVIN(vins)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // VIN decoder stats
+ if(p==='/api/ecu/vin/stats'&&m==='GET'){
+   return j({ok:true,...vinDecoderStats()})}
+
+ // List all WMI codes
+ if(p==='/api/ecu/vin/wmi'&&m==='GET'){
+   const entries=Object.entries(WMI_DATABASE).map(([code,mfr])=>({wmi:code,manufacturer:mfr}));
+   return j({ok:true,count:entries.length,wmiCodes:entries})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === FUEL INJECTION & BOOST CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Calculate injector duty cycle
+ if(p==='/api/ecu/fuel/duty-cycle'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.flowCc||!b.numInjectors||!b.targetHp)return j({error:'MISSING_PARAMS: flowCc, numInjectors, targetHp required'},400);
+   return j({ok:true,...calcDutyCycle(b.flowCc,b.numInjectors,b.targetHp,b.bsfc||0.50,b.rpm||6500,b.fuelType||'gasoline')});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Size injectors for target power
+ if(p==='/api/ecu/fuel/size-injectors'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.targetHp||!b.numInjectors)return j({error:'MISSING_PARAMS: targetHp, numInjectors required'},400);
+   return j({ok:true,...sizeInjectors(b.targetHp,b.numInjectors,b.fuelType||'gasoline',b.bsfc||0.50,b.maxDuty||80,b.fuelPressureBar||3)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Correct injector flow for pressure
+ if(p==='/api/ecu/fuel/flow-correction'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.baseCc||!b.basePressureBar||!b.newPressureBar)return j({error:'MISSING_PARAMS: baseCc, basePressureBar, newPressureBar required'},400);
+   return j({ok:true,...correctFlowForPressure(b.baseCc,b.basePressureBar,b.newPressureBar)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Calculate AFR targets
+ if(p==='/api/ecu/fuel/afr'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const fuelType=u.searchParams.get('fuel')||'gasoline';
+   const mode=u.searchParams.get('mode')||'all';
+   return j({ok:true,...calcAFR(fuelType,mode)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Lambda ↔ AFR conversion
+ if(p==='/api/ecu/fuel/lambda-to-afr'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const lambda=parseFloat(u.searchParams.get('lambda'));
+   const fuelType=u.searchParams.get('fuel')||'gasoline';
+   if(isNaN(lambda))return j({error:'MISSING_LAMBDA'},400);
+   return j({ok:true,...lambdaToAFR(lambda,fuelType)});
+ }catch(e){return j({error:e.message},500)}}
+
+ if(p==='/api/ecu/fuel/afr-to-lambda'&&m==='GET'){try{
+   const u=new URL(req.url);
+   const afr=parseFloat(u.searchParams.get('afr'));
+   const fuelType=u.searchParams.get('fuel')||'gasoline';
+   if(isNaN(afr))return j({error:'MISSING_AFR'},400);
+   return j({ok:true,...afrToLambda(afr,fuelType)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Boost power calculator
+ if(p==='/api/ecu/fuel/boost'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.naHp||!b.boostPsi)return j({error:'MISSING_PARAMS: naHp, boostPsi required'},400);
+   return j({ok:true,...calcBoost(b.naHp,b.boostPsi,b.intercoolerEfficiency||0.70,b.altitudeFt||0)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Wastegate duty cycle
+ if(p==='/api/ecu/fuel/wastegate'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.targetBoostPsi)return j({error:'MISSING_PARAMS: targetBoostPsi required'},400);
+   return j({ok:true,...calcWastegateDuty(b.targetBoostPsi,b.springPressurePsi||7,b.maxDuty||95)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // MAF scaling calculator
+ if(p==='/api/ecu/fuel/maf-scale'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.stockFlowCc||!b.newFlowCc)return j({error:'MISSING_PARAMS: stockFlowCc, newFlowCc required'},400);
+   return j({ok:true,...calcMAFScale(b.stockFlowCc,b.newFlowCc,b.stockPressureBar||3,b.newPressureBar||3)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Fuel pump sizing
+ if(p==='/api/ecu/fuel/size-pump'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.targetHp)return j({error:'MISSING_PARAMS: targetHp required'},400);
+   return j({ok:true,...sizeFuelPump(b.targetHp,b.fuelType||'gasoline',b.bsfc||0.50,b.fuelPressureBar||3,b.safetyMargin||1.2)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Volumetric efficiency estimator
+ if(p==='/api/ecu/fuel/ve'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.measuredAFR||!b.injectorFlowCc||!b.pulseWidthMs||!b.rpm||!b.displacement_cc||!b.numCylinders)
+     return j({error:'MISSING_PARAMS: measuredAFR, injectorFlowCc, pulseWidthMs, rpm, displacement_cc, numCylinders required'},400);
+   return j({ok:true,...estimateVE(b.measuredAFR,b.injectorFlowCc,b.pulseWidthMs,b.rpm,b.displacement_cc,b.numCylinders,b.fuelType||'gasoline')});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List injectors database
+ if(p==='/api/ecu/fuel/injectors'&&m==='GET'){
+   return j({ok:true,injectors:listInjectors()})}
+
+ // Get specific injector
+ if(p.startsWith('/api/ecu/fuel/injectors/')&&m==='GET'){
+   const name=p.split('/').pop();
+   const inj=getInjector(name);
+   if(!inj)return j({error:'INJECTOR_NOT_FOUND'},404);
+   return j({ok:true,name,...inj})}
+
+ // List fuel types
+ if(p==='/api/ecu/fuel/types'&&m==='GET'){
+   return j({ok:true,fuelTypes:listFuelTypes()})}
+
+ // Get specific fuel type
+ if(p.startsWith('/api/ecu/fuel/types/')&&m==='GET'){
+   const name=p.split('/').pop();
+   const ft=getFuelType(name);
+   if(!ft)return j({error:'FUEL_TYPE_NOT_FOUND'},404);
+   return j({ok:true,name,...ft})}
+
+ // Fuel calculator stats
+ if(p==='/api/ecu/fuel/stats'&&m==='GET'){
+   return j({ok:true,...fuelCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === TURBO & COMPRESSOR CALCULATOR — Turbo boyutlandırma, kompresör haritası ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Calculate required airflow for target HP
+ if(p==='/api/ecu/turbo/airflow'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcAirflow(b.targetHp,b.bsfc,b.afr)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Calculate compressor pressure ratio
+ if(p==='/api/ecu/turbo/pressure-ratio'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcPressureRatio(b.boostPsi,b.intakeLoss_psi,b.altitudeFt)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Calculate compressor outlet temperature
+ if(p==='/api/ecu/turbo/compressor-temp'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcCompressorTemp(b.pressureRatio,b.inletTempC,b.compressorEfficiency)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Calculate intercooler sizing
+ if(p==='/api/ecu/turbo/intercooler'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcIntercooler(b.airflowLbMin,b.compOutletTempC,b.ambientTempC,b.targetEfficiency)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Select turbine A/R ratio
+ if(p==='/api/ecu/turbo/ar-select'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...selectAR(b.displacement_cc,b.targetBoostPsi,b.numCylinders,b.maxRPM)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Size turbo for target power
+ if(p==='/api/ecu/turbo/size'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...sizeTurbo(b.targetHp,b.displacement_cc,b.fuelType,b.bsfc)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Check surge/choke for operating point
+ if(p==='/api/ecu/turbo/surge-choke'&&m==='POST'){try{
+   const b=await body(req);
+   const result=checkSurgeChoke(b.turboName,b.operatingFlow_lb_min,b.pressureRatio);
+   if(result.error)return j(result,404);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Twin turbo configuration
+ if(p==='/api/ecu/turbo/twin'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcTwinTurbo(b.targetHp,b.displacement_cc,b.config)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List all turbos in database
+ if(p==='/api/ecu/turbo/list'&&m==='GET'){
+   return j({ok:true,turbos:listTurbos()})}
+
+ // Search turbos
+ if(p==='/api/ecu/turbo/search'&&m==='GET'){
+   const q=new URL(req.url).searchParams.get('q')||'';
+   return j({ok:true,results:searchTurbos(q)})}
+
+ // Get specific turbo
+ if(p.startsWith('/api/ecu/turbo/db/')&&m==='GET'){
+   const name=p.replace('/api/ecu/turbo/db/','');
+   const t=getTurbo(name);
+   if(!t)return j({error:'TURBO_NOT_FOUND'},404);
+   return j({ok:true,name,...t})}
+
+ // Turbo calculator stats
+ if(p==='/api/ecu/turbo/stats'&&m==='GET'){
+   return j({ok:true,...turboCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === EXHAUST FLOW & DOWNPIPE CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Exhaust gas flow calculation
+ if(p==='/api/ecu/exhaust/flow'&&m==='POST'){
+   const b=await body(req);
+   if(!b.hp)return j({error:'hp required'},400);
+   return j({ok:true,...calcExhaustFlow(b.hp, b.afr, b.bsfc, b.exhaustTemp_C)})}
+
+ // Exhaust pipe sizing
+ if(p==='/api/ecu/exhaust/pipe-size'&&m==='POST'){
+   const b=await body(req);
+   if(!b.hp)return j({error:'hp required'},400);
+   return j({ok:true,...sizeExhaustPipe(b.hp, b.numPipes, b.exhaustTemp_C, b.maxVelocity_m_s)})}
+
+ // Backpressure estimation
+ if(p==='/api/ecu/exhaust/backpressure'&&m==='POST'){
+   const b=await body(req);
+   if(!b.hp||!b.pipeDiameter_in)return j({error:'hp and pipeDiameter_in required'},400);
+   const r=calcBackpressure(b.hp, b.pipeDiameter_in, b.pipeLength_ft, b.numBends, b.hasCat, b.catType, b.hasMuffler);
+   if(r.error)return j(r,400);
+   return j({ok:true,...r})}
+
+ // Header design calculator
+ if(p==='/api/ecu/exhaust/header-size'&&m==='POST'){
+   const b=await body(req);
+   if(!b.displacement_cc||!b.numCylinders)return j({error:'displacement_cc and numCylinders required'},400);
+   return j({ok:true,...calcHeaderSize(b.displacement_cc, b.numCylinders, b.peakPowerRPM, b.headerType)})}
+
+ // Catalytic converter sizing
+ if(p==='/api/ecu/exhaust/cat-size'&&m==='POST'){
+   const b=await body(req);
+   if(!b.targetHp)return j({error:'targetHp required'},400);
+   return j({ok:true,...sizeCat(b.targetHp, b.requirements)})}
+
+ // EGT safety check
+ if(p==='/api/ecu/exhaust/egt-check'&&m==='POST'){
+   const b=await body(req);
+   if(!b.egt_C&&b.egt_C!==0)return j({error:'egt_C required'},400);
+   return j({ok:true,...checkEGT(b.egt_C, b.fuelType)})}
+
+ // List available pipe sizes
+ if(p==='/api/ecu/exhaust/pipes'&&m==='GET'){
+   return j({ok:true,pipes:listPipeSizes()})}
+
+ // List catalytic converters
+ if(p==='/api/ecu/exhaust/cats'&&m==='GET'){
+   return j({ok:true,catalyticConverters:listCats()})}
+
+ // Get specific catalytic converter
+ if(p.startsWith('/api/ecu/exhaust/cat/')&&m==='GET'){
+   const name=p.split('/api/ecu/exhaust/cat/')[1];
+   const c=getCat(decodeURIComponent(name));
+   if(!c)return j({error:'CAT_NOT_FOUND'},404);
+   return j({ok:true,name:decodeURIComponent(name),...c})}
+
+ // Exhaust calculator stats
+ if(p==='/api/ecu/exhaust/stats'&&m==='GET'){
+   return j({ok:true,...exhaustCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ENGINE MATH & COMPRESSION RATIO CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Engine displacement calculator
+ if(p==='/api/ecu/engine/displacement'&&m==='POST'){
+   const b=await body(req);
+   if(!b.bore_mm||!b.stroke_mm||!b.cylinders)return j({error:'bore_mm, stroke_mm, cylinders required'},400);
+   return j({ok:true,...calcDisplacement(b.bore_mm, b.stroke_mm, b.cylinders)})}
+
+ // Compression ratio calculator
+ if(p==='/api/ecu/engine/compression-ratio'&&m==='POST'){
+   const b=await body(req);
+   if(!b.bore_mm||!b.stroke_mm||!b.chamberVolume_cc||!b.gasketThickness_mm)return j({error:'bore_mm, stroke_mm, chamberVolume_cc, gasketThickness_mm required'},400);
+   return j({ok:true,...calcCompressionRatio(b.bore_mm, b.stroke_mm, b.chamberVolume_cc, b.gasketThickness_mm, b.gasketBore_mm, b.pistonDomeVolume_cc, b.deckClearance_mm)})}
+
+ // Dynamic compression ratio
+ if(p==='/api/ecu/engine/dynamic-cr'&&m==='POST'){
+   const b=await body(req);
+   if(!b.staticCR||!b.stroke_mm||!b.rodLength_mm||!b.intakeValveClose_ABDC)return j({error:'staticCR, stroke_mm, rodLength_mm, intakeValveClose_ABDC required'},400);
+   return j({ok:true,...calcDynamicCR(b.staticCR, b.stroke_mm, b.rodLength_mm, b.intakeValveClose_ABDC)})}
+
+ // Mean piston speed
+ if(p==='/api/ecu/engine/piston-speed'&&m==='POST'){
+   const b=await body(req);
+   if(!b.stroke_mm||!b.rpm)return j({error:'stroke_mm and rpm required'},400);
+   return j({ok:true,...calcMeanPistonSpeed(b.stroke_mm, b.rpm)})}
+
+ // Torque / HP conversion
+ if(p==='/api/ecu/engine/torque-hp'&&m==='POST'){
+   const b=await body(req);
+   if(!b.value||!b.from||!b.rpm)return j({error:'value, from (hp/nm/ftlb/kw/ps), rpm required'},400);
+   const r=convertTorqueHP(b.value, b.from, b.rpm);
+   if(r.error)return j(r,400);
+   return j({ok:true,...r})}
+
+ // BMEP calculator
+ if(p==='/api/ecu/engine/bmep'&&m==='POST'){
+   const b=await body(req);
+   if(!b.torque_nm||!b.displacement_cc)return j({error:'torque_nm and displacement_cc required'},400);
+   return j({ok:true,...calcBMEP(b.torque_nm, b.displacement_cc, b.strokes)})}
+
+ // Engine efficiency
+ if(p==='/api/ecu/engine/efficiency'&&m==='POST'){
+   const b=await body(req);
+   if(!b.hp||!b.fuelFlow_kg_hr)return j({error:'hp and fuelFlow_kg_hr required'},400);
+   return j({ok:true,...calcEfficiency(b.hp, b.fuelFlow_kg_hr, b.fuelType, b.displacement_cc, b.rpm, b.actualAirflow_kg_hr)})}
+
+ // Rod ratio analysis
+ if(p==='/api/ecu/engine/rod-ratio'&&m==='POST'){
+   const b=await body(req);
+   if(!b.rodLength_mm||!b.stroke_mm)return j({error:'rodLength_mm and stroke_mm required'},400);
+   return j({ok:true,...calcRodRatio(b.rodLength_mm, b.stroke_mm)})}
+
+ // Cylinder pressure estimation
+ if(p==='/api/ecu/engine/cylinder-pressure'&&m==='POST'){
+   const b=await body(req);
+   if(!b.compressionRatio)return j({error:'compressionRatio required'},400);
+   return j({ok:true,...estimateCylinderPressure(b.compressionRatio, b.boostPressure_bar, b.fuelType)})}
+
+ // List engine configs
+ if(p==='/api/ecu/engine/configs'&&m==='GET'){
+   return j({ok:true,configs:listEngineConfigs()})}
+
+ // Search engine configs
+ if(p==='/api/ecu/engine/configs/search'&&m==='GET'){
+   const u=new URL(req.url);const q=u.searchParams.get('q')||'';
+   return j({ok:true,results:searchEngineConfigs(q)})}
+
+ // Get specific engine config
+ if(p.startsWith('/api/ecu/engine/config/')&&m==='GET'){
+   const name=decodeURIComponent(p.split('/api/ecu/engine/config/')[1]);
+   const cfg=getEngineConfig(name);
+   if(!cfg)return j({error:'ENGINE_NOT_FOUND'},404);
+   return j({ok:true,name,...cfg})}
+
+ // Engine math stats
+ if(p==='/api/ecu/engine/stats'&&m==='GET'){
+   return j({ok:true,...engineMathStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === CAMSHAFT PROFILE ANALYZER ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Cam timing events
+ if(p==='/api/ecu/cam/timing'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.intake_duration||!b.intake_centerline||!b.exhaust_duration||!b.exhaust_centerline)return j({error:'MISSING_PARAMS',required:['intake_duration','intake_centerline','exhaust_duration','exhaust_centerline']},400);
+   return j({ok:true,...calcTimingEvents(b.intake_duration,b.intake_centerline,b.exhaust_duration,b.exhaust_centerline)})}catch(e){return j({error:e.message},500)}}
+
+ // Valve float RPM estimate
+ if(p==='/api/ecu/cam/valve-float'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.lift_mm||!b.springRate_N_mm||!b.installedPreload_N||!b.valveMass_g||!b.retainerMass_g||!b.springMass_g)return j({error:'MISSING_PARAMS',required:['lift_mm','springRate_N_mm','installedPreload_N','valveMass_g','retainerMass_g','springMass_g']},400);
+   return j({ok:true,...calcValveFloat(b.lift_mm,b.springRate_N_mm,b.installedPreload_N,b.valveMass_g,b.retainerMass_g,b.springMass_g,b.followerType||'roller')})}catch(e){return j({error:e.message},500)}}
+
+ // Compare two cam profiles
+ if(p==='/api/ecu/cam/compare'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.cam1||!b.cam2)return j({error:'MISSING_PARAMS',required:['cam1','cam2']},400);
+   const result=compareCams(b.cam1,b.cam2);
+   if(result.error)return j(result,404);
+   return j({ok:true,...result})}catch(e){return j({error:e.message},500)}}
+
+ // Recommend cam for application
+ if(p==='/api/ecu/cam/recommend'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...recommendCam(b.application||'street',b.forced_induction||false,b.targetRPM||6500)})}catch(e){return j({error:e.message},500)}}
+
+ // List all cam profiles
+ if(p==='/api/ecu/cam/profiles'&&m==='GET'){
+   return j({ok:true,profiles:listCams()})}
+
+ // Search cam profiles
+ if(p==='/api/ecu/cam/profiles/search'&&m==='GET'){
+   const u=new URL(req.url);const q=u.searchParams.get('q')||'';
+   return j({ok:true,results:searchCams(q)})}
+
+ // Get specific cam profile
+ if(p.startsWith('/api/ecu/cam/profile/')&&m==='GET'){
+   const name=decodeURIComponent(p.split('/api/ecu/cam/profile/')[1]);
+   const cam=getCam(name);
+   if(!cam)return j({error:'CAM_NOT_FOUND'},404);
+   return j({ok:true,name,...cam})}
+
+ // Cam stats
+ if(p==='/api/ecu/cam/stats'&&m==='GET'){
+   return j({ok:true,...camCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === DRIVETRAIN LOSS & GEAR RATIO CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Speed at RPM
+ if(p==='/api/ecu/drivetrain/speed-at-rpm'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.gears||!b.finalDrive||!b.rpm)return j({error:'MISSING_PARAMS',required:['gears','finalDrive','tireWidth','tireAspect','tireRim','rpm']},400);
+   return j({ok:true,...calcSpeedAtRPM(b.gears,b.finalDrive,b.tireWidth||225,b.tireAspect||45,b.tireRim||17,b.rpm)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // RPM at speed
+ if(p==='/api/ecu/drivetrain/rpm-at-speed'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.gears||!b.finalDrive||!b.speed_kmh)return j({error:'MISSING_PARAMS',required:['gears','finalDrive','speed_kmh']},400);
+   return j({ok:true,...calcRPMAtSpeed(b.gears,b.finalDrive,b.tireWidth||225,b.tireAspect||45,b.tireRim||17,b.speed_kmh)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Wheel HP from crank HP
+ if(p==='/api/ecu/drivetrain/wheel-hp'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.crankHP)return j({error:'MISSING_PARAMS',required:['crankHP']},400);
+   return j({ok:true,...calcWheelHP(b.crankHP,b.drivetrainType||'rwd-manual',b.customLoss_pct||null)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Estimate crank HP from dyno wheel HP
+ if(p==='/api/ecu/drivetrain/crank-hp'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.wheelHP)return j({error:'MISSING_PARAMS',required:['wheelHP']},400);
+   return j({ok:true,...estimateCrankHP(b.wheelHP,b.drivetrainType||'rwd-manual',b.customLoss_pct||null)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Gear ratio analysis
+ if(p==='/api/ecu/drivetrain/gear-analysis'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.gears||!b.finalDrive)return j({error:'MISSING_PARAMS',required:['gears','finalDrive']},400);
+   return j({ok:true,...analyzeGearRatios(b.gears,b.finalDrive)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // 0-100 km/h estimate
+ if(p==='/api/ecu/drivetrain/zero-to-100'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.crankHP||!b.weight_kg)return j({error:'MISSING_PARAMS',required:['crankHP','weight_kg']},400);
+   return j({ok:true,...estimate0to100(b.crankHP,b.weight_kg,b.drivetrainType||'rwd-manual',b.tireType||'summer')});
+ }catch(e){return j({error:e.message},500)}}
+
+ // Max speeds per gear
+ if(p==='/api/ecu/drivetrain/max-speeds'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.gears||!b.finalDrive||!b.redlineRPM||!b.crankHP)return j({error:'MISSING_PARAMS',required:['gears','finalDrive','redlineRPM','crankHP']},400);
+   return j({ok:true,...calcMaxSpeeds(b.gears,b.finalDrive,b.tireWidth||225,b.tireAspect||45,b.tireRim||17,b.redlineRPM,b.crankHP,b.dragCoeff||0.32,b.frontalArea_m2||2.2,b.weight_kg||1500)});
+ }catch(e){return j({error:e.message},500)}}
+
+ // List transmission database
+ if(p==='/api/ecu/drivetrain/transmissions'&&m==='GET'){
+   return j({ok:true,transmissions:listTransmissions()})}
+
+ // Search transmissions
+ if(p==='/api/ecu/drivetrain/transmissions/search'&&m==='GET'){
+   const u=new URL(req.url);const q=u.searchParams.get('q')||'';
+   return j({ok:true,results:searchTransmissions(q)})}
+
+ // Get specific transmission
+ if(p.startsWith('/api/ecu/drivetrain/transmission/')&&m==='GET'){
+   const name=p.split('/api/ecu/drivetrain/transmission/')[1];
+   const tx=getTransmission(decodeURIComponent(name));
+   if(!tx)return j({error:'NOT_FOUND'},404);
+   return j({ok:true,name,...tx})}
+
+ // List tire sizes
+ if(p==='/api/ecu/drivetrain/tires'&&m==='GET'){
+   return j({ok:true,tires:listTireSizes()})}
+
+ // List drivetrain types with loss percentages
+ if(p==='/api/ecu/drivetrain/types'&&m==='GET'){
+   return j({ok:true,types:listDrivetrainTypes()})}
+
+ // Drivetrain stats
+ if(p==='/api/ecu/drivetrain/stats'&&m==='GET'){
+   return j({ok:true,...drivetrainCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === COOLING SYSTEM CALCULATOR — Radyatör, soğutma, fan, termostat ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Heat rejection requirement from engine HP
+ if(p==='/api/ecu/cooling/heat-rejection'&&m==='POST'){const b=await body(req);
+   if(!b.crankHP)return j({error:'crankHP required'},400);
+   return j({ok:true,...calcHeatRejection(b.crankHP,b.efficiency_pct||30)})}
+
+ // Coolant flow requirement
+ if(p==='/api/ecu/cooling/coolant-flow'&&m==='POST'){const b=await body(req);
+   if(!b.heatRejection_kW)return j({error:'heatRejection_kW required'},400);
+   return j({ok:true,...calcCoolantFlow(b.heatRejection_kW,b.deltaT_C||10,b.coolantType||'water-glycol-50')})}
+
+ // Radiator sizing
+ if(p==='/api/ecu/cooling/radiator-size'&&m==='POST'){const b=await body(req);
+   if(!b.crankHP)return j({error:'crankHP required'},400);
+   return j({ok:true,...sizeRadiator(b.crankHP,b.ambientTemp_C||35,b.targetCoolantTemp_C||90,b.airSpeed_kmh||30)})}
+
+ // Boiling point under pressure
+ if(p==='/api/ecu/cooling/boiling-point'&&m==='POST'){const b=await body(req);
+   return j({ok:true,...calcBoilingPoint(b.pressureCap_psi||15,b.coolantType||'water-glycol-50')})}
+
+ // Fan sizing
+ if(p==='/api/ecu/cooling/fan-size'&&m==='POST'){const b=await body(req);
+   if(!b.crankHP)return j({error:'crankHP required'},400);
+   return j({ok:true,...sizeFan(b.radiatorArea_cm2||3500,b.crankHP,b.hasAC||false)})}
+
+ // Water pump analysis
+ if(p==='/api/ecu/cooling/water-pump'&&m==='POST'){const b=await body(req);
+   if(!b.pumpFlow_Lpm||!b.systemVolume_L||!b.heatRejection_kW)return j({error:'pumpFlow_Lpm, systemVolume_L, heatRejection_kW required'},400);
+   return j({ok:true,...calcWaterPump(b.pumpFlow_Lpm,b.systemVolume_L,b.heatRejection_kW,b.coolantType||'water-glycol-50')})}
+
+ // Thermostat recommendation
+ if(p==='/api/ecu/cooling/thermostat-recommend'&&m==='POST'){const b=await body(req);
+   return j({ok:true,...recommendThermostat(b.application||'street',b.forced_induction||false)})}
+
+ // List coolant types
+ if(p==='/api/ecu/cooling/coolants'&&m==='GET'){
+   return j({ok:true,coolants:listCoolantTypes()})}
+
+ // List radiators
+ if(p==='/api/ecu/cooling/radiators'&&m==='GET'){
+   return j({ok:true,radiators:listRadiators()})}
+
+ // Get specific radiator
+ if(p.startsWith('/api/ecu/cooling/radiator/')&&m==='GET'){const name=decodeURIComponent(p.split('/').pop());
+   const r=getRadiator(name);if(!r)return j({error:'Radiator not found'},404);
+   return j({ok:true,name,radiator:r})}
+
+ // List fans
+ if(p==='/api/ecu/cooling/fans'&&m==='GET'){
+   return j({ok:true,fans:listFans()})}
+
+ // List thermostats
+ if(p==='/api/ecu/cooling/thermostats'&&m==='GET'){
+   return j({ok:true,thermostats:listThermostats()})}
+
+ // Cooling stats
+ if(p==='/api/ecu/cooling/stats'&&m==='GET'){
+   return j({ok:true,...coolingCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === KNOCK DETECTION ANALYZER ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Knock frequency by bore size
+ if(p==='/api/ecu/knock/frequency'&&m==='POST'){try{
+   const b=await body(req);if(!b.bore_mm)return j({error:'bore_mm required'},400);
+   return j({ok:true,...calcKnockFrequency(b.bore_mm)})}catch(e){return j({error:e.message},500)}}
+
+ // Detonation risk assessment
+ if(p==='/api/ecu/knock/detonation-risk'&&m==='POST'){try{
+   const b=await body(req);if(!b.compressionRatio)return j({error:'compressionRatio required'},400);
+   return j({ok:true,...assessDetonationRisk(b.compressionRatio,b.boostPSI||0,b.octane_RON||95,b.intakeTemp_C||25,b.timing_deg||0)})}catch(e){return j({error:e.message},500)}}
+
+ // Timing retard recommendation
+ if(p==='/api/ecu/knock/timing-retard'&&m==='POST'){try{
+   const b=await body(req);if(!b.baseAdvance_deg&&b.baseAdvance_deg!==0)return j({error:'baseAdvance_deg required'},400);
+   return j({ok:true,...calcTimingRetard(b.baseAdvance_deg,b.knockCount||0,b.knockIntensity||1.0)})}catch(e){return j({error:e.message},500)}}
+
+ // Timing map recommendation
+ if(p==='/api/ecu/knock/timing-map'&&m==='POST'){try{
+   const b=await body(req);if(!b.compressionRatio)return j({error:'compressionRatio required'},400);
+   return j({ok:true,...recommendTimingMap(b.compressionRatio,b.fuelOctane_RON||95,b.boostPSI||0,b.engineType||'na')})}catch(e){return j({error:e.message},500)}}
+
+ // Knock window analysis
+ if(p==='/api/ecu/knock/window'&&m==='POST'){try{
+   const b=await body(req);if(!b.rpm)return j({error:'rpm required'},400);
+   return j({ok:true,...analyzeKnockWindow(b.rpm,b.strokeLength_mm||86)})}catch(e){return j({error:e.message},500)}}
+
+ // List octane ratings
+ if(p==='/api/ecu/knock/octanes'&&m==='GET'){
+   return j({ok:true,octanes:listOctanes()})}
+
+ // Get specific octane
+ if(p.startsWith('/api/ecu/knock/octane/')&&m==='GET'){
+   const name=p.split('/api/ecu/knock/octane/')[1];
+   const o=getOctane(decodeURIComponent(name));
+   if(!o)return j({error:'Octane not found'},404);
+   return j({ok:true,octane:o})}
+
+ // List knock sensors
+ if(p==='/api/ecu/knock/sensors'&&m==='GET'){
+   return j({ok:true,sensors:listKnockSensors()})}
+
+ // Get specific knock sensor
+ if(p.startsWith('/api/ecu/knock/sensor/')&&m==='GET'){
+   const name=p.split('/api/ecu/knock/sensor/')[1];
+   const s=getKnockSensor(decodeURIComponent(name));
+   if(!s)return j({error:'Sensor not found'},404);
+   return j({ok:true,sensor:s})}
+
+ // Search knock sensors
+ if(p==='/api/ecu/knock/sensors/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchKnockSensors(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // Knock stats
+ if(p==='/api/ecu/knock/stats'&&m==='GET'){
+   return j({ok:true,...knockCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === WIDEBAND LAMBDA CONTROLLER — AFR/Lambda hesaplama ve kontrol ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // PID tuning parameters
+ if(p==='/api/ecu/lambda/pid'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcPIDTuning(b.targetLambda||1.0,b.sensorType||'wideband',b.engineSize_cc||2000)})}catch(e){return j({error:e.message},500)}}
+
+ // Lambda target map generation
+ if(p==='/api/ecu/lambda/map'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...generateLambdaMap(b.fuelType||'gasoline',b.engineType||'na',b.boostMax_bar||0)})}catch(e){return j({error:e.message},500)}}
+
+ // Sensor calibration (voltage to lambda/AFR)
+ if(p==='/api/ecu/lambda/calibrate'&&m==='POST'){try{
+   const b=await body(req);if(!b.sensorModel)return j({error:'sensorModel required'},400);
+   if(b.outputVoltage_V===undefined)return j({error:'outputVoltage_V required'},400);
+   return j({ok:true,...calibrateSensor(b.sensorModel,b.outputVoltage_V)})}catch(e){return j({error:e.message},500)}}
+
+ // Free air calibration procedure
+ if(p==='/api/ecu/lambda/free-air-cal'&&m==='POST'){try{
+   const b=await body(req);if(!b.sensorModel)return j({error:'sensorModel required'},400);
+   return j({ok:true,...freeAirCalibration(b.sensorModel)})}catch(e){return j({error:e.message},500)}}
+
+ // Ethanol content estimation from stoich AFR
+ if(p==='/api/ecu/lambda/ethanol-estimate'&&m==='POST'){try{
+   const b=await body(req);if(!b.measuredStoichAFR)return j({error:'measuredStoichAFR required'},400);
+   return j({ok:true,...estimateEthanolContent(b.measuredStoichAFR)})}catch(e){return j({error:e.message},500)}}
+
+ // List fuel stoichiometric ratios
+ if(p==='/api/ecu/lambda/fuels'&&m==='GET'){
+   return j({ok:true,fuels:listFuelStoich()})}
+
+ // Get specific fuel
+ if(p.startsWith('/api/ecu/lambda/fuel/')&&m==='GET'){
+   const name=p.split('/api/ecu/lambda/fuel/')[1];
+   const f=getFuelStoich(decodeURIComponent(name));
+   if(!f)return j({error:'Fuel type not found'},404);
+   return j({ok:true,fuel:f})}
+
+ // List wideband sensors
+ if(p==='/api/ecu/lambda/sensors'&&m==='GET'){
+   return j({ok:true,sensors:listWidebandSensors()})}
+
+ // Get specific wideband sensor
+ if(p.startsWith('/api/ecu/lambda/sensor/')&&m==='GET'){
+   const name=p.split('/api/ecu/lambda/sensor/')[1];
+   const s=getWidebandSensor(decodeURIComponent(name));
+   if(!s)return j({error:'Sensor not found'},404);
+   return j({ok:true,sensor:s})}
+
+ // Search wideband sensors
+ if(p==='/api/ecu/lambda/sensors/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchWidebandSensors(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // List lambda targets
+ if(p==='/api/ecu/lambda/targets'&&m==='GET'){
+   return j({ok:true,targets:listLambdaTargets()})}
+
+ // Get specific lambda target
+ if(p.startsWith('/api/ecu/lambda/target/')&&m==='GET'){
+   const name=p.split('/api/ecu/lambda/target/')[1];
+   const t=getLambdaTarget(decodeURIComponent(name));
+   if(!t)return j({error:'Target not found'},404);
+   return j({ok:true,target:t})}
+
+ // Lambda stats
+ if(p==='/api/ecu/lambda/stats'&&m==='GET'){
+   return j({ok:true,...lambdaCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === Ignition Timing Calculator — MBT, knock limit, dwell, spark ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // MBT timing estimate
+ if(p==='/api/ecu/ignition/mbt'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...estimateMBT(b.compressionRatio||10,b.rpm||3000,b.load_pct||50,b.fuelType||'gasoline')})}catch(e){return j({error:e.message},500)}}
+
+ // Knock-limited timing
+ if(p==='/api/ecu/ignition/knock-limit'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcKnockLimitedTiming(b.compressionRatio||10,b.boostPSI||0,b.octane_RON||95,b.intakeTemp_C||25)})}catch(e){return j({error:e.message},500)}}
+
+ // Timing advance curve
+ if(p==='/api/ecu/ignition/curve'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...generateTimingCurve(b.compressionRatio||10,b.maxRPM||7000,b.boostPSI||0,b.octane_RON||95,b.engineType||'na')})}catch(e){return j({error:e.message},500)}}
+
+ // Dwell time calculator
+ if(p==='/api/ecu/ignition/dwell'&&m==='POST'){try{
+   const b=await body(req);if(!b.coilModel)return j({error:'coilModel required'},400);
+   return j({ok:true,...calcDwellTime(b.coilModel,b.rpm||3000,b.batteryVoltage_V||14.0)})}catch(e){return j({error:e.message},500)}}
+
+ // Spark plug gap recommendation
+ if(p==='/api/ecu/ignition/spark-gap'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...recommendSparkPlugGap(b.boostPSI||0,b.coilEnergy_mJ||80,b.fuelType||'gasoline')})}catch(e){return j({error:e.message},500)}}
+
+ // Spark energy vs cylinder pressure
+ if(p==='/api/ecu/ignition/spark-energy'&&m==='POST'){try{
+   const b=await body(req);if(!b.cylinderPressure_bar)return j({error:'cylinderPressure_bar required'},400);
+   return j({ok:true,...calcSparkEnergy(b.cylinderPressure_bar,b.gap_mm||0.8,b.coilEnergy_mJ||80)})}catch(e){return j({error:e.message},500)}}
+
+ // Full ignition timing table
+ if(p==='/api/ecu/ignition/table'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...generateIgnitionTable(b.compressionRatio||10,b.maxRPM||7000,b.boostMax_bar||0,b.octane_RON||95,b.engineType||'na')})}catch(e){return j({error:e.message},500)}}
+
+ // List ignition coils
+ if(p==='/api/ecu/ignition/coils'&&m==='GET'){
+   return j({ok:true,coils:listCoils()})}
+
+ // Get specific coil
+ if(p.startsWith('/api/ecu/ignition/coil/')&&m==='GET'){
+   const name=p.split('/api/ecu/ignition/coil/')[1];
+   const c=getCoil(decodeURIComponent(name));
+   if(!c)return j({error:'Coil not found'},404);
+   return j({ok:true,coil:c})}
+
+ // Search coils
+ if(p==='/api/ecu/ignition/coils/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchCoils(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // List spark plugs
+ if(p==='/api/ecu/ignition/plugs'&&m==='GET'){
+   return j({ok:true,sparkPlugs:listSparkPlugs()})}
+
+ // Get specific spark plug
+ if(p.startsWith('/api/ecu/ignition/plug/')&&m==='GET'){
+   const name=p.split('/api/ecu/ignition/plug/')[1];
+   const s=getSparkPlug(decodeURIComponent(name));
+   if(!s)return j({error:'Spark plug not found'},404);
+   return j({ok:true,sparkPlug:s})}
+
+ // Search spark plugs
+ if(p==='/api/ecu/ignition/plugs/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchSparkPlugs(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // Ignition stats
+ if(p==='/api/ecu/ignition/stats'&&m==='GET'){
+   return j({ok:true,...ignitionCalcStats()})}
+
+ // ─── Oil System Calculator ─────────────────────────────────────────────
+
+ // Oil viscosity at temperature
+ if(p==='/api/ecu/oil/viscosity'&&m==='POST'){try{
+   const b=await body(req);if(!b.oilGrade)return j({error:'oilGrade required'},400);
+   if(!b.temperature_C&&b.temperature_C!==0)return j({error:'temperature_C required'},400);
+   return j({ok:true,...calcViscosityAtTemp(b.oilGrade,b.temperature_C)})}catch(e){return j({error:e.message},500)}}
+
+ // Oil pressure requirements
+ if(p==='/api/ecu/oil/pressure'&&m==='POST'){try{
+   const b=await body(req);if(!b.oilGrade)return j({error:'oilGrade required'},400);
+   return j({ok:true,...calcOilPressure(b.rpm||3000,b.oilGrade,b.bearingClearance_mm||0.05,b.numberOfBearings||10)})}catch(e){return j({error:e.message},500)}}
+
+ // Oil cooler sizing
+ if(p==='/api/ecu/oil/cooler-size'&&m==='POST'){try{
+   const b=await body(req);if(!b.engineHP)return j({error:'engineHP required'},400);
+   return j({ok:true,...sizeOilCooler(b.engineHP,b.oilTemp_target_C||110,b.ambientTemp_C||35,b.isTurbo||false)})}catch(e){return j({error:e.message},500)}}
+
+ // Oil pump flow calculator
+ if(p==='/api/ecu/oil/pump-flow'&&m==='POST'){try{
+   const b=await body(req);if(!b.pumpModel)return j({error:'pumpModel required'},400);
+   return j({ok:true,...calcPumpFlow(b.pumpModel,b.rpm||3000,b.oilGrade)})}catch(e){return j({error:e.message},500)}}
+
+ // Oil analysis interpreter
+ if(p==='/api/ecu/oil/analysis'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...interpretOilAnalysis(b)})}catch(e){return j({error:e.message},500)}}
+
+ // Oil spec recommendation
+ if(p==='/api/ecu/oil/recommend'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...recommendOilSpec(b.engineType||'na',b.powerLevel_HP||200,b.usage||'daily')})}catch(e){return j({error:e.message},500)}}
+
+ // List oil grades
+ if(p==='/api/ecu/oil/grades'&&m==='GET'){
+   return j({ok:true,oils:listOils()})}
+
+ // Get specific oil grade
+ if(p.startsWith('/api/ecu/oil/grade/')&&m==='GET'){
+   const name=p.split('/api/ecu/oil/grade/')[1];
+   const o=getOil(decodeURIComponent(name));
+   if(!o)return j({error:'Oil grade not found'},404);
+   return j({ok:true,oil:o})}
+
+ // Search oils
+ if(p==='/api/ecu/oil/grades/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchOils(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // List oil pumps
+ if(p==='/api/ecu/oil/pumps'&&m==='GET'){
+   return j({ok:true,pumps:listPumps()})}
+
+ // Get specific pump
+ if(p.startsWith('/api/ecu/oil/pump/')&&m==='GET'){
+   const name=p.split('/api/ecu/oil/pump/')[1];
+   const pu=getPump(decodeURIComponent(name));
+   if(!pu)return j({error:'Pump not found'},404);
+   return j({ok:true,pump:pu})}
+
+ // List oil coolers
+ if(p==='/api/ecu/oil/coolers'&&m==='GET'){
+   return j({ok:true,coolers:listCoolers()})}
+
+ // Get specific cooler
+ if(p.startsWith('/api/ecu/oil/cooler/')&&m==='GET'){
+   const name=p.split('/api/ecu/oil/cooler/')[1];
+   const co=getCooler(decodeURIComponent(name));
+   if(!co)return j({error:'Cooler not found'},404);
+   return j({ok:true,cooler:co})}
+
+ // Oil system stats
+ if(p==='/api/ecu/oil/stats'&&m==='GET'){
+   return j({ok:true,...oilCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === NITROUS OXIDE (N2O) CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // N2O HP gain estimate
+ if(p==='/api/ecu/nitrous/hp-gain'&&m==='POST'){try{
+   const b=await body(req);if(!b.baseHP)return j({error:'baseHP required'},400);
+   if(!b.shotSize_HP)return j({error:'shotSize_HP required'},400);
+   return j({ok:true,...estimateN2OGain(b.baseHP,b.shotSize_HP,b.numStages||1)})}catch(e){return j({error:e.message},500)}}
+
+ // N2O timing retard calculator
+ if(p==='/api/ecu/nitrous/timing-retard'&&m==='POST'){try{
+   const b=await body(req);if(!b.shotSize_HP)return j({error:'shotSize_HP required'},400);
+   return j({ok:true,...calcN2OTimingRetard(b.shotSize_HP,b.compressionRatio||10,b.fuelType||'gasoline')})}catch(e){return j({error:e.message},500)}}
+
+ // N2O fuel enrichment calculator
+ if(p==='/api/ecu/nitrous/fuel-enrichment'&&m==='POST'){try{
+   const b=await body(req);if(!b.shotSize_HP)return j({error:'shotSize_HP required'},400);
+   return j({ok:true,...calcFuelEnrichment(b.shotSize_HP,b.injectorSize_cc||440,b.numInjectors||4,b.fuelPressure_bar||3.0)})}catch(e){return j({error:e.message},500)}}
+
+ // Bottle pressure / temperature
+ if(p==='/api/ecu/nitrous/bottle-pressure'&&m==='POST'){try{
+   const b=await body(req);if(b.temperature_C===undefined&&b.temperature_C!==0)return j({error:'temperature_C required'},400);
+   return j({ok:true,...calcBottlePressure(b.temperature_C)})}catch(e){return j({error:e.message},500)}}
+
+ // Bottle duration estimate
+ if(p==='/api/ecu/nitrous/bottle-duration'&&m==='POST'){try{
+   const b=await body(req);if(!b.bottleSize)return j({error:'bottleSize required'},400);
+   if(!b.shotSize_HP)return j({error:'shotSize_HP required'},400);
+   return j({ok:true,...calcBottleDuration(b.bottleSize,b.shotSize_HP)})}catch(e){return j({error:e.message},500)}}
+
+ // Purge system calculator
+ if(p==='/api/ecu/nitrous/purge'&&m==='POST'){try{
+   const b=await body(req);
+   return j({ok:true,...calcPurge(b.lineLength_m||2,b.lineDiameter_mm||6.35)})}catch(e){return j({error:e.message},500)}}
+
+ // Safety checklist
+ if(p==='/api/ecu/nitrous/safety-checklist'&&m==='POST'){try{
+   const b=await body(req);if(!b.shotSize_HP)return j({error:'shotSize_HP required'},400);
+   return j({ok:true,...safetyChecklist(b.shotSize_HP,b.engineType||'na',b.fuelType||'gasoline')})}catch(e){return j({error:e.message},500)}}
+
+ // List jets/nozzles
+ if(p==='/api/ecu/nitrous/jets'&&m==='GET'){
+   return j({ok:true,jets:listJets()})}
+
+ // Get specific jet
+ if(p.startsWith('/api/ecu/nitrous/jet/')&&m==='GET'){
+   const key=p.split('/api/ecu/nitrous/jet/')[1];
+   const jt=getJet(decodeURIComponent(key));
+   if(!jt)return j({error:'Jet not found'},404);
+   return j({ok:true,jet:jt})}
+
+ // Search jets
+ if(p==='/api/ecu/nitrous/jets/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchJets(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // List bottles
+ if(p==='/api/ecu/nitrous/bottles'&&m==='GET'){
+   return j({ok:true,bottles:listBottles()})}
+
+ // Get specific bottle
+ if(p.startsWith('/api/ecu/nitrous/bottle/')&&m==='GET'){
+   const key=p.split('/api/ecu/nitrous/bottle/')[1];
+   const bt=getBottle(decodeURIComponent(key));
+   if(!bt)return j({error:'Bottle not found'},404);
+   return j({ok:true,bottle:bt})}
+
+ // Nitrous system stats
+ if(p==='/api/ecu/nitrous/stats'&&m==='GET'){
+   return j({ok:true,...nitrousCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === INTAKE MANIFOLD & THROTTLE BODY CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Runner length calculator
+ if(p==='/api/ecu/intake/runner-length'&&m==='POST'){try{
+   const b=await body(req);if(!b.targetPeakTorqueRPM)return j({error:'targetPeakTorqueRPM required'},400);
+   return j({ok:true,...calcRunnerLength(b.targetPeakTorqueRPM,b.numCylinders||4)})}catch(e){return j({error:e.message},500)}}
+
+ // Runner diameter calculator
+ if(p==='/api/ecu/intake/runner-diameter'&&m==='POST'){try{
+   const b=await body(req);if(!b.targetHP)return j({error:'targetHP required'},400);
+   return j({ok:true,...calcRunnerDiameter(b.targetHP,b.numCylinders||4,b.peakRPM||6500)})}catch(e){return j({error:e.message},500)}}
+
+ // Plenum volume calculator
+ if(p==='/api/ecu/intake/plenum-volume'&&m==='POST'){try{
+   const b=await body(req);if(!b.displacement_cc)return j({error:'displacement_cc required'},400);
+   return j({ok:true,...calcPlenumVolume(b.displacement_cc,b.numCylinders||4,b.isTurbo||false)})}catch(e){return j({error:e.message},500)}}
+
+ // Throttle body sizing
+ if(p==='/api/ecu/intake/throttle-body-size'&&m==='POST'){try{
+   const b=await body(req);if(!b.targetHP)return j({error:'targetHP required'},400);
+   return j({ok:true,...sizeThrottleBody(b.targetHP,b.isTurbo||false)})}catch(e){return j({error:e.message},500)}}
+
+ // Airflow estimate
+ if(p==='/api/ecu/intake/airflow'&&m==='POST'){try{
+   const b=await body(req);if(!b.displacement_cc)return j({error:'displacement_cc required'},400);
+   if(!b.rpm)return j({error:'rpm required'},400);
+   return j({ok:true,...estimateAirflow(b.displacement_cc,b.rpm,b.VE_pct||90,b.boostPressure_bar||0)})}catch(e){return j({error:e.message},500)}}
+
+ // Variable intake analysis
+ if(p==='/api/ecu/intake/variable-intake'&&m==='POST'){try{
+   const b=await body(req);if(!b.shortLength_mm)return j({error:'shortLength_mm required'},400);
+   if(!b.longLength_mm)return j({error:'longLength_mm required'},400);
+   if(!b.switchRPM)return j({error:'switchRPM required'},400);
+   return j({ok:true,...analyzeVariableIntake(b.shortLength_mm,b.longLength_mm,b.switchRPM)})}catch(e){return j({error:e.message},500)}}
+
+ // Port flow estimate
+ if(p==='/api/ecu/intake/port-flow'&&m==='POST'){try{
+   const b=await body(req);if(!b.portDiameter_mm)return j({error:'portDiameter_mm required'},400);
+   return j({ok:true,...estimatePortFlow(b.portDiameter_mm,b.portLength_mm||120,b.surfaceFinish||'cast')})}catch(e){return j({error:e.message},500)}}
+
+ // List manifolds
+ if(p==='/api/ecu/intake/manifolds'&&m==='GET'){
+   return j({ok:true,manifolds:listManifolds()})}
+
+ // Get specific manifold
+ if(p.startsWith('/api/ecu/intake/manifold/')&&m==='GET'){
+   const key=p.split('/api/ecu/intake/manifold/')[1];
+   const mf=getManifold(decodeURIComponent(key));
+   if(!mf)return j({error:'Manifold not found'},404);
+   return j({ok:true,manifold:mf})}
+
+ // Search manifolds
+ if(p==='/api/ecu/intake/manifolds/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchManifolds(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // List throttle bodies
+ if(p==='/api/ecu/intake/throttle-bodies'&&m==='GET'){
+   return j({ok:true,throttleBodies:listThrottleBodies()})}
+
+ // Get specific throttle body
+ if(p.startsWith('/api/ecu/intake/throttle-body/')&&m==='GET'){
+   const key=p.split('/api/ecu/intake/throttle-body/')[1];
+   const tb=getThrottleBody(decodeURIComponent(key));
+   if(!tb)return j({error:'Throttle body not found'},404);
+   return j({ok:true,throttleBody:tb})}
+
+ // Search throttle bodies
+ if(p==='/api/ecu/intake/throttle-bodies/search'&&m==='POST'){try{
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchThrottleBodies(b.query)})}catch(e){return j({error:e.message},500)}}
+
+ // Intake system stats
+ if(p==='/api/ecu/intake/stats'&&m==='GET'){
+   return j({ok:true,...intakeCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === DATA LOGGER & REALTIME MONITOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List log profiles
+ if(p==='/api/ecu/datalog/profiles'&&m==='GET'){
+   return j({ok:true,profiles:listLogProfiles()})}
+
+ // Get specific log profile
+ if(p.startsWith('/api/ecu/datalog/profile/')&&m==='GET'){
+   const key=p.split('/api/ecu/datalog/profile/')[1];
+   const prof=getLogProfile(decodeURIComponent(key));
+   if(!prof)return j({error:'Profile not found'},404);
+   return j({ok:true,profile:prof})}
+
+ // List trigger types
+ if(p==='/api/ecu/datalog/triggers'&&m==='GET'){
+   return j({ok:true,triggers:listTriggerTypes()})}
+
+ // Start datalog session
+ if(p==='/api/ecu/datalog/start'&&m==='POST'){try{
+   const b=await body(req);
+   const result=await startDatalogSession(env,b.vehicleId,b.profile,b.triggerType,b.sampleRate_hz,b.metadata);
+   return j({ok:true,...result})}catch(e){return j({error:e.message},500)}}
+
+ // Append samples to session
+ if(p==='/api/ecu/datalog/append'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   if(!b.samples||!Array.isArray(b.samples))return j({error:'samples array required'},400);
+   const result=await appendDatalogSamples(env,b.sessionId,b.samples);
+   return j({ok:true,...result})}catch(e){return j({error:e.message},500)}}
+
+ // End datalog session
+ if(p==='/api/ecu/datalog/end'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   const result=await endDatalogSession(env,b.sessionId);
+   return j({ok:true,session:result})}catch(e){return j({error:e.message},500)}}
+
+ // Get datalog session with samples
+ if(p.startsWith('/api/ecu/datalog/session/')&&m==='GET'){try{
+   const sid=p.split('/api/ecu/datalog/session/')[1];
+   const session=await getDatalogSession(env,decodeURIComponent(sid));
+   if(!session)return j({error:'Session not found'},404);
+   return j({ok:true,session})}catch(e){return j({error:e.message},500)}}
+
+ // List datalog sessions
+ if(p==='/api/ecu/datalog/sessions'&&m==='GET'){try{
+   const sessions=await listDatalogSessions(env);
+   return j({ok:true,sessions})}catch(e){return j({error:e.message},500)}}
+
+ // Delete datalog session
+ if(p==='/api/ecu/datalog/delete'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   const result=await deleteDatalogSession(env,b.sessionId);
+   return j({ok:true,...result})}catch(e){return j({error:e.message},500)}}
+
+ // Export datalog session (csv, json, megalogviewer, vcds)
+ if(p==='/api/ecu/datalog/export'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   const result=await exportDatalogSession(env,b.sessionId,b.format||'csv');
+   if(!result)return j({error:'Session not found'},404);
+   return j({ok:true,...result})}catch(e){return j({error:e.message},500)}}
+
+ // Analyze log data
+ if(p==='/api/ecu/datalog/analyze'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   const session=await getDatalogSession(env,b.sessionId);
+   if(!session)return j({error:'Session not found'},404);
+   const prof=getLogProfile(session.profile);
+   return j({ok:true,...analyzeLogData(session.samples,prof?.pidNames||b.pidNames)})}catch(e){return j({error:e.message},500)}}
+
+ // Detect anomalies
+ if(p==='/api/ecu/datalog/anomalies'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   const session=await getDatalogSession(env,b.sessionId);
+   if(!session)return j({error:'Session not found'},404);
+   const prof=getLogProfile(session.profile);
+   return j({ok:true,...detectAnomalies(session.samples,prof?.pidNames||b.pidNames,b.sensitivity||2.0)})}catch(e){return j({error:e.message},500)}}
+
+ // Correlate channels
+ if(p==='/api/ecu/datalog/correlate'&&m==='POST'){try{
+   const b=await body(req);if(!b.sessionId)return j({error:'sessionId required'},400);
+   if(!b.channelA||!b.channelB)return j({error:'channelA and channelB required'},400);
+   const session=await getDatalogSession(env,b.sessionId);
+   if(!session)return j({error:'Session not found'},404);
+   return j({ok:true,...correlateChannels(session.samples,b.channelA,b.channelB)})}catch(e){return j({error:e.message},500)}}
+
+ // Sample budget calculator
+ if(p==='/api/ecu/datalog/sample-budget'&&m==='POST'){try{
+   const b=await body(req);if(!b.numPIDs)return j({error:'numPIDs required'},400);
+   return j({ok:true,...calcSampleBudget(b.numPIDs,b.targetRate_hz||10,b.busSpeed||'fast')})}catch(e){return j({error:e.message},500)}}
+
+ // Datalogger stats
+ if(p==='/api/ecu/datalog/stats'&&m==='GET'){
+   return j({ok:true,...dataloggerStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === FLEX FUEL & ETHANOL CONTENT SENSOR CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List fuel blends
+ if(p==='/api/ecu/flexfuel/blends'&&m==='GET'){
+   return j({ok:true,blends:listFuelBlends()})}
+
+ // Get specific blend
+ if(p.startsWith('/api/ecu/flexfuel/blend/')&&m==='GET'){
+   const key=p.split('/api/ecu/flexfuel/blend/')[1];
+   const blend=getFuelBlend(decodeURIComponent(key));
+   if(!blend)return j({error:'Blend not found'},404);
+   return j({ok:true,blend})}
+
+ // List ethanol sensors
+ if(p==='/api/ecu/flexfuel/sensors'&&m==='GET'){
+   return j({ok:true,sensors:listEthanolSensors()})}
+
+ // Get specific sensor
+ if(p.startsWith('/api/ecu/flexfuel/sensor/')&&m==='GET'){
+   const key=p.split('/api/ecu/flexfuel/sensor/')[1];
+   const sensor=getEthanolSensor(decodeURIComponent(key));
+   if(!sensor)return j({error:'Sensor not found'},404);
+   return j({ok:true,sensor})}
+
+ // Search ethanol sensors
+ if(p==='/api/ecu/flexfuel/sensors/search'&&m==='POST'){
+   const b=await body(req);if(!b.query)return j({error:'query required'},400);
+   return j({ok:true,results:searchEthanolSensors(b.query)})}
+
+ // Calculate blend properties for any ethanol percentage
+ if(p==='/api/ecu/flexfuel/calc/blend'&&m==='POST'){try{
+   const b=await body(req);if(b.ethanol_pct==null)return j({error:'ethanol_pct required'},400);
+   return j({ok:true,...calcBlendProperties(b.ethanol_pct)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate injector requirement for ethanol conversion
+ if(p==='/api/ecu/flexfuel/calc/injector'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.baseFuelFlow_cc_min)return j({error:'baseFuelFlow_cc_min required'},400);
+   return j({ok:true,...calcInjectorRequirement(b.baseFuelFlow_cc_min,b.baseEthanol_pct||0,b.targetEthanol_pct||85)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate fuel pump requirement
+ if(p==='/api/ecu/flexfuel/calc/pump'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.basePumpFlow_lph)return j({error:'basePumpFlow_lph required'},400);
+   return j({ok:true,...calcFuelPumpRequirement(b.basePumpFlow_lph,b.baseEthanol_pct||0,b.targetEthanol_pct||85)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate timing advance for ethanol
+ if(p==='/api/ecu/flexfuel/calc/timing'&&m==='POST'){try{
+   const b=await body(req);
+   if(b.baseTimingDeg==null)return j({error:'baseTimingDeg required'},400);
+   return j({ok:true,...calcTimingAdvance(b.baseTimingDeg,b.baseEthanol_pct||0,b.targetEthanol_pct||85)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate cold start enrichment
+ if(p==='/api/ecu/flexfuel/calc/coldstart'&&m==='POST'){try{
+   const b=await body(req);
+   if(b.ethanol_pct==null)return j({error:'ethanol_pct required'},400);
+   return j({ok:true,...calcColdStartEnrichment(b.ethanol_pct,b.ambientTemp_C!=null?b.ambientTemp_C:20)})}catch(e){return j({error:e.message},500)}}
+
+ // Calibrate sensor from frequency (GM flex fuel sensor)
+ if(p==='/api/ecu/flexfuel/calc/sensor-freq'&&m==='POST'){try{
+   const b=await body(req);
+   if(b.frequency_hz==null)return j({error:'frequency_hz required'},400);
+   return j({ok:true,...calibrateSensorFrequency(b.frequency_hz)})}catch(e){return j({error:e.message},500)}}
+
+ // Calibrate sensor from voltage
+ if(p==='/api/ecu/flexfuel/calc/sensor-volt'&&m==='POST'){try{
+   const b=await body(req);
+   if(b.voltage==null)return j({error:'voltage required'},400);
+   return j({ok:true,...calcSensorVoltage(b.voltage,b.sensorType||'linear_0_5v')})}catch(e){return j({error:e.message},500)}}
+
+ // Full E85 conversion analysis
+ if(p==='/api/ecu/flexfuel/calc/e85-conversion'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.vehicleHP)return j({error:'vehicleHP required'},400);
+   if(!b.currentInjectorSize_cc)return j({error:'currentInjectorSize_cc required'},400);
+   if(!b.currentPumpFlow_lph)return j({error:'currentPumpFlow_lph required'},400);
+   if(b.currentTiming_deg==null)return j({error:'currentTiming_deg required'},400);
+   return j({ok:true,...calcE85Conversion(b.vehicleHP,b.currentInjectorSize_cc,b.currentPumpFlow_lph,b.currentTiming_deg,b.currentEthanol_pct||0)})}catch(e){return j({error:e.message},500)}}
+
+ // Flex fuel stats
+ if(p==='/api/ecu/flexfuel/stats'&&m==='GET'){
+   return j({ok:true,...flexfuelCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === ECU Diagnostics & Health Monitor ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List all sensor ranges
+ if(p==='/api/ecu/diagnostics/sensors'&&m==='GET'){
+   return j({ok:true,sensors:listSensorRanges()})}
+
+ // Get specific sensor range
+ if(p.startsWith('/api/ecu/diagnostics/sensor/')&&m==='GET'){
+   const key=p.split('/api/ecu/diagnostics/sensor/')[1];
+   const s=getSensorRange(decodeURIComponent(key));
+   if(!s)return j({error:'Sensor not found'},404);
+   return j({ok:true,sensor:s})}
+
+ // Validate a single sensor reading
+ if(p==='/api/ecu/diagnostics/validate-sensor'&&m==='POST'){try{
+   const b=await body(req);if(!b.sensor||b.value==null)return j({error:'sensor and value required'},400);
+   return j({ok:true,...validateSensorReading(b.sensor,b.value)})}catch(e){return j({error:e.message},500)}}
+
+ // Validate multiple sensors at once
+ if(p==='/api/ecu/diagnostics/validate-multi'&&m==='POST'){try{
+   const b=await body(req);if(!b.readings)return j({error:'readings object required'},400);
+   return j({ok:true,...validateMultipleSensors(b.readings)})}catch(e){return j({error:e.message},500)}}
+
+ // Diagnose from live readings
+ if(p==='/api/ecu/diagnostics/diagnose'&&m==='POST'){try{
+   const b=await body(req);if(!b.readings)return j({error:'readings object required'},400);
+   return j({ok:true,...diagnoseFromReadings(b.readings)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate engine health score
+ if(p==='/api/ecu/diagnostics/health-score'&&m==='POST'){try{
+   const b=await body(req);if(!b.readings)return j({error:'readings object required'},400);
+   return j({ok:true,...calcEngineHealthScore(b.readings)})}catch(e){return j({error:e.message},500)}}
+
+ // Analyze fuel trims
+ if(p==='/api/ecu/diagnostics/fuel-trims'&&m==='POST'){try{
+   const b=await body(req);if(b.stftB1==null||b.ltftB1==null)return j({error:'stftB1 and ltftB1 required'},400);
+   return j({ok:true,...analyzeFuelTrims(b.stftB1,b.ltftB1,b.stftB2,b.ltftB2)})}catch(e){return j({error:e.message},500)}}
+
+ // Interpret O2 sensor voltage
+ if(p==='/api/ecu/diagnostics/o2-sensor'&&m==='POST'){try{
+   const b=await body(req);if(b.voltage==null)return j({error:'voltage required'},400);
+   return j({ok:true,...interpretO2Sensor(b.voltage,b.position||'upstream')})}catch(e){return j({error:e.message},500)}}
+
+ // Generate maintenance schedule
+ if(p==='/api/ecu/diagnostics/maintenance'&&m==='POST'){try{
+   const b=await body(req);if(!b.mileage_km||!b.lastService_km)return j({error:'mileage_km and lastService_km required'},400);
+   return j({ok:true,...generateMaintenanceSchedule(b.mileage_km,b.lastService_km,b.engineType||'gasoline',b.turbo||false)})}catch(e){return j({error:e.message},500)}}
+
+ // List diagnostic patterns
+ if(p==='/api/ecu/diagnostics/patterns'&&m==='GET'){
+   return j({ok:true,patterns:listDiagnosticPatterns()})}
+
+ // Get specific diagnostic pattern
+ if(p.startsWith('/api/ecu/diagnostics/pattern/')&&m==='GET'){
+   const key=p.split('/api/ecu/diagnostics/pattern/')[1];
+   const pat=getDiagnosticPattern(decodeURIComponent(key));
+   if(!pat)return j({error:'Pattern not found'},404);
+   return j({ok:true,pattern:pat})}
+
+ // Classify DTC severity
+ if(p==='/api/ecu/diagnostics/classify-dtc'&&m==='POST'){try{
+   const b=await body(req);if(!b.code)return j({error:'code required'},400);
+   return j({ok:true,...classifyDTCSeverity(b.code)})}catch(e){return j({error:e.message},500)}}
+
+ // Diagnostics stats
+ if(p==='/api/ecu/diagnostics/stats'&&m==='GET'){
+   return j({ok:true,...ecuDiagnosticsStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === Transmission & TCU Tuning Calculator ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List all transmission types
+ if(p==='/api/ecu/tcu/transmissions'&&m==='GET'){
+   const q=url.searchParams.get('q');
+   return j({ok:true,transmissions:q?searchTransmissionTypes(q):listTransmissionTypes()})}
+
+ // Get specific transmission
+ if(p.startsWith('/api/ecu/tcu/transmission/')&&m==='GET'){
+   const key=p.split('/api/ecu/tcu/transmission/')[1];
+   const t=getTransmissionType(decodeURIComponent(key));
+   if(!t)return j({error:'Transmission not found'},404);
+   return j({ok:true,transmission:t})}
+
+ // List torque converters
+ if(p==='/api/ecu/tcu/converters'&&m==='GET'){
+   return j({ok:true,converters:listTorqueConverters()})}
+
+ // Get specific torque converter
+ if(p.startsWith('/api/ecu/tcu/converter/')&&m==='GET'){
+   const key=p.split('/api/ecu/tcu/converter/')[1];
+   const tc=getTorqueConverter(decodeURIComponent(key));
+   if(!tc)return j({error:'Converter not found'},404);
+   return j({ok:true,converter:tc})}
+
+ // List shift profiles
+ if(p==='/api/ecu/tcu/profiles'&&m==='GET'){
+   return j({ok:true,profiles:listShiftProfiles()})}
+
+ // Get specific shift profile
+ if(p.startsWith('/api/ecu/tcu/profile/')&&m==='GET'){
+   const key=p.split('/api/ecu/tcu/profile/')[1];
+   const pr=getShiftProfile(decodeURIComponent(key));
+   if(!pr)return j({error:'Profile not found'},404);
+   return j({ok:true,profile:pr})}
+
+ // Calculate shift points
+ if(p==='/api/ecu/tcu/shift-points'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission||!b.redline_rpm||!b.peakTorqueRPM)return j({error:'transmission, redline_rpm, peakTorqueRPM required'},400);
+   return j({ok:true,...calcShiftPoints(b.transmission,b.redline_rpm,b.peakTorqueRPM,b.profile||'normal')})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate line pressure
+ if(p==='/api/ecu/tcu/line-pressure'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission||!b.torque_nm||!b.gear)return j({error:'transmission, torque_nm, gear required'},400);
+   return j({ok:true,...calcLinePressure(b.transmission,b.torque_nm,b.gear,b.safetyMargin)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate torque converter slip
+ if(p==='/api/ecu/tcu/converter-slip'&&m==='POST'){try{
+   const b=await body(req);if(!b.converter||b.engineTorque_nm==null||!b.engineRPM||!b.turbineRPM)return j({error:'converter, engineTorque_nm, engineRPM, turbineRPM required'},400);
+   return j({ok:true,...calcTorqueConverterSlip(b.converter,b.engineTorque_nm,b.engineRPM,b.turbineRPM)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate launch control settings
+ if(p==='/api/ecu/tcu/launch-control'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission||!b.redline_rpm||!b.vehicleWeight_kg)return j({error:'transmission, redline_rpm, vehicleWeight_kg required'},400);
+   return j({ok:true,...calcLaunchControl(b.transmission,b.converter||null,b.redline_rpm,b.vehicleWeight_kg,b.tireGrip_g)})}catch(e){return j({error:e.message},500)}}
+
+ // Optimize shift schedule from torque curve
+ if(p==='/api/ecu/tcu/optimize-shifts'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission||!b.torqueCurve||!b.redline_rpm)return j({error:'transmission, torqueCurve (array of {rpm,torque_nm}), redline_rpm required'},400);
+   return j({ok:true,...optimizeShiftSchedule(b.transmission,b.torqueCurve,b.redline_rpm)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate clutch wear
+ if(p==='/api/ecu/tcu/clutch-wear'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission||b.torque_nm==null||b.slipTime_s==null||b.slipRPM_delta==null)return j({error:'transmission, torque_nm, slipTime_s, slipRPM_delta required'},400);
+   return j({ok:true,...calcClutchWear(b.transmission,b.torque_nm,b.slipTime_s,b.slipRPM_delta)})}catch(e){return j({error:e.message},500)}}
+
+ // Recommend transmission fluid
+ if(p==='/api/ecu/tcu/fluid'&&m==='POST'){try{
+   const b=await body(req);if(!b.transmission)return j({error:'transmission required'},400);
+   return j({ok:true,...recommendFluid(b.transmission)})}catch(e){return j({error:e.message},500)}}
+
+ // TCU tuning stats
+ if(p==='/api/ecu/tcu/stats'&&m==='GET'){
+   return j({ok:true,...tcuTuningStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === Differential & Transfer Case Calculator ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // List diff types
+ if(p==='/api/ecu/diff/types'&&m==='GET'){
+   const q=url.searchParams.get('q');
+   return j({ok:true,types:q?searchDiffTypes(q):listDiffTypes()})}
+
+ // Get specific diff type
+ if(p.startsWith('/api/ecu/diff/type/')&&m==='GET'){
+   const key=p.split('/api/ecu/diff/type/')[1];
+   const d=getDiffType(decodeURIComponent(key));
+   if(!d)return j({error:'Diff type not found'},404);
+   return j({ok:true,type:d})}
+
+ // List diff ratios
+ if(p==='/api/ecu/diff/ratios'&&m==='GET'){
+   return j({ok:true,ratios:listDiffRatios()})}
+
+ // Get specific ratio
+ if(p.startsWith('/api/ecu/diff/ratio/')&&m==='GET'){
+   const key=p.split('/api/ecu/diff/ratio/')[1];
+   const r=getDiffRatio(decodeURIComponent(key));
+   if(!r)return j({error:'Ratio not found'},404);
+   return j({ok:true,ratio:r})}
+
+ // List transfer cases
+ if(p==='/api/ecu/diff/transfer-cases'&&m==='GET'){
+   const q=url.searchParams.get('q');
+   return j({ok:true,transferCases:q?searchTransferCases(q):listTransferCases()})}
+
+ // Get specific transfer case
+ if(p.startsWith('/api/ecu/diff/transfer-case/')&&m==='GET'){
+   const key=p.split('/api/ecu/diff/transfer-case/')[1];
+   const tc=getTransferCase(decodeURIComponent(key));
+   if(!tc)return j({error:'Transfer case not found'},404);
+   return j({ok:true,transferCase:tc})}
+
+ // List diff fluids
+ if(p==='/api/ecu/diff/fluids'&&m==='GET'){
+   return j({ok:true,fluids:listDiffFluids()})}
+
+ // Calculate crawl ratio
+ if(p==='/api/ecu/diff/crawl-ratio'&&m==='POST'){try{
+   const b=await body(req);if(!b.diffRatio||!b.transLowGear)return j({error:'diffRatio, transLowGear required'},400);
+   return j({ok:true,...calcCrawlRatio(b.diffRatio,b.transLowGear,b.tcaseLowRatio)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate speed at RPM
+ if(p==='/api/ecu/diff/speed-at-rpm'&&m==='POST'){try{
+   const b=await body(req);if(!b.diffRatio||!b.transGearRatio||!b.tireDiameter_in||!b.rpm)return j({error:'diffRatio, transGearRatio, tireDiameter_in, rpm required'},400);
+   return j({ok:true,...calcDiffSpeed(b.diffRatio,b.transGearRatio,b.tireDiameter_in,b.rpm)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate RPM at speed
+ if(p==='/api/ecu/diff/rpm-at-speed'&&m==='POST'){try{
+   const b=await body(req);if(!b.diffRatio||!b.transGearRatio||!b.tireDiameter_in||!b.speed_kph)return j({error:'diffRatio, transGearRatio, tireDiameter_in, speed_kph required'},400);
+   return j({ok:true,...calcDiffRPM(b.diffRatio,b.transGearRatio,b.tireDiameter_in,b.speed_kph)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate torque split
+ if(p==='/api/ecu/diff/torque-split'&&m==='POST'){try{
+   const b=await body(req);if(!b.diffType||b.inputTorque_nm==null)return j({error:'diffType, inputTorque_nm required'},400);
+   return j({ok:true,...calcTorqueSplit(b.diffType,b.inputTorque_nm,b.leftGrip_pct,b.rightGrip_pct)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate diff temperature
+ if(p==='/api/ecu/diff/temp'&&m==='POST'){try{
+   const b=await body(req);if(b.inputTorque_nm==null||b.slipRPM_delta==null||b.duration_s==null)return j({error:'inputTorque_nm, slipRPM_delta, duration_s required'},400);
+   return j({ok:true,...calcDiffTemp(b.inputTorque_nm,b.slipRPM_delta,b.duration_s,b.oilVolume_l)})}catch(e){return j({error:e.message},500)}}
+
+ // Recommend diff ratio for tire change
+ if(p==='/api/ecu/diff/recommend-ratio'&&m==='POST'){try{
+   const b=await body(req);if(!b.currentRatio||!b.currentTireDiam_in||!b.newTireDiam_in)return j({error:'currentRatio, currentTireDiam_in, newTireDiam_in required'},400);
+   return j({ok:true,...recommendDiffRatio(b.currentRatio,b.currentTireDiam_in,b.newTireDiam_in)})}catch(e){return j({error:e.message},500)}}
+
+ // Recommend diff fluid
+ if(p==='/api/ecu/diff/recommend-fluid'&&m==='POST'){try{
+   const b=await body(req);if(!b.diffType)return j({error:'diffType required'},400);
+   return j({ok:true,...recDiffFluid(b.diffType,b.isLSD,b.heavyDuty)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate transfer case gearing
+ if(p==='/api/ecu/diff/tcase-gearing'&&m==='POST'){try{
+   const b=await body(req);if(!b.transferCase||!b.diffRatio||!b.transLowGear)return j({error:'transferCase, diffRatio, transLowGear required'},400);
+   return j({ok:true,...calcTransferCaseGearing(b.transferCase,b.diffRatio,b.transLowGear)})}catch(e){return j({error:e.message},500)}}
+
+ // Differential stats
+ if(p==='/api/ecu/diff/stats'&&m==='GET'){
+   return j({ok:true,...differentialCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === SUSPENSION & ALIGNMENT CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Calculate spring rate
+ if(p==='/api/ecu/suspension/spring-rate'&&m==='POST'){try{
+   const b=await body(req);if(!b.vehicleWeight_kg)return j({error:'vehicleWeight_kg required'},400);
+   return j({ok:true,...calcSpringRate(b.vehicleWeight_kg,b.wheelRate_pct||60,b.naturalFreq_hz||1.5)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate damper ratio
+ if(p==='/api/ecu/suspension/damper-ratio'&&m==='POST'){try{
+   const b=await body(req);if(!b.springRate_n_m||!b.cornerWeight_kg)return j({error:'springRate_n_m, cornerWeight_kg required'},400);
+   return j({ok:true,...calcDamperRatio(b.springRate_n_m,b.cornerWeight_kg,b.targetRatio||0.3)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate ride height
+ if(p==='/api/ecu/suspension/ride-height'&&m==='POST'){try{
+   const b=await body(req);if(!b.springRate_n_m||!b.cornerWeight_kg||!b.springFreeLength_mm)return j({error:'springRate_n_m, cornerWeight_kg, springFreeLength_mm required'},400);
+   return j({ok:true,...calcRideHeight(b.springRate_n_m,b.cornerWeight_kg,b.springFreeLength_mm,b.desiredDrop_mm||0)})}catch(e){return j({error:e.message},500)}}
+
+ // Calculate sway bar effect
+ if(p==='/api/ecu/suspension/sway-bar'&&m==='POST'){try{
+   const b=await body(req);if(!b.frontBar_mm||!b.rearBar_mm||!b.vehicleWeight_kg)return j({error:'frontBar_mm, rearBar_mm, vehicleWeight_kg required'},400);
+   return j({ok:true,...calcSwayBarEffect(b.frontBar_mm,b.rearBar_mm,b.vehicleWeight_kg,b.cg_height_mm||500,b.trackWidth_mm||1500)})}catch(e){return j({error:e.message},500)}}
+
+ // Corner weight balance
+ if(p==='/api/ecu/suspension/corner-weight'&&m==='POST'){try{
+   const b=await body(req);if(!b.fl_kg||!b.fr_kg||!b.rl_kg||!b.rr_kg)return j({error:'fl_kg, fr_kg, rl_kg, rr_kg required'},400);
+   return j({ok:true,...calcCornerWeight(b.fl_kg,b.fr_kg,b.rl_kg,b.rr_kg)})}catch(e){return j({error:e.message},500)}}
+
+ // Bump steer analysis
+ if(p==='/api/ecu/suspension/bump-steer'&&m==='POST'){try{
+   const b=await body(req);if(!b.steeringRackHeight_mm||!b.tieRodLength_mm||!b.suspTravel_mm)return j({error:'steeringRackHeight_mm, tieRodLength_mm, suspTravel_mm required'},400);
+   return j({ok:true,...calcBumpSteer(b.steeringRackHeight_mm,b.tieRodLength_mm,b.suspTravel_mm)})}catch(e){return j({error:e.message},500)}}
+
+ // Anti-squat geometry
+ if(p==='/api/ecu/suspension/anti-squat'&&m==='POST'){try{
+   const b=await body(req);if(!b.pivotHeight_mm||!b.wheelbase_mm||!b.cg_height_mm)return j({error:'pivotHeight_mm, wheelbase_mm, cg_height_mm required'},400);
+   return j({ok:true,...calcAntiSquat(b.pivotHeight_mm,b.wheelbase_mm,b.cg_height_mm,b.driveType||'rwd')})}catch(e){return j({error:e.message},500)}}
+
+ // Alignment recommendation
+ if(p==='/api/ecu/suspension/alignment'&&m==='GET'){
+   const use=u.searchParams.get('use')||'street_neutral';
+   return j({ok:true,...recommendAlignment(use)})}
+
+ // List spring types
+ if(p==='/api/ecu/suspension/springs'&&m==='GET'){return j({ok:true,springs:listSpringTypes()})}
+
+ // Get spring type
+ if(p.startsWith('/api/ecu/suspension/springs/')&&m==='GET'){
+   const key=p.split('/').pop();const s=getSpringType(key);
+   return s?j({ok:true,...s}):j({error:'Spring type not found'},404)}
+
+ // List damper types
+ if(p==='/api/ecu/suspension/dampers'&&m==='GET'){
+   const q=u.searchParams.get('q');
+   return j({ok:true,dampers:q?searchDamperTypes(q):listDamperTypes()})}
+
+ // Get damper type
+ if(p.startsWith('/api/ecu/suspension/dampers/')&&m==='GET'){
+   const key=p.split('/').pop();const d=getDamperType(key);
+   return d?j({ok:true,...d}):j({error:'Damper type not found'},404)}
+
+ // List sway bar sizes
+ if(p==='/api/ecu/suspension/sway-bars'&&m==='GET'){return j({ok:true,swayBars:listSwayBarSizes()})}
+
+ // List alignment specs
+ if(p==='/api/ecu/suspension/alignment-specs'&&m==='GET'){return j({ok:true,specs:listAlignmentSpecs()})}
+
+ // Get alignment spec
+ if(p.startsWith('/api/ecu/suspension/alignment-specs/')&&m==='GET'){
+   const key=p.split('/').pop();const a=getAlignmentSpec(key);
+   return a?j({ok:true,...a}):j({error:'Alignment spec not found'},404)}
+
+ // Suspension stats
+ if(p==='/api/ecu/suspension/stats'&&m==='GET'){
+   return j({ok:true,...suspensionCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === BRAKE SYSTEM CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Calculate brake force
+ if(p==='/api/ecu/brake/force'&&m==='POST'){try{
+   const b=await body(req);if(!b.pedalForce_n||!b.boosterRatio||!b.masterBore_mm||!b.caliperBore_mm||!b.caliperPistons||!b.padMu||!b.effectiveRadius_mm)return j({error:'pedalForce_n, boosterRatio, masterBore_mm, caliperBore_mm, caliperPistons, padMu, effectiveRadius_mm required'},400);
+   return j({ok:true,...calcBrakeForce(b.pedalForce_n,b.boosterRatio,b.masterBore_mm,b.caliperBore_mm,b.caliperPistons,b.padMu,b.effectiveRadius_mm)})}catch(e){return j({error:e.message},500)}}
+
+ // Stopping distance
+ if(p==='/api/ecu/brake/stopping-distance'&&m==='POST'){try{
+   const b=await body(req);if(!b.speed_kmh||!b.vehicleWeight_kg||!b.totalBrakeForce_n)return j({error:'speed_kmh, vehicleWeight_kg, totalBrakeForce_n required'},400);
+   return j({ok:true,...calcStoppingDistance(b.speed_kmh,b.vehicleWeight_kg,b.totalBrakeForce_n,b.tireGrip_mu||1.0,b.tireRadius_mm||310)})}catch(e){return j({error:e.message},500)}}
+
+ // Brake bias
+ if(p==='/api/ecu/brake/bias'&&m==='POST'){try{
+   const b=await body(req);if(!b.frontBrakeForce_n||!b.rearBrakeForce_n||!b.vehicleWeight_kg)return j({error:'frontBrakeForce_n, rearBrakeForce_n, vehicleWeight_kg required'},400);
+   return j({ok:true,...calcBrakeBias(b.frontBrakeForce_n,b.rearBrakeForce_n,b.vehicleWeight_kg,b.frontWeightPct||60)})}catch(e){return j({error:e.message},500)}}
+
+ // Rotor temperature
+ if(p==='/api/ecu/brake/rotor-temp'&&m==='POST'){try{
+   const b=await body(req);if(!b.kineticEnergy_j||!b.rotorMass_kg)return j({error:'kineticEnergy_j, rotorMass_kg required'},400);
+   return j({ok:true,...calcRotorTemp(b.kineticEnergy_j,b.rotorMass_kg,b.rotorMaterial||'cast_iron')})}catch(e){return j({error:e.message},500)}}
+
+ // Kinetic energy
+ if(p==='/api/ecu/brake/kinetic-energy'&&m==='POST'){try{
+   const b=await body(req);if(!b.vehicleWeight_kg||!b.speed_kmh)return j({error:'vehicleWeight_kg, speed_kmh required'},400);
+   return j({ok:true,...calcKineticEnergy(b.vehicleWeight_kg,b.speed_kmh)})}catch(e){return j({error:e.message},500)}}
+
+ // Pedal ratio
+ if(p==='/api/ecu/brake/pedal-ratio'&&m==='POST'){try{
+   const b=await body(req);if(!b.pedalLength_mm||!b.pivotToMaster_mm)return j({error:'pedalLength_mm, pivotToMaster_mm required'},400);
+   return j({ok:true,...calcPedalRatio(b.pedalLength_mm,b.pivotToMaster_mm)})}catch(e){return j({error:e.message},500)}}
+
+ // Brake line volume
+ if(p==='/api/ecu/brake/line-volume'&&m==='POST'){try{
+   const b=await body(req);if(!b.caliper_bore_mm||!b.caliper_pistons||!b.masterBore_mm)return j({error:'caliper_bore_mm, caliper_pistons, masterBore_mm required'},400);
+   return j({ok:true,...calcBrakeLineLength(b.caliper_bore_mm,b.caliper_pistons,b.masterBore_mm)})}catch(e){return j({error:e.message},500)}}
+
+ // Recommend brake fluid
+ if(p==='/api/ecu/brake/recommend-fluid'&&m==='GET'){
+   const temp=parseInt(u.searchParams.get('maxRotorTemp_c')||'400');
+   return j({ok:true,...recommendBrakeFluid(temp)})}
+
+ // Pad compounds
+ if(p==='/api/ecu/brake/pads'&&m==='GET'){
+   const q=u.searchParams.get('q');
+   return j({ok:true,pads:q?searchPadCompounds(q):listPadCompounds()})}
+
+ // Get pad compound
+ if(p.startsWith('/api/ecu/brake/pads/')&&m==='GET'){
+   const key=p.split('/').pop();const pad=getPadCompound(key);
+   return pad?j({ok:true,...pad}):j({error:'Pad compound not found'},404)}
+
+ // Rotor types
+ if(p==='/api/ecu/brake/rotors'&&m==='GET'){return j({ok:true,rotors:listRotorTypes()})}
+
+ // Get rotor type
+ if(p.startsWith('/api/ecu/brake/rotors/')&&m==='GET'){
+   const key=p.split('/').pop();const r=getRotorType(key);
+   return r?j({ok:true,...r}):j({error:'Rotor type not found'},404)}
+
+ // Brake fluids
+ if(p==='/api/ecu/brake/fluids'&&m==='GET'){return j({ok:true,fluids:listBrakeFluids()})}
+
+ // Get brake fluid
+ if(p.startsWith('/api/ecu/brake/fluids/')&&m==='GET'){
+   const key=p.split('/').pop();const f=getBrakeFluid(key);
+   return f?j({ok:true,...f}):j({error:'Brake fluid not found'},404)}
+
+ // Caliper types
+ if(p==='/api/ecu/brake/calipers'&&m==='GET'){return j({ok:true,calipers:listCaliperTypes()})}
+
+ // Get caliper type
+ if(p.startsWith('/api/ecu/brake/calipers/')&&m==='GET'){
+   const key=p.split('/').pop();const c=getCaliperType(key);
+   return c?j({ok:true,...c}):j({error:'Caliper type not found'},404)}
+
+ // Brake stats
+ if(p==='/api/ecu/brake/stats'&&m==='GET'){
+   return j({ok:true,...brakeCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === WHEEL & TIRE FITMENT CALCULATOR ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // Tire diameter calc
+ if(p==='/api/ecu/wheel/tire-diameter'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcTireDiameter(d.width_mm||225,d.aspect_ratio||45,d.wheel_diameter_in||18)})}
+
+ // Compare tire sizes
+ if(p==='/api/ecu/wheel/compare-tires'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...compareTireSizes(d.stock_width||225,d.stock_aspect||45,d.stock_wheel||17,d.new_width||235,d.new_aspect||40,d.new_wheel||18)})}
+
+ // Wheel offset calc
+ if(p==='/api/ecu/wheel/offset'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcOffset(d.wheel_width_in||8,d.et_mm||35)})}
+
+ // Compare offsets
+ if(p==='/api/ecu/wheel/compare-offsets'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...compareOffsets(d.stock_width_in||7,d.stock_et_mm||45,d.new_width_in||8.5,d.new_et_mm||35)})}
+
+ // Speedometer correction
+ if(p==='/api/ecu/wheel/speedo-correction'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcSpeedoCorrection(d.stock_diameter_mm||634,d.new_diameter_mm||650)})}
+
+ // Load index lookup
+ if(p==='/api/ecu/wheel/load-index'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcLoadIndex(d.load_index||91)})}
+
+ // Speed rating lookup
+ if(p==='/api/ecu/wheel/speed-rating'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcSpeedRating(d.rating||'V')})}
+
+ // Stretch fit check
+ if(p==='/api/ecu/wheel/stretch-fit'&&m==='POST'){const d=await body(r);
+   return j({ok:true,...calcStretchFit(d.tire_width_mm||205,d.wheel_width_in||9)})}
+
+ // Bolt pattern list
+ if(p==='/api/ecu/wheel/bolt-patterns'&&m==='GET'){
+   return j({ok:true,boltPatterns:listBoltPatterns()})}
+
+ // Bolt pattern get
+ if(p.startsWith('/api/ecu/wheel/bolt-patterns/')&&m==='GET'){const k=decodeURIComponent(p.split('/').pop());
+   const b=getBoltPattern(k);
+   return b?j({ok:true,...b}):j({error:'Bolt pattern not found'},404)}
+
+ // Bolt pattern search
+ if(p==='/api/ecu/wheel/bolt-patterns/search'&&m==='POST'){const d=await body(r);
+   return j({ok:true,results:searchBoltPatterns(d.q||'')})}
+
+ // Tire types list
+ if(p==='/api/ecu/wheel/tire-types'&&m==='GET'){
+   return j({ok:true,tireTypes:listTireTypes()})}
+
+ // Tire type get
+ if(p.startsWith('/api/ecu/wheel/tire-types/')&&m==='GET'){const k=decodeURIComponent(p.split('/').pop());
+   const t=getTireType(k);
+   return t?j({ok:true,...t}):j({error:'Tire type not found'},404)}
+
+ // Wheel-tire stats
+ if(p==='/api/ecu/wheel/stats'&&m==='GET'){
+   return j({ok:true,...wheelTireCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === AERODYNAMICS CALCULATOR — Aerodinamik hesaplama motoru ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // -- Drag Profiles --
+ if(p==='/api/ecu/aero/profiles'&&m==='GET'){
+   const q=u.searchParams.get('q');
+   return j({ok:true,profiles:q?searchDragProfiles(q):listDragProfiles()})}
+
+ if(p.startsWith('/api/ecu/aero/profiles/')&&m==='GET'){
+   const key=p.split('/').pop();const d=getDragProfile(key);
+   return d?j({ok:true,...d}):j({ok:false,error:'Profile not found',available:Object.keys(DRAG_PROFILES)},404)}
+
+ // -- Wing Profiles --
+ if(p==='/api/ecu/aero/wings'&&m==='GET'){
+   return j({ok:true,profiles:listWingProfiles()})}
+
+ if(p.startsWith('/api/ecu/aero/wings/')&&m==='GET'){
+   const key=p.split('/').pop();const w=getWingProfile(key);
+   return w?j({ok:true,...w}):j({ok:false,error:'Wing profile not found',available:Object.keys(WING_PROFILES)},404)}
+
+ // -- Drag Force Calculator --
+ if(p==='/api/ecu/aero/drag'&&m==='POST'){
+   const b=await body(request);
+   if(!b.cd||!b.frontalArea_m2||!b.speed_kmh)return j({ok:false,error:'cd, frontalArea_m2, speed_kmh required'},400);
+   return j({ok:true,...calcDragForce(b.cd,b.frontalArea_m2,b.speed_kmh,b.airDensity)})}
+
+ if(p==='/api/ecu/aero/drag/profile'&&m==='POST'){
+   const b=await body(request);
+   if(!b.profile||!b.speed_kmh)return j({ok:false,error:'profile (key), speed_kmh required'},400);
+   const d=getDragProfile(b.profile);
+   if(!d)return j({ok:false,error:'Profile not found',available:Object.keys(DRAG_PROFILES)},404);
+   return j({ok:true,profile:d,...calcDragForce(d.cd,d.frontalArea_m2,b.speed_kmh,b.airDensity)})}
+
+ // -- Top Speed Estimator --
+ if(p==='/api/ecu/aero/topspeed'&&m==='POST'){
+   const b=await body(request);
+   if(!b.power_hp||!b.cd||!b.frontalArea_m2)return j({ok:false,error:'power_hp, cd, frontalArea_m2 required'},400);
+   return j({ok:true,...calcTopSpeed(b.power_hp,b.cd,b.frontalArea_m2,b.rollingResistance,b.vehicleWeight_kg,b.airDensity)})}
+
+ if(p==='/api/ecu/aero/topspeed/profile'&&m==='POST'){
+   const b=await body(request);
+   if(!b.power_hp||!b.profile)return j({ok:false,error:'power_hp, profile (key) required'},400);
+   const d=getDragProfile(b.profile);
+   if(!d)return j({ok:false,error:'Profile not found',available:Object.keys(DRAG_PROFILES)},404);
+   return j({ok:true,profile:d,...calcTopSpeed(b.power_hp,d.cd,d.frontalArea_m2,b.rollingResistance,b.vehicleWeight_kg,b.airDensity)})}
+
+ // -- Downforce Calculator --
+ if(p==='/api/ecu/aero/downforce'&&m==='POST'){
+   const b=await body(request);
+   if(!b.wing||!b.speed_kmh)return j({ok:false,error:'wing (profile key), speed_kmh required'},400);
+   return j({ok:true,...calcDownforce(b.wing,b.speed_kmh,b.frontalArea_m2,b.airDensity)})}
+
+ // -- Aero Balance --
+ if(p==='/api/ecu/aero/balance'&&m==='POST'){
+   const b=await body(request);
+   if(b.frontDownforce_n==null||b.rearDownforce_n==null||!b.vehicleWeight_kg)return j({ok:false,error:'frontDownforce_n, rearDownforce_n, vehicleWeight_kg required'},400);
+   return j({ok:true,...calcAeroBalance(b.frontDownforce_n,b.rearDownforce_n,b.vehicleWeight_kg,b.frontWeightPct)})}
+
+ // -- Speed Effect Curve --
+ if(p==='/api/ecu/aero/speed-effect'&&m==='POST'){
+   const b=await body(request);
+   if(!b.cd||!b.frontalArea_m2)return j({ok:false,error:'cd, frontalArea_m2 required'},400);
+   return j({ok:true,...calcSpeedEffect(b.cd,b.frontalArea_m2,b.vehicleWeight_kg,b.airDensity)})}
+
+ if(p==='/api/ecu/aero/speed-effect/profile'&&m==='POST'){
+   const b=await body(request);
+   if(!b.profile)return j({ok:false,error:'profile (key) required'},400);
+   const d=getDragProfile(b.profile);
+   if(!d)return j({ok:false,error:'Profile not found',available:Object.keys(DRAG_PROFILES)},404);
+   return j({ok:true,profile:d,...calcSpeedEffect(d.cd,d.frontalArea_m2,b.vehicleWeight_kg,b.airDensity)})}
+
+ // -- Altitude Effect --
+ if(p==='/api/ecu/aero/altitude'&&m==='POST'){
+   const b=await body(request);
+   if(!b.altitude_m||!b.cd||!b.frontalArea_m2||!b.speed_kmh)return j({ok:false,error:'altitude_m, cd, frontalArea_m2, speed_kmh required'},400);
+   return j({ok:true,...calcAltitudeEffect(b.altitude_m,b.cd,b.frontalArea_m2,b.speed_kmh)})}
+
+ // -- Coast-Down Cd Estimator --
+ if(p==='/api/ecu/aero/coastdown'&&m==='POST'){
+   const b=await body(request);
+   if(!b.speed1_kmh||!b.speed2_kmh||!b.time_s||!b.vehicleWeight_kg||!b.frontalArea_m2)return j({ok:false,error:'speed1_kmh, speed2_kmh, time_s, vehicleWeight_kg, frontalArea_m2 required'},400);
+   return j({ok:true,...calcCdFromCoasting(b.speed1_kmh,b.speed2_kmh,b.time_s,b.vehicleWeight_kg,b.frontalArea_m2,b.gradient_pct)})}
+
+ // -- Full Aero Analysis (compound) --
+ if(p==='/api/ecu/aero/analyze'&&m==='POST'){
+   const b=await body(request);
+   if(!b.profile||!b.speed_kmh||!b.power_hp)return j({ok:false,error:'profile, speed_kmh, power_hp required'},400);
+   const d=getDragProfile(b.profile);
+   if(!d)return j({ok:false,error:'Profile not found'},404);
+   const drag=calcDragForce(d.cd,d.frontalArea_m2,b.speed_kmh,b.airDensity);
+   const topSpd=calcTopSpeed(b.power_hp,d.cd,d.frontalArea_m2,b.rollingResistance,b.vehicleWeight_kg,b.airDensity);
+   const speedCurve=calcSpeedEffect(d.cd,d.frontalArea_m2,b.vehicleWeight_kg,b.airDensity);
+   const wings=b.wings?b.wings.map(w=>({wing:w,...calcDownforce(w,b.speed_kmh,d.frontalArea_m2,b.airDensity)})):[];
+   return j({ok:true,profile:d,atSpeed:drag,topSpeed:topSpd,speedCurve,wingAnalysis:wings})}
+
+ // -- Aero Stats --
+ if(p==='/api/ecu/aero/stats'&&m==='GET'){
+   return j({ok:true,...aeroCalcStats()})}
+
+ // ===================== WEIGHT DISTRIBUTION & LOAD TRANSFER CALCULATOR =====================
+
+ // -- Weight Classes --
+ if(p==='/api/ecu/weight/classes'&&m==='GET'){
+   const q=new URL(req.url).searchParams.get('q');
+   return j({ok:true,classes:q?searchWeightClasses(q):listWeightClasses()})}
+
+ if(p.match(/^\/api\/ecu\/weight\/classes\/[^/]+$/)&&m==='GET'){
+   const k=p.split('/').pop();
+   const c=getWeightClass(k);
+   if(!c)return j({ok:false,error:'Weight class not found'},404);
+   return j({ok:true,...c})}
+
+ // -- Layout Types --
+ if(p==='/api/ecu/weight/layouts'&&m==='GET'){
+   return j({ok:true,layouts:listLayoutTypes()})}
+
+ if(p.match(/^\/api\/ecu\/weight\/layouts\/[^/]+$/)&&m==='GET'){
+   const k=p.split('/').pop();
+   const l=getLayoutType(k);
+   if(!l)return j({ok:false,error:'Layout type not found'},404);
+   return j({ok:true,...l})}
+
+ // -- Longitudinal Transfer --
+ if(p==='/api/ecu/weight/longitudinal'&&m==='POST'){
+   const b=await body(request);
+   if(!b.vehicleWeight_kg||!b.wheelbase_mm||!b.cgHeight_mm||!b.accel_g)return j({ok:false,error:'vehicleWeight_kg, wheelbase_mm, cgHeight_mm, accel_g required'},400);
+   return j({ok:true,...calcLongitudinalTransfer(b.vehicleWeight_kg,b.wheelbase_mm,b.cgHeight_mm,b.accel_g)})}
+
+ // -- Lateral Transfer --
+ if(p==='/api/ecu/weight/lateral'&&m==='POST'){
+   const b=await body(request);
+   if(!b.vehicleWeight_kg||!b.trackWidth_mm||!b.cgHeight_mm||!b.lateral_g)return j({ok:false,error:'vehicleWeight_kg, trackWidth_mm, cgHeight_mm, lateral_g required'},400);
+   return j({ok:true,...calcLateralTransfer(b.vehicleWeight_kg,b.trackWidth_mm,b.cgHeight_mm,b.lateral_g)})}
+
+ // -- Estimate CG Height --
+ if(p==='/api/ecu/weight/cg-height'&&m==='POST'){
+   const b=await body(request);
+   if(!b.vehicleWeight_kg||!b.wheelbase_mm||!b.frontAxleWeight_rear_lifted_kg||!b.liftHeight_mm)return j({ok:false,error:'vehicleWeight_kg, wheelbase_mm, frontAxleWeight_rear_lifted_kg, liftHeight_mm required'},400);
+   return j({ok:true,...estimateCGHeight(b.vehicleWeight_kg,b.wheelbase_mm,b.frontAxleWeight_rear_lifted_kg,b.liftHeight_mm)})}
+
+ // -- Distribution Analysis --
+ if(p==='/api/ecu/weight/distribution'&&m==='POST'){
+   const b=await body(request);
+   if(!b.frontWeight_kg||!b.rearWeight_kg||!b.layout)return j({ok:false,error:'frontWeight_kg, rearWeight_kg, layout required'},400);
+   return j({ok:true,...analyzeDistribution(b.frontWeight_kg,b.rearWeight_kg,b.layout,b.wheelbase_mm)})}
+
+ // -- Ballast Calculator --
+ if(p==='/api/ecu/weight/ballast'&&m==='POST'){
+   const b=await body(request);
+   if(!b.currentFront_kg||!b.currentRear_kg||!b.targetFrontPct)return j({ok:false,error:'currentFront_kg, currentRear_kg, targetFrontPct required'},400);
+   return j({ok:true,...calcBallast(b.currentFront_kg,b.currentRear_kg,b.targetFrontPct,b.maxBallast_kg)})}
+
+ // -- Payload Effect --
+ if(p==='/api/ecu/weight/payload'&&m==='POST'){
+   const b=await body(request);
+   if(!b.vehicleWeight_kg||!b.frontPct||!b.payloadWeight_kg||b.payloadPosition_pct_from_front==null)return j({ok:false,error:'vehicleWeight_kg, frontPct, payloadWeight_kg, payloadPosition_pct_from_front required'},400);
+   return j({ok:true,...calcPayloadEffect(b.vehicleWeight_kg,b.frontPct,b.payloadWeight_kg,b.payloadPosition_pct_from_front)})}
+
+ // -- Power-to-Weight --
+ if(p==='/api/ecu/weight/power-to-weight'&&m==='POST'){
+   const b=await body(request);
+   if(!b.power_hp||!b.vehicleWeight_kg)return j({ok:false,error:'power_hp, vehicleWeight_kg required'},400);
+   return j({ok:true,...calcPowerToWeight(b.power_hp,b.vehicleWeight_kg,b.driverWeight_kg)})}
+
+ // -- Weight Reduction Analysis --
+ if(p==='/api/ecu/weight/reduction'&&m==='POST'){
+   const b=await body(request);
+   if(!b.vehicleWeight_kg||!b.power_hp||!b.reductions)return j({ok:false,error:'vehicleWeight_kg, power_hp, reductions[] required'},400);
+   return j({ok:true,...analyzeWeightReduction(b.vehicleWeight_kg,b.power_hp,b.reductions)})}
+
+ // -- Full Weight Analysis (compound) --
+ if(p==='/api/ecu/weight/analyze'&&m==='POST'){
+   const b=await body(request);
+   if(!b.frontWeight_kg||!b.rearWeight_kg||!b.layout||!b.power_hp)return j({ok:false,error:'frontWeight_kg, rearWeight_kg, layout, power_hp required'},400);
+   const dist=analyzeDistribution(b.frontWeight_kg,b.rearWeight_kg,b.layout,b.wheelbase_mm);
+   const ptw=calcPowerToWeight(b.power_hp,b.frontWeight_kg+b.rearWeight_kg,b.driverWeight_kg);
+   const longT=b.wheelbase_mm&&b.cgHeight_mm?calcLongitudinalTransfer(b.frontWeight_kg+b.rearWeight_kg,b.wheelbase_mm,b.cgHeight_mm,b.accel_g||0.5):null;
+   const latT=b.trackWidth_mm&&b.cgHeight_mm?calcLateralTransfer(b.frontWeight_kg+b.rearWeight_kg,b.trackWidth_mm,b.cgHeight_mm,b.lateral_g||0.8):null;
+   const payload=b.payloadWeight_kg?calcPayloadEffect(b.frontWeight_kg+b.rearWeight_kg,dist.frontPct,b.payloadWeight_kg,b.payloadPosition_pct_from_front||50):null;
+   const reduction=b.reductions?analyzeWeightReduction(b.frontWeight_kg+b.rearWeight_kg,b.power_hp,b.reductions):null;
+   return j({ok:true,distribution:dist,powerToWeight:ptw,longitudinalTransfer:longT,lateralTransfer:latT,payloadEffect:payload,weightReduction:reduction})}
+
+ // -- Weight Stats --
+ if(p==='/api/ecu/weight/stats'&&m==='GET'){
+   return j({ok:true,...weightDistCalcStats()})}
+
+ // ===================== INTERCOOLER & CHARGE AIR SYSTEM CALCULATOR =====================
+
+ // -- Intercooler Types DB --
+ if(p==='/api/ecu/intercooler/types'&&m==='GET'){return j({ok:true,types:listIntercoolerTypes()})}
+ if(p.match(/^\/api\/ecu\/intercooler\/types\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const t=getIntercoolerType(id);return t?j({ok:true,type:t}):j({error:'TYPE_NOT_FOUND'},404)}
+
+ // -- Core Sizes DB --
+ if(p==='/api/ecu/intercooler/core-sizes'&&m==='GET'){return j({ok:true,coreSizes:listCoreSizes()})}
+ if(p.match(/^\/api\/ecu\/intercooler\/core-sizes\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const c=getCoreSize(id);return c?j({ok:true,coreSize:c}):j({error:'SIZE_NOT_FOUND'},404)}
+
+ // -- Piping Materials DB --
+ if(p==='/api/ecu/intercooler/piping-materials'&&m==='GET'){return j({ok:true,materials:listPipingMaterials()})}
+ if(p.match(/^\/api\/ecu\/intercooler\/piping-materials\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const pm=getPipingMaterial(id);return pm?j({ok:true,material:pm}):j({error:'MATERIAL_NOT_FOUND'},404)}
+
+ // -- Compressor Outlet Temp --
+ if(p==='/api/ecu/intercooler/compressor-outlet-temp'&&m==='POST'){
+   const b=await body(req);
+   if(!b.ambientTemp_C||!b.pressureRatio)return j({error:'MISSING_PARAMS: ambientTemp_C, pressureRatio'},400);
+   return j({ok:true,...calcCompressorOutletTemp(b.ambientTemp_C,b.pressureRatio,b.compressorEfficiency)})}
+
+ // -- Intercooler Efficiency --
+ if(p==='/api/ecu/intercooler/efficiency'&&m==='POST'){
+   const b=await body(req);
+   if(!b.inletTemp_C||!b.outletTemp_C||!b.ambientTemp_C)return j({error:'MISSING_PARAMS: inletTemp_C, outletTemp_C, ambientTemp_C'},400);
+   return j({ok:true,...calcIntercoolerEfficiency(b.inletTemp_C,b.outletTemp_C,b.ambientTemp_C)})}
+
+ // -- Size Intercooler Core --
+ if(p==='/api/ecu/intercooler/size-core'&&m==='POST'){
+   const b=await body(req);
+   if(!b.power_hp||!b.boost_psi)return j({error:'MISSING_PARAMS: power_hp, boost_psi'},400);
+   return j({ok:true,...sizeIntercoolerCore(b.power_hp,b.boost_psi,b.ambientTemp_C,b.type)})}
+
+ // -- Pressure Drop --
+ if(p==='/api/ecu/intercooler/pressure-drop'&&m==='POST'){
+   const b=await body(req);
+   if(!b.boost_psi||!b.flowRate_cfm)return j({error:'MISSING_PARAMS: boost_psi, flowRate_cfm'},400);
+   return j({ok:true,...calcPressureDrop(b.boost_psi,b.flowRate_cfm,b.coreDepth_mm,b.pipeDiameter_mm)})}
+
+ // -- Water-to-Air IC Sizing --
+ if(p==='/api/ecu/intercooler/water-to-air'&&m==='POST'){
+   const b=await body(req);
+   if(!b.power_hp||!b.boost_psi)return j({error:'MISSING_PARAMS: power_hp, boost_psi'},400);
+   return j({ok:true,...sizeWaterToAir(b.power_hp,b.boost_psi,b.ambientTemp_C,b.waterTemp_C)})}
+
+ // -- Piping Diameter Recommendation --
+ if(p==='/api/ecu/intercooler/piping-diameter'&&m==='POST'){
+   const b=await body(req);
+   if(!b.power_hp||!b.boost_psi)return j({error:'MISSING_PARAMS: power_hp, boost_psi'},400);
+   return j({ok:true,...recommendPipingDiameter(b.power_hp,b.boost_psi)})}
+
+ // -- Water/Meth Injection --
+ if(p==='/api/ecu/intercooler/water-injection'&&m==='POST'){
+   const b=await body(req);
+   if(!b.power_hp||!b.boost_psi)return j({error:'MISSING_PARAMS: power_hp, boost_psi'},400);
+   return j({ok:true,...calcWaterInjection(b.power_hp,b.boost_psi,b.ambientTemp_C)})}
+
+ // -- Heat Soak Analysis --
+ if(p==='/api/ecu/intercooler/heat-soak'&&m==='POST'){
+   const b=await body(req);
+   if(!b.intercoolerType||!b.ambientTemp_C||!b.boostPressure_psi)return j({error:'MISSING_PARAMS: intercoolerType, ambientTemp_C, boostPressure_psi'},400);
+   return j({ok:true,...analyzeHeatSoak(b.intercoolerType,b.ambientTemp_C,b.boostPressure_psi,b.idleTime_min)})}
+
+ // -- Intercooler Stats --
+ if(p==='/api/ecu/intercooler/stats'&&m==='GET'){
+   return j({ok:true,...intercoolerCalcStats()})}
+
+ // ===================== AUTOMOTIVE ELECTRICAL SYSTEM CALCULATOR =====================
+
+ // -- Wire Gauges DB --
+ if(p==='/api/ecu/electrical/wire-gauges'&&m==='GET'){return j({ok:true,gauges:listWireGauges()})}
+ if(p.match(/^\/api\/ecu\/electrical\/wire-gauges\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const w=getWireGauge(id);return w?j({ok:true,gauge:w}):j({error:'GAUGE_NOT_FOUND'},404)}
+
+ // -- Battery Types DB --
+ if(p==='/api/ecu/electrical/battery-types'&&m==='GET'){return j({ok:true,batteryTypes:listBatteryTypes()})}
+ if(p.match(/^\/api\/ecu\/electrical\/battery-types\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const bt=getBatteryType(id);return bt?j({ok:true,batteryType:bt}):j({error:'BATTERY_TYPE_NOT_FOUND'},404)}
+
+ // -- Common Loads DB --
+ if(p==='/api/ecu/electrical/common-loads'&&m==='GET'){return j({ok:true,loads:listCommonLoads()})}
+ if(p.match(/^\/api\/ecu\/electrical\/common-loads\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const l=getCommonLoad(id);return l?j({ok:true,load:l}):j({error:'LOAD_NOT_FOUND'},404)}
+
+ // -- Search Common Loads --
+ if(p==='/api/ecu/electrical/common-loads/search'&&m==='GET'){
+   const u=new URL(req.url);const q=u.searchParams.get('q')||'';
+   return j({ok:true,results:searchCommonLoads(q)})}
+
+ // -- Voltage Drop --
+ if(p==='/api/ecu/electrical/voltage-drop'&&m==='POST'){
+   const b=await body(req);
+   if(!b.current_A||!b.wireLength_m||!b.gaugeAWG)return j({error:'MISSING_PARAMS: current_A, wireLength_m, gaugeAWG'},400);
+   return j({ok:true,...calcVoltageDrop(b.current_A,b.wireLength_m,b.gaugeAWG,b.systemVoltage)})}
+
+ // -- Wire Gauge Recommendation --
+ if(p==='/api/ecu/electrical/recommend-gauge'&&m==='POST'){
+   const b=await body(req);
+   if(!b.current_A||!b.wireLength_m)return j({error:'MISSING_PARAMS: current_A, wireLength_m'},400);
+   return j({ok:true,...recommendWireGauge(b.current_A,b.wireLength_m,b.maxDropPercent,b.environment)})}
+
+ // -- Alternator Sizing --
+ if(p==='/api/ecu/electrical/size-alternator'&&m==='POST'){
+   const b=await body(req);
+   if(!b.loads||!Array.isArray(b.loads))return j({error:'MISSING_PARAMS: loads (array of load IDs or objects)'},400);
+   return j({ok:true,...sizeAlternator(b.loads,b.idleRPMRatio,b.headroom_pct)})}
+
+ // -- Battery Analysis --
+ if(p==='/api/ecu/electrical/analyze-battery'&&m==='POST'){
+   const b=await body(req);
+   if(!b.batteryType||!b.capacity_Ah||!b.loads)return j({error:'MISSING_PARAMS: batteryType, capacity_Ah, loads'},400);
+   return j({ok:true,...analyzeBattery(b.batteryType,b.capacity_Ah,b.loads,b.cranking_A)})}
+
+ // -- Fuse & Relay Sizing --
+ if(p==='/api/ecu/electrical/size-fuse-relay'&&m==='POST'){
+   const b=await body(req);
+   if(!b.current_A)return j({error:'MISSING_PARAMS: current_A'},400);
+   return j({ok:true,...sizeFuseRelay(b.current_A,b.loadType,b.wireGauge)})}
+
+ // -- Full Electrical Audit --
+ if(p==='/api/ecu/electrical/audit'&&m==='POST'){
+   const b=await body(req);
+   if(!b.alternator_A||!b.battery_Ah||!b.batteryType)return j({error:'MISSING_PARAMS: alternator_A, battery_Ah, batteryType'},400);
+   return j({ok:true,...auditElectricalSystem(b.alternator_A,b.battery_Ah,b.batteryType,b.loadIds,b.customLoads)})}
+
+ // -- Big 3 Upgrade --
+ if(p==='/api/ecu/electrical/big3-upgrade'&&m==='POST'){
+   const b=await body(req);
+   if(!b.alternator_A)return j({error:'MISSING_PARAMS: alternator_A'},400);
+   return j({ok:true,...calcBig3Upgrade(b.alternator_A,b.cableLength_battery_to_engine_m,b.cableLength_battery_to_chassis_m,b.cableLength_alternator_to_battery_m)})}
+
+ // -- Electrical Stats --
+ if(p==='/api/ecu/electrical/stats'&&m==='GET'){
+   return j({ok:true,...electricalCalcStats()})}
+
+ // ===================== EMISSIONS & ENVIRONMENTAL COMPLIANCE CALCULATOR =====================
+
+ // -- Emission Standards DB --
+ if(p==='/api/ecu/emissions/standards'&&m==='GET'){
+   const u=new URL(req.url);const region=u.searchParams.get('region')||null;
+   return j({ok:true,standards:listEmissionStandards(region)})}
+ if(p.match(/^\/api\/ecu\/emissions\/standards\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const s=getEmissionStandard(id);return s?j({ok:true,standard:s}):j({error:'STANDARD_NOT_FOUND'},404)}
+
+ // -- Fuel Properties DB --
+ if(p==='/api/ecu/emissions/fuel-properties'&&m==='GET'){return j({ok:true,fuels:listFuelProperties()})}
+ if(p.match(/^\/api\/ecu\/emissions\/fuel-properties\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const f=getFuelProperty(id);return f?j({ok:true,fuel:f}):j({error:'FUEL_NOT_FOUND'},404)}
+
+ // -- Catalyst Types DB --
+ if(p==='/api/ecu/emissions/catalyst-types'&&m==='GET'){return j({ok:true,catalysts:listCatalystTypes()})}
+ if(p.match(/^\/api\/ecu\/emissions\/catalyst-types\/[^/]+$/)&&m==='GET'){const id=p.split('/').pop();const c=getCatalystType(id);return c?j({ok:true,catalyst:c}):j({error:'CATALYST_NOT_FOUND'},404)}
+
+ // -- Estimate Emissions --
+ if(p==='/api/ecu/emissions/estimate'&&m==='POST'){
+   const b=await body(req);
+   if(!b.power_hp||!b.fuelConsumption_LPer100km)return j({error:'MISSING_PARAMS: power_hp, fuelConsumption_LPer100km'},400);
+   return j({ok:true,...estimateEmissions(b.power_hp,b.fuelConsumption_LPer100km,b.fuelType,b.lambda,b.catalystType)})}
+
+ // -- Compliance Check --
+ if(p==='/api/ecu/emissions/check-compliance'&&m==='POST'){
+   const b=await body(req);
+   if(!b.emissions_gPerKm||!b.standardId)return j({error:'MISSING_PARAMS: emissions_gPerKm, standardId'},400);
+   return j({ok:true,...checkCompliance(b.emissions_gPerKm,b.standardId)})}
+
+ // -- CO2 Estimation --
+ if(p==='/api/ecu/emissions/co2'&&m==='POST'){
+   const b=await body(req);
+   if(!b.fuelConsumption_LPer100km)return j({error:'MISSING_PARAMS: fuelConsumption_LPer100km'},400);
+   return j({ok:true,...estimateCO2(b.fuelConsumption_LPer100km,b.fuelType,b.annualDistance_km)})}
+
+ // -- EGR Impact --
+ if(p==='/api/ecu/emissions/egr-impact'&&m==='POST'){
+   const b=await body(req);
+   if(!b.egrRate_pct||!b.baseNox_gPerKm||!b.baseCO2_gPerKm)return j({error:'MISSING_PARAMS: egrRate_pct, baseNox_gPerKm, baseCO2_gPerKm'},400);
+   return j({ok:true,...calcEGRImpact(b.egrRate_pct,b.baseNox_gPerKm,b.baseCO2_gPerKm,b.basePM_gPerKm)})}
+
+ // -- Catalyst Health Estimation --
+ if(p==='/api/ecu/emissions/cat-health'&&m==='POST'){
+   const b=await body(req);
+   if(!b.catAge_km)return j({error:'MISSING_PARAMS: catAge_km'},400);
+   return j({ok:true,...estimateCatHealth(b.catAge_km,b.catType,b.operatingConditions)})}
+
+ // -- Compare Fuel Emissions --
+ if(p==='/api/ecu/emissions/compare-fuels'&&m==='POST'){
+   const b=await body(req);
+   if(!b.fuelConsumption_LPer100km)return j({error:'MISSING_PARAMS: fuelConsumption_LPer100km'},400);
+   return j({ok:true,...compareFuelEmissions(b.fuelConsumption_LPer100km,b.fuelTypes)})}
+
+ // -- Modification Impact Assessment --
+ if(p==='/api/ecu/emissions/mod-impact'&&m==='POST'){
+   const b=await body(req);
+   if(!b.modifications||!Array.isArray(b.modifications))return j({error:'MISSING_PARAMS: modifications (array)'},400);
+   return j({ok:true,...assessModImpact(b.modifications)})}
+
+ // -- Emissions Stats --
+ if(p==='/api/ecu/emissions/stats'&&m==='GET'){
+   return j({ok:true,...emissionsCalcStats()})}
+
+ // ═══════════════════════════════════════════════════════════════════════════
  // === ECU SYSTEM OVERVIEW — Tüm ECU sistemi durum özeti ===
  // ═══════════════════════════════════════════════════════════════════════════
 
@@ -2097,6 +4813,7 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    const memory=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_file_memory');
    let projectCount=0;try{const pc=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuning_projects');projectCount=pc?.cnt||0}catch(e){}
    let sessionCount=0;try{const sc=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_tuning_sessions');sessionCount=sc?.cnt||0}catch(e){}
+   let readinessCount=0;try{const rc=await q1(env,'SELECT COUNT(*) as cnt FROM ecu_readiness_history');readinessCount=rc?.cnt||0}catch(e){}
    const checksumAlgos=listChecksumAlgorithms();
    const flashProtos=listFlashProtocols();
    const safetyAll=getAllSafetyLimits();
@@ -2110,10 +4827,104 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
      fileMemory:memory?.cnt||0,
      projects:projectCount,
      sessions:sessionCount,
+     readinessSnapshots:readinessCount,
+     obdMonitors:Object.keys(OBD_MONITORS).length,
+     emissionsStandards:listEmissionsStandards().length,
+     driveCycles:listDriveCycles().length,
+     ecuPinoutFamilies:listEcuPinouts().length,
+     obd2Protocols:Object.keys(OBD2_CONNECTOR.protocols).length,
+     fileConverterFormats:listFormats().length,
+     udsServices:listUDSServices().length,
+     kwp2000Services:listKWP2000Services().length,
+     commonDIDs:listDIDs().length,
+     flashSequences:listUDSFlashSequences().length,
      checksumAlgorithms:checksumAlgos.length,
      flashProtocols:flashProtos.length,
      safetyLimitSystems:Object.keys(safetyAll).length,
      dtcSystems:dtcSystems.length,
+     vinManufacturers:Object.keys(WMI_DATABASE).length,
+     vinStats:vinDecoderStats(),
+     fuelInjectors:listInjectors().length,
+     fuelTypes:listFuelTypes().length,
+     fuelCalculations:fuelCalcStats().calculations.length,
+     turboDatabase:listTurbos().length,
+     turboManufacturers:turboCalcStats().manufacturers.length,
+     turboCalculations:turboCalcStats().calculations.length,
+     exhaustPipeSizes:listPipeSizes().length,
+     exhaustCats:listCats().length,
+     exhaustCalculations:exhaustCalcStats().calculations.length,
+     engineConfigs:listEngineConfigs().length,
+     engineCalculations:engineMathStats().calculations.length,
+     camProfiles:listCams().length,
+     camCalculations:camCalcStats().calculations.length,
+     transmissionDatabase:listTransmissions().length,
+     tireSizes:listTireSizes().length,
+     drivetrainTypes:listDrivetrainTypes().length,
+     drivetrainCalculations:drivetrainCalcStats().calculations.length,
+     coolantTypes:listCoolantTypes().length,
+     radiatorDatabase:listRadiators().length,
+     fanDatabase:listFans().length,
+     thermostatRatings:listThermostats().length,
+     coolingCalculations:coolingCalcStats().calculations.length,
+     octaneRatings:listOctanes().length,
+     knockSensors:listKnockSensors().length,
+     knockCalculations:knockCalcStats().calculations.length,
+     fuelStoichTypes:listFuelStoich().length,
+     widebandSensors:listWidebandSensors().length,
+     lambdaTargets:listLambdaTargets().length,
+     lambdaCalculations:lambdaCalcStats().calculations.length,
+     ignitionCoils:listCoils().length,
+     sparkPlugs:listSparkPlugs().length,
+     ignitionCalculations:ignitionCalcStats().calculations.length,
+     oilGrades:listOils().length,
+     oilPumps:listPumps().length,
+     oilCoolers:listCoolers().length,
+     oilCalculations:oilCalcStats().calculations.length,
+     nitrousJets:listJets().length,
+     nitrousBottles:listBottles().length,
+     nitrousCalculations:nitrousCalcStats().calculations.length,
+     intakeManifolds:listManifolds().length,
+     throttleBodies:listThrottleBodies().length,
+     intakeCalculations:intakeCalcStats().calculations.length,
+     datalogProfiles:listLogProfiles().length,
+     datalogTriggerTypes:listTriggerTypes().length,
+     datalogExportFormats:dataloggerStats().exportFormats.length,
+     flexFuelBlends:listFuelBlends().length,
+     ethanolSensors:listEthanolSensors().length,
+     flexFuelCalculations:flexfuelCalcStats().calculations.length,
+     diagnosticSensorRanges:listSensorRanges().length,
+     diagnosticPatterns:listDiagnosticPatterns().length,
+     diagnosticCalculations:ecuDiagnosticsStats().calculations.length,
+     tcuTransmissions:Object.keys(TCU_TRANS_TYPES).length,
+     tcuConverters:Object.keys(TORQUE_CONVERTERS).length,
+     tcuShiftProfiles:Object.keys(SHIFT_PROFILES).length,
+     tcuCalculations:tcuTuningStats().calculations.length,
+     diffTypes:Object.keys(DIFF_TYPES).length,
+     diffRatios:Object.keys(DIFF_RATIOS).length,
+     transferCases:Object.keys(TRANSFER_CASES).length,
+     diffCalculations:differentialCalcStats().calculations.length,
+     suspSpringTypes:Object.keys(SPRING_TYPES).length,
+     suspDamperTypes:Object.keys(DAMPER_TYPES).length,
+     suspSwayBarSizes:Object.keys(SWAY_BAR_SIZES).length,
+     suspAlignmentPresets:Object.keys(ALIGNMENT_SPECS).length,
+     suspCalculations:suspensionCalcStats().calculations.length,
+     brakePadCompounds:Object.keys(PAD_COMPOUNDS).length,
+     brakeRotorTypes:Object.keys(ROTOR_TYPES).length,
+     brakeFluids:Object.keys(BRAKE_FLUIDS).length,
+     brakeCaliperTypes:Object.keys(CALIPER_TYPES).length,
+     brakeCalculations:brakeCalcStats().calculations.length,
+     wheelBoltPatterns:Object.keys(BOLT_PATTERNS).length,
+     wheelTireTypes:Object.keys(TIRE_TYPES).length,
+     wheelCalculations:wheelTireCalcStats().calculations.length,
+     aeroDragProfiles:Object.keys(DRAG_PROFILES).length,
+     aeroWingProfiles:Object.keys(WING_PROFILES).length,
+     aeroCalculations:aeroCalcStats().calculations.length,
+     weightClasses:Object.keys(WEIGHT_CLASSES).length,
+     layoutTypes:Object.keys(LAYOUT_TYPES).length,
+     weightDistCalculations:weightDistCalcStats().calculations.length,
+     intercoolerCalculations:intercoolerCalcStats().calculations.length,
+     electricalCalculations:electricalCalcStats().calculations.length,
+     emissionsCalculations:emissionsCalcStats().calculations.length,
      capabilities:[
        'binary_upload','multi_format_download','5_tier_detection',
        'definition_matching','a2l_xdf_parsing','checksum_correction',
@@ -2122,7 +4933,72 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
        'flash_protocols','safety_limits','project_management',
        'session_tracking','notes','file_memory','vehicle_db',
        'hex_view','map_tables','batch_operations','diff_reports',
-       'stage1_preview','obd_bridge','thinkdiag_import'
+       'stage1_preview','obd_bridge','thinkdiag_import',
+       'readiness_monitors','emissions_check','drive_cycles',
+       'freeze_frame','obd_modes','readiness_history',
+       'wiring_pinouts','obd2_connector','wiring_verify','flash_pins',
+       'file_converter','ihex_parse','srec_parse','format_detect','file_compare',
+       'can_frame_parse','can_log_parse','uds_decode','kwp2000_decode',
+       'isotp_parse','isotp_reassemble','flash_sequences','did_lookup','nrc_lookup',
+       'vin_decode','vin_validate','vin_batch','vin_manufacturer_search','vin_wmi_lookup',
+       'fuel_duty_cycle','fuel_injector_sizing','fuel_afr_calc','fuel_lambda_convert',
+       'fuel_boost_calc','fuel_wastegate','fuel_maf_scale','fuel_pump_sizing','fuel_ve_estimate',
+       'fuel_injector_db','fuel_type_db',
+       'turbo_airflow','turbo_pressure_ratio','turbo_compressor_temp','turbo_intercooler',
+       'turbo_ar_select','turbo_sizing','turbo_surge_choke','turbo_twin_config',
+       'turbo_database','turbo_search',
+       'exhaust_flow','exhaust_pipe_size','exhaust_backpressure','exhaust_header_size',
+       'exhaust_cat_size','exhaust_egt_check','exhaust_pipe_db','exhaust_cat_db',
+       'engine_displacement','engine_compression_ratio','engine_dynamic_cr','engine_piston_speed',
+       'engine_torque_hp','engine_bmep','engine_efficiency','engine_rod_ratio',
+       'engine_cylinder_pressure','engine_config_db',
+       'cam_timing_events','cam_valve_float','cam_compare','cam_recommend',
+       'cam_profile_db','cam_search',
+       'drivetrain_speed_at_rpm','drivetrain_rpm_at_speed','drivetrain_wheel_hp',
+       'drivetrain_crank_hp','drivetrain_gear_analysis','drivetrain_0to100',
+       'drivetrain_max_speeds','drivetrain_transmission_db','drivetrain_tire_db',
+       'cooling_heat_rejection','cooling_coolant_flow','cooling_radiator_size',
+       'cooling_boiling_point','cooling_fan_size','cooling_water_pump',
+       'cooling_thermostat','cooling_coolant_db','cooling_radiator_db','cooling_fan_db',
+       'knock_frequency','knock_detonation_risk','knock_timing_retard','knock_timing_map',
+       'knock_window_analysis','knock_octane_db','knock_sensor_db','knock_sensor_search',
+       'lambda_pid_tuning','lambda_map_gen','lambda_sensor_calibrate','lambda_free_air_cal',
+       'lambda_ethanol_estimate','lambda_fuel_stoich_db','lambda_wideband_sensor_db',
+       'lambda_sensor_search','lambda_target_db','lambda_target_lookup',
+       'ignition_mbt','ignition_knock_limit','ignition_timing_curve','ignition_dwell',
+       'ignition_spark_gap','ignition_spark_energy','ignition_timing_table',
+       'ignition_coil_db','ignition_coil_search','ignition_spark_plug_db','ignition_spark_plug_search',
+       'oil_viscosity','oil_pressure','oil_cooler_sizing','oil_pump_flow','oil_analysis',
+       'oil_spec_recommend','oil_grade_db','oil_pump_db','oil_cooler_db','oil_search',
+       'nitrous_hp_gain','nitrous_timing_retard','nitrous_fuel_enrichment','nitrous_bottle_pressure',
+       'nitrous_bottle_duration','nitrous_purge','nitrous_safety_checklist','nitrous_jet_db','nitrous_bottle_db','nitrous_search',
+       'intake_runner_length','intake_runner_diameter','intake_plenum_volume','intake_throttle_body_size',
+       'intake_airflow','intake_variable_intake','intake_port_flow','intake_manifold_db','intake_throttle_body_db','intake_search',
+       'datalog_session_mgmt','datalog_sample_append','datalog_export_csv','datalog_export_megalogviewer','datalog_export_vcds',
+       'datalog_analyze','datalog_anomaly_detect','datalog_correlate','datalog_sample_budget','datalog_profiles','datalog_triggers',
+       'flexfuel_blend_calc','flexfuel_injector_req','flexfuel_pump_req','flexfuel_timing_advance','flexfuel_coldstart',
+       'flexfuel_sensor_freq','flexfuel_sensor_volt','flexfuel_e85_conversion','flexfuel_blend_db','flexfuel_sensor_db','flexfuel_sensor_search',
+       'diag_sensor_validate','diag_multi_validate','diag_diagnose','diag_health_score','diag_fuel_trims','diag_o2_sensor','diag_maintenance','diag_pattern_db','diag_classify_dtc',
+       'tcu_shift_points','tcu_line_pressure','tcu_converter_slip','tcu_launch_control','tcu_optimize_shifts',
+       'tcu_clutch_wear','tcu_recommend_fluid','tcu_transmission_db','tcu_converter_db','tcu_shift_profile_db','tcu_search',
+       'diff_crawl_ratio','diff_speed_at_rpm','diff_rpm_at_speed','diff_torque_split','diff_temp',
+       'diff_recommend_ratio','diff_recommend_fluid','diff_tcase_gearing','diff_type_db','diff_ratio_db','diff_tcase_db','diff_fluid_db',
+       'susp_spring_rate','susp_damper_ratio','susp_ride_height','susp_sway_bar','susp_corner_weight',
+       'susp_bump_steer','susp_anti_squat','susp_alignment','susp_spring_db','susp_damper_db','susp_sway_bar_db','susp_alignment_db',
+       'brake_force','brake_stopping_dist','brake_bias','brake_rotor_temp','brake_kinetic_energy',
+       'brake_pedal_ratio','brake_line_volume','brake_recommend_fluid','brake_pad_db','brake_rotor_db','brake_fluid_db','brake_caliper_db',
+       'wheel_tire_diameter','wheel_compare_tires','wheel_offset','wheel_compare_offsets','wheel_speedo_correction',
+       'wheel_load_index','wheel_speed_rating','wheel_stretch_fit','wheel_bolt_pattern_db','wheel_tire_type_db',
+       'aero_drag_force','aero_top_speed','aero_downforce','aero_balance','aero_speed_effect',
+       'aero_altitude_effect','aero_coastdown_cd','aero_full_analysis','aero_drag_profile_db','aero_wing_profile_db',
+       'weight_longitudinal_transfer','weight_lateral_transfer','weight_cg_height','weight_distribution','weight_ballast',
+       'weight_payload_effect','weight_power_to_weight','weight_reduction','weight_full_analysis','weight_class_db','weight_layout_db',
+       'ic_compressor_outlet_temp','ic_efficiency','ic_size_core','ic_pressure_drop','ic_water_to_air','ic_piping_diameter',
+       'ic_water_injection','ic_heat_soak','ic_type_db','ic_core_size_db','ic_piping_material_db',
+       'elec_voltage_drop','elec_wire_gauge','elec_alternator_size','elec_battery_analysis','elec_fuse_relay',
+       'elec_system_audit','elec_big3_upgrade','elec_wire_gauge_db','elec_battery_type_db','elec_common_load_db',
+       'emissions_estimate','emissions_compliance','emissions_co2','emissions_egr_impact','emissions_cat_health',
+       'emissions_compare_fuels','emissions_mod_impact','emissions_standard_db','emissions_fuel_property_db','emissions_catalyst_type_db'
      ]
    }});
  }catch(e){return j({error:e.message},500)}}
