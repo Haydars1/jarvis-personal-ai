@@ -5,7 +5,8 @@ const AI_PROVIDER_NAMES = {
   mistral: 'Mistral',
   xai: 'xAI',
   together: 'Together AI',
-  fireworks: 'Fireworks AI'
+  fireworks: 'Fireworks AI',
+  freellmapi: 'FreeLLMAPI'
 };
 
 export function createProviderState(core) {

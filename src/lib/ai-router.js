@@ -4,6 +4,7 @@
 import { fetchT, withTimeout, now } from './core.js';
 import { run, kvGet, kvSet } from './d1.js';
 import { credentialRows, credentialSecrets, providerBase, providerModel } from './credentials.js';
+import { normalizeFreeLlmApiEndpoint } from './freellmapi.js';
 
 // --- Router state ---
 
@@ -98,9 +99,10 @@ export async function callVaultAI(env, c, messages, ms = 9000) {
     if (!r.ok) throw Error('ANTHROPIC_' + r.status);
     return (await r.json()).content?.map(x => x.text || '').join('') || ''
   }
-  const base = providerBase(p, c.endpoint); if (!base) throw Error('NO_ENDPOINT');
-  const model = providerModel(p, c.model);
-  const r = await fetchT(base + '/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
+  const base = p === 'freellmapi' ? normalizeFreeLlmApiEndpoint(c.endpoint) : providerBase(p, c.endpoint);
+  if (!base) throw Error('NO_ENDPOINT');
+  const model = p === 'freellmapi' ? (c.model || 'auto') : providerModel(p, c.model);
+  const r = await fetchT(base + '/chat/completions', { method: 'POST', redirect: p === 'freellmapi' ? 'error' : 'follow', headers: { 'content-type': 'application/json', 'authorization': 'Bearer ' + sec, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' }, body: JSON.stringify({ model, messages, temperature: .25 }) }, ms);
   if (!r.ok) throw Error((p || 'AI').toUpperCase() + '_' + r.status);
   return (await r.json()).choices?.[0]?.message?.content || ''
 }

@@ -9,6 +9,7 @@ import {
 } from '../../lib/runtime.js';
 import { scoreProvider, taskKind } from '../../lib/orchestration.js';
 import { capabilityProfile } from '../../lib/capability-policy.js';
+import { normalizeFreeLlmApiEndpoint } from '../../lib/freellmapi.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
 const IMAGE_CF_MODEL = '@cf/black-forest-labs/flux-1-schnell';
@@ -72,7 +73,7 @@ async function cfText(env, messages) {
 
 export async function rankedVaultRows(env, capability) {
   const rows = await queryAll(env, "SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures, m.last_error AS metric_last_error, m.updated_at AS metric_updated_at FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC,c.created_at ASC");
-  const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible'];
+  const supported = ['gemini','groq','openrouter','nvidia','deepseek','mistral','xai','together','fireworks','openai','anthropic','perplexity','cerebras','sambanova','openai-compatible','freellmapi'];
   return rows
     .filter(row => supported.includes(String(row.provider || '').toLowerCase()))
     .map(row => ({ row, score:scoreProvider(row, capability) }))
@@ -153,7 +154,7 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
     if (!text) throw new Error('GEMINI_EMPTY');
     return { provider: credential.label || 'Gemini', text };
   }
-  const model = String(credential.model || '').trim();
+  const model = String(credential.model || (provider === 'freellmapi' ? 'auto' : '')).trim();
   if (provider === 'anthropic') {
     if (!model) throw new Error('NO_MODEL');
     const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
@@ -178,12 +179,15 @@ async function rawCallVaultProvider(env, credential, messages, timeoutMs = 8500,
     together: 'https://api.together.xyz/v1', fireworks: 'https://api.fireworks.ai/inference/v1',
     perplexity: 'https://api.perplexity.ai', cerebras: 'https://api.cerebras.ai/v1'
   };
-  const base = String(credential.endpoint || endpoints[provider] || '').replace(/\/$/, '');
+  const base = provider === 'freellmapi'
+    ? normalizeFreeLlmApiEndpoint(credential.endpoint)
+    : String(credential.endpoint || endpoints[provider] || '').replace(/\/$/, '');
   if (!base) throw new Error('NO_ENDPOINT');
   const endpoint = /\/chat\/completions$/i.test(base) ? base : `${base}/chat/completions`;
   if (!model) throw new Error('NO_MODEL');
   const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
+    redirect: provider === 'freellmapi' ? 'error' : 'follow',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}`, 'HTTP-Referer': 'https://jarvis-personal-ai.haydojarvis.workers.dev', 'X-Title': 'JARVIS' },
     body: JSON.stringify({ model, messages, temperature: 0.25, max_tokens: 900 })
   }, timeoutMs);
