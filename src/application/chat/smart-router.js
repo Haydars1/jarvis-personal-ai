@@ -8,6 +8,7 @@ import {
   settleWithin
 } from '../../lib/runtime.js';
 import { scoreProvider, taskKind } from '../../lib/orchestration.js';
+import { GRILL_ME_POLICY } from '../../lib/grill-me-policy.js';
 import { capabilityProfile } from '../../lib/capability-policy.js';
 
 const FAST_CF_MODEL = '@cf/zai-org/glm-4.7-flash';
@@ -56,7 +57,7 @@ async function state(core, req, env, ctx) {
 function messagesFor(hist, text, expert = 'general', project = '') {
   const expertPrompt = EXPERT_PROMPTS[expert] || EXPERT_PROMPTS.general;
   const projectPrompt = project ? ` Aktif proje: ${String(project).slice(0,120)}. Bu proje bağlamını cevap boyunca koru.` : '';
-  const system = { role: 'system', content: `Sen JARVIS kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür. ${expertPrompt}${projectPrompt}` };
+  const system = { role: 'system', content: `Sen JARVIS kişisel asistansın. Türkçe yanıt ver. Kısa, doğrudan ve eylem odaklı ol. Kullanıcı bir şey yapılmasını istediğinde gereksiz izin isteme veya "istersen" deme. Modalite/yetenek eksikliği söyleme; görsel ve video işleri capability router tarafından ayrı yürütülür. ${expertPrompt}${projectPrompt} ${GRILL_ME_POLICY}` };
   const recent = (hist || []).slice(-14).map(item => ({ role: item.role === 'assistant' ? 'assistant' : 'user', content: item.content }));
   return [system, ...recent, { role: 'user', content: text }];
 }
