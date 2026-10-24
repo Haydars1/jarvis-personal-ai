@@ -1,6 +1,13 @@
 (() => {
   const PROVIDERS = [
     {
+      id:'freellmapi', name:'FreeLLMAPI',
+      desc:'34+ sağlayıcının kişisel ücretsiz kotalarını tek OpenAI uyumlu API üzerinden yönlendirir. Ücretsiz token garantisi değildir.',
+      endpoint:'', requiresEndpoint:true, model:'auto', priority:72,
+      caps:['chat','coding','reasoning','research','translation'],
+      url:'https://github.com/tashfeenahmed/freellmapi', badge:'ÜCRETSİZ KOTA YÖNLENDİRME'
+    },
+    {
       id:'deepseek', name:'DeepSeek', desc:'Güçlü reasoning + kodlama, OpenAI uyumlu API',
       endpoint:'https://api.deepseek.com', model:'deepseek-v4-flash', priority:22,
       caps:['chat','coding','reasoning','research'],
@@ -56,13 +63,23 @@
         <small>${escLocal(p.desc)}</small>
         <div class="providerModel">${escLocal(p.badge)} • ${escLocal(p.model)}</div>
         <input class="pcModel" autocomplete="off" value="${escLocal(p.model)}" placeholder="Model ID">
-        <input class="pcKey" type="password" autocomplete="new-password" placeholder="${escLocal(p.name)} API key">
-        <div class="row"><a href="${p.url}" target="_blank" rel="noopener">API ANAHTARI AL</a><button class="pcConnect">BAĞLA + TEST</button></div>`;
+        ${p.requiresEndpoint?'<input class="pcEndpoint" type="url" autocomplete="url" placeholder="https://guvenli-sunucun.example/v1 (HTTPS gerekli)">':''}
+        <input class="pcKey" type="password" autocomplete="new-password" placeholder="${escLocal(p.name)} ${p.requiresEndpoint?'birleşik API anahtarı':'API key'}">
+        <div class="row"><a href="${p.url}" target="_blank" rel="noopener">${p.requiresEndpoint?'KURULUM REHBERİ':'API ANAHTARI AL'}</a><button class="pcConnect">BAĞLA + TEST</button></div>`;
 
       d.querySelector('.pcConnect').onclick = async () => {
         const secret = d.querySelector('.pcKey').value.trim();
         const model = d.querySelector('.pcModel').value.trim() || p.model;
+        const endpoint = p.requiresEndpoint ? d.querySelector('.pcEndpoint').value.trim() : p.endpoint;
         if (!secret) return toast(p.name + ' API key gerekli');
+        if (p.requiresEndpoint) {
+          try {
+            const u = new URL(endpoint);
+            if (u.protocol !== 'https:' || !['/v1','/v1/'].includes(u.pathname) ||
+                u.username || u.password || u.search || u.hash || !u.hostname.includes('.') ||
+                /^(localhost|127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.|0\\.)/i.test(u.hostname)) throw Error();
+          } catch { return toast('FreeLLMAPI için HTTPS ile biten /v1 adresi gir.'); }
+        }
         try {
           const saved = await api('/api/credentials', {
             method:'POST',
@@ -71,7 +88,7 @@
               label:p.name,
               secret,
               model,
-              endpoint:p.endpoint,
+              endpoint,
               priority:p.priority,
               capabilities:p.caps
             })
