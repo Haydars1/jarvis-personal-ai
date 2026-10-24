@@ -79,6 +79,18 @@ try {
   assert.equal(result.job.status, 'completed');
   await call('/api/ecu/device/jobs', 409, { action: 'clear_dtc' });
   await call('/api/tools/cloud/adapters', 200);
+  const intake = await (await call('/api/learning/video-skills', 201, { title: 'Jenkins eğitimi', notes: 'Jenkins Docker CI öğrenimi' })).json();
+  assert.equal(intake.record.status, 'analyzed-not-installed');
+  assert.ok(intake.record.candidates.some(skill => skill.id === 'jenkins'));
+  const providerAvailability = await (await call('/api/learning/video-skills/providers', 200)).json();
+  assert.equal(typeof providerAvailability.cloudflare_ai_bound, 'boolean');
+  const recentIntakes = await (await call('/api/learning/video-skills', 200)).json();
+  assert.ok(recentIntakes.records.some(record => record.id === intake.record.id));
+  await call('/api/learning/video-skills/from-frames', 400, { frames: [] });
+  await call('/api/learning/video-skills/from-frames', 422, { frames: [{ mime: 'image/jpeg', timestamp_sec: 1, data: 'A'.repeat(1200) }] });
+  await call('/api/learning/video-skills/from-audio', 400, { data: 'invalid' });
+
+
   await call('/api/integrations/status', 200);
   assert.equal((await (await call('/api/tools/repositories', 200)).json()).total, expectedRepositoryTotal);
   assert.equal((await (await call('/api/ecu/thinkdiag/profile', 200)).json()).model, 'THINKDIAG2');
@@ -109,6 +121,77 @@ try {
       await page.locator('#app').waitFor({ state: 'visible' });
       await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
+      // Exercise the actual browser UI, not only the Worker API.
+      await page.locator('[data-page="settings"]:visible').first().click();
+      const videoSkillsPanel = page.locator('details.settingsBlock').filter({ has: page.locator('#skillVideoAnalyze') });
+      await videoSkillsPanel.locator('summary').click();
+      await page.locator('#skillSubtitleFile').setInputFiles({
+        name: 'jenkins-caption.srt', mimeType: 'text/plain',
+        buffer: Buffer.from('1\n00:00:01,000 --> 00:00:03,000\nJenkins ve Docker ile test yapalım\n')
+      });
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Altyazı aktarıldı' }).waitFor();
+      assert.match(await page.locator('#skillVideoTranscript').inputValue(), /Jenkins ve Docker/);
+      await page.locator('#skillVideoSaveNotes').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Metin kaydedildi' }).waitFor();
+      await page.locator('#skillVideoCandidates').filter({ hasText: 'Jenkins' }).waitFor();
+      assert.equal(await page.locator('#skillVideoCopyForChatGPT').isEnabled(), true);
+      await page.locator('#skillVideoTranscribe').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'Video veya ses dosyası seç.' }).waitFor();
+      // Exercise browser-side WAV decoding without invoking Workers AI or consuming quota.
+      let sampledWav = false;
+      await page.route('**/api/learning/video-skills/from-audio', async route => {
+        const requestBody = route.request().postDataJSON();
+        assert.equal(requestBody.save, false);
+        assert.ok(requestBody.data?.startsWith('UklGR'));
+        sampledWav = true;
+        await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
+          ok: true, transcribed_audio_seconds: 1, transcription_model: 'mock-whisper',
+          transcript: 'Jenkins Docker eğitim',
+          record: { title: 'audio-fixture.wav', status: 'analyzed-not-installed', candidates: [] }
+        }) });
+      });
+      const browserWav = Buffer.alloc(44 + 32000);
+      browserWav.write('RIFF', 0); browserWav.writeUInt32LE(36 + 32000, 4);
+      browserWav.write('WAVE', 8); browserWav.write('fmt ', 12);
+      browserWav.writeUInt32LE(16, 16); browserWav.writeUInt16LE(1, 20);
+      browserWav.writeUInt16LE(1, 22); browserWav.writeUInt32LE(16000, 24);
+      browserWav.writeUInt32LE(32000, 28); browserWav.writeUInt16LE(2, 32);
+      browserWav.writeUInt16LE(16, 34); browserWav.write('data', 36);
+      browserWav.writeUInt32LE(32000, 40);
+      await page.locator('#skillVideoAudioFile').setInputFiles({
+        name: 'audio-fixture.wav', mimeType: 'audio/wav', buffer: browserWav
+      });
+      await page.locator('#skillVideoTranscribe').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: 'işlendi ve tek kayda eklendi' }).waitFor();
+      assert.equal(sampledWav, true);
+      assert.match(await page.locator('#skillVideoTranscript').inputValue(), /Jenkins Docker eğitim/);
+      await page.unroute('**/api/learning/video-skills/from-audio');
+      let audioChunkCalls = 0;
+      await page.route('**/api/learning/video-skills/from-audio', async route => {
+        audioChunkCalls++;
+        assert.equal(route.request().postDataJSON().save, false);
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          ok: true, saved: false, transcribed_audio_seconds: audioChunkCalls === 1 ? 30 : 5,
+          transcript: 'Jenkins pipeline bölüm ' + audioChunkCalls, transcription_model: 'mock-whisper'
+        }) });
+      });
+      const longWav = Buffer.alloc(44 + 32000 * 35);
+      browserWav.copy(longWav, 0, 0, 44);
+      longWav.writeUInt32LE(36 + 32000 * 35, 4);
+      longWav.writeUInt32LE(32000 * 35, 40);
+      await page.locator('#skillVideoAudioRange').selectOption('120');
+      await page.locator('#skillVideoAudioFile').setInputFiles({
+        name: 'long-audio.wav', mimeType: 'audio/wav', buffer: longWav
+      });
+      page.once('dialog', dialog => dialog.accept());
+      await page.locator('#skillVideoTranscribe').click();
+      await page.locator('#skillVideoStatus').filter({ hasText: '2 bölümde işlendi' }).waitFor({ timeout: 20000 });
+      assert.equal(audioChunkCalls, 2);
+      assert.match(await page.locator('#skillVideoTranscript').inputValue(), /\[0:30\]/);
+      await page.unroute('**/api/learning/video-skills/from-audio');
+      await page.locator('#skillVideoHistory').filter({ hasText: 'jenkins-caption.srt' }).waitFor();
+      await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/video-skill-ui.png', fullPage: true });
+
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });
       await page.locator('#ecuFile').setInputFiles({ name: 'browser-fixture.bin', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });

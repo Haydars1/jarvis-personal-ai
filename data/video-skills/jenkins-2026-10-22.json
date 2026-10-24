@@ -1,0 +1,16 @@
+{
+  "title": "Jenkins Build/Test/Deploy video, 2026-10-22",
+  "observed": [
+    "Jenkins",
+    "Jenkinsfile",
+    "Build",
+    "Test",
+    "Deploy",
+    "Docker plugin",
+    "Kubernetes plugin"
+  ],
+  "recommendation": "Use existing GitHub Actions; Jenkins requires justified extra infrastructure.",
+  "chatgpt_status": "GitHub connector available; no direct Jenkins plugin connection established",
+  "jarvis_status": "Tool observed; proposed only, not installed",
+  "status": "observed-not-installed"
+}

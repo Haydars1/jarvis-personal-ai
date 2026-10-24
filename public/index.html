@@ -180,6 +180,33 @@
         </div>
       </details>
 
+      <!-- YEREL VİDEODAN SKILL KEŞFİ -->
+      <details class="settingsBlock">
+        <summary>🎞 Video → Skill / Plugin Keşfi</summary>
+        <div class="settingsBody">
+          <p class="muted">MP4 veya MOV seç. Video cihazında kalır; yalnız seçilmiş 6 küçük görüntü karesi bağlı Gemini hesabıyla analiz edilir. Ses otomatik çözümlenmez. Öneriler inceleme adaylarıdır, otomatik kurulmaz.</p>
+          <input type="file" id="skillVideoFile" accept="video/*,.mp4,.mov,.m4v,.webm">
+          <textarea id="skillVideoTranscript" rows="2" placeholder="İstersen konuşma metni veya altyazı yapıştır"></textarea>
+          <label class="muted" for="skillSubtitleFile">Altyazı dosyası (.srt, .vtt veya .txt)</label>
+          <input type="file" id="skillSubtitleFile" accept=".srt,.vtt,.txt,text/plain,text/vtt">
+          <textarea id="skillVideoNotes" rows="2" placeholder="Ek notlar: neyi entegre etmek istiyorsun?"></textarea>
+          <label class="muted" for="skillVideoFrameCount">Ekran analizi yoğunluğu</label>
+          <select id="skillVideoFrameCount"><option value="6">Standart: en fazla 6 kare (1 Gemini çağrısı)</option><option value="24">Ayrıntılı: en fazla 24 kare (4 Gemini çağrısı, onay gerekir)</option></select>
+          <div class="row" style="flex-wrap:wrap"><button id="skillVideoAnalyze">KARELERİ İNCELE VE KAYDET</button><button id="skillVideoSaveNotes" class="ghost">METİN NOTLARINI KAYDET</button></div>
+          <label class="muted" for="skillVideoAudioFile">İstersen ayrı ses dosyası seç (.wav, .mp3, .m4a)</label>
+          <input type="file" id="skillVideoAudioFile" accept="audio/*,.wav,.mp3,.m4a,.aac">
+          <p class="muted">Ses tarayıcıda çözümlenir. Seçilen kısmın 30 saniyelik parçaları Cloudflare Whisper'a yalnız sen başlattığında gönderilir. Uzun seçenek daha fazla AI kotası tüketebilir; MP4'ün tamamı gönderilmez.</p>
+          <label for="skillVideoAudioRange" class="muted">Çözümlenecek ses aralığı</label>
+          <select id="skillVideoAudioRange"><option value="30">İlk 30 saniye (1 AI çağrısı)</option><option value="120">İlk 2 dakika (en fazla 4 AI çağrısı, onay gerekir)</option></select>
+          <button id="skillVideoTranscribe" class="ghost">SESİ ÇÖZ VE KAYDET</button>
+          <div id="skillVideoProviders" class="muted">Model bağlantısı kontrol edilmedi.</div>
+          <div id="skillVideoStatus" role="status" aria-live="polite" class="muted"></div>
+          <div id="skillVideoCandidates"></div>
+          <button id="skillVideoCopyForChatGPT" class="ghost" disabled>CHATGPT İÇİN ARAÇ LİSTESİNİ KOPYALA</button>
+          <h3>Son analizler</h3>
+          <div id="skillVideoHistory" class="muted"></div>
+        </div>
+      </details>
       <!-- VİDEO OLUŞTUR -->
       <details class="settingsBlock">
         <summary>🎬 Video & Görsel Stüdyosu</summary>
@@ -923,6 +950,8 @@
 <div id="toast" class="toast hidden"></div>
 
 <script src="/app.js" defer></script>
+<script src="/video-skill-ui.js" defer></script>
+<script src="/video-skill-audio-ui.js" defer></script>
 <script src="/credential-autotest.js" defer></script>
 <script src="/integrations-ui.js" defer></script>
 <script src="/ecu-tuning-ui.js" defer></script>
