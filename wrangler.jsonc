@@ -28,11 +28,5 @@
   },
   "observability": {
     "enabled": true
-  },
-  "services": [
-    {
-      "binding": "NOTEBOOKLM_MCP_SERVICE",
-      "service": "hayirlievlad-notebooklm-mcp"
-    }
-  ]
+  }
 }
