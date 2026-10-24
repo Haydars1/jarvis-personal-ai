@@ -14,11 +14,22 @@ function error(code, status) {
 export class NotebookLmContainer extends DurableObject {
   starting = null;
 
+  async googleAuth() {
+    // A full Playwright storage_state.json can exceed the 5 KB Worker secret limit.
+    // Prefer Secrets Store (64 KB/account secret) when configured by the owner.
+    const value = typeof this.env.NOTEBOOKLM_AUTH_STORE?.get === 'function'
+      ? await this.env.NOTEBOOKLM_AUTH_STORE.get()
+      : this.env.NOTEBOOKLM_AUTH_JSON;
+    if (!value || typeof value !== 'string' || value.length > 65536) {
+      throw new Error('NOTEBOOKLM_GOOGLE_AUTH_UNAVAILABLE');
+    }
+    return value;
+  }
+
   async ensureRunning() {
     const container = this.ctx.container;
-    if (!this.env.NOTEBOOKLM_MCP_TOKEN || !this.env.NOTEBOOKLM_AUTH_JSON) {
-      throw new Error('NOTEBOOKLM_CLOUD_SECRETS_MISSING');
-    }
+    if (!this.env.NOTEBOOKLM_MCP_TOKEN) throw new Error('NOTEBOOKLM_MCP_SECRET_MISSING');
+    const googleAuth = await this.googleAuth();
     if (!container.running) {
       container.start({
         image: container.images.base,
@@ -26,7 +37,7 @@ export class NotebookLmContainer extends DurableObject {
         enableInternet: true,
         env: {
           NOTEBOOKLM_MCP_TOKEN: this.env.NOTEBOOKLM_MCP_TOKEN,
-          NOTEBOOKLM_AUTH_JSON: this.env.NOTEBOOKLM_AUTH_JSON,
+          NOTEBOOKLM_AUTH_JSON: googleAuth,
           NOTEBOOKLM_MCP_TRANSPORT: 'http',
           NOTEBOOKLM_MCP_HOST: '0.0.0.0',
           NOTEBOOKLM_MCP_PORT: String(PORT),
@@ -75,7 +86,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname !== '/mcp' || request.method !== 'POST') return error('NOT_FOUND', 404);
     const secret = env.NOTEBOOKLM_MCP_TOKEN;
-    if (!secret || !env.NOTEBOOKLM_AUTH_JSON) return error('NOTEBOOKLM_NOT_CONFIGURED', 503);
+    if (!secret || (!env.NOTEBOOKLM_AUTH_STORE && !env.NOTEBOOKLM_AUTH_JSON)) return error('NOTEBOOKLM_NOT_CONFIGURED', 503);
     if (request.headers.get('authorization') !== 'Bearer ' + secret) return error('UNAUTHORIZED', 401);
     const input = await request.text();
     if (new TextEncoder().encode(input).length > MAX_BODY_BYTES) return error('PAYLOAD_TOO_LARGE', 413);
