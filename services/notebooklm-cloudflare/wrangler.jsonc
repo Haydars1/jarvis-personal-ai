@@ -4,19 +4,32 @@
   "compatibility_date": "2026-10-24",
   "workers_dev": false,
   "preview_urls": false,
-  "observability": { "enabled": true },
-  "containers": [{
-    "class_name": "NotebookLmContainer",
-    "image": "./Dockerfile",
-    "max_instances": 1
-  }],
+  "observability": {
+    "enabled": true
+  },
+  "containers": [
+    {
+      "class_name": "NotebookLmContainer",
+      "scheduling_policy": "durable_object",
+      "images": {
+        "base": {
+          "dockerfile": "./Dockerfile"
+        }
+      }
+    }
+  ],
   "durable_objects": {
-    "bindings": [{
-      "name": "NOTEBOOKLM_CONTAINER",
-      "class_name": "NotebookLmContainer"
-    }]
+    "bindings": [
+      {
+        "name": "NOTEBOOKLM_CONTAINER",
+        "class_name": "NotebookLmContainer"
+      }
+    ]
   },
   "exports": {
-    "NotebookLmContainer": { "type": "durable-object", "storage": "sqlite" }
+    "NotebookLmContainer": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
   }
 }
