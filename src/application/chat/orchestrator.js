@@ -1,4 +1,5 @@
 import { ecuPermanentStudyContext } from '../ecu/manual-study-context.js';
+import { GRILL_ME_POLICY } from '../../lib/grill-me-policy.js';
 import { callVaultProvider } from './smart-router.js';
 import { executeFirstNativeSkill } from '../capabilities/native-skill-executor.js';
 import { jsonResponse, queryAll, settleWithin } from '../../lib/runtime.js';
@@ -12,7 +13,7 @@ const LEARNING_CONTEXT_POLICY=`Öğrenilmiş video notları JARVIS'in kaynaklı 
 let expertRowsCache={expiresAt:0,rows:[]};
 async function loadExpertRows(env){const now=Date.now();if(expertRowsCache.expiresAt>now&&expertRowsCache.rows.length)return expertRowsCache.rows;const rows=await queryAll(env,`SELECT c.*, m.avg_latency_ms, m.samples, m.successes, m.failures FROM credentials c LEFT JOIN provider_metrics m ON m.provider=c.label OR m.provider=c.provider WHERE c.enabled=1 AND c.last_status='ok' ORDER BY c.priority ASC`);expertRowsCache={expiresAt:now+LIMITS.expertRowsTtlMs,rows};return rows;}
 async function expertPool(env,kind){const rows=await loadExpertRows(env);return rows.map(row=>({row,score:scoreProvider(row,kind)})).filter(x=>x.score!==null).map(({row,score})=>({...row,score})).sort((a,b)=>b.score-a.score);}
-function expertSystemPrompt(kind){return `Sen JARVIS'in ${kind} uzmanısın. ${ANSWER_POLICY} ${PROMPT_MASTER_POLICY}`;}
+function expertSystemPrompt(kind){return `Sen JARVIS'in ${kind} uzmanısın. ${ANSWER_POLICY} ${PROMPT_MASTER_POLICY} ${GRILL_ME_POLICY}`;}
 async function callExpert(env,c,text,kind,context='') {
   const user=context?`${text}\n\nDoğrulanabilir araştırma notları:\n${context}\n\nBu notları ham halde kopyalama; soruya temiz ve tutarlı bir cevap üret.`:text;
   const result=await callVaultProvider(env,c,[{role:'system',content:expertSystemPrompt(kind)},{role:'user',content:user}],LIMITS.providerFetchMs,kind);
@@ -34,7 +35,7 @@ export async function skillFirstResponse(core,req,env,ctx,text,rows=null){
 function researchContext(rows){return(rows||[]).slice(0,4).map((r,i)=>`[${i+1}] ${String(r.title||'').trim()}\n${String(r.snippet||'').slice(0,350)}\n${directUrl(r.url||'')}`).join('\n\n');}
 function extractWorkersText(result){const direct=result?.response||result?.result?.response||result?.text||result?.output_text,choice=result?.choices?.[0]?.message?.content||result?.result?.choices?.[0]?.message?.content;if(typeof choice==='string')return choice;if(Array.isArray(choice))return choice.map(x=>typeof x==='string'?x:(x?.text||x?.content||'')).join('');return String(direct||'');}
 async function workersRun(env,messages,max_tokens,temperature){if(!env.AI)return null;return settleWithin(env.AI.run('@cf/zai-org/glm-4.7-flash',{messages,max_tokens,temperature}),LIMITS.fallbackAiMs,null);}
-async function workersAiFallback(env,text,context=''){try{const user=context?`${text}\n\nAraştırma notları:\n${context}\n\nNotları sentezle; URL/snippet yığını verme.`:text;const result=await workersRun(env,[{role:'system',content:`Sen JARVIS'sin. ${ANSWER_POLICY} ${PROMPT_MASTER_POLICY}`},{role:'user',content:user}],900,.15),answer=cleanReply(extractWorkersText(result));if(!answer)return null;return{reply:answer,history:[{role:'user',content:text},{role:'assistant',content:answer,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS hızlı yedek AI',value:'Workers AI yedeği kullanıldı'}]};}catch{return null;}}
+async function workersAiFallback(env,text,context=''){try{const user=context?`${text}\n\nAraştırma notları:\n${context}\n\nNotları sentezle; URL/snippet yığını verme.`:text;const result=await workersRun(env,[{role:'system',content:`Sen JARVIS'sin. ${ANSWER_POLICY} ${PROMPT_MASTER_POLICY} ${GRILL_ME_POLICY}`},{role:'user',content:user}],900,.15),answer=cleanReply(extractWorkersText(result));if(!answer)return null;return{reply:answer,history:[{role:'user',content:text},{role:'assistant',content:answer,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS hızlı yedek AI',value:'Workers AI yedeği kullanıldı'}]};}catch{return null;}}
 function expertFallback(text,e){const answer=cleanReply(e?.answers?.[0]?.text||'');return answer?{reply:answer,history:[{role:'user',content:text},{role:'assistant',content:answer,provider:'JARVIS'}],provider:'JARVIS',trace:[{kind:'fallback',label:'JARVIS sağlıklı uzman AI',value:'Çalışan bağlı AI sağlayıcısı kullanıldı'}]}:null;}
 function withPendingJob(payload,job){if(job&&payload&&!payload.job)payload.job=job;return payload;}
 function withTiming(p,s,job=null){p.trace=[...(Array.isArray(p.trace)?p.trace:[]),{kind:'timing',label:'JARVIS yanıt süresi',value:`${Date.now()-s} ms`}];return withPendingJob(p,job);}
