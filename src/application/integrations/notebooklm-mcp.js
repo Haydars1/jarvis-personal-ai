@@ -1,5 +1,5 @@
-// Optional read-only NotebookLM connector for a separately hosted MCP server.
-// The Google authentication profile stays on the MCP host, never in Workers/D1.
+// Read-only NotebookLM connector: internal Cloudflare service binding first, HTTPS fallback.
+// Google cookie data is isolated in the NotebookLM container service, never in this Worker.
 const CONTENT_TYPE = 'application/json; charset=utf-8';
 const MCP_VERSION = '2025-03-26';
 const MAX_RESPONSE = 200_000;
@@ -43,9 +43,18 @@ function parseRpc(text, contentType) {
   return response.result || null;
 }
 
+function internalBinding(env) {
+  return env.NOTEBOOKLM_MCP_SERVICE && typeof env.NOTEBOOKLM_MCP_SERVICE.fetch === 'function';
+}
+function configured(env) {
+  return Boolean(env.NOTEBOOKLM_MCP_TOKEN && (internalBinding(env) || safeEndpoint(env.NOTEBOOKLM_MCP_URL)));
+}
+
 async function callTool(env, tool, args, transport = fetch) {
   if (!ALLOWED_TOOLS.includes(tool)) throw new Error('NOTEBOOKLM_TOOL_NOT_ALLOWED');
-  const endpoint = safeEndpoint(env.NOTEBOOKLM_MCP_URL);
+  const internal = internalBinding(env);
+  const endpoint = internal ? 'https://notebooklm.service.invalid/mcp' : safeEndpoint(env.NOTEBOOKLM_MCP_URL);
+  const requester = internal ? env.NOTEBOOKLM_MCP_SERVICE.fetch.bind(env.NOTEBOOKLM_MCP_SERVICE) : transport;
   const token = String(env.NOTEBOOKLM_MCP_TOKEN || '').trim();
   if (!endpoint || !token) throw new Error('NOTEBOOKLM_NOT_CONFIGURED');
   let session = '';
@@ -59,8 +68,8 @@ async function callTool(env, tool, args, transport = fetch) {
     };
     if (session) headers['mcp-session-id'] = session;
     const request = { jsonrpc: '2.0', method, ...(params ? { params } : {}), ...(notification ? {} : { id: nextId++ }) };
-    const response = await transport(endpoint, {
-      method: 'POST', headers, body: JSON.stringify(request), signal: AbortSignal.timeout(16000),
+    const response = await requester(endpoint, {
+      method: 'POST', headers, body: JSON.stringify(request), signal: AbortSignal.timeout(30000),
       redirect: 'error'
     });
     if (!response.ok) throw new Error(`NOTEBOOKLM_HTTP_${response.status}`);
@@ -101,9 +110,9 @@ export function createNotebookLmMcpIntegration(core, { transport = fetch } = {})
       if (!url.pathname.startsWith('/api/notebooklm/')) return core.fetch(req, env, ctx);
       if (!(await authenticated(req, env, ctx))) return reply({ error: 'UNAUTHORIZED' }, 401);
       if (url.pathname === '/api/notebooklm/status' && req.method === 'GET') {
-        return reply({ configured: Boolean(safeEndpoint(env.NOTEBOOKLM_MCP_URL) && env.NOTEBOOKLM_MCP_TOKEN), mode: 'read-only', tools: ALLOWED_TOOLS });
+        return reply({ configured: configured(env), backend: internalBinding(env) ? 'cloudflare-container' : 'external-https', mode: 'read-only', tools: ALLOWED_TOOLS });
       }
-      if (!safeEndpoint(env.NOTEBOOKLM_MCP_URL) || !env.NOTEBOOKLM_MCP_TOKEN) return reply({ error: 'NOTEBOOKLM_NOT_CONFIGURED' }, 503);
+      if (!configured(env)) return reply({ error: 'NOTEBOOKLM_NOT_CONFIGURED' }, 503);
       try {
         if (url.pathname === '/api/notebooklm/notebooks' && req.method === 'GET') {
           return reply({ ok: true, result: compactResult(await callTool(env, 'notebook_list', {}, transport)) });
