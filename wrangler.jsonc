@@ -28,5 +28,8 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "NOTEBOOKLM_MCP_URL": "https://hayirlievlad-notebooklm-mcp-free.onrender.com/mcp"
   }
 }
