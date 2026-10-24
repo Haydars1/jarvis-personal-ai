@@ -77,7 +77,7 @@
             const u = new URL(endpoint);
             if (u.protocol !== 'https:' || !['/v1','/v1/'].includes(u.pathname) ||
                 u.username || u.password || u.search || u.hash || !u.hostname.includes('.') ||
-                /^(localhost|127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2\\d|3[01])\\.|0\\.)/i.test(u.hostname)) throw Error();
+                /^(localhost|127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\\d|3[01])\.|0\.)/i.test(u.hostname)) throw Error();
           } catch { return toast('FreeLLMAPI için HTTPS ile biten /v1 adresi gir.'); }
         }
         try {
