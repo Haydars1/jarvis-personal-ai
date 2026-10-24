@@ -1,30 +1,40 @@
-# NotebookLM MCP - Hayırlıevlad (opsiyonel, salt-okunur)
+# NotebookLM MCP — hayırlıevlad (Cloudflare Containers)
 
-Bu entegrasyonun kaynak kodu ve paneli tek başına Google NotebookLM oturumu açmaz. Hayırlıevlad (Cloudflare Worker) ile NotebookLM arasında **ayrı, sürekli çalışan** notebooklm-py MCP sunucusu gereklidir. Kaynak proje: https://github.com/teng-lin/notebooklm-py . Topluluk projesinin MCP arayüzü deneysel olduğundan sürüm güncellemelerinde kontrol edilmelidir.
+[Kurulum: Cloudflare Containers](../services/notebooklm-cloudflare/README.md)
 
-## Mevcut uygulama
-- Oturum korumalı API yolları: `GET /api/notebooklm/status`, `GET /api/notebooklm/notebooks`, `GET /api/notebooklm/sources?notebook=...`, `POST /api/notebooklm/ask`.
-- Yalnızca `notebook_list`, `source_list` ve `chat_ask` MCP araçlarını çağırır; dosya yükleme, silme, paylaşma, araştırma başlatma yetkisi yok.
-- Hayırlıevlad sohbet arayüzünde **📚 NotebookLM** paneli. Sistemin yapılandırılmadığını açıkça gösterir.
-- `NOTEBOOKLM_MCP_URL` yalnızca HTTPS `/mcp` olabilir; `NOTEBOOKLM_MCP_TOKEN` Workers secret olarak tutulur. Google oturum bilgileri Workers'a veya GitHub'a yüklenmez.
-- Kaynaklardan gelen metin güvenilmeyen içeriktir; araç çağrısı/talimat olarak yürütülmemelidir.
+## Mimari
+Hayırlıevlad'ın mevcut Cloudflare Worker'ı, başka bir VPS olmadan, **Cloudflare Service Binding** yoluyla `hayirlievlad-notebooklm-mcp` adlı özel Worker'a ulaşır. O Worker, Cloudflare Containers içinde sürümü sabitlenmiş Python `notebooklm-py[mcp]` servisini çalıştırır. Servis gerektiğinde ayağa kalkar; sürekli açık bir ev bilgisayarı veya VPS gerekli değildir.
 
-## Güvenli sunucu kurulumu
-Resmî olmayan MCP projesinin ayrıntılı talimatları: https://github.com/teng-lin/notebooklm-py/blob/main/deploy/README.md
+- **Kullanıcı arayüzü:** 📚 NotebookLM paneli, notebook seçimi ve kaynaklara soru sorma
+- **Erişim kontrolü:** Kullanıcı oturum kontrolü + iki seviyeli MCP araç beyaz listesi
+- **İzin verilenler:** `notebook_list`, `source_list`, `chat_ask`
+- **Yasaklar:** Silme, belge ekleme/düzenleme, paylaşım, tüm diğer MCP araçları
+- **Secrets:** Ana Worker ve özel servis `NOTEBOOKLM_MCP_TOKEN` kullanır. Özel servis ayrıca `NOTEBOOKLM_AUTH_JSON` adında Google Web oturum çerezlerini taşır. Hiçbiri GitHub/Docker görüntüsünde tutulmaz.
+- **Maliyet:** Cloudflare Workers Paid ve Container kullanım ücreti; dağıtım öncesi hesap ve bütçe onayı gerekir
+- **Oturum:** İlk Google girişi kullanıcı tarafından yerel tarayıcıda yapılır. Web çerezleri sürelidir; 1-2 haftada bir veya gerektiğinde yenilenmesi gerekebilir
 
-1. Yalnızca NotebookLM için **ayrı bir Google hesabı** kullan. Bu hesabın notebook içeriği riskini kabul ederek tarayıcıda `notebooklm login --master-token --account ...` işlemini kendin gerçekleştir. `master_token.json` tam hesap yetkisidir; bunu sohbet, GitHub veya Cloudflare Worker secret'ı olarak paylaşma.
-2. Her zaman açık bir **sunucu/VPS** üzerinde projenin sürümlenmiş Docker Compose dağıtımını kullan. Bilgisayar kapandığında NotebookLM'in çalışması isteniyorsa ev bilgisayarı host olarak uygun değildir.
-3. Cloudflare Tunnel'da bütün hostu `http://notebooklm-mcp:9420` adresine yönlendir. Kamuya açık port açma. HTTPS host örneği: `https://notebooklm.example.com` (**gerçek bir adres değil**).
-4. MCP sunucusu için iki ayrı erişim tanımla: `NOTEBOOKLM_MCP_TOKEN` (Hayırlıevlad sunucusu için uzun rastgele bearer token) ve `NOTEBOOKLM_MCP_OAUTH_PASSWORD` + `NOTEBOOKLM_MCP_OAUTH_BASE_URL` (destekleyen ChatGPT hesapları için OAuth). OAuth base URL yalnızca origin içerir, `/mcp` içermez.
-5. Cloudflare Worker üzerinde `NOTEBOOKLM_MCP_URL=https://.../mcp` değişkenini ve `NOTEBOOKLM_MCP_TOKEN` secret'ını güvenli olarak tanımla. Bunları GitHub'daki kod dosyalarına yazma.
-6. Önce staging ortamında `/api/notebooklm/status`, `/notebooks`, `/sources` ve `/ask` uçlarını oturum açmış olarak dene; kimlik doğrulama reddi ve sunucu kapalı senaryolarını kontrol et. Doğrulama öncesi main merge veya production deploy yapma.
+## Gereken kullanıcı işlemleri
+1. Cloudflare Workers Paid / Containers durumunu kontrol etmek
+2. Ayrı bir Google hesabında `notebooklm login` yapmak
+3. İki Cloudflare secret'ı güvenli şekilde tanımlamak; aynı bearer token'ı ana Worker'a da koymak
+4. Staging aşamasında bağımsız Container Worker'ı çalıştırmak ve uçtan uca doğrulamak
 
-## ChatGPT bağlantısı hakkındaki önemli not (24 Ekim 2026)
-OpenAI güncel destek metninde özel MCP bağlantısının web sürümünde **Business, Enterprise/Edu** planları için bulunduğunu, **Pro** hesabında ise salt-okunur bağlantı desteği olduğunu belirtiyor; **Plus için mevcut erişimi doğrulamıyor**. Bu nedenle Plus hesabına özel NotebookLM MCP bağlıymış gibi davranma.
+**Bu işlemler otomatik yapılmadı.** Ana sürümün dağıtımı, secret değişikliği, para harcanması ve başka dış işlemler için açık onay gerekir.
 
-Desteklenen hesapta bağlantı kullanıcı tarafından yapılır: https://chatgpt.com/plugins > + > Add custom MCP server > HTTPS URL `https://.../mcp` > OAuth > yetkilendirme. Güncel OpenAI talimatı: https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt . Bağlantıyı oluşturan kişinin risk bildirimi ve Google yetkisini bizzat onaylaması gerekir; bu oturumdan kullanıcı adına sessiz kurulum yapılamaz.
+## Mevcut API
+- `GET /api/notebooklm/status`
+- `GET /api/notebooklm/notebooks`
+- `GET /api/notebooklm/sources?notebook=<id>`
+- `POST /api/notebooklm/ask` (JSON: `{"notebook":"<id>","question":"..."}`)
 
-## Test
-`npm run check` veya `node --test tests/notebooklm-mcp.test.js`
+## ChatGPT sınırı
+Bu özel Service Binding ChatGPT'ye public MCP sunmaz. ChatGPT Plus hesabında **özel MCP ekleme** yeteneği olmadığı için ayrıca direkt ChatGPT entegrasyonu devreye alınamaz. Destekleyen planlarda ek OAuth / public MCP sunucusu ayrıca tasarlanmalıdır.
 
-Testler mock MCP sunucusunu kullanır; canlı Google bağlantısını ispatlamaz. Bu PR yalnızca geliştirme dalında tutulmalıdır.
+## Doğrulama
+`npm run check` (birim/sözdizimi testleri), `npx wrangler deploy --config services/notebooklm-cloudflare/wrangler.jsonc --dry-run` (Container paketleme; Docker gerekir). Bu testler NotebookLM Google hesabı girişinin çalıştığını kanıtlamaz.
+
+Kaynaklar:
+- https://developers.cloudflare.com/containers/
+- https://developers.cloudflare.com/containers/platform/pricing/
+- https://github.com/teng-lin/notebooklm-py/blob/main/docs/mcp-guide.md
+- https://github.com/teng-lin/notebooklm-py/blob/main/docs/configuration.md
