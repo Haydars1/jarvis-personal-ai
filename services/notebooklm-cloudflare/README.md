@@ -22,16 +22,19 @@ The existing `../../wrangler.jsonc` adds an internal service binding to `hayirli
 1. In your Cloudflare account, check Workers Paid is active and Containers are enabled. Docker is needed **on the deployment computer only** to build and push the image. It does not need to run afterwards.
 2. Use a dedicated Google account containing only documents you agree to place at risk with an experimental client. Install `notebooklm-py==0.8.5` locally and run `notebooklm login` in a browser; review the authentication file in `~/.notebooklm/profiles/default/storage_state.json`. Do not paste it in ChatGPT or upload it to GitHub.
 3. Create a cryptographically random bearer token (minimum 32 bytes), save it to a secure password manager.
-4. Set two **Cloudflare Worker secrets** on the `hayirlievlad-notebooklm-mcp` service, via Wrangler's secret prompting or local stdin:
-   - `NOTEBOOKLM_AUTH_JSON`: exact contents of the local `storage_state.json`
-   - `NOTEBOOKLM_MCP_TOKEN`: the generated bearer token
-   Do not create plaintext `vars` entries, commit `.dev.vars`, expose via logs, or place cookies in the Dockerfile or GitHub Actions secrets.
+4. The Google browser storage JSON can exceed **5 KB**, so it may not fit into a regular Cloudflare Worker secret. Use **Cloudflare Secrets Store** (64 KiB limit) to store the Google session:
+   - Open Cloudflare Dashboard > Secrets Store; create a secret named `NOTEBOOKLM_AUTH_JSON` with the storage_state.json contents, scope `workers`.
+   - On the private `hayirlievlad-notebooklm-mcp` Worker, add a **Secrets Store binding** named exactly `NOTEBOOKLM_AUTH_STORE` pointing to that secret. This is a user-account action and must not be performed using GitHub source files.
+   - Only if the exact JSON is at most 5 KB may a Worker secret named `NOTEBOOKLM_AUTH_JSON` be used as fallback. For normal use, prefer Secrets Store.
+   - Add the separate regular Worker secret `NOTEBOOKLM_MCP_TOKEN` (a randomly generated bearer token) on the private service. Never paste either secret in this conversation, commit them to GitHub, or echo them in CI logs.
+   - The private Worker reads `env.NOTEBOOKLM_AUTH_STORE.get()` only inside authenticated start-up logic, then passes the JSON as an environment variable to the Container process.
+
 5. On existing `hayirlievlad` Worker set secret `NOTEBOOKLM_MCP_TOKEN` **with exactly the same value**. The service binding in its `wrangler.jsonc` points to `hayirlievlad-notebooklm-mcp` internally. No `NOTEBOOKLM_MCP_URL` is needed.
 6. Build and stage-deploy the private service first, then stage-deploy the main Worker, **only after separate production approval**. Manual Wrangler examples from repository root (do not run on production without approval):
 
    ```bash
    npx wrangler deploy --config services/notebooklm-cloudflare/wrangler.jsonc
-   npx wrangler secret put NOTEBOOKLM_AUTH_JSON --config services/notebooklm-cloudflare/wrangler.jsonc
+   # NOTEBOOKLM_AUTH_STORE must be bound through Secrets Store; do not paste cookies in terminal history.
    npx wrangler secret put NOTEBOOKLM_MCP_TOKEN --config services/notebooklm-cloudflare/wrangler.jsonc
    npx wrangler secret put NOTEBOOKLM_MCP_TOKEN
    ```
@@ -41,7 +44,7 @@ The existing `../../wrangler.jsonc` adds an internal service binding to `hayirli
 
 ## Google authentication lifecycle
 
-The **Web** backend supports single-profile `NOTEBOOKLM_AUTH_JSON` secret without persistent filesystem storage. Cloudflare Containers' filesystem is ephemeral; this avoids storing cookies in a container image or relying on a durable mount. However cookies expire; the project's own guide recommends updating the secret around every **one or two weeks** as needed. When login expires, re-run `notebooklm login` locally and securely rotate `NOTEBOOKLM_AUTH_JSON` in the service Worker. Never share the cookie JSON with anyone.
+The **Web** backend supports single-profile `NOTEBOOKLM_AUTH_JSON` environment content without persistent filesystem storage. Cloudflare Secrets Store is preferred because regular Worker secrets are limited to 5 KB. Cloudflare Containers' filesystem is ephemeral; this avoids storing cookies in a container image or relying on a durable mount. However cookies expire; the project's own guide recommends updating the secret around every **one or two weeks** as needed. When login expires, re-run `notebooklm login` locally and securely update the account-level Secrets Store entry behind `NOTEBOOKLM_AUTH_STORE`. Never share the cookie JSON with anyone.
 
 The stateful/Android master-token mode could avoid some cookie issues but uses a Google-account-equivalent credential. It is **not enabled** in this PR, and should require a separate security review. Single-owner only; do not enable multiple replicas.
 
