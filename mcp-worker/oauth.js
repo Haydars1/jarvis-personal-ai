@@ -54,7 +54,7 @@ const authHandler={
     if(!userResponse.ok)return txt("GitHub identity lookup failed",502);
     const user=await userResponse.json();
     if(!Number.isSafeInteger(user.id)||String(user.id)!==String(env.ALLOWED_GITHUB_USER_ID))return txt("GitHub account not authorized",403);
-    const completed=await oauth.completeAuthorization({request:original,userId:`github:${user.id}`,metadata:{},scope:original.scope,props:{githubUserId:user.id}});
+    const completed=await oauth.completeAuthorization({request:original,userId:`github-${user.id}`,metadata:{},scope:original.scope,props:{githubUserId:user.id}});
     headers.set("Location",completed.redirectTo);
     return new Response(null,{status:302,headers});
    }
