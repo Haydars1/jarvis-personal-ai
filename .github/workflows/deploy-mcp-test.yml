@@ -45,6 +45,14 @@ jobs:
           NODE
       - name: Build test Worker before deployment
         run: npx wrangler deploy --config wrangler.toml --dry-run --outdir /tmp/mcp-worker-build
+      - name: Local OAuth discovery smoke test
+        run: |
+          (npx wrangler dev --local --port 8787 > /tmp/mcp-local.log 2>&1 & echo $! > /tmp/mcp-local.pid)
+          sleep 7
+          curl -sS -i --max-time 5 http://127.0.0.1:8787/.well-known/oauth-authorization-server | head -c 1500
+          echo
+          tail -c 2500 /tmp/mcp-local.log
+          kill $(cat /tmp/mcp-local.pid) || true
       - name: Deploy ONLY isolated MCP test Worker
         run: npx wrangler deploy --config wrangler.toml --name hayirlievlad-shared-mcp
       - name: Capture isolated Worker runtime errors safely
