@@ -34,8 +34,15 @@ jobs:
           test -n "$CLOUDFLARE_API_TOKEN" && test -n "$CLOUDFLARE_ACCOUNT_ID"
       - name: Resolve existing KV namespace without changing it
         run: |
-          npx wrangler kv namespace list --json > /tmp/mcp-kv.json
-          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("/tmp/mcp-kv.json")); const k=a.filter(x=>x.title==="hayirlievlad-mcp-oauth-kv"); if(k.length!==1)process.exit(1); fs.appendFileSync("wrangler.toml", "\\n[[kv_namespaces]]\\nbinding = \\"OAUTH_KV\\"\\nid = \\""+k[0].id+"\\"\\n");'
+          npx wrangler kv namespace list > /tmp/mcp-kv.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const raw = fs.readFileSync('/tmp/mcp-kv.json', 'utf8');
+          const a = JSON.parse(raw.slice(raw.indexOf('[')));
+          const matches = a.filter(x => x.title === 'hayirlievlad-mcp-oauth-kv');
+          if (matches.length !== 1 || !/^[a-f0-9]{32}$/.test(matches[0].id)) throw Error('Expected exactly one existing OAuth KV namespace');
+          fs.appendFileSync('wrangler.toml', '\\n[[kv_namespaces]]\\nbinding = "OAUTH_KV"\\nid = "' + matches[0].id + '"\\n');
+          NODE
       - name: Build test Worker before deployment
         run: npx wrangler deploy --dry-run --outdir /tmp/mcp-worker-build
       - name: Deploy ONLY isolated MCP test Worker
