@@ -40,7 +40,7 @@ test('calls /v1/models with unified API key using no redirect and never sends cr
     }
   });
   assert.deepEqual(models,['auto','auto:fast','mistral-medium']);
-  assert.equal(seen[0].url,valid+'/models');
+  assert.equal(seen[0].url,valid+'/models?available=true');
   assert.equal(seen[0].options.headers.authorization,'Bearer safe-key');
   assert.equal(seen[0].options.redirect,'error');
   assert.equal(seen[0].url.includes('safe-key'),false);
