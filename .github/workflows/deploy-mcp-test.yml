@@ -47,6 +47,17 @@ jobs:
         run: npx wrangler deploy --config wrangler.toml --dry-run --outdir /tmp/mcp-worker-build
       - name: Deploy ONLY isolated MCP test Worker
         run: npx wrangler deploy --config wrangler.toml --name hayirlievlad-shared-mcp
+      - name: Capture isolated Worker runtime errors safely
+        run: |
+          (timeout 20s npx wrangler tail hayirlievlad-shared-mcp --format json > /tmp/mcp-tail.jsonl 2>&1 || true) &
+          sleep 5
+          curl -s -o /dev/null "$BASE/.well-known/oauth-authorization-server" || true
+          wait || true
+          node - <<'NODE'
+          const fs=require('fs');const s=fs.readFileSync('/tmp/mcp-tail.jsonl','utf8');for(const line of s.split('\n')){try{const e=JSON.parse(line);if(e.exceptions?.length)console.log(JSON.stringify(e.exceptions).slice(0,1800));}catch{}}
+          NODE
+        env:
+          BASE: https://hayirlievlad-shared-mcp.haydojarvis.workers.dev
       - name: Check OAuth discovery and authentication boundary
         run: |
           set -eu
