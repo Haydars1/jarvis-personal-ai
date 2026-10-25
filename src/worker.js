@@ -17,6 +17,7 @@ import { lookupDTC, searchDTCs, getTuningRelatedDTCs, getDTCSystems, getFlashPro
 import { listChecksumAlgorithms, computeChecksum, detectChecksumAlgo, analyzeBinary, computeEntropy, entropyMap, extractStrings, detectSections, crc32, crc16, add32, add32le, add16, add16le, xor32, siemensChecksum, simosChecksum, delphiChecksum, marelliChecksum, densoChecksum, correctComplement } from './lib/ecu-checksum-extended.js';
 import { createProject, getProject, listProjects, updateProject, deleteProject, addUploadToProject, addTunedToProject, startSession, endSession, addSessionOperation, addSessionChanges, getSession, listSessions, addNote, listNotes, deleteNote, projectStats, ensureProjectTables } from './lib/tuning-projects.js';
 import { interpolate2D, interpolate3D, smooth2D, smooth3D, scaleMap, offsetMap, fillRegion, scaleRegion, clampMap, diffMaps, mapStats, rescaleXAxis, rescaleYAxis, copyRegion, pasteRegion, getMapTemplate, listMapTemplates, ensureMapTables, storeMap, getStoredMap, listStoredMaps, updateStoredMap, deleteStoredMap } from './lib/tuning-maps.js';
+import { applyMapActions, mapActionProposals, applyRawBinaryAction, validateProposals, supportedActions, ensureMapActionTables, logMapAction, getMapActionHistory } from './lib/ecu-map-actions.js';
 import { STANDARD_PIDS, getPID, searchPIDs, getPIDsByCategory, listPIDCategories, convertUnit, listConversions, GAUGE_CONFIGS, getGaugeConfig, DASHBOARD_PRESETS, getDashboardPreset, listDashboardPresets, DEFAULT_ALARMS, checkAlarms, getAlarmConfig, listAlarms, ensureLogTables, startLog, appendLogData, endLog, getLog, listLogs, deleteLog } from './lib/ecu-live-data.js';
 import { OBD_MONITORS, parseMonitorStatus, readinessSummary, FREEZE_FRAME_PIDS, parseFreezeFrame, DRIVE_CYCLES, getDriveCycle, listDriveCycles, EMISSIONS_STANDARDS, checkEmissions, listEmissionsStandards, emissionsAdvisor, ensureReadinessTables, saveReadiness, getReadinessHistory, OBD_MODES, getOBDMode, listOBDModes } from './lib/ecu-readiness.js';
 import { OBD2_CONNECTOR, ECU_PINOUTS, PIN_TYPE_COLORS, getEcuPinout, listEcuPinouts, searchEcuPinouts, getPinsByType, getEcuPinTypes, getFlashPins, verifyWiring, getOBD2Pin, getOBD2Protocol } from './lib/ecu-wiring.js';
@@ -1768,6 +1769,101 @@ async function router(req,env,ctx=null){const u=new URL(req.url),p=u.pathname,m=
    }
    return j({ok:true,total:entries.length,exportedAt:Date.now(),entries});
  }catch(e){return j({error:e.message||'EXPORT_FAILED'},500)}}
+
+ // ═══════════════════════════════════════════════════════════════════════════
+ // === MAP ACTIONS — Rulepack familyMaps eylem motoru ===
+ // ═══════════════════════════════════════════════════════════════════════════
+
+ // --- Desteklenen eylem tipleri ---
+ if(p==='/api/ecu/map-actions/supported'&&m==='GET'){
+   return j({ok:true,actions:supportedActions()});
+ }
+
+ // --- Önizleme teklifleri (uygulamadan önce review) ---
+ if(p==='/api/ecu/map-actions/proposals'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.matches||!Array.isArray(b.matches))return j({error:'MISSING_MATCHES',hint:'matches array from rulepack match required'},400);
+   const proposals=mapActionProposals(b.matches);
+   return j({ok:true,count:proposals.length,proposals});
+ }catch(e){return j({error:e.message||'PROPOSALS_FAILED'},500)}}
+
+ // --- Teklif doğrulama ---
+ if(p==='/api/ecu/map-actions/validate'&&m==='POST'){try{
+   const b=await body(req);
+   if(!b.proposals||!Array.isArray(b.proposals))return j({error:'MISSING_PROPOSALS'},400);
+   const result=validateProposals(b.proposals);
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message||'VALIDATE_FAILED'},500)}}
+
+ // --- Harita eylemlerini uygula (tam pipeline) ---
+ if(p==='/api/ecu/map-actions/apply'&&m==='POST'){try{
+   await ensureMapActionTables(env);
+   const b=await body(req);
+   if(!b.matches||!Array.isArray(b.matches))return j({error:'MISSING_MATCHES'},400);
+   if(!b.uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   // Harita verilerini mapDataLookup olarak hazırla
+   const mapDataLookup={};
+   if(b.mapData&&typeof b.mapData==='object'){
+     Object.assign(mapDataLookup,b.mapData);
+   }
+   // Stored maps'ten de çek
+   try{
+     await ensureMapTables(env);
+     const storedMaps=await qall(env,'SELECT * FROM ecu_stored_maps WHERE upload_id=?',b.uploadId);
+     for(const sm of storedMaps){
+       try{
+         const parsed=JSON.parse(sm.map_data);
+         if(parsed.name&&!mapDataLookup[parsed.name])mapDataLookup[parsed.name]=parsed;
+       }catch(_){}
+     }
+   }catch(_){}
+   const result=applyMapActions(b.matches,mapDataLookup);
+   // Sonuçları D1'e logla
+   const vehicleId=b.vehicleId||upload.vehicle_id||null;
+   for(const pr of result.proposals){
+     try{await logMapAction(env,b.uploadId,vehicleId,pr);}catch(_){}
+   }
+   return j({ok:true,...result});
+ }catch(e){return j({error:e.message||'APPLY_FAILED'},500)}}
+
+ // --- Ham binary üzerinde eylem uygula ---
+ if(p==='/api/ecu/map-actions/apply-binary'&&m==='POST'){try{
+   await ensureMapActionTables(env);
+   const b=await body(req);
+   if(!b.uploadId)return j({error:'MISSING_UPLOAD_ID'},400);
+   if(b.address===undefined||b.address===null)return j({error:'MISSING_ADDRESS'},400);
+   if(!b.length)return j({error:'MISSING_LENGTH'},400);
+   if(!b.familyMapDef)return j({error:'MISSING_FAMILY_MAP_DEF'},400);
+   const upload=await q1(env,'SELECT * FROM ecu_uploads WHERE id=?',b.uploadId);
+   if(!upload)return j({error:'UPLOAD_NOT_FOUND'},404);
+   const obj=await fileGet(env,upload.binary_data);
+   if(!obj)return j({error:'BINARY_NOT_FOUND'},404);
+   const srcBuf=await obj.arrayBuffer();
+   const buffer=srcBuf.slice(0);// clone
+   const result=applyRawBinaryAction(buffer,b.address,b.length,b.familyMapDef);
+   // Modified binary'yi kaydet
+   const newKey='tuned_mapaction_'+b.uploadId+'_'+Date.now();
+   await filePut(env,newKey,new Uint8Array(buffer));
+   const vehicleId=b.vehicleId||upload.vehicle_id||null;
+   try{await logMapAction(env,b.uploadId,vehicleId,{mapName:b.familyMapDef.name||'raw_binary',actionType:b.familyMapDef.mapAction||'unknown',address:b.address,length:b.length,...result});}catch(_){}
+   return j({ok:true,newBinaryKey:newKey,originalSize:srcBuf.byteLength,...result});
+ }catch(e){return j({error:e.message||'APPLY_BINARY_FAILED'},500)}}
+
+ // --- Eylem geçmişi ---
+ if(p==='/api/ecu/map-actions/history'&&m==='GET'){try{
+   await ensureMapActionTables(env);
+   const u2=new URL(req.url);
+   const filters={};
+   if(u2.searchParams.get('uploadId'))filters.uploadId=u2.searchParams.get('uploadId');
+   if(u2.searchParams.get('vehicleId'))filters.vehicleId=u2.searchParams.get('vehicleId');
+   if(u2.searchParams.get('family'))filters.family=u2.searchParams.get('family');
+   if(u2.searchParams.get('actionType'))filters.actionType=u2.searchParams.get('actionType');
+   if(u2.searchParams.get('limit'))filters.limit=parseInt(u2.searchParams.get('limit'))||50;
+   const history=await getMapActionHistory(env,filters);
+   return j({ok:true,count:history.length,history});
+ }catch(e){return j({error:e.message||'HISTORY_FAILED'},500)}}
 
  // ═══════════════════════════════════════════════════════════════════════════
  // === DTC DATABASE — Arıza kodu arama, analiz, toplu sorgulama ===
