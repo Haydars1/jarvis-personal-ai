@@ -45,7 +45,7 @@ export async function queueChannelVideoLearning(env, job, result, parentSourceId
   return queued;
 }
 
-async function transcribeAudio(env, body) {
+export async function transcribeAudio(env, body) {
   if (!env.AI) throw new Error('CLOUDFLARE_AI_UNAVAILABLE');
   const audio = String(body?.data || '').trim();
   if (!audio || audio.length > 9_000_000) throw new Error('AUDIO_CHUNK_INVALID');
@@ -73,7 +73,7 @@ async function healthyGemini(env) {
   return rows[0] || null;
 }
 
-async function analyzeFrames(env, body) {
+export async function analyzeFrames(env, body) {
   const frames = (Array.isArray(body?.frames) ? body.frames : []).slice(0, 6)
     .map(frame => ({
       timestamp_sec: Math.max(0, Number(frame?.timestamp_sec) || 0),
@@ -89,6 +89,11 @@ async function analyzeFrames(env, body) {
   const prompt = [
     'Bu kareler JARVIS YT Öğretisi için teknik eğitim videosundan alınmıştır.',
     'İnsan kimliğiyle ilgilenme. Ekrandaki teknik bilgiyi çıkar: yazılar, menüler, ECU/WinOLS haritaları, tablolar, grafikler, hata kodları, ölçüm değerleri, bağlantı şemaları, kullanılan yazılım adımları ve görünür uyarılar.',
+    'Araç, ürün, yazılım, eklenti ve CI/CD aşamalarının ekrandaki isimlerini aynen çıkar; sırf görünmelerinden kurulmuş veya çalışıyor sonucunu çıkarma.',
+    ...(body?.intent === 'skill-discovery' ? [
+      'Ekranda gerçekten görülen yazılım, eklenti veya geliştirme aracının tam adını her biri için ayrı satırda ARAÇ: İSİM | KANIT: GÖRÜNEN_MENÜ_YA_DA_YAZI biçiminde ekle.',
+      'Belirsiz isimler üretme. Bu satırlar kurulum talimatı değil, yalnızca gözlem kaydıdır.'
+    ] : []),
     'Her kare için yalnız doğrulanabilir gördüğün bilgiyi Türkçe yaz. Emin olmadığını uydurma.',
     'Çıktıyı her satırda [saniye] açıklama biçiminde ver.'
   ].join(' ');
