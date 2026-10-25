@@ -66,6 +66,16 @@ jobs:
           NODE
         env:
           BASE: https://hayirlievlad-shared-mcp.haydojarvis.workers.dev
+      - name: Query Worker runtime logs for OAuth exception
+        if: always()
+        run: |
+          (timeout 18s npx wrangler tail hayirlievlad-shared-mcp --format json > /tmp/mcp-tail-debug.jsonl 2>&1 || true) &
+          sleep 6
+          curl -s -o /dev/null "https://hayirlievlad-shared-mcp.haydojarvis.workers.dev/.well-known/oauth-authorization-server" || true
+          wait || true
+          node - <<'NODE'
+          const fs=require('fs');for(const line of fs.readFileSync('/tmp/mcp-tail-debug.jsonl','utf8').split('\\n')){try{const e=JSON.parse(line);if(e.exceptions?.length)console.log('WORKER_EXCEPTION',JSON.stringify(e.exceptions).slice(0,3000));}catch{}}
+          NODE
       - name: Check OAuth discovery and authentication boundary
         run: |
           set -eu
