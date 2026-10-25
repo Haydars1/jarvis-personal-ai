@@ -76,6 +76,15 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');for(const line of fs.readFileSync('/tmp/mcp-tail-debug.jsonl','utf8').split('\\n')){try{const e=JSON.parse(line);if(e.exceptions?.length)console.log('WORKER_EXCEPTION',JSON.stringify(e.exceptions).slice(0,3000));}catch{}}
           NODE
+      - name: Report runtime log collection status
+        if: always()
+        run: |
+          for f in /tmp/mcp-tail.jsonl /tmp/mcp-tail-debug.jsonl; do
+            echo "Log capture: $f"
+            if [ -f "$f" ]; then
+              grep -E 'ERROR|Error|error|permission|not authorized|forbidden|exception|tail' "$f" | head -c 1200 || true
+            fi
+          done
       - name: Check OAuth discovery and authentication boundary
         run: |
           set -eu
