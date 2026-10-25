@@ -1,0 +1,27 @@
+name: Shared MCP tests
+on:
+  push:
+    branches: [feature/shared-mcp-cloudflare]
+  pull_request:
+    paths:
+      - 'mcp-worker/**'
+      - '.github/workflows/shared-mcp-tests.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install isolated MCP dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: mcp-worker
+      - name: Syntax check
+        run: npm run check
+        working-directory: mcp-worker
+      - name: Protocol unit tests
+        run: npm test
+        working-directory: mcp-worker

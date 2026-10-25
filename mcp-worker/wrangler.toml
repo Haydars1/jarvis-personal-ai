@@ -1,0 +1,9 @@
+name = "hayirlievlad-shared-mcp"
+main = "oauth.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+# OAUTH_KV is resolved by the isolated deployment workflow at runtime.
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
