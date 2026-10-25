@@ -3,9 +3,6 @@ main = "oauth.js"
 compatibility_date = "2026-10-01"
 workers_dev = true
 
-# Fill in the real WORKERS_SUBDOMAIN in oauth.js before deploying.
-# KV namespace must be provisioned and bound as OAUTH_KV before deployment.
-# Configure GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and
-# ALLOWED_GITHUB_USER_ID as secure Worker environment secrets.
-# GitHub OAuth App callback URL: https://<worker-host>/callback
-# Do not deploy without explicit approval.
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "884fbde7da584afd84f27144783"
