@@ -47,9 +47,9 @@ jobs:
         run: npx wrangler deploy --config wrangler.toml --dry-run --outdir /tmp/mcp-worker-build
       - name: Local OAuth discovery smoke test
         run: |
-          (npx wrangler dev --local --port 8787 > /tmp/mcp-local.log 2>&1 & echo $! > /tmp/mcp-local.pid)
+          (npx wrangler dev --config wrangler.toml --local --port 8799 > /tmp/mcp-local.log 2>&1 & echo $! > /tmp/mcp-local.pid)
           sleep 7
-          curl -sS -i --max-time 5 http://127.0.0.1:8787/.well-known/oauth-authorization-server | head -c 1500
+          curl -sS -i --max-time 5 http://127.0.0.1:8799/.well-known/oauth-authorization-server | head -c 1500
           echo
           tail -c 2500 /tmp/mcp-local.log
           kill $(cat /tmp/mcp-local.pid) || true
@@ -71,7 +71,7 @@ jobs:
           set -eu
           BASE="https://hayirlievlad-shared-mcp.haydojarvis.workers.dev"
           curl --silent --show-error -D /tmp/oauth-headers.txt "$BASE/.well-known/oauth-authorization-server" > /tmp/oauth-discovery.json
-          node -e 'const fs=require("fs");const body=fs.readFileSync("/tmp/oauth-discovery.json","utf8");if(body.trim().startsWith("{"))process.exit(0);console.error("OAuth discovery returned non-JSON; HTTP headers:",fs.readFileSync("/tmp/oauth-headers.txt","utf8"));process.exit(1)'
+          node -e 'const fs=require("fs");const body=fs.readFileSync("/tmp/oauth-discovery.json","utf8");if(body.trim().startsWith("{"))process.exit(0);console.error("OAuth discovery returned non-JSON; body:",body.slice(0,200),"HTTP headers:",fs.readFileSync("/tmp/oauth-headers.txt","utf8"));process.exit(1)'
           node -e 'const fs=require("fs");const d=JSON.parse(fs.readFileSync("/tmp/oauth-discovery.json"));if(!d.authorization_endpoint||!d.token_endpoint)process.exit(1)'
           STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/mcp" -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"tools/list"}')
           test "$STATUS" = "401"
