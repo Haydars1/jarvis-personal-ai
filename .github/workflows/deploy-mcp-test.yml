@@ -108,6 +108,12 @@ jobs:
             }catch(e){console.log(path,'API fetch failed',e.message);}
           }
           NODE
+      - name: Compare existing production Worker reachability read-only
+        if: always()
+        run: |
+          for url in "https://haydojarvis.workers.dev/" "https://hayirlievlad-shared-mcp.haydojarvis.workers.dev/"; do
+            echo "$url HTTP $(curl -sSL -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)"
+          done
       - name: Check OAuth discovery and authentication boundary
         run: |
           set -eu
