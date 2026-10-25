@@ -4,6 +4,7 @@
 import { fetchT, now } from './core.js';
 import { qall, run } from './d1.js';
 import { decSecret } from './crypto.js';
+import { listFreeLlmApiModels } from './freellmapi.js';
 
 export async function credentialRows(env) {
   return qall(env, "SELECT id,provider,label,kind,capabilities,endpoint,model,priority,enabled,meta,last_status,last_error,last_test_at,created_at,updated_at FROM credentials ORDER BY enabled DESC,priority ASC,created_at DESC");
@@ -29,7 +30,10 @@ export async function testCredential(env, c) {
   const p = String(c.provider || '').toLowerCase(), sec = c.secret || await decSecret(env, c.encrypted_secret);
   try {
     if (!sec) throw Error('NO_API_KEY');
-    if (p === 'gemini') {
+    if (p === 'freellmapi') {
+      const models = await listFreeLlmApiModels(c.endpoint, sec);
+      if (!models.length) throw Error('FREELLMAPI_NO_AVAILABLE_MODELS');
+    } else if (p === 'gemini') {
       const model = c.model || 'gemini-2.5-flash';
       const r = await fetchT(`https://generativelanguage.googleapis.com/v1beta/models/${model}?key=${encodeURIComponent(sec)}`);
       if (!r.ok) throw Error('HTTP_' + r.status);
