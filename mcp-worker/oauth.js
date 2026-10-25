@@ -78,6 +78,6 @@ export default new OAuthProvider({
  authorizeEndpoint:"/authorize",tokenEndpoint:"/oauth/token",
  clientRegistrationEndpoint:"/oauth/register",
  scopesSupported:["mcp:read"],requiredScopes:["mcp:read"],
- resourceMetadata:{resource:"https://hayirlievlad-shared-mcp.WORKERS_SUBDOMAIN.workers.dev/mcp",authorization_servers:["https://hayirlievlad-shared-mcp.WORKERS_SUBDOMAIN.workers.dev"]},
+ resourceMetadata:{resource:"https://hayirlievlad-shared-mcp.haydojarvis.workers.dev/mcp",authorization_servers:["https://hayirlievlad-shared-mcp.haydojarvis.workers.dev"]},
  clientIdMetadataDocumentEnabled:false
 });
