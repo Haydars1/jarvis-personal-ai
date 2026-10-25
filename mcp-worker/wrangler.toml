@@ -1,6 +1,11 @@
 name = "hayirlievlad-shared-mcp"
-main = "index.js"
+main = "oauth.js"
 compatibility_date = "2026-10-01"
 workers_dev = true
-# Set MCP_SHARED_TOKEN using: npx wrangler secret put MCP_SHARED_TOKEN
-# This Worker is separate from the main application. Do not deploy without approval.
+
+# Fill in the real WORKERS_SUBDOMAIN in oauth.js before deploying.
+# KV namespace must be provisioned and bound as OAUTH_KV before deployment.
+# Configure GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET and
+# ALLOWED_GITHUB_USER_ID as secure Worker environment secrets.
+# GitHub OAuth App callback URL: https://<worker-host>/callback
+# Do not deploy without explicit approval.
