@@ -73,7 +73,7 @@ const apiHandler={
   return handleMcp(request);
  }
 };
-export default new OAuthProvider({
+const oauthProvider = new OAuthProvider({
  apiRoute:"/mcp",apiHandler,defaultHandler:authHandler,
  authorizeEndpoint:"/authorize",tokenEndpoint:"/oauth/token",
  clientRegistrationEndpoint:"/oauth/register",
@@ -81,3 +81,5 @@ export default new OAuthProvider({
  resourceMetadata:{resource:"https://hayirlievlad-shared-mcp.haydojarvis.workers.dev/mcp",authorization_servers:["https://hayirlievlad-shared-mcp.haydojarvis.workers.dev"]},
  clientIdMetadataDocumentEnabled:false
 });
+
+export default { async fetch(request, env, ctx) { try { return await oauthProvider.fetch(request, env, ctx); } catch (error) { console.error("OAuth runtime error", error); return new Response("OAuth service error", {status:503}); } } };
