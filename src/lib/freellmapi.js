@@ -27,7 +27,8 @@ export async function listFreeLlmApiModels(endpoint, key, { transport = fetch, t
   const base = normalizeFreeLlmApiEndpoint(endpoint);
   const token = String(key || '').trim();
   if (!token) throw new Error('FREELLMAPI_KEY_REQUIRED');
-  const response = await transport(base + '/models', {
+  // Catalog can advertise models without configured credentials; only count usable models.
+  const response = await transport(base + '/models?available=true', {
     method: 'GET',
     headers: { authorization: 'Bearer ' + token, accept: 'application/json' },
     signal: AbortSignal.timeout(timeoutMs),
