@@ -22,6 +22,7 @@ import { createEcuManualLibrary } from './application/ecu/manual-library.js';
 import { createChatOutput } from './application/chat/presenter.js';
 import { createSmartRouter } from './application/chat/smart-router.js';
 import { createIntegrationHub } from './application/integrations/hub.js';
+import { createNotebookLmMcpIntegration } from './application/integrations/notebooklm-mcp.js';
 import { createMediaRescue } from './application/media/rescue.js';
 import { createJarvisOS } from './application/os/runtime.js';
 import { createHiggsfieldIntegration } from './application/providers/higgsfield.js';
@@ -35,7 +36,8 @@ import { createPushApi, flushPush } from './infrastructure/apns/push-service.js'
 
 const higgsfieldCore = createHiggsfieldIntegration(legacyBase);
 const integrationCore = createIntegrationHub(higgsfieldCore);
-const providerCore = createProviderState(integrationCore);
+const notebookLmCore = createNotebookLmMcpIntegration(integrationCore);
+const providerCore = createProviderState(notebookLmCore);
 const routerCore = createSmartRouter(providerCore);
 const searchCore = createGoogleSearch(routerCore);
 const vehicleResearchCore = createVehicleCodingResearch(searchCore);
