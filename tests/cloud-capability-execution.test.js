@@ -26,12 +26,14 @@ test('cloud runner workflow uses GitHub hosted Linux with OIDC',()=>{
   assert.doesNotMatch(workflow,/self-hosted/);
 });
 
-test('cloud runner installs project dependencies before executing JARVIS code',()=>{
+test('cloud runner installs project dependencies before executing supervised JARVIS code',()=>{
   const workflow=read('.github/workflows/cloud-tool-runner.yml');
+  const supervisor=read('.github/scripts/cloud-tool-runner-supervisor.mjs');
   const installIndex=workflow.indexOf('npm install --no-audit --no-fund');
-  const runIndex=workflow.indexOf('node .github/scripts/cloud-tool-runner.mjs');
+  const runIndex=workflow.indexOf('node .github/scripts/cloud-tool-runner-supervisor.mjs');
   assert.ok(installIndex>=0,'cloud runner must install package.json dependencies');
-  assert.ok(runIndex>installIndex,'dependency installation must happen before the runner starts');
+  assert.ok(runIndex>installIndex,'dependency installation must happen before the supervisor starts');
+  assert.match(supervisor,/cloud-tool-runner\.mjs/,'supervisor must execute the real cloud runner');
 });
 
 test('cloud runner clones only the requested curated repository',()=>{
