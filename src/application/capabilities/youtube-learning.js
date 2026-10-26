@@ -1,10 +1,10 @@
 import { decryptCredential, execute, fetchWithTimeout, jsonResponse, queryAll, queryOne } from '../../lib/runtime.js';
 import { listYouTubeLearningSources, persistYouTubeLearning } from '../../lib/youtube-learning-memory.js';
 import { verifyRunnerJwt } from './cloud-execution.js';
+import { buildYouTubeInsightRequest, canonicalYouTubeVideoUrl, parseYouTubeInsightResponse, YOUTUBE_INSIGHT_MODEL_DEFAULT } from '../../lib/youtube-insight.js';
 
 const now = () => Date.now();
 const uid = () => crypto.randomUUID();
-const WHISPER_MODEL = '@cf/openai/whisper-large-v3-turbo';
 
 async function appAuthed(core, req, env, ctx) {
   const response = await core.fetch(new Request(new URL('/api/auth/status', req.url), { headers: req.headers }), env, ctx);
@@ -45,83 +45,58 @@ export async function queueChannelVideoLearning(env, job, result, parentSourceId
   return queued;
 }
 
-async function transcribeAudio(env, body) {
-  if (!env.AI) throw new Error('CLOUDFLARE_AI_UNAVAILABLE');
-  const audio = String(body?.data || '').trim();
-  if (!audio || audio.length > 9_000_000) throw new Error('AUDIO_CHUNK_INVALID');
-  const language = String(body?.language || '').trim().slice(0, 12);
-  const input = {
-    audio,
-    task: 'transcribe',
-    vad_filter: true,
-    initial_prompt: 'Teknik otomotiv, ECU, WinOLS, teşhis, kodlama ve kalibrasyon terimlerini mümkün olduğunca aynen koru.'
-  };
-  if (language) input.language = language;
-  const result = await env.AI.run(WHISPER_MODEL, input);
-  return {
-    kind: 'audio',
-    text: String(result?.text || result?.result?.text || '').trim(),
-    model: WHISPER_MODEL,
-    timestamp_sec: Math.max(0, Number(body?.timestamp_sec) || 0)
-  };
-}
-
 async function healthyGemini(env) {
-  const rows = await queryAll(env, `SELECT * FROM credentials
-    WHERE enabled=1 AND last_status='ok' AND lower(provider)='gemini'
-    ORDER BY priority ASC, created_at ASC LIMIT 1`);
+  const rows = await queryAll(env, "SELECT * FROM credentials WHERE enabled=1 AND last_status='ok' AND lower(provider)='gemini' ORDER BY priority ASC, created_at ASC LIMIT 1");
   return rows[0] || null;
 }
 
-async function analyzeFrames(env, body) {
-  const frames = (Array.isArray(body?.frames) ? body.frames : []).slice(0, 6)
-    .map(frame => ({
-      timestamp_sec: Math.max(0, Number(frame?.timestamp_sec) || 0),
-      mime: ['image/jpeg','image/png','image/webp'].includes(String(frame?.mime || '').toLowerCase()) ? String(frame.mime).toLowerCase() : 'image/jpeg',
-      data: String(frame?.data || '').trim()
-    }))
-    .filter(frame => frame.data && frame.data.length <= 2_000_000);
-  if (!frames.length) throw new Error('VIDEO_FRAMES_REQUIRED');
+export async function analyzeYouTubeDirect(env, body, dependencies = {}) {
+  // Video bytes never transit the Jarvis runner or its D1 database.
+  const sourceUrl = canonicalYouTubeVideoUrl(String(body?.url || ''));
   const credential = await healthyGemini(env);
-  if (!credential) throw new Error('VISION_PROVIDER_UNAVAILABLE');
-  const secret = await decryptCredential(env, credential.encrypted_secret);
-  const model = String(credential.model || 'gemini-2.5-flash').trim();
-  const prompt = [
-    'Bu kareler JARVIS YT Öğretisi için teknik eğitim videosundan alınmıştır.',
-    'İnsan kimliğiyle ilgilenme. Ekrandaki teknik bilgiyi çıkar: yazılar, menüler, ECU/WinOLS haritaları, tablolar, grafikler, hata kodları, ölçüm değerleri, bağlantı şemaları, kullanılan yazılım adımları ve görünür uyarılar.',
-    'Her kare için yalnız doğrulanabilir gördüğün bilgiyi Türkçe yaz. Emin olmadığını uydurma.',
-    'Çıktıyı her satırda [saniye] açıklama biçiminde ver.'
-  ].join(' ');
-  const parts = [{ text: prompt }];
-  for (const frame of frames) {
-    parts.push({ text: `Kare zamanı: ${frame.timestamp_sec.toFixed(1)} saniye` });
-    parts.push({ inlineData: { mimeType: frame.mime, data: frame.data } });
-  }
-  const response = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(secret)}`, {
+  if (!credential) throw new Error('YOUTUBE_GEMINI_PROVIDER_UNAVAILABLE');
+  const apiKey = await decryptCredential(env, credential.encrypted_secret);
+  const requestedModel = String(credential.model || YOUTUBE_INSIGHT_MODEL_DEFAULT).trim();
+  const model = /^[a-z0-9][a-z0-9._-]{1,85}$/i.test(requestedModel) ? requestedModel : YOUTUBE_INSIGHT_MODEL_DEFAULT;
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+  const request = buildYouTubeInsightRequest(sourceUrl);
+  const fetcher = dependencies.fetchImpl || fetchWithTimeout;
+  const response = await fetcher(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 1200 }
-    })
-  }, 18000);
-  if (!response.ok) throw new Error(`VISION_GEMINI_${response.status}`);
-  const payload = await response.json();
-  const text = String(payload?.candidates?.[0]?.content?.parts?.map(item => item?.text || '').join('') || '').trim();
-  if (!text) throw new Error('VISION_EMPTY');
-  return { kind: 'frames', text, provider: credential.label || 'Gemini', model };
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+    body: JSON.stringify(request)
+  }, 110000);
+  if (!response.ok) {
+    if (response.status === 429) throw new Error('YOUTUBE_VIDEO_PROVIDER_RATE_LIMIT');
+    if (response.status === 400 || response.status === 404) throw new Error('YOUTUBE_VIDEO_UNAVAILABLE_OR_UNSUPPORTED');
+    throw new Error('YOUTUBE_VIDEO_GEMINI_HTTP_' + response.status);
+  }
+  const insight = parseYouTubeInsightResponse(await response.json());
+  return {
+    kind: 'video', source_url: sourceUrl,
+    video_id: sourceUrl.split('v=')[1],
+    title: insight.title, language: 'tr',
+    transcript: insight.transcript,
+    video_analyzed: true,
+    learning_method: insight.learning_method,
+    model, provider: 'gemini',
+    modalities: ['direct-video'],
+    audio_used: true, vision_used: true, captions_available: false,
+    insights_count: insight.insights_count,
+    lesson_details: {
+      summary: insight.summary, concepts: insight.concepts,
+      procedure: insight.procedure, decision_rules: insight.decision_rules,
+      mistakes: insight.mistakes, transferable_lessons: insight.transferable_lessons,
+      uncertainties: insight.uncertainties
+    }
+  };
 }
 
-async function handleRunnerMediaAnalyze(req, env) {
+async function handleRunnerVideoAnalyze(req, env) {
   if (!(await runnerAuthed(req))) return jsonResponse({ error: 'RUNNER_AUTH_REQUIRED' }, 401);
   const body = await req.json().catch(() => ({}));
-  try {
-    if (body?.kind === 'audio') return jsonResponse(await transcribeAudio(env, body));
-    if (body?.kind === 'frames') return jsonResponse(await analyzeFrames(env, body));
-    return jsonResponse({ error: 'MEDIA_KIND_INVALID' }, 400);
-  } catch (error) {
-    return jsonResponse({ error: String(error?.message || error) }, 422);
-  }
+  try { return jsonResponse(await analyzeYouTubeDirect(env, body)); }
+  catch (error) { return jsonResponse({ error: String(error?.message || error) }, 422); }
 }
 
 export function createYouTubeLearningCapability(core) {
@@ -129,8 +104,8 @@ export function createYouTubeLearningCapability(core) {
   return {
     async fetch(req, env, ctx) {
       const url = new URL(req.url);
-      if (url.pathname === '/api/learning/youtube/media/analyze' && req.method === 'POST') {
-        return handleRunnerMediaAnalyze(req, env);
+      if (url.pathname === '/api/learning/youtube/direct/analyze' && req.method === 'POST') {
+        return handleRunnerVideoAnalyze(req, env);
       }
       if (url.pathname === '/api/learning/youtube/sources' && req.method === 'GET') {
         if (!(await appAuthed(core, req, env, ctx))) return jsonResponse({ error: 'AUTH_REQUIRED' }, 401);

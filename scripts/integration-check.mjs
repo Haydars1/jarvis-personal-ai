@@ -107,7 +107,9 @@ try {
       await page.locator('#pw').fill('http-test-password-only');
       await page.locator('#authBtn').click();
       await page.locator('#app').waitFor({ state: 'visible' });
-      await page.locator('#chatProvider').filter({ hasText: /^JARVIS$/ }).waitFor();
+      // Provider metadata can be hidden in the simplified interface.
+      await page.locator('#chatProvider').waitFor({ state: 'attached' });
+      assert.equal((await page.locator('#chatProvider').textContent()).trim(), 'JARVIS');
       await page.screenshot({ animations: 'disabled', timeout: 10000, path: '.wrangler/browser-report/after-login.png', fullPage: true });
       console.log('Browser login state', await page.locator('#app').getAttribute('class'), 'errors', errors);
       await page.locator('[data-page="ecu"]:visible').first().click({ timeout: 10000 });

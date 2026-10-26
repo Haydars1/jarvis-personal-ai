@@ -5,6 +5,7 @@ import { classifyCapability } from '../../lib/capability-policy.js';
 import { SKILL_COMPILER_VERSION, skillMatchesTask } from '../../lib/repo-skill-compiler.js';
 import { selectSkillLearningRepos } from '../../lib/skill-learning.js';
 import { resolveNativeSkillAdapter } from '../../lib/native-skill-adapters.js';
+import { parseYouTubeResourceUrl, YOUTUBE_TEACHING_REPO } from '../../lib/youtube-teaching-runtime.js';
 
 const now=()=>Date.now();
 const uid=()=>crypto.randomUUID();
@@ -78,11 +79,15 @@ export function cloudJobAnswer(row){
       const title=String(result.title||'YouTube videosu').trim();
       const transcript=String(result.transcript||'').trim();
       return [
-        `YT Öğretisi kaynağı işlendi: ${title}`,
-        `Kaynak: ${String(result.source_url||'')}`,
-        result.language?`Altyazı dili: ${result.language}`:'',
-        result.captions_available?'Transkript alındı.':'Bu videoda erişilebilir altyazı/transkript bulunamadı.',
-        transcript?`\nTranskript:\n${transcript.slice(0,12000)}`:''
+        'Video doğrudan analiz edildi: ' + title,
+        'Kaynak: ' + String(result.source_url || ''),
+        result.video_analyzed && result.learning_method === 'direct-youtube-video-understanding'
+          ? 'Ses ve görüntü üzerinden işlem adımları, gerekçeleri ve uygulanabilir kurallar çıkarıldı.'
+          : 'Doğrudan video analizinin doğrulandığına dair kanıt yok.',
+        result.learning_status === 'learned'
+          ? 'Öğrenilen bilgiler sonraki sohbetlerde kullanılmak üzere hafızaya kaydedildi.'
+          : 'Kalıcı hafıza kaydı doğrulanamadı.',
+        transcript ? '\nÖğrenme notları:\n' + transcript.slice(0, 12000) : ''
       ].filter(Boolean).join('\n');
     }
     const videos=Array.isArray(result.videos)?result.videos:[];
@@ -158,6 +163,16 @@ function publicSkill(row){
   return {...resolved,...skillExecutionState(resolved)};
 }
 function validRepo(repo){return CURATED_REPOS.has(String(repo||'').toLowerCase());}
+export function findPendingYouTubeJob(rows=[],sourceUrl=''){
+  const target=parseYouTubeResourceUrl(sourceUrl);
+  if(!target)return null;
+  return (Array.isArray(rows)?rows:[]).find(job=>{
+    const previous=parseYouTubeResourceUrl(String(parse(job.input_json,{}).url||''));
+    return previous&&previous.type===target.type&&(
+      target.type==='video'?previous.videoId===target.videoId:previous.url===target.url
+    );
+  })||null;
+}
 async function queueCloudJob(env,{adapterId,repo,commit=null,input={}}){
   const ts=now(),id=uid();
   await execute(env,'INSERT INTO cloud_tool_jobs(id,adapter_id,repo,commit_sha,input_json,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',id,adapterId,repo,commit,JSON.stringify(input||{}),'queued',ts,ts);
@@ -283,7 +298,19 @@ export function createCloudCapabilityExecution(core){
         if(!ALLOWED_ADAPTERS[adapterId])return jsonResponse({error:'ADAPTER_NOT_ALLOWED'},400);
         if(!validRepo(repo))return jsonResponse({error:'REPOSITORY_NOT_CURATED'},400);
         const commit=/^[0-9a-f]{40}$/i.test(String(body.commit||''))?String(body.commit):null;
-        return jsonResponse({job:await queueCloudJob(env,{adapterId,repo,commit,input:body.input||{}})},201);
+        let input=body.input||{};
+        if(adapterId==='youtube-teaching'){
+          if(repo.toLowerCase()!==YOUTUBE_TEACHING_REPO)return jsonResponse({error:'YOUTUBE_REPOSITORY_INVALID'},400);
+          const source=parseYouTubeResourceUrl(String(input?.url||''));
+          if(!source)return jsonResponse({error:'YOUTUBE_URL_INVALID'},400);
+          // Normalize shared/short links so the same video has one learning source.
+          const canonical=source.type==='video'?`https://www.youtube.com/watch?v=${source.videoId}`:source.url;
+          input={...input,url:canonical};
+          const pending=await queryAll(env,"SELECT * FROM cloud_tool_jobs WHERE adapter_id='youtube-teaching' AND status IN ('queued','running') ORDER BY created_at DESC LIMIT 200");
+          const existing=findPendingYouTubeJob(pending,canonical);
+          if(existing)return jsonResponse({job:publicJob(existing),deduplicated:true},200);
+        }
+        return jsonResponse({job:await queueCloudJob(env,{adapterId,repo,commit,input})},201);
       }
       if(path==='/api/tools/cloud/jobs'&&method==='GET'){
         if(!(await appAuthed(core,req,env,ctx)))return jsonResponse({error:'AUTH_REQUIRED'},401);
