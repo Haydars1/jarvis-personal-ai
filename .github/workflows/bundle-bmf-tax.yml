@@ -1,0 +1,43 @@
+name: Bundle BMF 2026 tax calculator (isolated)
+on:
+  push:
+    branches:
+      - build/schicht-planim-ipa-20261026
+    paths:
+      - '.github/workflows/bundle-bmf-tax.yml'
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned dependencies
+        run: |
+          mkdir -p /tmp/lohn-bundle
+          cd /tmp/lohn-bundle
+          npm init -y
+          npm install --no-audit --no-fund --save-exact lohnsteuerrechner@1.0.7 decimal.js esbuild@0.25.12
+          cat > entry.js <<'EOF'
+          import { calculate } from 'lohnsteuerrechner';
+          globalThis.BMF2026Calculate = (inputs) => calculate(2026, inputs);
+          EOF
+          ./node_modules/.bin/esbuild entry.js --bundle --platform=browser --format=iife --target=es2020 --minify --outfile=bmf-2026.bundle.js
+          node - <<'EOF'
+          const pkg = require('./node_modules/lohnsteuerrechner/package.json');
+          const {calculate}=require('lohnsteuerrechner');
+          const output=calculate(2026,{LZZ:2,RE4:500000,STKL:1,KVZ:2.5,PVZ:1});
+          if(output.LSTLZZ!==78583)throw new Error('BMF fixture failed: '+output.LSTLZZ);
+          console.log('BMF official fixture matched:',output.LSTLZZ);
+          EOF
+          cp node_modules/lohnsteuerrechner/LICENSE LICENSE-lohnsteuerrechner.txt
+          cp node_modules/decimal.js/LICENCE.md LICENSE-decimaljs.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bmf2026-offline-calculator
+          path: |
+            /tmp/lohn-bundle/bmf-2026.bundle.js
+            /tmp/lohn-bundle/LICENSE-lohnsteuerrechner.txt
+            /tmp/lohn-bundle/LICENSE-decimaljs.md
+          retention-days: 7
