@@ -1,0 +1,26 @@
+name: SchichtPlanim
+options:
+  bundleIdPrefix: de.schichtplanim
+settings:
+  base:
+    SWIFT_VERSION: 5.0
+    IPHONEOS_DEPLOYMENT_TARGET: 16.0
+    TARGETED_DEVICE_FAMILY: 1
+    CODE_SIGNING_ALLOWED: NO
+targets:
+  SchichtPlanim:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: www
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: de.schichtplanim.app
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Schicht Planım
+        INFOPLIST_KEY_UIApplicationSupportsDocumentBrowser: NO
+        INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleDefault
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait

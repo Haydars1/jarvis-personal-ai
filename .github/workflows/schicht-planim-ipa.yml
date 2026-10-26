@@ -1,0 +1,34 @@
+name: Build Schicht Planim Feather IPA
+on:
+  push:
+    branches:
+      - build/schicht-planim-ipa-20261026
+    paths:
+      - 'ios/schichtplanim/**'
+      - '.github/workflows/schicht-planim-ipa.yml'
+jobs:
+  unsigned-ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: ios/schichtplanim
+        run: xcodegen generate
+      - name: Build unsigned iPhone app
+        working-directory: ios/schichtplanim
+        run: |
+          xcodebuild -project SchichtPlanim.xcodeproj -scheme SchichtPlanim -configuration Release -sdk iphoneos -derivedDataPath "$PWD/build" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          test -f build/Build/Products/Release-iphoneos/SchichtPlanim.app/SchichtPlanim
+          test -f build/Build/Products/Release-iphoneos/SchichtPlanim.app/www/index.html
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/SchichtPlanim.app Payload/
+          ditto -c -k --sequesterRsrc --keepParent Payload SchichtPlanim-unsigned.ipa
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchichtPlanim-unsigned-artifact
+          path: ios/schichtplanim/SchichtPlanim-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
