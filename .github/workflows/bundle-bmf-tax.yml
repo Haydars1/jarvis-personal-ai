@@ -24,9 +24,8 @@ jobs:
           globalThis.BMF2026Calculate = (inputs) => calculate(2026, inputs);
           EOF
           ./node_modules/.bin/esbuild entry.js --bundle --platform=browser --format=iife --target=es2020 --minify --outfile=bmf-2026.bundle.js
-          node - <<'EOF'
-          const pkg = require('./node_modules/lohnsteuerrechner/package.json');
-          const {calculate}=require('lohnsteuerrechner');
+          node --input-type=module - <<'EOF'
+          const {calculate}=await import('lohnsteuerrechner');
           const output=calculate(2026,{LZZ:2,RE4:500000,STKL:1,KVZ:2.5,PVZ:1});
           if(output.LSTLZZ!==78583)throw new Error('BMF fixture failed: '+output.LSTLZZ);
           console.log('BMF official fixture matched:',output.LSTLZZ);
